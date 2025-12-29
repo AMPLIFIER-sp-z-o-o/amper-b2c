@@ -1,0 +1,16 @@
+{% load i18n %}
+<section class="app-card">
+  <h2 class="pg-subtitle">{% translate "Two-Factor Auth" %}</h2>
+    {% if user_has_valid_totp_device %}
+        <p class="mb-3">{% translate "You already have two-factor authentication enabled." %}</p>
+        <a href="{% url "mfa_index" %}" class="pg-button-secondary">{% translate "Configure" %}</a>
+    {% else %}
+      {% if user.has_verified_email %}
+        <p class="mb-3">{% translate "You do not have two-factor authentication enabled." %}</p>
+        <a href="{% url "mfa_activate_totp" %}" class="pg-button-secondary">{% translate "Enable" %}</a>
+      {% else %}
+        <p class="mb-3">{% translate "To set up two-factor authentication you must first verify your email address." %}</p>
+        <a href="{% url "account_email" %}" class="pg-button-secondary">{% translate "Verify" %}</a>
+      {% endif %}
+    {% endif %}
+</section>

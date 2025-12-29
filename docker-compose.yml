@@ -1,0 +1,32 @@
+services:
+  db:
+    image: postgres:17
+    # persist data beyond lifetime of container
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=amplifier
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    ports:
+      - "7432:5432"
+    healthcheck:
+      test: pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}
+      interval: 2s
+      retries: 10
+  redis:
+    image: redis
+    # persistent storage
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "7379:7379"
+    healthcheck:
+      test: bash -c 'exec 6<>/dev/tcp/redis/7379'
+      interval: 2s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:

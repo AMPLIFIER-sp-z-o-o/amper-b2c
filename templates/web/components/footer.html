@@ -1,0 +1,13 @@
+{% load i18n %}
+<footer class="mt-10 mb-4">
+  <div class="text-center text-gray-700 dark:text-gray-500">
+    <p>{{project_meta.NAME}} &mdash; {% translate "Copyright" %} <span id="copyright-year">2024</span></p>
+    {% include "web/components/language_select.html" %}
+    <small>
+      {% blocktranslate trimmed %}Built with <a class="link" href="https://amplifier.pl/" target="_blank">AMPLIFIER sp. z o.o.</a>{% endblocktranslate %}
+    </small>
+  </div>
+</footer>
+<script>
+    document.getElementById('copyright-year').innerText = (new Date()).getFullYear();
+</script>

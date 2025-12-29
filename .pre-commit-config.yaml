@@ -1,0 +1,13 @@
+exclude: ^static/.*|assets/.*|/migrations/.*|\.min\.js$|\.min\.css$|\.css\.map$|\.min\.js$|\.js\.map$|\.svg$
+default_stages: [pre-commit]
+default_language_version:
+   python: python3.12
+
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.13.1
+    hooks:
+      - id: ruff-check
+        args: ["--fix"]
+      - id: ruff-format

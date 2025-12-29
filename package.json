@@ -1,0 +1,36 @@
+{
+  "name": "amper-b2c",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "vite build",
+    "dev": "vite",
+    "dev-watch": "vite",
+    "type-check": "tsc --noEmit",
+    "type-check-watch": "npm run type-check -- --watch"
+  },
+  "author": "",
+  "homepage": "http://example.com/",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.18",
+    "@tailwindcss/vite": "^4.1.18",
+    "@types/node": "^24.10.1",
+    "autoprefixer": "^10.4.22",
+    "flowbite-typography": "^1.0.5",
+    "postcss": "^8.5.6",
+    "postcss-import": "^16.1.1",
+    "postcss-nested": "^7.0.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "flowbite": "^4.0.1",
+    "htmx-ext-ws": "^2.0.4",
+    "htmx.org": "^2.0.8",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}

@@ -1,0 +1,717 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2025-12-22 17:15+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: amplifier/settings.py:322
+msgid "English"
+msgstr ""
+
+#: amplifier/settings.py:323
+msgid "Polish"
+msgstr ""
+
+#: amplifier/settings.py:513
+msgid "AMPLFIER sp. z o.o."
+msgstr ""
+
+#: amplifier/settings.py:515
+msgid "AMPER is a top-notch, next-gen SFA/FFM/e-commerce solution."
+msgstr ""
+
+#: apps/users/adapter.py:19
+msgid "There was an issue creating the account. Please contact support."
+msgstr ""
+
+#: apps/users/forms.py:51
+msgid "Email"
+msgstr ""
+
+#: apps/users/forms.py:52
+msgid "Language"
+msgstr ""
+
+#: apps/users/forms.py:53
+msgid "Time Zone"
+msgstr ""
+
+#: apps/users/forms.py:85
+msgid "Terms and Conditions"
+msgstr ""
+
+#: apps/users/forms.py:87
+#, python-brace-format
+msgid "I agree to the {terms_link}"
+msgstr ""
+
+#: apps/users/helpers.py:35
+#, python-brace-format
+msgid "Please upload a valid image file! Supported types are {types}"
+msgstr ""
+
+#: apps/users/helpers.py:43
+#, python-brace-format
+msgid "Maximum file size allowed is 5 MB. Provided file is {size} MB."
+msgstr ""
+
+#: apps/users/views.py:51
+msgid "Profile successfully saved."
+msgstr ""
+
+#: apps/users/views.py:60 templates/web/components/app_nav_menu_items.html:37
+msgid "Profile"
+msgstr ""
+
+#: apps/users/views.py:78
+msgid "Success!"
+msgstr ""
+
+#: apps/users/views.py:92
+#, python-brace-format
+msgid ""
+"API Key created. Your key is: {key}. Save this somewhere safe - you will "
+"only see it once!"
+msgstr ""
+
+#: apps/users/views.py:108
+#, python-brace-format
+msgid ""
+"API Key {key} has been revoked. It can no longer be used to access the site."
+msgstr ""
+
+#: apps/utils/timezones.py:42
+msgid "Not Set"
+msgstr ""
+
+#: apps/web/views.py:16 templates/web/components/app_nav_menu_items.html:8
+msgid "Dashboard"
+msgstr ""
+
+#: templates/400.html:4
+msgid "Shucks. That was a bad request."
+msgstr ""
+
+#: templates/400.html:6 templates/500.html:6
+msgid ""
+"Please try again, and if you continue to get this message, contact support."
+msgstr ""
+
+#: templates/403.html:4
+msgid "Oops. You don't have permission to do that."
+msgstr ""
+
+#: templates/403.html:6
+msgid "If you think this is a mistake, contact support."
+msgstr ""
+
+#: templates/404.html:4
+msgid "Shucks. We couldn't find that."
+msgstr ""
+
+#: templates/404.html:6
+msgid ""
+"If you think this page should exist, double-check that you are signed in as "
+"the right person."
+msgstr ""
+
+#: templates/429.html:4
+msgid "Oops. Too many requests."
+msgstr ""
+
+#: templates/429.html:6
+msgid ""
+"Try that again in a few minutes, and if you continue to have problems, let "
+"us know."
+msgstr ""
+
+#: templates/500.html:4
+msgid "Shucks. That's an error."
+msgstr ""
+
+#: templates/account/account_inactive.html:4
+#: templates/account/account_inactive.html:7
+msgid "Account Inactive"
+msgstr ""
+
+#: templates/account/account_inactive.html:8
+msgid "This account is inactive."
+msgstr ""
+
+#: templates/account/components/2fa.html:3
+msgid "Two-Factor Auth"
+msgstr ""
+
+#: templates/account/components/2fa.html:5
+msgid "You already have two-factor authentication enabled."
+msgstr ""
+
+#: templates/account/components/2fa.html:6
+msgid "Configure"
+msgstr ""
+
+#: templates/account/components/2fa.html:9
+msgid "You do not have two-factor authentication enabled."
+msgstr ""
+
+#: templates/account/components/2fa.html:10
+msgid "Enable"
+msgstr ""
+
+#: templates/account/components/2fa.html:12
+msgid ""
+"To set up two-factor authentication you must first verify your email address."
+msgstr ""
+
+#: templates/account/components/2fa.html:13
+msgid "Verify"
+msgstr ""
+
+#: templates/account/components/api_keys.html:3
+msgid "API Keys"
+msgstr ""
+
+#: templates/account/components/api_keys.html:10
+msgid "Prefix"
+msgstr ""
+
+#: templates/account/components/api_keys.html:11
+msgid "Created"
+msgstr ""
+
+#: templates/account/components/api_keys.html:25
+msgid "Revoke"
+msgstr ""
+
+#: templates/account/components/api_keys.html:36
+msgid "You haven't created any API keys yet. Create one below."
+msgstr ""
+
+#: templates/account/components/api_keys.html:41
+msgid "New API Key"
+msgstr ""
+
+#: templates/account/components/profile_form.html:10
+msgid "Change Picture"
+msgstr ""
+
+#: templates/account/components/profile_form.html:18
+msgid "My Details"
+msgstr ""
+
+#: templates/account/components/profile_form.html:23
+msgid "Manage email addresses"
+msgstr ""
+
+#: templates/account/components/profile_form.html:33
+#, python-format
+msgid "Your current timezone is %(user_tz)s, where it is %(now)s."
+msgstr ""
+
+#: templates/account/components/profile_form.html:37
+#, python-format
+msgid ""
+"You have not set a timezone, and are using the system timezone of "
+"%(current_tz)s where it is %(now)s."
+msgstr ""
+
+#: templates/account/components/profile_form.html:43
+msgid "Save"
+msgstr ""
+
+#: templates/account/components/social/login_with_social_button.html:7
+msgid "Logo"
+msgstr ""
+
+#: templates/account/components/social/login_with_social_button.html:8
+msgid "Continue with"
+msgstr ""
+
+#: templates/account/components/social/social_accounts.html:3
+msgid "Connected Accounts"
+msgstr ""
+
+#: templates/account/components/social/social_accounts.html:29
+msgid "You haven't linked any social accounts yet. Create one below."
+msgstr ""
+
+#: templates/account/components/social/social_buttons.html:5
+msgid "or"
+msgstr ""
+
+#: templates/account/email.html:4 templates/account/email.html:6
+msgid "E-mail Addresses"
+msgstr ""
+
+#: templates/account/email.html:8
+msgid "The following e-mail addresses are associated with your account:"
+msgstr ""
+
+#: templates/account/email.html:22
+msgid "Verified"
+msgstr ""
+
+#: templates/account/email.html:24
+msgid "Unverified"
+msgstr ""
+
+#: templates/account/email.html:26
+msgid "Primary"
+msgstr ""
+
+#: templates/account/email.html:32
+msgid "Make Primary"
+msgstr ""
+
+#: templates/account/email.html:33 templates/account/email_change.html:37
+msgid "Re-send Verification"
+msgstr ""
+
+#: templates/account/email.html:34 templates/socialaccount/connections.html:36
+msgid "Remove"
+msgstr ""
+
+#: templates/account/email.html:40
+msgid "Warning:"
+msgstr ""
+
+#: templates/account/email.html:40
+msgid ""
+"You currently do not have any e-mail address set up. You should really add "
+"an e-mail address so you can receive notifications, reset your password, etc."
+msgstr ""
+
+#: templates/account/email.html:45
+msgid "Add E-mail Address"
+msgstr ""
+
+#: templates/account/email.html:50
+msgid "Add E-mail"
+msgstr ""
+
+#: templates/account/email.html:58
+msgid "Do you really want to remove the selected e-mail address?"
+msgstr ""
+
+#: templates/account/email/email_confirmation_message.html:7
+#: templates/account/email/login_code_message.html:5
+#, python-format
+msgid ""
+"Your sign-in code for %(site_name)s is listed below. Please enter it in your "
+"open browser window."
+msgstr ""
+
+#: templates/account/email/email_confirmation_message.html:15
+#, python-format
+msgid ""
+"Please click the confirmation link below to activate your %(site_name)s "
+"account."
+msgstr ""
+
+#: templates/account/email/email_confirmation_message.html:29
+msgid "Confirm Email Address"
+msgstr ""
+
+#: templates/account/email/email_confirmation_signup_message.html:4
+msgid "Welcome!"
+msgstr ""
+
+#: templates/account/email/login_code_message.html:11
+msgid "This mail can be safely ignored if you did not initiate this action."
+msgstr ""
+
+#: templates/account/email/password_reset_key_message.html:3
+#, python-format
+msgid ""
+"Click the link below to reset your %(site_name)s password. If you didn't "
+"request this, you can safely ignore this email."
+msgstr ""
+
+#: templates/account/email/password_reset_key_message.html:8
+#: templates/account/email/password_reset_key_subject.txt:3
+msgid "Reset Password"
+msgstr ""
+
+#: templates/account/email/password_reset_key_message.txt:1
+#, python-format
+msgid ""
+"Hello, Please click the link below to reset your %(site_name)s password. "
+"%(password_reset_url)s If you did not try to reset your password you can "
+"safely ignore this email."
+msgstr ""
+
+#: templates/account/email/password_reset_key_message.txt:9
+#, python-format
+msgid "Thanks! The %(site_name)s team"
+msgstr ""
+
+#: templates/account/email_change.html:6 templates/account/email_change.html:9
+msgid "Email Address"
+msgstr ""
+
+#: templates/account/email_change.html:19
+#: templates/account/email_change.html:28
+msgid "Current email"
+msgstr ""
+
+#: templates/account/email_change.html:30
+msgid "Changing to"
+msgstr ""
+
+#: templates/account/email_change.html:34
+msgid "Your email address is still pending verification."
+msgstr ""
+
+#: templates/account/email_change.html:41
+msgid "Cancel Change"
+msgstr ""
+
+#: templates/account/email_change.html:50
+msgid "Change Email"
+msgstr ""
+
+#: templates/account/email_confirm.html:5
+msgid "Confirm E-mail Address"
+msgstr ""
+
+#: templates/account/email_confirm.html:9
+#, python-format
+msgid ""
+"Please confirm that <a href=\"mailto:%(email)s\">%(email)s</a> is an e-mail "
+"address for user %(user_display)s."
+msgstr ""
+
+#: templates/account/email_confirm.html:17
+msgid "Confirm"
+msgstr ""
+
+#: templates/account/email_confirm.html:23
+#, python-format
+msgid ""
+"This e-mail confirmation link expired or is invalid. Please <a "
+"href=\"%(email_url)s\">issue a new e-mail confirmation request</a>."
+msgstr ""
+
+#: templates/account/login.html:10 templates/account/login.html:18
+#: templates/web/components/top_nav.html:46
+msgid "Sign In"
+msgstr ""
+
+#: templates/account/login.html:25
+msgid "Mail me a sign-in code"
+msgstr ""
+
+#: templates/account/logout.html:7
+msgid "Are you sure you want to sign out?"
+msgstr ""
+
+#: templates/account/logout.html:15
+msgid "Sign Out"
+msgstr ""
+
+#: templates/account/logout.html:20
+msgid "Home"
+msgstr ""
+
+#: templates/account/password_change.html:8
+#: templates/account/password_change.html:16
+#: templates/account/password_reset_from_key.html:5
+#: templates/account/password_reset_from_key.html:28
+#: templates/account/password_reset_from_key_done.html:4
+#: templates/web/components/app_nav_menu_items.html:44
+msgid "Change Password"
+msgstr ""
+
+#: templates/account/password_reset.html:7
+#: templates/account/password_reset_done.html:5
+msgid "Password Reset"
+msgstr ""
+
+#: templates/account/password_reset.html:11
+msgid ""
+"Forgot your password? Enter your e-mail address below, and we'll send you an "
+"e-mail allowing you to reset it."
+msgstr ""
+
+#: templates/account/password_reset.html:17
+msgid "Send Password Reset"
+msgstr ""
+
+#: templates/account/password_reset.html:20
+msgid "Please contact us if you have any trouble resetting your password."
+msgstr ""
+
+#: templates/account/password_reset_done.html:10
+msgid ""
+"We've sent you an e-mail. Please get in touch if you do not receive it "
+"within a few minutes."
+msgstr ""
+
+#: templates/account/password_reset_from_key.html:5
+msgid "Bad Token"
+msgstr ""
+
+#: templates/account/password_reset_from_key.html:10
+msgid ""
+"The password reset link was invalid, possibly because it has already been "
+"used."
+msgstr ""
+
+#: templates/account/password_reset_from_key.html:15
+#, python-format
+msgid ""
+"Please request a <a href=\"%(passwd_reset_url)s\">new password reset</a>."
+msgstr ""
+
+#: templates/account/password_reset_from_key.html:32
+msgid "Your password is now changed."
+msgstr ""
+
+#: templates/account/password_reset_from_key_done.html:7
+msgid "Your password has been changed."
+msgstr ""
+
+#: templates/account/password_reset_from_key_done.html:13
+#, python-format
+msgid "You can now <a href=\"%(login_url)s\">login</a> with your new password."
+msgstr ""
+
+#: templates/account/password_set.html:8 templates/account/password_set.html:14
+msgid "Set Password"
+msgstr ""
+
+#: templates/account/signup.html:33 templates/socialaccount/signup.html:6
+#: templates/socialaccount/signup.html:9 templates/socialaccount/signup.html:21
+#: templates/web/components/top_nav.html:43
+msgid "Sign Up"
+msgstr ""
+
+#: templates/account/signup.html:37
+msgid "Already have account?"
+msgstr ""
+
+#: templates/account/signup.html:39
+msgid "Go to sign in."
+msgstr ""
+
+#: templates/account/signup_closed.html:4
+#: templates/account/signup_closed.html:7
+msgid "Sign Up Closed"
+msgstr ""
+
+#: templates/account/signup_closed.html:8
+msgid "We are sorry, but the sign up is currently closed."
+msgstr ""
+
+#: templates/account/verification_sent.html:4
+msgid "Verify Your E-mail Address"
+msgstr ""
+
+#: templates/account/verification_sent.html:6
+msgid ""
+"We have sent an e-mail to you for verification. Follow the link provided to "
+"finalize the signup process."
+msgstr ""
+
+#: templates/account/verification_sent.html:12
+msgid "Please contact us if you do not receive it within a few minutes."
+msgstr ""
+
+#: templates/content/blog_page.html:30
+msgid "Image Gallery"
+msgstr ""
+
+#: templates/dashboard/user_dashboard.html:8
+#: templates/web/components/app_nav_menu_items.html:64
+msgid "Project Dashboard"
+msgstr ""
+
+#: templates/dashboard/user_dashboard.html:23
+msgid "User Signups (Daily)"
+msgstr ""
+
+#: templates/dashboard/user_dashboard.html:27
+msgid "Registered Users (Total)"
+msgstr ""
+
+#: templates/group_chat/chat_room.html:7
+msgid "Type your message..."
+msgstr ""
+
+#: templates/group_chat/chat_room.html:8
+msgid "Send"
+msgstr ""
+
+#: templates/group_chat/components/message.html:13
+msgid "Anonymous User"
+msgstr ""
+
+#: templates/group_chat/group_chat_home.html:5
+msgid "Group Chats"
+msgstr ""
+
+#: templates/group_chat/group_chat_home.html:7
+msgid "What chat room would you like to enter?"
+msgstr ""
+
+#: templates/group_chat/group_chat_home.html:10
+#, python-format
+msgid ""
+"You can <a class=\"pg-link\" href=\"%(lobby_url)s\">join the lobby</a> or "
+"enter a custom room ID below."
+msgstr ""
+
+#: templates/group_chat/group_chat_home.html:17
+msgid "Join Room"
+msgstr ""
+
+#: templates/group_chat/group_chat_home.html:21
+msgid ""
+"This demo has been adapted from the <a href=\"https://"
+"channels.readthedocs.io/en/stable/tutorial/index.html\" "
+"target=\"_blank\">Django channels tutorial</a>. Visit that page for more "
+"information on how it works."
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:3
+msgid "Authentication Error"
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:11
+msgid "Social Network Login Failure"
+msgstr ""
+
+#: templates/socialaccount/authentication_error.html:12
+msgid ""
+"An error occurred while attempting to login via your social network account."
+msgstr ""
+
+#: templates/socialaccount/connections.html:3
+#: templates/socialaccount/connections.html:12
+msgid "Account Connections"
+msgstr ""
+
+#: templates/socialaccount/connections.html:11
+msgid "← Return to Profile"
+msgstr ""
+
+#: templates/socialaccount/connections.html:15
+msgid ""
+"You can sign in to your account using any of the following third party "
+"accounts:"
+msgstr ""
+
+#: templates/socialaccount/connections.html:41
+msgid ""
+"You currently have no social network accounts connected to this account."
+msgstr ""
+
+#: templates/socialaccount/connections.html:43
+msgid "Add a 3rd Party Account"
+msgstr ""
+
+#: templates/socialaccount/login.html:6
+#, python-format
+msgid "Connect %(provider)s"
+msgstr ""
+
+#: templates/socialaccount/login.html:8
+#, python-format
+msgid "You are about to connect a new third party account from %(provider)s."
+msgstr ""
+
+#: templates/socialaccount/login.html:10
+#, python-format
+msgid "Sign In Via %(provider)s"
+msgstr ""
+
+#: templates/socialaccount/login.html:12
+#, python-format
+msgid "You are about to sign in using a third party account from %(provider)s."
+msgstr ""
+
+#: templates/socialaccount/login.html:17
+msgid "Continue"
+msgstr ""
+
+#: templates/socialaccount/signup.html:11
+#, python-format
+msgid ""
+"You are about to use your %(provider_name)s account to login to "
+"%(site_name)s. As a final step, please complete the following form:"
+msgstr ""
+
+#: templates/web/app_home.html:8 templates/web/components/hero.html:18
+msgid "Fly Away!"
+msgstr ""
+
+#: templates/web/app_home.html:11
+msgid "You're Signed In!"
+msgstr ""
+
+#: templates/web/app_home.html:13
+msgid "This is your application's logged in home page."
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:3
+msgid "Application"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:14
+msgid "Flowbite Demo"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:20
+msgid "Shadcn Demo"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:26
+msgid "Group Chat"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:31
+msgid "My Account"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:51
+msgid "Sign out"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:58
+msgid "Admin"
+msgstr ""
+
+#: templates/web/components/app_nav_menu_items.html:70
+msgid "Impersonate a User"
+msgstr ""
+
+#: templates/web/components/footer.html:4
+msgid "Copyright"
+msgstr ""
+
+#: templates/web/components/footer.html:7
+msgid ""
+"Built with <a class=\"link\" href=\"https://amplifier.pl/\" "
+"target=\"_blank\">AMPLIFIER sp. z o.o.</a>"
+msgstr ""
+
+#: templates/web/components/hero.html:13
+msgid "Get started"
+msgstr ""
+
+#: templates/web/components/hero.html:14
+msgid "Sign in"
+msgstr ""
+
+#: templates/web/components/top_nav.html:21
+#: templates/web/components/top_nav.html:35
+msgid "Blog"
+msgstr ""
