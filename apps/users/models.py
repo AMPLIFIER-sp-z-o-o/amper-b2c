@@ -3,8 +3,12 @@ import uuid
 from functools import cached_property
 
 from allauth.account.models import EmailAddress
+from allauth.socialaccount.models import SocialApp
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.utils.translation import gettext_lazy as _
 
 from apps.users.helpers import validate_profile_picture
 
@@ -46,3 +50,35 @@ class CustomUser(AbstractUser):
     @cached_property
     def has_verified_email(self):
         return EmailAddress.objects.filter(user=self, verified=True).exists()
+
+
+class SocialAppSettings(models.Model):
+    """
+    Extended settings for SocialApp to enable/disable providers without deleting them.
+    """
+
+    social_app = models.OneToOneField(
+        SocialApp,
+        on_delete=models.CASCADE,
+        related_name="app_settings",
+        verbose_name=_("Social App"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Active"),
+        help_text=_("Uncheck to disable this provider without deleting it."),
+    )
+
+    class Meta:
+        verbose_name = _("Social App Settings")
+        verbose_name_plural = _("Social App Settings")
+
+    def __str__(self):
+        return f"Settings for {self.social_app.name}"
+
+
+@receiver(post_save, sender=SocialApp)
+def create_social_app_settings(sender, instance, created, **kwargs):
+    """Automatically create SocialAppSettings when a SocialApp is created."""
+    if created:
+        SocialAppSettings.objects.get_or_create(social_app=instance)

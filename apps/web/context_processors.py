@@ -1,16 +1,48 @@
-from copy import copy
-
 from django.conf import settings
+
+from apps.web.models import BottomBar, CustomCSS, Footer, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
 
 
+def _safe_call(callback, default=None):
+    try:
+        return callback()
+    except Exception:
+        return default
+
+
 def project_meta(request):
-    # modify these values as needed and add whatever else you want globally available here
-    project_data = copy(settings.PROJECT_METADATA)
-    project_data["TITLE"] = "{} | {}".format(project_data["NAME"], project_data["DESCRIPTION"])
+    # Build project metadata from SiteSettings
+    project_data = {
+        "NAME": "",
+        "URL": "",
+        "DESCRIPTION": "",
+        "IMAGE": None,
+        "KEYWORDS": "",
+    }
+
+    site_currency = "PLN"  # default
+    site_settings_obj = _safe_call(SiteSettings.get_settings)
+    if site_settings_obj:
+        project_data["NAME"] = site_settings_obj.store_name or ""
+        project_data["URL"] = site_settings_obj.site_url or ""
+        project_data["DESCRIPTION"] = site_settings_obj.description or ""
+        project_data["KEYWORDS"] = site_settings_obj.keywords or ""
+        site_currency = site_settings_obj.currency or "PLN"
+        if site_settings_obj.default_image:
+            project_data["IMAGE"] = site_settings_obj.default_image.url
+
+    # Build title from name and description
+    name = project_data["NAME"]
+    description = project_data["DESCRIPTION"]
+    project_data["TITLE"] = f"{name} | {description}" if name and description else name
+
+    theme_cookie = request.COOKIES.get("theme", "")
+
     return {
         "project_meta": project_data,
+        "site_currency": site_currency,
         "server_url": get_server_root(),
         "page_url": absolute_url(request.path),
         "page_title": "",
@@ -18,8 +50,8 @@ def project_meta(request):
         "page_image": "",
         "light_theme": settings.LIGHT_THEME,
         "dark_theme": settings.DARK_THEME,
-        "current_theme": request.COOKIES.get("theme", ""),
-        "dark_mode": request.COOKIES.get("theme", "") == settings.DARK_THEME,
+        "current_theme": theme_cookie,
+        "dark_mode": theme_cookie == settings.DARK_THEME,
         "turnstile_key": getattr(settings, "TURNSTILE_KEY", None),
         "use_i18n": getattr(settings, "USE_I18N", False) and len(getattr(settings, "LANGUAGES", [])) > 1,
     }
@@ -35,3 +67,96 @@ def google_analytics_id(request):
         }
     else:
         return {}
+
+
+def top_bar_section(request):
+    """
+    Adds the active top bar to all requests.
+
+    When draft preview is enabled, we return the TopBar singleton
+    so that draft changes to is_active or availability dates can be previewed.
+    The template checks top_bar.is_active to decide what to render.
+    """
+    draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
+
+    if draft_preview_enabled:
+        # In draft preview, always return the singleton so draft changes can be applied
+        top_bar = _safe_call(lambda: TopBar.objects.first())
+    else:
+        top_bar = _safe_call(TopBar.get_active)
+
+    return {
+        "top_bar": top_bar,
+    }
+
+
+def site_settings(request):
+    """
+    Adds site settings to all requests for global site configuration.
+    """
+    settings_obj = _safe_call(CustomCSS.get_settings)
+
+    return {
+        "site_settings": settings_obj,
+    }
+
+
+def footer_context(request):
+    """
+    Adds footer configuration to all requests.
+    Returns footer with sections (including links) and social media.
+
+    When draft preview is enabled, we always fetch sections/social media
+    so that draft changes to is_active or content_type can be previewed.
+    The template checks footer.is_active to decide what to render.
+    """
+    footer = _safe_call(Footer.get_settings)
+    footer_sections = []
+    footer_social_media = []
+
+    if footer:
+        # Check if draft preview is enabled - if so, always fetch sections
+        # because the draft might change is_active from False to True
+        draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
+
+        should_fetch_sections = (
+            draft_preview_enabled or (footer.is_active and footer.content_type == Footer.ContentType.STANDARD)
+        )
+
+        if should_fetch_sections:
+            footer_sections = list(footer.sections.prefetch_related("links").order_by("order", "id"))
+            footer_social_media = list(footer.social_media.filter(is_active=True).order_by("order", "id"))
+
+    return {
+        "footer": footer,
+        "footer_sections": footer_sections,
+        "footer_social_media": footer_social_media,
+    }
+
+
+def bottom_bar_context(request):
+    """
+    Adds bottom bar configuration to all requests.
+    Returns bottom bar with links.
+
+    When draft preview is enabled, we always fetch links
+    so that draft changes to is_active can be previewed.
+    The template checks bottom_bar.is_active to decide what to render.
+    """
+    bottom_bar = _safe_call(BottomBar.get_settings)
+    bottom_bar_links = []
+
+    if bottom_bar:
+        # Check if draft preview is enabled - if so, always fetch links
+        # because the draft might change is_active from False to True
+        draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
+
+        should_fetch_links = draft_preview_enabled or bottom_bar.is_active
+
+        if should_fetch_links:
+            bottom_bar_links = list(bottom_bar.links.order_by("order", "id"))
+
+    return {
+        "bottom_bar": bottom_bar,
+        "bottom_bar_links": bottom_bar_links,
+    }

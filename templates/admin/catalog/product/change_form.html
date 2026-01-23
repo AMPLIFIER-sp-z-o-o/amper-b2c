@@ -1,0 +1,26 @@
+{% extends "admin/change_form.html" %}
+{% load i18n unfold %}
+
+{# Override field_sets to exclude Statistics and Timestamps - they will be rendered after inlines #}
+{% block field_sets %}
+    {% with has_conditional_display=adminform.model_admin.conditional_fields %}
+        {% for fieldset in adminform %}
+            {% if "tab" not in fieldset.classes and fieldset.name != "Statistics" and fieldset.name != "Timestamps" %}
+                {% include 'admin/includes/fieldset.html' %}
+            {% endif %}
+        {% endfor %}
+
+        {% include "unfold/helpers/fieldsets_tabs.html" %}
+    {% endwith %}
+{% endblock %}
+
+{# Render Statistics and Timestamps after inlines (Product Images, Attributes) #}
+{% block after_related_objects %}
+    {% with has_conditional_display=adminform.model_admin.conditional_fields %}
+        {% for fieldset in adminform %}
+            {% if fieldset.name == "Statistics" or fieldset.name == "Timestamps" %}
+                {% include 'admin/includes/fieldset.html' %}
+            {% endif %}
+        {% endfor %}
+    {% endwith %}
+{% endblock %}

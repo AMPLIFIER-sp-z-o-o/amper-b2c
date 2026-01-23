@@ -1,0 +1,24 @@
+{% extends "web/base.html" %}
+
+{% block body %}
+<section class="section mt-7">
+  <div class="container">
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
+      <aside class="lg:col-span-1">
+        {% block sidebar-nav %}
+        <nav class="app-sidebar">
+          <ul class="space-y-2">
+            <li><a href="{% url 'users:user_profile' %}">Profile</a></li>
+            <li><a href="{% url 'account_change_password' %}">Password</a></li>
+            <li><a href="{% url 'mfa_index' %}">2FA</a></li>
+          </ul>
+        </nav>
+        {% endblock %}
+      </aside>
+      <div class="lg:col-span-3">
+        {% block app %}{% endblock %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

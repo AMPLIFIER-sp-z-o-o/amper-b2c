@@ -14,6 +14,7 @@ from pathlib import Path
 
 import environ
 from corsheaders.defaults import default_headers
+from django.urls import reverse_lazy
 from django.utils.translation import gettext_lazy
 
 # Build paths inside the project like this: BASE_DIR / "subdir".
@@ -39,6 +40,12 @@ ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
 # Application definition
 
 DJANGO_APPS = [
+    "unfold",
+    "unfold.contrib.filters",
+    "unfold.contrib.forms",
+    "unfold.contrib.inlines",
+    "unfold.contrib.import_export",
+    "import_export",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,8 +55,17 @@ DJANGO_APPS = [
     "django.contrib.postgres",
     "django.contrib.staticfiles",
     "django.contrib.sites",
+    "django.contrib.redirects",
     "django.forms",
 ]
+
+PROJECT_METADATA = {
+    "NAME": gettext_lazy("AMPLFIER sp. z o.o."),
+    "URL": "http://localhost:8000",
+    "DESCRIPTION": gettext_lazy("AMPER-B2C is a top-notch, next-gen  B2C e-commerce solution."),  # noqa: E501
+    "IMAGE": None,
+    "KEYWORDS": "e-commerce, amper-b2c",
+}
 
 # Put your third-party apps here
 THIRD_PARTY_APPS = [
@@ -58,11 +74,13 @@ THIRD_PARTY_APPS = [
     "allauth.headless",
     "allauth.socialaccount",
     "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.facebook",
     "allauth.socialaccount.providers.twitter_oauth2",
     "channels",
     "django_htmx",
     "django_watchfiles",
     "django_vite",
+    "django_ckeditor_5",
     "allauth.mfa",
     "rest_framework",
     "rest_framework.authtoken",
@@ -82,12 +100,137 @@ THIRD_PARTY_APPS = [
 # Put your project-specific apps here
 PROJECT_APPS = [
     "apps.users.apps.UserConfig",
-    "apps.dashboard.apps.DashboardConfig",
     "apps.api.apps.APIConfig",
-    "apps.web",
+    "apps.web.apps.WebConfig",
+    "apps.catalog.apps.CatalogConfig",
+    "apps.media.apps.MediaConfig",
+    "apps.homepage.apps.HomepageConfig",
+    "apps.support.apps.SupportConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
+
+UNFOLD = {
+    "SITE_TITLE": "AMPLFIER Admin",
+    "STYLES": [
+        # Custom admin styles are loaded via vite_asset in templates/admin/base.html
+    ],
+    "SCRIPTS": [
+        "/static/js/admin_custom.js",
+    ],
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": True,
+        "navigation": [
+            {
+                "title": gettext_lazy("Catalog"),
+                "icon": "store",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Products"),
+                        "link": reverse_lazy("admin:catalog_product_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Categories"),
+                        "link": reverse_lazy("admin:catalog_category_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Attributes"),
+                        "link": reverse_lazy("admin:catalog_attributedefinition_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Homepage"),
+                "icon": "home",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Hero Banners"),
+                        "link": reverse_lazy("admin:homepage_banner_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Sections"),
+                        "link": reverse_lazy("admin:homepage_homepagesection_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Media Storage"),
+                "icon": "perm_media",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Media library"),
+                        "link": reverse_lazy("admin:media_mediafile_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Storage settings"),
+                        "link": reverse_lazy("admin:media_mediastoragesettings_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Social accounts"),
+                "icon": "share",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Accounts"),
+                        "link": reverse_lazy("admin:socialaccount_socialaccount_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Applications"),
+                        "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Users"),
+                "icon": "people",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Users"),
+                        "link": reverse_lazy("admin:users_customuser_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Groups"),
+                        "link": reverse_lazy("admin:auth_group_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Web"),
+                "icon": "web",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Top bar"),
+                        "link": reverse_lazy("admin:web_topbar_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Footer"),
+                        "link": reverse_lazy("admin:web_footer_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Bottom bar"),
+                        "link": reverse_lazy("admin:web_bottombar_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Site Settings"),
+                        "link": reverse_lazy("admin:web_sitesettings_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Custom CSS"),
+                        "link": reverse_lazy("admin:web_customcss_changelist"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 if DEBUG:
     # in debug mode, add daphne to the beginning of INSTALLED_APPS to enable async support
@@ -97,14 +240,17 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "django.middleware.locale.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
+    "django.contrib.redirects.middleware.RedirectFallbackMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.media.middleware.CurrentUserMiddleware",
+    "apps.support.middleware.admin_draft_cleanup.AdminDraftCleanupMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
     "allauth.account.middleware.AccountMiddleware",
     "apps.web.middleware.locale.UserLocaleMiddleware",
     "apps.web.middleware.locale.UserTimezoneMiddleware",
+    "apps.web.middleware.draft_preview.DraftPreviewMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "hijack.middleware.HijackUserMiddleware",
@@ -145,6 +291,12 @@ TEMPLATES = [
                 "apps.web.context_processors.project_meta",
                 # this line can be removed if not using google analytics
                 "apps.web.context_processors.google_analytics_id",
+                "apps.web.context_processors.site_settings",
+                "apps.web.context_processors.top_bar_section",
+                "apps.web.context_processors.footer_context",
+                "apps.web.context_processors.bottom_bar_context",
+                "apps.support.context_processors.admin_extra_userlinks",
+                "apps.support.context_processors.draft_preview",
             ],
             "loaders": _DEFAULT_LOADERS if DEBUG else _CACHED_LOADERS,
         },
@@ -259,29 +411,17 @@ AUTHENTICATION_BACKENDS = (
 # enable social login
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
-        "APPS": [
-            {
-                "client_id": env("GOOGLE_CLIENT_ID", default=""),
-                "secret": env("GOOGLE_SECRET_ID", default=""),
-                "key": "",
-            },
-        ],
-        "SCOPE": [
-            "profile",
-            "email",
-        ],
-        "AUTH_PARAMS": {
-            "access_type": "online",
-        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    },
+    "facebook": {
+        "METHOD": "oauth2",
+        "SCOPE": ["email", "public_profile"],
+        "FIELDS": ["id", "email", "name", "first_name", "last_name"],
+        "VERSION": "v18.0",
     },
     "twitter_oauth2": {
-        "APPS": [
-            {
-                "client_id": env("TWITTER_CLIENT_ID", default=""),
-                "secret": env("TWITTER_SECRET_ID", default=""),
-                "key": "",
-            },
-        ],
+        "SCOPE": ["users.read"],
     },
 }
 
@@ -306,7 +446,6 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/stable/howto/static-files/
@@ -476,19 +615,10 @@ CHANNEL_LAYERS = {
 # A list of tokens that can be used to access the health check endpoint
 HEALTH_CHECK_TOKENS = env.list("HEALTH_CHECK_TOKENS", default="")
 
-
-# replace any values below with specifics for your project
-PROJECT_METADATA = {
-    "NAME": gettext_lazy("AMPLFIER sp. z o.o."),
-    "URL": "http://localhost:8000",
-    "DESCRIPTION": gettext_lazy("AMPER-B2C is a top-notch, next-gen  B2C e-commerce solution."),  # noqa: E501
-    "IMAGE": None,
-    "KEYWORDS": "e-commerce, amper-b2c",
-    "CONTACT_EMAIL": "tomek@dziemidowicz.cloud",
-}
-
 # set this to True in production to have URLs generated with https instead of http
 USE_HTTPS_IN_ABSOLUTE_URLS = env.bool("USE_HTTPS_IN_ABSOLUTE_URLS", default=False)
+
+DRAFT_PREVIEW_TTL_MINUTES = env.int("DRAFT_PREVIEW_TTL_MINUTES", default=1440)
 
 ADMINS = ["tomek@dziemidowicz.cloud"]
 
@@ -526,3 +656,87 @@ LOGGING = {
         },
     },
 }
+
+# CKEditor 5 Configuration
+CKEDITOR_5_CONFIGS = {
+    "default": {
+        "toolbar": [
+            "heading",
+            "|",
+            "bold",
+            "italic",
+            "|",
+            "link",
+            "|",
+            "bulletedList",
+            "numberedList",
+            "|",
+            "blockQuote",
+            "|",
+            "undo",
+            "redo",
+        ],
+    },
+    "extends": {
+        "toolbar": [
+            "heading",
+            "|",
+            "bold",
+            "italic",
+            "link",
+            "bulletedList",
+            "|",
+            "fontSize",
+            "fontColor",
+            "fontBackgroundColor",
+            "|",
+            "alignment",
+            "numberedList",
+            "|",
+            "imageInsert",
+            "insertTable",
+            "mediaEmbed",
+            "horizontalLine",
+            "|",
+            "sourceEditing",
+            "underline",
+        ],
+        "image": {
+            "toolbar": [
+                "imageTextAlternative",
+                "|",
+                "imageStyle:inline",
+                "imageStyle:wrapText",
+                "imageStyle:breakText",
+                "|",
+                "resizeImage",
+            ],
+        },
+        "table": {
+            "contentToolbar": [
+                "tableColumn",
+                "tableRow",
+                "mergeTableCells",
+                "tableProperties",
+                "tableCellProperties",
+            ],
+        },
+        "heading": {
+            "options": [
+                {"model": "paragraph", "title": "Paragraph", "class": "ck-heading_paragraph"},
+                {"model": "heading1", "view": "h1", "title": "Heading 1", "class": "ck-heading_heading1"},
+                {"model": "heading2", "view": "h2", "title": "Heading 2", "class": "ck-heading_heading2"},
+                {"model": "heading3", "view": "h3", "title": "Heading 3", "class": "ck-heading_heading3"},
+                {"model": "heading4", "view": "h4", "title": "Heading 4", "class": "ck-heading_heading4"},
+            ],
+        },
+        "wordCount": {
+            "displayWords": False,
+            "displayCharacters": False,
+        },
+    },
+}
+
+CKEDITOR_5_FILE_STORAGE = "apps.media.storage.DynamicMediaStorage"
+CKEDITOR_5_FILE_UPLOAD_PERMISSION = "authenticated"
+CKEDITOR_5_UPLOAD_FILE_TYPES = ["jpeg", "jpg", "png", "gif", "webp", "svg"]

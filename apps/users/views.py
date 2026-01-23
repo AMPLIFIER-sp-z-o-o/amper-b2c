@@ -7,14 +7,19 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.utils.translation import gettext_lazy as _
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from apps.api.models import UserAPIKey
+from apps.utils.timezones import is_valid_timezone
 
 from .adapter import user_has_valid_totp_device
 from .forms import CustomUserChangeForm, UploadAvatarForm
 from .helpers import require_email_confirmation, user_has_confirmed_email_address
 from .models import CustomUser
+
+# Cookie name for storing browser timezone
+TIMEZONE_COOKIE_NAME = "amplifier_timezone"
 
 
 @login_required
@@ -110,3 +115,41 @@ def revoke_api_key(request):
         ),
     )
     return HttpResponseRedirect(reverse("users:user_profile"))
+
+
+@csrf_exempt
+@require_POST
+def set_timezone(request):
+    """
+    Set the user's timezone from browser detection.
+    Works for both authenticated and anonymous users via cookie.
+    For authenticated users, also saves to their profile if not already set.
+    """
+    import json
+
+    try:
+        data = json.loads(request.body)
+        tz_name = data.get("timezone", "")
+    except (json.JSONDecodeError, ValueError):
+        tz_name = request.POST.get("timezone", "")
+
+    if not tz_name or not is_valid_timezone(tz_name):
+        return JsonResponse({"status": "error", "message": "Invalid timezone"}, status=400)
+
+    response = JsonResponse({"status": "ok", "timezone": tz_name})
+
+    # Set cookie for all users (including anonymous)
+    response.set_cookie(
+        TIMEZONE_COOKIE_NAME,
+        tz_name,
+        max_age=365 * 24 * 60 * 60,  # 1 year
+        httponly=True,
+        samesite="Lax",
+    )
+
+    # For authenticated users, save to profile if not already set
+    if request.user.is_authenticated and not request.user.timezone:
+        request.user.timezone = tz_name
+        request.user.save(update_fields=["timezone"])
+
+    return response

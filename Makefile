@@ -1,5 +1,7 @@
 include custom.mk
 
+DB_NAME = amplifier
+
 setup-env:
 	@[ ! -f ./.env ] && cp ./.env.example ./.env || echo ".env file already exists."
 
@@ -32,7 +34,7 @@ migrations: ## Create DB migrations in the container
 
 migrate: ## Run DB migrations in the container
 	@echo "Waiting for database to be ready..."
-	@until docker compose exec db pg_isready -d amplifier -U postgres >/dev/null 2>&1; do echo "Database not ready, waiting..."; sleep 2; done
+	@until docker compose exec db pg_isready -d $(DB_NAME) -U postgres >/dev/null 2>&1; do echo "Database not ready, waiting..."; sleep 2; done
 	@echo "Database is ready, running migrations..."
 	@uv run manage.py migrate
 
@@ -45,17 +47,17 @@ shell: ## Get a Django shell
 	@uv run manage.py shell
 
 dbshell: ## Get a Database shell
-	@docker compose exec db psql -U postgres amplifier
+	@docker compose exec db psql -U postgres $(DB_NAME)
 
 seed: ## Load default data (public + tenants)
 	@uv run manage.py seed ${ARGS}
 
 reset-db: ## Drop and recreate database, run migrations
 	@echo "Terminating existing connections..."
-	@docker compose exec db psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'amplifier' AND pid <> pg_backend_pid();" || true
+	@docker compose exec db psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$(DB_NAME)' AND pid <> pg_backend_pid();" || true
 	@echo "Dropping and recreating database..."
-	@docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS amplifier;"
-	@docker compose exec db psql -U postgres -c "CREATE DATABASE amplifier;"
+	@docker compose exec db psql -U postgres -c "DROP DATABASE IF EXISTS $(DB_NAME);"
+	@docker compose exec db psql -U postgres -c "CREATE DATABASE $(DB_NAME);"
 	@echo "Running migrations..."
 	@uv run manage.py migrate
 	@echo "Database reset complete."

@@ -1,0 +1,57 @@
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const swiperElements = document.querySelectorAll(".homepage-products-swiper");
+    if (!swiperElements.length || !window.Swiper) {
+      return;
+    }
+
+    swiperElements.forEach((swiperEl) => {
+      const productCount = Number.parseInt(swiperEl.dataset.productCount || "0", 10);
+      const sectionId = swiperEl.dataset.sectionId;
+      const nextButton = document.querySelector(
+        `.homepage-products-next[data-section-id="${sectionId}"]`
+      );
+      const prevButton = document.querySelector(
+        `.homepage-products-prev[data-section-id="${sectionId}"]`
+      );
+      const minSlides = Math.min(2, Math.max(productCount, 1));
+      const showPeek = productCount >= 3;
+      const baseSlidesPerView = showPeek ? 2.15 : minSlides;
+
+      const swiper = new Swiper(swiperEl, {
+        loop: productCount >= 2,
+        autoplay: false,
+        watchOverflow: true,
+        slidesPerView: baseSlidesPerView,
+        spaceBetween: 12,
+        speed: 400,
+        allowTouchMove: true,
+        breakpoints: {
+          480: {
+            slidesPerView: showPeek ? 2.2 : minSlides,
+            spaceBetween: 12,
+          },
+          640: {
+            slidesPerView: showPeek ? 2.3 : minSlides,
+            spaceBetween: 14,
+          },
+          768: {
+            slidesPerView: showPeek ? 2.4 : minSlides,
+            spaceBetween: 16,
+          },
+        },
+      });
+
+      if (nextButton) {
+        nextButton.addEventListener("click", () => swiper.slideNext());
+      }
+      if (prevButton) {
+        prevButton.addEventListener("click", () => swiper.slidePrev());
+      }
+    });
+  });
+</script>

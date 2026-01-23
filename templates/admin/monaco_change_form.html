@@ -1,0 +1,531 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+
+{# 
+  Base template for admin change forms with Monaco Editors (HTML/CSS/JS).
+  Provides:
+  - Three Monaco editors for HTML, CSS, and JavaScript
+  - Live preview panel
+  - Image upload functionality
+  - Fullscreen mode for each editor
+  - Resize handles for all editors
+  
+  Extend this template and override blocks as needed:
+  - monaco_extra_styles: Add page-specific CSS
+  - monaco_extra_scripts: Add page-specific JavaScript
+#}
+
+{% block extrahead %}
+  {{ block.super }}
+  {# Monaco Editor CSS #}
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
+  
+  {# Monaco Editors Custom Styling #}
+  <style>
+    /* ==========================================================================
+       Monaco Editors Layout
+       ========================================================================== */
+    
+    .monaco-editors-container {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 12px;
+      background: #1e1e2e;
+      border-radius: 6px;
+      border: 1px solid #313244;
+    }
+    
+    /* Top toolbar with global actions */
+    .monaco-global-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px 4px;
+      border-bottom: 1px solid #313244;
+      margin-bottom: 8px;
+    }
+    
+    /* Editors row - 3 columns */
+    .monaco-editors-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 4px;
+    }
+    
+    /* Preview row - full width below */
+    .monaco-preview-row {
+      width: 100%;
+      margin-top: 4px;
+    }
+    
+    /* Unified resize handle for all editors */
+    .monaco-unified-resize {
+      width: 100%;
+      height: 8px;
+      background: #2d2d3a;
+      cursor: ns-resize;
+      border-radius: 0 0 4px 4px;
+      margin-top: -1px;
+      transition: background 0.2s;
+    }
+    
+    .monaco-unified-resize:hover {
+      background: #a6e3a1 !important;
+    }
+    
+    /* ==========================================================================
+       Monaco Editor Wrapper
+       ========================================================================== */
+    
+    .monaco-editor-wrapper {
+      background: #1e1e1e;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+      border: 1px solid #313244;
+    }
+    
+    .monaco-editor-wrapper:first-child {
+      border-radius: 4px 0 0 4px;
+    }
+    
+    .monaco-editor-wrapper:last-child {
+      border-radius: 0 4px 4px 0;
+    }
+    
+    .monaco-editor-wrapper.monaco-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99999 !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+    }
+    
+    .monaco-editor-wrapper.monaco-fullscreen .monaco-editor-container {
+      height: calc(100vh - 44px) !important;
+    }
+    
+    .monaco-editor-wrapper.monaco-fullscreen .monaco-resize-handle {
+      display: none;
+    }
+    
+    body.monaco-fullscreen-active {
+      overflow: hidden !important;
+    }
+    
+    .monaco-editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #2d2d3a;
+      border-bottom: 1px solid #3c3c4a;
+      min-height: 36px;
+    }
+    
+    .monaco-editor-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cdd6f4;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .monaco-editor-label-icon {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+    
+    .monaco-editor-label-icon.html { background: #fab387; }
+    .monaco-editor-label-icon.css { background: #89b4fa; }
+    .monaco-editor-label-icon.js { background: #f9e2af; }
+    
+    .monaco-editor-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .monaco-editor-container {
+      min-height: 200px;
+    }
+    
+    /* ==========================================================================
+       Monaco Buttons
+       ========================================================================== */
+    
+    .monaco-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      border-radius: 4px;
+      color: #a6adc8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .monaco-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #cdd6f4;
+    }
+    
+    .monaco-btn:active {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    
+    .monaco-btn.loading {
+      pointer-events: none;
+      opacity: 0.5;
+    }
+    
+    .monaco-btn.loading::after {
+      content: "";
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #cccccc;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: monaco-spin 0.8s linear infinite;
+    }
+    
+    @keyframes monaco-spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .monaco-btn-upload {
+      background: rgba(166, 227, 161, 0.15);
+    }
+    
+    .monaco-btn-upload:hover {
+      background: rgba(166, 227, 161, 0.3);
+    }
+    
+    .monaco-btn-global {
+      padding: 0 12px;
+      width: auto;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    
+    .monaco-btn-global svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ==========================================================================
+       Resize Handle
+       ========================================================================== */
+    
+    .monaco-resize-handle {
+      height: 6px;
+      cursor: ns-resize;
+      background: #2d2d3a;
+      transition: background 0.15s ease;
+    }
+    
+    .monaco-resize-handle:hover {
+      background: #89b4fa;
+    }
+    
+    /* ==========================================================================
+       Preview Panel
+       ========================================================================== */
+    
+    .monaco-preview-panel {
+      background: #f8fafc;
+      border-radius: 0;
+      overflow: auto;
+      box-shadow: none;
+      min-height: 450px;
+      max-height: 450px;
+      border: 1px solid #313244;
+    }
+    
+    .monaco-preview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: #2d2d3a;
+      border-bottom: 1px solid #3c3c4a;
+    }
+    
+    .monaco-preview-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #cdd6f4;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .monaco-preview-actions {
+      display: flex;
+      gap: 4px;
+    }
+    
+    .monaco-preview-actions .monaco-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: #a6adc8;
+    }
+    
+    .monaco-preview-actions .monaco-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #cdd6f4;
+    }
+    
+    .monaco-preview-content {
+      flex: 1;
+      overflow-x: auto;
+      overflow-y: visible;
+      background: #f8fafc;
+      display: flex;
+      justify-content: center;
+      padding: 0 24px;
+    }
+    
+    .monaco-preview-content iframe {
+      width: 100%;
+      max-width: 1400px;
+      height: auto;
+      min-height: 100%;
+      border: none;
+      background: transparent;
+      display: block;
+    }
+    
+    .monaco-resize-handle-preview {
+      display: none;
+    }
+
+    /* ==========================================================================
+       Popup Modal
+       ========================================================================== */
+    
+    .monaco-popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 100000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: monaco-fade-in 0.2s ease;
+    }
+    
+    .monaco-popup-container {
+      background: #1e1e2e;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 95vw;
+      max-height: 95vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .monaco-popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #2d2d3a;
+      border-bottom: 1px solid #3c3c4a;
+    }
+    
+    .monaco-popup-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #cdd6f4;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .monaco-popup-close {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 6px;
+      color: #a6adc8;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .monaco-popup-close:hover {
+      background: #f38ba8;
+      color: #1e1e2e;
+    }
+    
+    .monaco-popup-content {
+      flex: 1;
+      overflow: hidden;
+      min-height: 500px;
+    }
+    
+    .monaco-popup-content .monaco-editor-wrapper {
+      height: 100%;
+      border: none;
+      border-radius: 0;
+    }
+    
+    .monaco-popup-content .monaco-editor-container {
+      height: calc(100% - 44px) !important;
+    }
+    
+    @keyframes monaco-fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* ==========================================================================
+       Notifications
+       ========================================================================== */
+    
+    .monaco-notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #ffffff;
+      z-index: 100001;
+      animation: monaco-slide-in 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .monaco-notification-success {
+      background: #a6e3a1;
+      color: #1e1e2e;
+    }
+    
+    .monaco-notification-error {
+      background: #f38ba8;
+      color: #1e1e2e;
+    }
+    
+    .monaco-notification-info {
+      background: #89b4fa;
+      color: #1e1e2e;
+    }
+    
+    .monaco-notification.fade-out {
+      animation: monaco-fade-out 0.3s ease forwards;
+    }
+    
+    @keyframes monaco-slide-in {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes monaco-fade-out {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+    
+    /* ==========================================================================
+       Dark Mode Support (already dark by default now)
+       ========================================================================== */
+    
+    .dark .monaco-editors-container {
+      background: #1e1e2e;
+      border-color: #313244;
+    }
+    
+    .dark .monaco-preview-panel {
+      background: #1e1e2e;
+    }
+    
+    .dark .monaco-preview-header {
+      background: #2d2d3a;
+      border-color: #3c3c4a;
+    }
+    
+    .dark .monaco-preview-title {
+      color: #cdd6f4;
+    }
+    
+    .dark .monaco-preview-content {
+      background: #ffffff;
+    }
+    
+    .dark .monaco-resize-handle-preview {
+      background: #2d2d3a;
+    }
+    
+    .dark .monaco-resize-handle-preview:hover {
+      background: #a6e3a1;
+    }
+    
+    /* ==========================================================================
+       Responsive
+       ========================================================================== */
+    
+    @media (max-width: 1200px) {
+      .monaco-editors-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    @media (max-width: 768px) {
+      .monaco-editors-row {
+        grid-template-columns: 1fr;
+      }
+      
+      .monaco-editor-wrapper:first-child,
+      .monaco-editor-wrapper:last-child {
+        border-radius: 4px;
+      }
+    }
+    
+    {% block monaco_extra_styles %}{% endblock %}
+  </style>
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  {# Monaco Editor AMD Loader #}
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  {# Monaco Editors Initialization #}
+  <script src="{% static 'js/monaco_editors.js' %}"></script>
+  {% block monaco_extra_scripts %}{% endblock %}
+{% endblock %}

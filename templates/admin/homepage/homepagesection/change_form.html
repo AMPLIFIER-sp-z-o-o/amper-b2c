@@ -1,0 +1,12 @@
+{% extends "admin/monaco_change_form.html" %}
+
+{% block monaco_extra_styles %}
+  /* Hide inline image thumbnail next to the Image field (duplicate preview) */
+  #section_banners-group td.field-image .h-\[38px\] {
+    display: none !important;
+  }
+  /* Hide redundant "Currently" link under Target URL in banner inline rows */
+  #section_banners-group td.field-url p {
+    display: none !important;
+  }
+{% endblock %}

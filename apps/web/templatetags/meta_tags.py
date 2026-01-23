@@ -44,3 +44,40 @@ def websocket_url(name, *args, **kwargs):
     Usage: {% websocket_url 'websocket_name' %}
     """
     return meta.websocket_absolute_url(meta.websocket_reverse(name, args=args, kwargs=kwargs))
+
+
+APP_ICONS = {
+    "users": "person",
+    "auth": "lock",
+    "catalog": "inventory_2",
+    "media": "perm_media",
+    "homepage": "home",
+    "web": "web",
+    "support": "support_agent",
+    "api": "api",
+    "rest_framework_api_key": "vpn_key",
+    "authtoken": "token",
+    "socialaccount": "share",
+    "account": "badge",
+    "sites": "language",
+    "django_celery_beat": "schedule",
+    "celery_progress": "pending",
+    "redirects": "alt_route",
+    "admin_interface": "settings",
+    "constance": "settings",
+    "default": "apps",
+}
+
+
+@register.filter
+def get_app_icon(app_label):
+    return APP_ICONS.get(app_label, APP_ICONS["default"])
+
+
+@register.filter
+def getattribute(obj, attr):
+    """Get an attribute of an object dynamically."""
+    try:
+        return getattr(obj, attr, None)
+    except Exception:
+        return None

@@ -1,0 +1,16 @@
+{% load unfold %}
+{% if draft_preview_links %}
+  {% url 'support:draft_preview_enable' as draft_preview_enable_url %}
+  {% for preview_link in draft_preview_links %}
+    {% with next_param=preview_link.url|urlencode %}
+      <a href="{{ draft_preview_enable_url }}?next={{ next_param }}" 
+         target="_blank" 
+         rel="noopener"
+         title="Open draft preview in a new tab"
+         class="bg-primary-600 text-white border border-transparent cursor-pointer flex font-medium gap-2 items-center justify-center px-3 py-2 rounded-default transition-all w-full hover:bg-primary-700 lg:w-auto draft-preview-link">
+        <span class="material-symbols-outlined text-base">preview</span>
+        <span class="truncate max-w-[200px]">{{ preview_link.label }}</span>
+      </a>
+    {% endwith %}
+  {% endfor %}
+{% endif %}

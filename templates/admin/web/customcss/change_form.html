@@ -1,0 +1,72 @@
+{% extends "admin/change_form.html" %}
+{% load i18n static %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
+  <style>
+    #custom-css-editor {
+      height: 60vh;
+      min-height: 420px;
+      border: 1px solid var(--border-color, #e5e7eb);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 12px;
+      position: relative;
+      z-index: 0;
+      isolation: isolate;
+    }
+    #id_custom_css {
+      display: none;
+    }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+{% endblock %}
+
+
+{% block form_top %}
+  {{ block.super }}
+{% endblock %}
+
+{% block admin_change_form_document_ready %}
+  {{ block.super }}
+  <script>
+    (function () {
+      const textarea = document.getElementById('id_custom_css');
+      if (!textarea || !window.require) {
+        return;
+      }
+
+      const editorContainer = document.createElement('div');
+      editorContainer.id = 'custom-css-editor';
+      textarea.parentNode.insertBefore(editorContainer, textarea.nextSibling);
+
+      require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs' } });
+      require(['vs/editor/editor.main'], function () {
+        const editor = monaco.editor.create(editorContainer, {
+          value: textarea.value || '',
+          language: 'css',
+          theme: 'vs-dark',
+          automaticLayout: true,
+          minimap: { enabled: false },
+          fontSize: 13,
+          lineNumbers: 'on',
+          scrollBeyondLastLine: false,
+          wordWrap: 'on',
+          tabSize: 2,
+          insertSpaces: true,
+        });
+
+        editor.onDidChangeModelContent(function () {
+          textarea.value = editor.getValue();
+          // Dispatch events for the draft system to pick up changes
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          textarea.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        // Tell the draft system to resync its baseline after editor initialization
+        document.dispatchEvent(new CustomEvent('draft:resyncBaseline'));
+      });
+    })();
+  </script>
+{% endblock %}

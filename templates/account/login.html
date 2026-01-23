@@ -1,32 +1,129 @@
 {% extends "web/base.html" %}
 {% load i18n %}
 {% load static %}
-{% load form_tags %}
+{% load socialaccount %}
+{% load social_tags %}
 {% block body %}
-  <div class="flex justify-center my-8 ">
-    <div class="w-96 px-4 py-4">
-      <div>
-        <h2 class="mt-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
-          {% translate "Sign In" %}
-        </h2>
-        <form class="mt-6 space-y-6" method="post">
-          {% csrf_token %}
-          {{ form.non_field_errors }}
-          {% render_field form.login %}
-          {% render_field form.password %}
-          <div>
-            <input class="btn btn-primary btn-block" type="submit" value="{% translate "Sign In" %}">
-          </div>
-        </form>
-        {% include 'account/components/social/social_buttons.html' %}
-        {% if LOGIN_BY_CODE_ENABLED %}
-        <p class="pg-text-centered pg-text-muted">
-          <a class="text-sm muted-link" href="{{ request_login_code_url }}">
-            {% translate "Mail me a sign-in code" %}
+<section class="bg-gray-50 dark:bg-gray-900 min-h-[80vh] flex items-center">
+  <div class="max-w-7xl px-4 py-8 mx-auto w-full">
+    <div class="w-full col-span-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 md:mt-0 sm:max-w-lg xl:p-0">
+      <div class="p-6 space-y-4 lg:space-y-6 sm:p-8">
+        <div class="flex flex-col items-center mb-6">
+          <a href="{% url 'web:home' %}" class="flex items-center">
+            <img src="{% static 'images/web/amper-b2c-logo.svg' %}" class="h-16" alt="AMPER Logo">
           </a>
-        </p>
+        </div>
+        {% get_socialapps as social_providers %}
+        {% if social_providers %}
+        <div class="{% if social_providers|length == 2 %}grid grid-cols-2 gap-3{% else %}flex flex-col space-y-3{% endif %}">
+          {% for provider in social_providers %}
+          <form
+            method="post"
+            action="{% provider_login_url provider.id %}"
+            class="w-full"
+          >
+            {% csrf_token %}
+            <button
+              type="submit"
+              class="w-full inline-flex items-center justify-center py-2.5 px-2 text-xs sm:text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 cursor-pointer whitespace-nowrap"
+            >
+              {% if provider.id == "google" %}
+              <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <g clip-path="url(#clip0_google)"><path d="M20.3081 10.2303C20.3081 9.55056 20.253 8.86711 20.1354 8.19836H10.7031V12.0492H16.1046C15.8804 13.2911 15.1602 14.3898 14.1057 15.0879V17.5866H17.3282C19.2205 15.8449 20.3081 13.2728 20.3081 10.2303Z" fill="#3F83F8"/><path d="M10.7019 20.0006C13.3989 20.0006 15.6734 19.1151 17.3306 17.5865L14.1081 15.0879C13.2115 15.6979 12.0541 16.0433 10.7056 16.0433C8.09669 16.0433 5.88468 14.2832 5.091 11.9169H1.76562V14.4927C3.46322 17.8695 6.92087 20.0006 10.7019 20.0006V20.0006Z" fill="#34A853"/><path d="M5.08857 11.9169C4.66969 10.6749 4.66969 9.33008 5.08857 8.08811V5.51233H1.76688C0.348541 8.33798 0.348541 11.667 1.76688 14.4927L5.08857 11.9169V11.9169Z" fill="#FBBC04"/><path d="M10.7019 3.95805C12.1276 3.936 13.5055 4.47247 14.538 5.45722L17.393 2.60218C15.5852 0.904587 13.1858 -0.0287217 10.7019 0.000673888C6.92087 0.000673888 3.46322 2.13185 1.76562 5.51234L5.08732 8.08813C5.87733 5.71811 8.09302 3.95805 10.7019 3.95805V3.95805Z" fill="#EA4335"/></g><defs><clipPath id="clip0_google"><rect width="20" height="20" fill="white" transform="translate(0.5)"/></clipPath></defs>
+              </svg>
+              {% elif provider.id == "facebook" %}
+              <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.5 0C4.97715 0 0.5 4.47715 0.5 10C0.5 14.9913 4.15684 19.1283 8.9375 19.8785V12.8906H6.39844V10H8.9375V7.79688C8.9375 5.29063 10.4305 3.90625 12.7146 3.90625C13.8084 3.90625 14.9531 4.10156 14.9531 4.10156V6.5625H13.6922C12.4499 6.5625 12.0625 7.3334 12.0625 8.125V10H14.8359L14.3926 12.8906H12.0625V19.8785C16.8432 19.1283 20.5 14.9913 20.5 10C20.5 4.47715 16.0228 0 10.5 0Z" fill="#1877F2"/>
+              </svg>
+              {% elif provider.id == "twitter_oauth2" %}
+              <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12.2845 8.46864L19.5685 0H17.8435L11.5175 7.3532L6.4655 0H0.5L8.1205 11.1193L0.5 20H2.225L8.887 12.2348L14.2345 20H20.2L12.284 8.46864H12.2845ZM9.7595 11.2173L8.9855 10.1101L2.8475 1.29968H5.6385L10.4475 8.40994L11.2215 9.51718L17.8445 18.7594H15.0535L9.7595 11.2178V11.2173Z" fill="currentColor"/>
+              </svg>
+              {% endif %}
+              {% blocktranslate with name=provider.name %}Log in with {{ name }}{% endblocktranslate %}
+            </button>
+          </form>
+          {% endfor %}
+        </div>
+        <div class="flex items-center">
+          <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+          <div class="px-5 text-center text-gray-500 dark:text-gray-400">{% translate "or" %}</div>
+          <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+        </div>
         {% endif %}
+
+        <form
+          class="space-y-4 lg:space-y-6"
+          method="post"
+          action="{% url 'account_login' %}"
+        >
+          {% csrf_token %} {{ form.non_field_errors }}
+          <div>
+            <label
+              for="{{ form.login.id_for_label }}"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >{% translate "Email" %}</label
+            >
+            <input
+              type="email"
+              name="login"
+              id="{{ form.login.id_for_label }}"
+              class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              placeholder="{% translate 'Enter your email' %}"
+              required=""
+            />
+            {{ form.login.errors }}
+          </div>
+          <div>
+            <label
+              for="{{ form.password.id_for_label }}"
+              class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+              >{% translate "Password" %}</label
+            >
+            <input
+              type="password"
+              name="password"
+              id="{{ form.password.id_for_label }}"
+              placeholder="••••••••"
+              class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+              required=""
+            />
+            {{ form.password.errors }}
+          </div>
+          <div class="flex items-center justify-end">
+            <a
+              href="{% url 'account_reset_password' %}"
+              class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500"
+              >{% translate "Forgot password?" %}</a
+            >
+          </div>
+          <button
+            type="submit"
+            class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer"
+          >
+            {% translate "Sign in to your account" %}
+          </button>
+          <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+            {% translate "Don’t have an account yet?" %}
+            <a
+              href="{% url 'account_signup' %}"
+              class="font-medium text-primary-600 hover:underline dark:text-primary-500"
+              >{% translate "Sign up here" %}</a
+            >
+          </p>
+          {% if LOGIN_BY_CODE_ENABLED %}
+          <p class="text-sm font-light text-gray-500 dark:text-gray-400">
+            <a
+              class="hover:underline text-primary-600 dark:text-primary-500"
+              href="{{ request_login_code_url }}"
+            >
+              {% translate "Mail me a sign-in code" %}
+            </a>
+          </p>
+          {% endif %}
+        </form>
       </div>
     </div>
   </div>
+</section>
 {% endblock %}
