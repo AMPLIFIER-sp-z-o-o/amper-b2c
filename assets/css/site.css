@@ -1,13 +1,113 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 @import "flowbite/src/themes/default";
 @plugin "flowbite/plugin";
 @source "../../node_modules/flowbite";
-@import 'tailwindcss';
+@source "../../templates";
 @config "../../tailwind.config.js";
 
+/* Prevent FOUC - hide Alpine elements until initialized */
+[x-cloak] {
+  display: none !important;
+}
+
 @theme {
-    --font-sans: 'Montserrat', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-body: 'Montserrat', 'Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'Noto Sans', 'sans-serif', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-mono: 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', 'monospace';
+  --font-sans:
+    "Montserrat", "Inter", "ui-sans-serif", "system-ui", "-apple-system",
+    "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
+    "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+  --font-body:
+    "Montserrat", "Inter", "ui-sans-serif", "system-ui", "-apple-system",
+    "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
+    "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
+    "Noto Color Emoji";
+  --font-mono:
+    "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas",
+    "Liberation Mono", "Courier New", "monospace";
+}
+
+/* ===========================================
+   CMS Custom Section Styles
+   =========================================== */
+
+/* Hero Section */
+.cms-hero-section {
+  padding: 1.5rem;
+  text-align: center;
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow:
+    0 1px 3px 0 rgb(0 0 0 / 0.1),
+    0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+@media (min-width: 768px) {
+  .cms-hero-section {
+    padding: 3rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cms-hero-section {
+    padding: 5rem;
+  }
+}
+
+.cms-hero-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .cms-hero-title {
+    font-size: 2.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cms-hero-title {
+    font-size: 3rem;
+  }
+}
+
+.cms-hero-subtitle {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .cms-hero-subtitle {
+    font-size: 1.125rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .cms-hero-subtitle {
+    font-size: 1.25rem;
+  }
+}
+
+.cms-hero-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background-color: black;
+  color: white;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: opacity 0.2s;
+}
+
+.cms-hero-button:hover {
+  opacity: 0.8;
+}
+
+@media (min-width: 768px) {
+  .cms-hero-button {
+    padding: 1rem 2.5rem;
+    font-size: 1rem;
+  }
 }

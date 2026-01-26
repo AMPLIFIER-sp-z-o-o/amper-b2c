@@ -1,0 +1,105 @@
+{% with banners=section.section_banners.all|slice:":3" %}
+  {% if banners %}
+    <section id="banner-section-{{ section.id }}" class="homepage-section section-banners bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-8 pb-8 md:pt-12 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
+      <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+        {% if section.title %}
+          <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl underline underline-offset-8 decoration-4 decoration-primary-600">{{ section.title }}</h2>
+        {% endif %}
+
+        <div class="flex justify-center">
+          <div class="banner-section-grid banner-section-grid-{{ banners|length }} w-full flex flex-wrap justify-center gap-4">
+            {% for banner in banners %}
+              <div class="banner-section-item banner-section-item-{{ banners|length }}">
+                {% if banner.url %}
+                  <a href="{{ banner.url }}" class="block w-full h-full">
+                    <img 
+                      src="{{ banner.image.url }}" 
+                      alt="{{ banner.name }}"
+                      class="banner-section-img w-full h-full object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+                      loading="lazy"
+                    />
+                  </a>
+                {% else %}
+                  <div class="w-full h-full">
+                    <img 
+                      src="{{ banner.image.url }}" 
+                      alt="{{ banner.name }}"
+                      class="banner-section-img w-full h-full object-cover rounded-lg shadow-md"
+                      loading="lazy"
+                    />
+                  </div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <style>
+    /* Banner section responsive grid */
+    .banner-section-grid {
+      max-width: 1280px; /* Aligned with max-w-screen-xl */
+    }
+    
+    /* Default max-height for banners on desktop */
+    .banner-section-img {
+      max-height: 400px;
+    }
+
+    /* Single banner - full width up to 1920px */
+    .banner-section-item-1 {
+      flex: 0 1 100%;
+      max-width: 1280px;
+    }
+
+    /* Two banners - side by side */
+    .banner-section-item-2 {
+      flex: 0 1 calc(50% - 0.5rem);
+      max-width: calc(640px - 0.5rem);
+    }
+
+    /* Three banners - side by side on large desktop */
+    .banner-section-item-3 {
+      flex: 0 1 calc(33.333% - 0.667rem);
+      max-width: calc(426px - 0.667rem);
+    }
+
+    /* Tablet breakpoint - stack all banners vertically for equal sizing */
+    @media (max-width: 1024px) {
+      .banner-section-item-2,
+      .banner-section-item-3 {
+        flex: 0 1 100%;
+        max-width: 100%;
+      }
+      
+      /* Reduce banner height on tablet */
+      .banner-section-img {
+        max-height: 280px;
+      }
+    }
+
+    /* Mobile breakpoint - all banners stack vertically */
+    @media (max-width: 640px) {
+      .banner-section-item-1,
+      .banner-section-item-2,
+      .banner-section-item-3 {
+        flex: 0 1 100%;
+        max-width: 100%;
+      }
+      
+      /* Limit banner height on mobile for better UX */
+      .banner-section-img {
+        max-height: 180px;
+      }
+    }
+    
+    /* Small mobile - even smaller banners */
+    @media (max-width: 480px) {
+      .banner-section-img {
+        max-height: 140px;
+      }
+    }
+    </style>
+  {% endif %}
+{% endwith %}

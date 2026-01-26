@@ -1,0 +1,61 @@
+{% extends "admin/monaco_change_form.html" %}
+
+{% block monaco_extra_scripts %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const contentType = document.getElementById("id_content_type");
+      const inlines = document.querySelectorAll('.inline-group');
+      
+      // Also hide the original form rows for custom fields when not in custom mode
+      const customHtmlRow = document.querySelector('.form-row.field-custom_html, div[class*="field-custom_html"]');
+      const customCssRow = document.querySelector('.form-row.field-custom_css, div[class*="field-custom_css"]');
+      const customJsRow = document.querySelector('.form-row.field-custom_js, div[class*="field-custom_js"]');
+
+      const applyVisibility = () => {
+        const isCustom = contentType && contentType.value === "custom";
+        
+        // Show/hide Monaco editors container
+        const editorsContainer = document.getElementById("monaco-editors-container");
+        if (editorsContainer) {
+          editorsContainer.style.display = isCustom ? "" : "none";
+        }
+        
+        // Hide original custom_* form rows (they are hidden but still exist in DOM)
+        // These should always be hidden since Monaco replaces them
+        [customHtmlRow, customCssRow, customJsRow].forEach(row => {
+          if (row) row.style.display = "none";
+        });
+        
+        // Show/hide inline sections (for standard mode)
+        inlines.forEach(inline => {
+          inline.style.display = isCustom ? "none" : "";
+        });
+      };
+
+      if (contentType) {
+        contentType.addEventListener("change", applyVisibility);
+        
+        // Apply visibility after Monaco initializes (it dispatches this event)
+        // and also check periodically until Monaco is ready
+        let attempts = 0;
+        const maxAttempts = 30; // 3 seconds max
+        
+        const checkAndApply = () => {
+          applyVisibility();
+          attempts++;
+          // Keep checking until Monaco container exists or max attempts
+          const editorsContainer = document.getElementById("monaco-editors-container");
+          if (!editorsContainer && attempts < maxAttempts) {
+            setTimeout(checkAndApply, 100);
+          }
+        };
+        
+        // Initial check
+        checkAndApply();
+        
+        // Also listen for Monaco's ready event
+        document.addEventListener("draft:resyncBaseline", applyVisibility);
+      }
+    });
+  </script>
+{% endblock %}

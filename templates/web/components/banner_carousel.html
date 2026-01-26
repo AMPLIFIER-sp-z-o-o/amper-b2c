@@ -1,0 +1,372 @@
+{% load static %}
+{% if banners %}
+<section id="hero-banner" class="hero-banner-section bg-white dark:bg-gray-900">
+    <div class="mx-auto banner-carousel-container">
+        <div class="swiper banner-swiper relative">
+            <div class="swiper-wrapper">
+                {% for banner in banners %}
+                <div class="swiper-slide">
+                    {% if banner.url %}
+                    <a href="{{ banner.url }}" class="banner-slide-media block w-full">
+                        <picture>
+                            {% if banner.mobile_image %}
+                            <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                            {% endif %}
+                            <img 
+                                src="{{ banner.image.url }}" 
+                                alt="{{ banner.name }}"
+                                class="banner-img"
+                                loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                            />
+                        </picture>
+                    </a>
+                    {% else %}
+                    <div class="banner-slide-media w-full">
+                        <picture>
+                            {% if banner.mobile_image %}
+                            <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                            {% endif %}
+                            <img 
+                                src="{{ banner.image.url }}" 
+                                alt="{{ banner.name }}"
+                                class="banner-img"
+                                loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                            />
+                        </picture>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if banners|length > 1 %}
+            <div class="banner-nav-prev desktop-only"></div>
+            <div class="banner-nav-next desktop-only"></div>
+            
+            <div class="swiper-button-prev desktop-only"></div>
+            <div class="swiper-button-next desktop-only"></div>
+            
+            <div class="swiper-pagination"></div>
+            
+            <!-- Mobile navigation arrows below banner -->
+            <div class="banner-mobile-nav">
+                <button type="button" class="banner-mobile-prev" aria-label="Previous">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <div class="banner-mobile-pagination"></div>
+                <button type="button" class="banner-mobile-next" aria-label="Next">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 6 15 12 9 18"></polyline>
+                    </svg>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const swiperEl = document.querySelector('.banner-swiper');
+    if (!swiperEl) return;
+    
+    const totalBanners = {{ banners|length }};
+    
+    const swiper = new Swiper('.banner-swiper', {
+        loop: totalBanners > 1,
+        autoHeight: true,
+        autoplay: {
+            delay: 7000,
+            disableOnInteraction: false,
+        },
+        pagination: {
+            el: '.swiper-pagination',
+            clickable: true,
+        },
+        navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+        },
+        effect: 'slide',
+        speed: 600,
+        slidesPerView: 1,
+        spaceBetween: 0,
+    });
+    
+    // Full-height navigation areas (desktop)
+    document.querySelector('.banner-nav-prev')?.addEventListener('click', () => swiper.slidePrev());
+    document.querySelector('.banner-nav-next')?.addEventListener('click', () => swiper.slideNext());
+    
+    // Mobile navigation buttons
+    document.querySelector('.banner-mobile-prev')?.addEventListener('click', () => swiper.slidePrev());
+    document.querySelector('.banner-mobile-next')?.addEventListener('click', () => swiper.slideNext());
+    
+    // Update mobile pagination dots
+    function updateMobilePagination() {
+        const container = document.querySelector('.banner-mobile-pagination');
+        if (!container) return;
+        
+        const activeIndex = swiper.realIndex;
+        
+        let dotsHtml = '';
+        for (let i = 0; i < totalBanners; i++) {
+            const isActive = i === activeIndex;
+            dotsHtml += `<span class="mobile-dot ${isActive ? 'active' : ''}"></span>`;
+        }
+        container.innerHTML = dotsHtml;
+    }
+    
+    updateMobilePagination();
+    swiper.on('slideChange', updateMobilePagination);
+});
+</script>
+
+<style>
+/* Container */
+.banner-carousel-container {
+    max-width: 1920px;
+    width: 100%;
+}
+
+.banner-swiper {
+    width: 100%;
+    position: relative;
+}
+.banner-swiper .swiper-wrapper {
+    align-items: stretch;
+}
+.banner-swiper .swiper-slide {
+    width: 100%;
+    height: auto;
+}
+
+/* Banner slide media container */
+.banner-slide-media {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+/* Banner image - adapts to any aspect ratio */
+.banner-img {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: cover;
+    object-position: center;
+}
+
+/* Desktop: limit max height for very tall banners */
+@media (min-width: 769px) {
+    .banner-img {
+        max-height: 600px;
+    }
+}
+
+/* Mobile: ensure banner fills width and maintains good proportion */
+@media (max-width: 768px) {
+    .banner-slide-media {
+        display: block;
+        width: 100%;
+        position: relative;
+        height: auto;
+    }
+    .banner-img {
+        display: block;
+        position: relative;
+        width: 100%;
+        height: auto;
+        /* Allow natural height to show full content without cropping */
+        object-fit: contain;
+        object-position: center;
+        max-height: none;
+        min-height: 0;
+    }
+}
+
+/* Very small screens: remove aspect ratio override to avoid gaps */
+@media (max-width: 480px) {
+    .banner-slide-media {
+        aspect-ratio: auto;
+        height: auto;
+    }
+}
+
+/* Full-height clickable navigation areas (desktop only) */
+.banner-nav-prev,
+.banner-nav-next {
+    position: absolute;
+    top: 0;
+    width: 80px;
+    height: 100%;
+    z-index: 10;
+    cursor: pointer;
+}
+.banner-nav-prev {
+    left: 0;
+}
+.banner-nav-next {
+    right: 0;
+}
+.banner-nav-prev:hover ~ .swiper-button-prev,
+.banner-nav-next:hover ~ .swiper-button-next {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Arrow button styling (desktop) */
+.banner-swiper .swiper-button-prev,
+.banner-swiper .swiper-button-next {
+    width: 44px;
+    height: 44px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: auto;
+    border: 1px solid transparent;
+    overflow: hidden;
+    position: absolute;
+}
+.banner-swiper:hover .swiper-button-prev,
+.banner-swiper:hover .swiper-button-next {
+    opacity: 1;
+    visibility: visible;
+}
+.banner-swiper .swiper-button-prev:hover,
+.banner-swiper .swiper-button-next:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Click effect (ripple) */
+.banner-swiper .swiper-button-prev::before,
+.banner-swiper .swiper-button-next::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+.banner-swiper .swiper-button-prev:active::before,
+.banner-swiper .swiper-button-next:active::before {
+    width: 100px;
+    height: 100px;
+    opacity: 1;
+    transition: 0s;
+}
+.banner-swiper .swiper-button-prev::after,
+.banner-swiper .swiper-button-next::after {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    position: relative;
+    z-index: 2;
+}
+
+/* Desktop pagination (on image) */
+.banner-swiper .swiper-pagination {
+    bottom: 16px !important;
+}
+.banner-swiper .swiper-pagination-bullet {
+    background: white;
+    opacity: 0.6;
+    width: 10px;
+    height: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s ease;
+}
+.banner-swiper .swiper-pagination-bullet-active {
+    opacity: 1;
+    background: white;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+    transform: scale(1.1);
+}
+
+/* Mobile navigation bar (below banner) */
+.banner-mobile-nav {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: #000;
+}
+.banner-mobile-prev,
+.banner-mobile-next {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 0;
+    transition: background 0.2s ease;
+}
+.banner-mobile-prev:hover,
+.banner-mobile-next:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+.banner-mobile-prev:active,
+.banner-mobile-next:active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mobile pagination dots */
+.banner-mobile-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mobile-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: all 0.2s ease;
+}
+.mobile-dot.active {
+    background: #ff6b00;
+    transform: scale(1.2);
+}
+
+/* Hide desktop elements on mobile/tablet, show mobile nav */
+@media (max-width: 1024px) {
+    .desktop-only {
+        display: none !important;
+    }
+    .banner-swiper .swiper-pagination {
+        display: none !important;
+    }
+    .banner-mobile-nav {
+        display: flex;
+    }
+}
+
+/* Desktop: hide mobile nav */
+@media (min-width: 1025px) {
+    .banner-mobile-nav {
+        display: none !important;
+    }
+}
+</style>
+{% endif %}

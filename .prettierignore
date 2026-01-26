@@ -1,0 +1,23 @@
+templates/**/*.html
+
+# Static assets (built)
+static/css/
+static/js/
+
+# Python files
+*.py
+**/__pycache__/
+
+# Virtual environment
+.venv/
+
+# Node modules
+node_modules/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+
+# Locale files
+locale/

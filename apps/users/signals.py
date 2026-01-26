@@ -27,8 +27,12 @@ def update_user_email(sender, request, email_address, **kwargs):
 
 
 def _notify_admins_of_signup(user):
+    from apps.web.models import SiteSettings
+    site_settings = SiteSettings.get_settings()
+    store_name = site_settings.store_name if site_settings and site_settings.store_name else "the site"
+    
     mail_admins(
-        f"Yowsers, someone signed up for {settings.PROJECT_METADATA['NAME']}!",
+        f"Yowsers, someone signed up for {store_name}!",
         f"Email: {user.email}",
         fail_silently=True,
     )

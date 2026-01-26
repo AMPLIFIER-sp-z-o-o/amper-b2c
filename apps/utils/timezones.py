@@ -2,7 +2,7 @@ from django.utils.translation import gettext
 
 
 def get_common_timezones():
-    # This is an example list of 30 common timezones. You may want to modify it for your own app.
+    # This is an example list of common timezones. You may want to modify it for your own app.
     return [
         "Africa/Cairo",
         "Africa/Johannesburg",
@@ -26,15 +26,28 @@ def get_common_timezones():
         "Australia/Perth",
         "Australia/Sydney",
         "Europe/Athens",
+        "Europe/Berlin",
         "Europe/London",
         "Europe/Moscow",
         "Europe/Paris",
+        "Europe/Warsaw",
         "Pacific/Auckland",
         "Pacific/Fiji",
         "Pacific/Honolulu",
         "Pacific/Tongatapu",
         "UTC",
     ]
+
+
+def is_valid_timezone(tz_name: str) -> bool:
+    """Check if the given timezone name is valid."""
+    import zoneinfo
+
+    try:
+        zoneinfo.ZoneInfo(tz_name)
+        return True
+    except (KeyError, zoneinfo.ZoneInfoNotFoundError):
+        return False
 
 
 def get_timezones_display():

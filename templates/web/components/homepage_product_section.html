@@ -1,0 +1,57 @@
+{% with products=section.section_products.all|slice:":8" %}
+  {% if products %}
+    <section id="product-section-{{ section.id }}" class="homepage-section section-product-list bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-8 pb-8 md:pt-12 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
+      <div class="mx-auto max-w-7xl px-4 2xl:px-0">
+        {% if section.title %}
+          <h2 class="mb-6 text-xl font-bold text-gray-900 dark:text-white sm:text-2xl underline underline-offset-8 decoration-4 decoration-primary-600">{{ section.title }}</h2>
+        {% endif %}
+
+        <div class="hidden grid-cols-2 gap-4 md:grid-cols-3 lg:grid lg:grid-cols-4">
+          {% for item in products %}
+            {% include "web/components/homepage_product_card.html" with product=item.product %}
+          {% endfor %}
+        </div>
+
+        <div class="lg:hidden">
+          <div class="relative">
+            <div
+              class="swiper homepage-products-swiper"
+              data-section-id="{{ section.id }}"
+              data-product-count="{{ products|length }}"
+            >
+              <div class="swiper-wrapper">
+                {% for item in products %}
+                  <div class="swiper-slide h-auto">
+                    {% include "web/components/homepage_product_card.html" with product=item.product %}
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+            {% if products|length >= 3 %}
+              <button
+                type="button"
+                class="homepage-products-prev absolute left-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-none bg-white/50 text-gray-800 shadow-sm ring-1 ring-gray-300 transition-all duration-200 hover:bg-white focus:bg-white/60 focus:ring-2 focus:ring-gray-400 focus:outline-none active:scale-95 active:bg-gray-200 dark:bg-gray-800/50 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-400"
+                data-section-id="{{ section.id }}"
+                aria-label="Previous products"
+              >
+                <svg class="h-6 w-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                  <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="homepage-products-next absolute right-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-none bg-white/50 text-gray-800 shadow-sm ring-1 ring-gray-300 transition-all duration-200 hover:bg-white focus:bg-white/60 focus:ring-2 focus:ring-gray-400 focus:outline-none active:scale-95 active:bg-gray-200 dark:bg-gray-800/50 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-400"
+                data-section-id="{{ section.id }}"
+                aria-label="Next products"
+              >
+                <svg class="h-6 w-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+                  <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+                </svg>
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+{% endwith %}

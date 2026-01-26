@@ -2,11 +2,21 @@
 
 AMPER-B2C is a top-notch, next-gen B2C e-commerce solution.
 
+## Default Credentials
+
+After running `make seed`, the following superuser is available:
+
+| Field    | Value             |
+| -------- | ----------------- |
+| Email    | admin@example.com |
+| Password | admin             |
+
 ## Quickstart
 
 ### Prerequisites
 
 To run the app in the recommended configuration, you will need the following installed:
+
 - [Docker](https://www.docker.com/get-started) and [Docker Compose](https://docs.docker.com/compose/install)
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) (for Python)
 - [node and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) (for JavaScript)
@@ -58,7 +68,7 @@ This will create your virtual environment in the `.venv` directory of your proje
 
 ## Set up database
 
-*If you are using Docker you can skip these steps.*
+_If you are using Docker you can skip these steps._
 
 Create a database named `amplifier`.
 
@@ -152,7 +162,6 @@ uv run pre-commit install --install-hooks
 ```
 
 Once these are installed they will be run on every commit.
-
 
 ## Running Tests
 

@@ -1,0 +1,58 @@
+{% extends "admin/monaco_change_form.html" %}
+
+{% block monaco_extra_scripts %}
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const contentType = document.getElementById("id_content_type");
+      const standardSelectors = ["text", "link_label", "link_url", "background_color"];
+      // Original form row selectors for custom fields (before Monaco transforms them)
+      const customHtmlRow = document.querySelector('.form-row.field-custom_html, div[class*="field-custom_html"]');
+      const customCssRow = document.querySelector('.form-row.field-custom_css, div[class*="field-custom_css"]');
+      const customJsRow = document.querySelector('.form-row.field-custom_js, div[class*="field-custom_js"]');
+
+      const toggleField = (fieldName, shouldShow) => {
+        const row = document.querySelector(`.form-row.field-${fieldName}`)
+          || document.querySelector(`div[class*='field-${fieldName}']`);
+        if (row) {
+          row.style.display = shouldShow ? "" : "none";
+        }
+      };
+
+      const applyVisibility = () => {
+        const isCustom = contentType && contentType.value === "custom";
+        // Show/hide standard fields
+        standardSelectors.forEach((name) => toggleField(name, !isCustom));
+        // Show/hide Monaco editors container
+        const editorsContainer = document.getElementById("monaco-editors-container");
+        if (editorsContainer) {
+          editorsContainer.style.display = isCustom ? "" : "none";
+        }
+        // Also hide original form rows (Monaco moves the textareas into the container)
+        if (customHtmlRow) customHtmlRow.style.display = isCustom ? "" : "none";
+        if (customCssRow) customCssRow.style.display = isCustom ? "" : "none";
+        if (customJsRow) customJsRow.style.display = isCustom ? "" : "none";
+      };
+
+      if (contentType) {
+        contentType.addEventListener("change", applyVisibility);
+
+        // Use a retry mechanism to wait for Monaco container to exist
+        let attempts = 0;
+        const maxAttempts = 30; // 3 seconds max
+        const checkAndApply = () => {
+          const editorsContainer = document.getElementById("monaco-editors-container");
+          if (editorsContainer || attempts >= maxAttempts) {
+            applyVisibility();
+          } else {
+            attempts++;
+            setTimeout(checkAndApply, 100);
+          }
+        };
+        checkAndApply();
+
+        // Also listen for the draft:resyncBaseline event that Monaco dispatches when ready
+        document.addEventListener("draft:resyncBaseline", applyVisibility);
+      }
+    });
+  </script>
+{% endblock %}

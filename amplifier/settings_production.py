@@ -7,12 +7,23 @@ DEBUG = False
 
 # fix ssl mixed content issues
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 # Django security checklist settings.
 # More details here: https://docs.djangoproject.com/en/stable/howto/deployment/checklist/
 SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=31536000)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SAMESITE = "Lax"
+X_FRAME_OPTIONS = "DENY"
 
 # HTTP Strict Transport Security settings
 # Without uncommenting the lines below, you will get security warnings when running ./manage.py check --deploy

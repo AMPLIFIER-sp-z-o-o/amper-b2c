@@ -1,0 +1,53 @@
+{% load i18n meta_tags %}
+
+{% if app_list %}
+    <div id="nav-sidebar-apps" class="h-0 grow overflow-auto" data-simplebar>
+        {% for app in app_list %}
+            {% if app.models and not app.hidden %}
+                <div class="app-{{ app.app_label }} module{% if app.app_url in request.path %} current-app{% endif %}" x-data="{navigationOpen: {% if app.app_url in request.path %}true{% else %}false{% endif %}}">
+                    <ol class="px-6">
+                        <li>
+                            {% if app.name %}
+                                <button type="button" class="cursor-pointer font-semibold flex w-full items-center mb-2 mt-4 text-font-important-light text-base truncate dark:text-font-important-dark hover:text-primary-600 dark:hover:text-primary-500" x-on:click="navigationOpen = !navigationOpen" x-bind:aria-expanded="navigationOpen" title="{% blocktranslate with name=app.name %}Models in the {{ name }} application{% endblocktranslate %}">
+                                    <span class="material-symbols-outlined md-18 mr-2">{{ app.app_label|get_app_icon }}</span>
+                                    <span class="truncate">{{ app.name }}</span>
+                                    <span class="material-symbols-outlined ml-auto transition-all" x-bind:class="{'rotate-90': navigationOpen}">
+                                        chevron_right
+                                    </span>
+                                </button>
+                            {% endif %}
+
+                            <ol class="flex flex-col gap-1" x-show="navigationOpen" x-cloak>
+                                {% for model in app.models %}
+                                    {% if not model.hidden %}
+                                        <li class="model-{{ model.object_name|lower }}{% if model.admin_url in request.path|urlencode %} current-model{% endif %}">
+                                            {% if model.header %}
+                                                <h3 class="font-medium my-2 text-base-900 text-sm dark:text-base-200">
+                                                    {{ model.header }}
+                                                </h3>
+                                            {% endif %}
+
+                                            {% if model.admin_url %}
+                                                                <a href="{{ model.admin_url }}" id="link-{{ app.app_label }}-{{ model.object_name|lower }}"
+                                                                    class="cursor-pointer flex items-center h-9.5 -mx-3 pl-10 pr-3 rounded-default truncate hover:text-primary-600 dark:hover:text-primary-500 {% if model.admin_url in request.path|urlencode %}bg-base-100 font-semibold text-primary-600 dark:bg-white/6 dark:text-primary-500 active{% endif %}">
+                                                    {{ model.name }}
+                                                </a>
+                                            {% else %}
+                                                <div class="pl-7">{{ model.name }}</div>
+                                            {% endif %}
+                                        </li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ol>
+                        </li>
+                    </ol>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+{% else %}
+    <p>
+        {% trans "You don’t have permission to view or edit anything." as error_message %}
+        {% include "unfold/helpers/messages/error.html" with error=error_message %}
+    </p>
+{% endif %}
