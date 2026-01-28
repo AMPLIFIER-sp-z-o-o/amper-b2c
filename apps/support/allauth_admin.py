@@ -7,19 +7,18 @@ This module overrides allauth's default social account admin to:
 4. Allow enabling/disabling providers without deleting them
 """
 
-from django import forms
-from django.contrib import admin
-from django.utils.html import format_html
-from django.utils.translation import gettext_lazy as _
-
 from allauth import app_settings
 from allauth.account.adapter import get_adapter
 from allauth.socialaccount import providers
 from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
+from django import forms
+from django.contrib import admin
+from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from unfold import widgets as unfold_widgets
 from unfold.admin import StackedInline
-from unfold.mixins import BaseModelAdminMixin
 
+from apps.utils.admin_mixins import HistoryModelAdmin
 from apps.users.models import SocialAppSettings
 
 
@@ -64,7 +63,7 @@ class SimplifiedSocialAppForm(forms.ModelForm):
 
 
 @admin.register(SocialApp)
-class CustomSocialAppAdmin(BaseModelAdminMixin, admin.ModelAdmin):
+class CustomSocialAppAdmin(HistoryModelAdmin):
     """Simplified SocialApp admin with Unfold styling."""
 
     form = SimplifiedSocialAppForm
@@ -99,11 +98,11 @@ class CustomSocialAppAdmin(BaseModelAdminMixin, admin.ModelAdmin):
         if is_active:
             return format_html(
                 '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">{}</span>',
-                _("Active")
+                _("Active"),
             )
         return format_html(
             '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">{}</span>',
-            _("Disabled")
+            _("Disabled"),
         )
 
     is_active_display.short_description = _("Status")
@@ -120,7 +119,7 @@ class CustomSocialAppAdmin(BaseModelAdminMixin, admin.ModelAdmin):
 
 
 @admin.register(SocialAccount)
-class CustomSocialAccountAdmin(BaseModelAdminMixin, admin.ModelAdmin):
+class CustomSocialAccountAdmin(HistoryModelAdmin):
     """Simplified SocialAccount admin."""
 
     autocomplete_fields = ["user"]
@@ -135,7 +134,7 @@ class CustomSocialAccountAdmin(BaseModelAdminMixin, admin.ModelAdmin):
 
 
 @admin.register(SocialToken)
-class CustomSocialTokenAdmin(BaseModelAdminMixin, admin.ModelAdmin):
+class CustomSocialTokenAdmin(HistoryModelAdmin):
     """Token admin with better display."""
 
     autocomplete_fields = ["app", "account"]

@@ -12,6 +12,10 @@
   display: none !important;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 @theme {
   --font-sans:
     "Montserrat", "Inter", "ui-sans-serif", "system-ui", "-apple-system",

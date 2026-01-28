@@ -1,9 +1,9 @@
+from colorfield.fields import ColorField
 from django.db import models
-from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from apps.utils.models import BaseModel, SingletonModel
 from apps.utils.datetime_utils import is_within_wall_clock_range, wall_clock_utc_now
+from apps.utils.models import BaseModel, SingletonModel
 
 
 class TopBar(BaseModel):
@@ -141,7 +141,8 @@ class CustomCSS(SingletonModel):
         verbose_name_plural = _("Custom CSS")
 
     def __str__(self) -> str:
-        return str(_("Custom CSS"))
+        return str(self._meta.verbose_name)
+
 
 class SiteSettings(SingletonModel):
     """
@@ -205,7 +206,7 @@ class SiteSettings(SingletonModel):
         verbose_name_plural = _("Site settings")
 
     def __str__(self) -> str:
-        return str(_("Site settings"))
+        return str(self._meta.verbose_name)
 
     @property
     def currency_symbol(self) -> str:
@@ -262,7 +263,7 @@ class Footer(SingletonModel):
         verbose_name_plural = _("Footer")
 
     def __str__(self) -> str:
-        return str(_("Footer"))
+        return str(self._meta.verbose_name)
 
     def has_content(self) -> bool:
         """Check if footer has any sections or social media configured."""
@@ -401,7 +402,8 @@ class BottomBar(SingletonModel):
         verbose_name_plural = _("Bottom bar")
 
     def __str__(self) -> str:
-        return str(_("Bottom bar"))
+        return str(self._meta.verbose_name)
+
 
 class BottomBarLink(BaseModel):
     """A link in the bottom bar (e.g., Legal Notice, Terms of Use)."""
@@ -433,3 +435,153 @@ class BottomBarLink(BaseModel):
 
     def __str__(self) -> str:
         return self.label
+
+
+class Navbar(SingletonModel):
+    """
+    Singleton model for navigation bar configuration.
+    Allows switching between default (auto-generated from categories) 
+    and custom (user-defined items) navigation.
+    """
+
+    class NavbarMode(models.TextChoices):
+        STANDARD = "standard", _("Standard (categories alphabetically)")
+        CUSTOM = "custom", _("Custom navigation")
+
+    singleton_key = models.PositiveSmallIntegerField(
+        default=1,
+        unique=True,
+        editable=False,
+    )
+    mode = models.CharField(
+        max_length=20,
+        choices=NavbarMode.choices,
+        default=NavbarMode.STANDARD,
+        verbose_name=_("Navigation mode"),
+        help_text=_("Standard: shows categories alphabetically. Custom: shows manually configured items."),
+    )
+
+    class Meta:
+        verbose_name = _("Navigation bar")
+        verbose_name_plural = _("Navigation bar")
+
+    def __str__(self) -> str:
+        return str(self._meta.verbose_name)
+
+
+class NavbarItem(BaseModel):
+    """
+    A single item in the custom navigation bar.
+    Can be a link to an existing category or a custom link with label and URL.
+    """
+
+    class ItemType(models.TextChoices):
+        CATEGORY = "category", _("Category")
+        CUSTOM_LINK = "custom_link", _("Custom link")
+        SEPARATOR = "separator", _("Separator")
+
+    navbar = models.ForeignKey(
+        Navbar,
+        on_delete=models.CASCADE,
+        related_name="items",
+        verbose_name=_("Navbar"),
+        default=Navbar.get_settings,
+    )
+    item_type = models.CharField(
+        max_length=20,
+        choices=ItemType.choices,
+        default=ItemType.CATEGORY,
+        verbose_name=_("Item type"),
+    )
+    # For category type
+    category = models.ForeignKey(
+        "catalog.Category",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="navbar_items",
+        verbose_name=_("Category"),
+        help_text=_("Select a category to display (only for category type)."),
+    )
+    # For custom link type
+    label = models.CharField(
+        max_length=120,
+        blank=True,
+        default="",
+        verbose_name=_("Label"),
+        help_text=_("Display label for custom links."),
+    )
+    url = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        verbose_name=_("URL"),
+        help_text=_("URL for custom links. Can be relative (/page) or absolute (https://...)."),
+    )
+    open_in_new_tab = models.BooleanField(
+        default=False,
+        verbose_name=_("Open in new tab"),
+        help_text=_("If enabled, the link opens in a new browser tab."),
+    )
+    # Styling options
+    label_color = ColorField(
+        blank=True,
+        default="",
+        verbose_name=_("Label color"),
+        help_text=_("Optional color for the label text."),
+    )
+    icon = models.CharField(
+        max_length=50,
+        blank=True,
+        default="",
+        verbose_name=_("Icon"),
+        help_text=_("Optional icon class name (e.g., 'star', 'fire', 'tag')."),
+    )
+    # Ordering
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Order"),
+        help_text=_("Lower number = appears first."),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Active"),
+        help_text=_("Inactive items are not displayed."),
+    )
+
+    class Meta:
+        verbose_name = _("Navbar item")
+        verbose_name_plural = _("Navbar items")
+        ordering = ["order", "id"]
+
+    def __str__(self) -> str:
+        if self.item_type == self.ItemType.CATEGORY and self.category:
+            return f"{self.category.name}"
+        elif self.item_type == self.ItemType.CUSTOM_LINK:
+            return self.label or self.url
+        elif self.item_type == self.ItemType.SEPARATOR:
+            return "--- Separator ---"
+        return f"Item {self.pk}"
+
+    def get_display_label(self) -> str:
+        """Return the label to display in navigation."""
+        if self.item_type == self.ItemType.CATEGORY and self.category:
+            return self.label or self.category.name
+        return self.label
+
+    def get_url(self) -> str:
+        """Return the URL for this item."""
+        if self.item_type == self.ItemType.CATEGORY and self.category:
+            return self.category.get_absolute_url()
+        return self.url
+
+    def get_children(self):
+        """Return children for mega menu (only for categories)."""
+        if self.item_type == self.ItemType.CATEGORY and self.category:
+            return self.category.children.all()
+        return []
+
+    @property
+    def has_children(self) -> bool:
+        """Check if this item has children to display in dropdown."""
+        return self.item_type == self.ItemType.CATEGORY and self.category and self.category.children.exists()

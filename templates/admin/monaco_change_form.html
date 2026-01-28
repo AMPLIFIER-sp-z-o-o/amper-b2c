@@ -240,7 +240,7 @@
     }
     
     .monaco-resize-handle:hover {
-      background: #89b4fa;
+      background: #a6e3a1;
     }
     
     /* ==========================================================================
@@ -248,13 +248,14 @@
        ========================================================================== */
     
     .monaco-preview-panel {
+      display: flex;
+      flex-direction: column;
       background: #f8fafc;
       border-radius: 0;
-      overflow: auto;
+      overflow: hidden;
       box-shadow: none;
-      min-height: 450px;
-      max-height: 450px;
       border: 1px solid #313244;
+      min-height: 450px;
     }
     
     .monaco-preview-header {
@@ -294,8 +295,7 @@
     
     .monaco-preview-content {
       flex: 1;
-      overflow-x: auto;
-      overflow-y: visible;
+      overflow: auto;
       background: #f8fafc;
       display: flex;
       justify-content: center;
@@ -313,7 +313,34 @@
     }
     
     .monaco-resize-handle-preview {
-      display: none;
+      display: block;
+      width: 100%;
+      height: 12px;
+      cursor: ns-resize;
+      background: #2d2d3a;
+      position: relative;
+      border-top: 1px solid #3c3c4a;
+    }
+    
+    .monaco-resize-handle-preview::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 2px;
+      background: #a6adc8;
+      box-shadow: 0 -4px 0 #a6adc8, 0 4px 0 #a6adc8;
+      border-radius: 1px;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    
+    .monaco-resize-handle-preview:hover::after {
+      opacity: 1;
+      background: #a6e3a1;
+      box-shadow: 0 -4px 0 #a6e3a1, 0 4px 0 #a6e3a1;
     }
 
     /* ==========================================================================

@@ -62,8 +62,6 @@ class MediaFile(BaseModel):
     mime_type = models.CharField(_("MIME type"), max_length=100, blank=True)
     file_size = models.PositiveIntegerField(_("file size"), default=0, help_text=_("Size in bytes"))
 
-
-
     # Image-specific fields
     width = models.PositiveIntegerField(_("width"), null=True, blank=True)
     height = models.PositiveIntegerField(_("height"), null=True, blank=True)
@@ -240,7 +238,7 @@ class MediaFile(BaseModel):
         s3_cache = _get_cached_s3_client()
         if s3_cache:
             file_path = str(self.file)
-            filename = (self.filename or "").replace("\"", "")
+            filename = (self.filename or "").replace('"', "")
             if not filename:
                 filename = file_path.split("/")[-1]
 
@@ -357,7 +355,7 @@ class MediaStorageSettings(BaseModel):
         verbose_name_plural = _("Media Storage Settings")
 
     def __str__(self):
-        return f"Media Storage: {self.get_provider_type_display()}"
+        return str(self._meta.verbose_name)
 
     def save(self, *args, **kwargs):
         # Singleton pattern - ensure only one instance

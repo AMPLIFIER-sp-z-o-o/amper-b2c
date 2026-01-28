@@ -271,7 +271,7 @@ def generic_draft_preview(request, app_label: str, model_name: str):
     """
     from django.http import Http404
 
-    from .draft_utils import apply_draft_to_instance, get_new_draft_instance
+    from .draft_utils import get_new_draft_instance
 
     if not getattr(request, "draft_preview_enabled", False):
         raise Http404("Draft preview not enabled")

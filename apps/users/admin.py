@@ -3,11 +3,10 @@ from django.contrib.auth.admin import GroupAdmin, UserAdmin
 from django.contrib.auth.models import Group, Permission
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
+from apps.utils.admin_mixins import HistoryModelAdmin
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
-from unfold.admin import ModelAdmin
 
 from .models import CustomUser
-
 
 # Unregister default Group admin and re-register with search_fields for autocomplete
 try:
@@ -17,12 +16,12 @@ except admin.sites.NotRegistered:
 
 
 @admin.register(Group)
-class CustomGroupAdmin(ModelAdmin, GroupAdmin):
+class CustomGroupAdmin(HistoryModelAdmin, GroupAdmin):
     search_fields = ["name"]
 
 
 @admin.register(Permission)
-class PermissionAdmin(ModelAdmin):
+class PermissionAdmin(HistoryModelAdmin):
     search_fields = ["name", "codename", "content_type__app_label", "content_type__model"]
     list_display = ["name", "codename", "content_type"]
     list_filter = ["content_type__app_label"]
@@ -53,7 +52,7 @@ class CustomUserResource(resources.ModelResource):
 
 
 @admin.register(CustomUser)
-class CustomUserAdmin(ModelAdmin, UserAdmin, ImportExportModelAdmin):
+class CustomUserAdmin(HistoryModelAdmin, UserAdmin, ImportExportModelAdmin):
     resource_class = CustomUserResource
     import_form_class = ImportForm
     export_form_class = ExportForm

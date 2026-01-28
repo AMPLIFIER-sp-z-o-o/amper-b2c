@@ -1,6 +1,7 @@
 from django.conf import settings
 
-from apps.web.models import BottomBar, CustomCSS, Footer, SiteSettings, TopBar
+from apps.catalog.models import Category
+from apps.web.models import BottomBar, CustomCSS, Footer, Navbar, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
 
@@ -119,8 +120,8 @@ def footer_context(request):
         # because the draft might change is_active from False to True
         draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
 
-        should_fetch_sections = (
-            draft_preview_enabled or (footer.is_active and footer.content_type == Footer.ContentType.STANDARD)
+        should_fetch_sections = draft_preview_enabled or (
+            footer.is_active and footer.content_type == Footer.ContentType.STANDARD
         )
 
         if should_fetch_sections:
@@ -159,4 +160,72 @@ def bottom_bar_context(request):
     return {
         "bottom_bar": bottom_bar,
         "bottom_bar_links": bottom_bar_links,
+    }
+
+
+def navigation_categories(request):
+    """
+    Adds navigation categories to all requests.
+    Returns parent categories with their children for mega menu navigation.
+    Also handles custom navbar configuration if enabled.
+    """
+    # Get navbar configuration
+    navbar = _safe_call(Navbar.get_settings)
+
+    # Apply draft if enabled
+    draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
+    if draft_preview_enabled and navbar:
+        from apps.support.draft_utils import apply_drafts_to_context
+        draft_changes_map = getattr(request, "draft_changes_map", {})
+        if draft_changes_map:
+            apply_drafts_to_context(navbar, draft_changes_map)
+
+    navbar_mode = navbar.mode if navbar else Navbar.NavbarMode.STANDARD
+
+    # Always get parent categories for "All categories" drawer and fallback
+    parent_categories = _safe_call(
+        lambda: list(
+            Category.objects.filter(parent__isnull=True)
+            .prefetch_related(
+                "children",
+                "children__children",
+                "children__children__children",
+                "children__children__children__children",
+            )
+            .order_by("name")
+        ),
+        default=[],
+    )
+
+    # Custom navbar items (only if custom mode is active)
+    custom_navbar_items = []
+    if navbar_mode == Navbar.NavbarMode.CUSTOM and navbar:
+        def _get_items():
+            items = list(
+                navbar.items.filter(is_active=True)
+                .select_related("category")
+                .prefetch_related(
+                    "category__children",
+                    "category__children__children",
+                    "category__children__children__children",
+                )
+                .order_by("order", "id")
+            )
+            # If draft enabled, apply drafts to the list of items
+            if draft_preview_enabled and items:
+                 from apps.support.draft_utils import apply_drafts_to_context
+                 draft_changes_map = getattr(request, "draft_changes_map", {})
+                 if draft_changes_map:
+                     # This handles inline items effectively if logical parent linkage exists,
+                     # but here we might need direct application if items themselves are modified
+                     apply_drafts_to_context(items, draft_changes_map)
+            return items
+
+        custom_navbar_items = _safe_call(_get_items, default=[])
+
+    return {
+        "nav_categories": parent_categories,
+        "navbar": navbar,
+        "navbar_mode": navbar_mode,
+        "custom_navbar_items": custom_navbar_items,
     }

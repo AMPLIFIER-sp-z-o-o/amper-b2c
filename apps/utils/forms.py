@@ -6,7 +6,7 @@ and store them in UTC without shifting. This enables per-user local-time
 availability windows (e.g. show at 12:00 for each user's timezone).
 """
 
-from datetime import timezone as dt_timezone
+from datetime import UTC, datetime
 
 from django import forms
 from django.contrib.admin.widgets import AdminSplitDateTime
@@ -29,7 +29,9 @@ class WallClockDateTimeField(forms.SplitDateTimeField):
 
     def prepare_value(self, value):
         """Show stored wall-clock time without conversion."""
-        if value and timezone.is_aware(value):
+        if isinstance(value, (list, tuple)):
+            return super().prepare_value(value)
+        if value and isinstance(value, datetime) and timezone.is_aware(value):
             value = value.replace(tzinfo=None)
         return super().prepare_value(value)
 
@@ -38,7 +40,7 @@ class WallClockDateTimeField(forms.SplitDateTimeField):
         cleaned = super().clean(value)
         if cleaned:
             if timezone.is_aware(cleaned):
-                cleaned = cleaned.replace(tzinfo=dt_timezone.utc)
+                cleaned = cleaned.replace(tzinfo=UTC)
             else:
-                cleaned = timezone.make_aware(cleaned, dt_timezone.utc)
+                cleaned = timezone.make_aware(cleaned, UTC)
         return cleaned

@@ -1,0 +1,60 @@
+{% load i18n %}
+
+<!-- More Categories Drawer -->
+<div id="categoriesDrawer" class="fixed top-0 left-0 z-50 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700" tabindex="-1" aria-labelledby="drawer-label">
+  <h5 id="drawer-label" class="inline-flex items-center mb-6 text-base font-semibold text-gray-500 dark:text-gray-400 uppercase">
+    <svg class="w-4 h-4 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+    </svg>
+    {% translate "All Categories" %}
+  </h5>
+  <button type="button" data-drawer-hide="categoriesDrawer" aria-controls="categoriesDrawer" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 absolute top-2.5 right-2.5 inline-flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white" >
+    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+    </svg>
+    <span class="sr-only">{% translate "Close menu" %}</span>
+  </button>
+  
+  <div class="py-4 overflow-y-auto">
+    <ul class="space-y-2 font-medium">
+      {% for category in nav_categories %}
+      <li>
+         <a href="{{ category.get_absolute_url }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group transition-colors duration-200">
+            {% if category.image %}
+            <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-6 h-6 object-contain mr-3 rounded-full">
+            {% endif %}
+            <span class="flex-1 whitespace-nowrap">{{ category.name }}</span>
+            {% if category.children.exists %}
+            <span class="inline-flex items-center justify-center w-3 h-3 p-3 ml-3 text-sm font-medium text-blue-800 bg-blue-100 rounded-full dark:bg-blue-900 dark:text-blue-300">{{ category.children.count }}</span>
+            {% endif %}
+         </a>
+      </li>
+      {% empty %}
+      <li class="p-2 text-gray-500 dark:text-gray-400">
+         {% translate "No categories available." %}
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  
+  <div class="pt-6 mt-6 space-y-4 border-t border-gray-200 dark:border-gray-700">
+     <a href="#" class="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
+        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg dark:bg-gray-700 text-gray-500 dark:text-gray-400 group-hover:bg-primary-100 dark:group-hover:bg-primary-900 group-hover:text-primary-600 dark:group-hover:text-primary-500 transition-colors">
+            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+               <path d="M5 5V.13a2.96 2.96 0 0 0-1.293.749L.879 3.707A2.96 2.96 0 0 0 .13 5H5Z"/>
+               <path d="M6.737 11.061a2.961 2.961 0 0 1 .81-1.515l6.117-6.116A4.839 4.839 0 0 1 16 2.141V2a1.97 1.97 0 0 0-1.933-2H7v5a2 2 0 0 1-2 2H0v11a1.969 1.969 0 0 0 1.933 2h12.134c1.1 0 2.17-.916 1.83-2.106-.06-.208-.166-.403-.311-.57Z"/>
+            </svg>
+        </div>
+        <span class="ml-3">{% translate "Documentation" %}</span>
+     </a>
+     
+     <a href="#" class="flex items-center p-2 text-gray-900 transition duration-75 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
+        <div class="shrink-0 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg dark:bg-gray-700 text-gray-500 dark:text-gray-400 group-hover:bg-primary-100 dark:group-hover:bg-primary-900 group-hover:text-primary-600 dark:group-hover:text-primary-500 transition-colors">
+            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+               <path d="m17.418 3.623-.018-.008a6.713 6.713 0 0 0-2.4-.569V2h1a1 1 0 1 0 0-2h-2a1 1 0 0 0-1 1v2H9.89A6.977 6.977 0 0 1 12 8v5h-2V8A5 5 0 1 0 0 8v6a1 1 0 0 0 1 1h8v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4h6a1 1 0 0 0 1-1V8a5 5 0 0 0-2.582-4.377ZM6 12H4a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2Z"/>
+            </svg>
+        </div>
+        <span class="ml-3">{% translate "Help" %}</span>
+     </a>
+  </div>
+</div>

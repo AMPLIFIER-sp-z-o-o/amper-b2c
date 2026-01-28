@@ -1,0 +1,31 @@
+{% load i18n %}
+<li>
+    {% if item.children.all %}
+    <div class="flex items-center w-full text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
+        <a href="{{ item.get_absolute_url }}" class="flex-1 p-2 text-left rtl:text-right whitespace-nowrap rounded-l-lg {{ font_size|default:'text-base' }}" style="padding-left: {{ padding }}rem">
+            {{ item.name }}
+        </a>
+        <button type="button" class="w-10 h-10 flex items-center justify-center cursor-pointer rounded-r-lg hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white ml-auto" aria-controls="drawer-cat-{{ item.id }}" data-collapse-toggle="drawer-cat-{{ item.id }}">
+            <svg class="w-3 h-3 transition-transform duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+            </svg>
+        </button>
+    </div>
+    <ul id="drawer-cat-{{ item.id }}" class="hidden py-1 space-y-1">
+        <li>
+            <a href="{{ item.get_absolute_url }}" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 text-sm font-bold" style="padding-left: {{ padding|add:1 }}rem">
+                {% translate "All" %} {{ item.name }}
+            </a>
+        </li>
+        {% with next_padding=padding|add:1 %}
+            {% for child in item.children.all %}
+                {% include "web/components/category_drawer_item.html" with item=child padding=next_padding font_size='text-sm' %}
+            {% endfor %}
+        {% endwith %}
+    </ul>
+    {% else %}
+    <a href="{{ item.get_absolute_url }}" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 {{ font_size|default:'text-base' }}" style="padding-left: {{ padding }}rem">
+        <span class="flex-1 text-left rtl:text-right whitespace-nowrap">{{ item.name }}</span>
+    </a>
+    {% endif %}
+</li>

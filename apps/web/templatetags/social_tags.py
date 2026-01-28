@@ -1,5 +1,4 @@
 from allauth.socialaccount.adapter import get_adapter
-from allauth.socialaccount.models import SocialApp
 from django import template
 
 from apps.users.models import SocialAppSettings
@@ -22,9 +21,7 @@ def get_socialapps(context):
 
     # Get list of disabled provider IDs
     disabled_providers = set(
-        SocialAppSettings.objects.filter(is_active=False).values_list(
-            "social_app__provider", flat=True
-        )
+        SocialAppSettings.objects.filter(is_active=False).values_list("social_app__provider", flat=True)
     )
 
     active_providers = []

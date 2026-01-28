@@ -1,0 +1,277 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block admin_change_form_document_ready %}
+{{ block.super }}
+<style>
+/* ============================================
+   NAVBAR ITEMS INLINE STYLING (TabularInline)
+   ============================================ */
+
+/* Adjust column widths if necessary */
+.field-item_type { min-width: 140px; }
+.field-category { min-width: 200px; }
+.field-label { min-width: 150px; }
+.field-url { min-width: 150px; }
+.field-order { width: 80px; }
+
+/* ============================================
+   ITEM TYPE CONDITIONAL VISIBILITY
+   ============================================ */
+
+/* Helper to visually disable fields */
+.visually-disabled {
+  opacity: 0.3 !important;
+  pointer-events: none !important;
+  filter: grayscale(100%) !important;
+}
+
+/* Category: hide label/url/open_in_new_tab */
+tr.item-type-category .field-label input,
+tr.item-type-category .field-url input {
+  visibility: hidden !important;
+}
+/* Apply to the content of the cell for boolean field to catch the toggle switch */
+tr.item-type-category .field-open_in_new_tab > div, 
+tr.item-type-category .field-open_in_new_tab input {
+  visibility: hidden !important;
+}
+
+tr.item-type-category .field-label,
+tr.item-type-category .field-url,
+tr.item-type-category .field-open_in_new_tab {
+  cursor: not-allowed !important;
+}
+
+/* Custom link: hide category */
+tr.item-type-custom_link .field-category select,
+tr.item-type-custom_link .field-category .select2-container,
+tr.item-type-custom_link .field-category .related-widget-wrapper {
+  visibility: hidden !important;
+}
+tr.item-type-custom_link .field-category {
+  cursor: not-allowed !important;
+}
+
+/* Separator: hide irrelevant fields */
+tr.item-type-separator .field-category select,
+tr.item-type-separator .field-category .select2-container,
+tr.item-type-separator .field-category .related-widget-wrapper,
+tr.item-type-separator .field-label input,
+tr.item-type-separator .field-url input,
+tr.item-type-separator .field-label_color input,
+tr.item-type-separator .field-label_color button,
+tr.item-type-separator .field-open_in_new_tab > div,
+tr.item-type-separator .field-open_in_new_tab input {
+  visibility: hidden !important;
+}
+
+tr.item-type-separator .field-category,
+tr.item-type-separator .field-label,
+tr.item-type-separator .field-url,
+tr.item-type-separator .field-open_in_new_tab,
+tr.item-type-separator .field-label_color {
+  cursor: not-allowed !important;
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const modeSelect = document.getElementById("id_mode");
+  // Try to find the inline group. Usually id="<model>_set-group"
+  // But we can look for the main tabular fieldset
+  const itemsGroup = document.querySelector('.inline-group'); 
+
+  // ========================================
+  // MODE VISIBILITY (Standard vs Custom)
+  // ========================================
+  const applyModeVisibility = () => {
+    const isCustom = modeSelect && modeSelect.value === "custom";
+    if (itemsGroup) {
+      itemsGroup.style.display = isCustom ? "" : "none";
+    }
+  };
+
+  // ========================================
+  // ITEM TYPE STYLING (TabularInline)
+  // ========================================
+  const applyInlineTypeStyles = (row) => {
+    // Find item type select in the row
+    const itemTypeSelect = row.querySelector('[name$="-item_type"]');
+    if (!itemTypeSelect) return;
+
+    const itemType = itemTypeSelect.value;
+    
+    // Remove existing type classes
+    row.classList.remove('item-type-category', 'item-type-custom_link', 'item-type-separator');
+    
+    // Add the current type class
+    if (itemType) {
+      row.classList.add('item-type-' + itemType);
+    }
+  };
+
+  const initItemTypeHandlers = () => {
+    if (!itemsGroup) return;
+    
+    // Find all existing rows
+    const rows = itemsGroup.querySelectorAll('tr.form-row');
+    
+    rows.forEach(row => {
+      applyInlineTypeStyles(row);
+
+      const itemTypeSelect = row.querySelector('[name$="-item_type"]');
+      if (itemTypeSelect) {
+        itemTypeSelect.addEventListener('change', () => {
+          applyInlineTypeStyles(row);
+        });
+      }
+    });
+  };
+
+  // ========================================
+  // ORDER AUTO-INCREMENT
+  // ========================================
+  const getMaxOrderValue = () => {
+    if (!itemsGroup) return null;
+
+    let maxOrder = null;
+    const orderInputs = itemsGroup.querySelectorAll('input[name$="-order"]');
+
+    orderInputs.forEach((input) => {
+      const name = input.getAttribute('name') || "";
+      if (name.includes("__prefix__")) return;
+
+      const value = parseInt(input.value, 10);
+      if (Number.isNaN(value)) return;
+
+      if (maxOrder === null || value > maxOrder) {
+        maxOrder = value;
+      }
+    });
+
+    return maxOrder;
+  };
+
+  const setNextOrderIfEmpty = (row) => {
+    const orderInput = row.querySelector('input[name$="-order"]');
+    if (!orderInput) return;
+
+    const name = orderInput.getAttribute('name') || "";
+    if (name.includes("__prefix__")) return;
+
+    // Check if ID exists (edit mode)
+    const idInputName = name.replace(/-order$/, "-id");
+    const idInput = itemsGroup.querySelector(`input[name="${idInputName}"]`);
+    const hasExistingId = idInput && idInput.value;
+
+    if (hasExistingId) return;
+
+    if (orderInput.value !== "" && orderInput.value !== "0") return;
+
+    const maxOrder = getMaxOrderValue();
+    const nextOrder = maxOrder === null ? 0 : maxOrder + 1;
+    orderInput.value = nextOrder;
+  };
+
+  // ========================================
+  // INITIALIZE SELECT2 ON NEW ROWS
+  // ========================================
+  const initSelect2OnRow = (row) => {
+    // Use django.jQuery which has Select2 loaded by Unfold
+    const $ = window.django && window.django.jQuery;
+    if (!$ || !$.fn.select2) return;
+    
+    // Find all select elements that should be Select2 but aren't initialized yet
+    const selects = row.querySelectorAll('select.unfold-admin-autocomplete:not(.select2-hidden-accessible)');
+    selects.forEach((select) => {
+      const $select = $(select);
+      // Initialize Select2 with Unfold's configuration
+      $select.select2({
+        theme: 'admin-autocomplete',
+        allowClear: !select.required,
+        width: 'resolve',
+      });
+    });
+  };
+
+  // ========================================
+  // INITIALIZE
+  // ========================================
+  if (modeSelect) {
+    modeSelect.addEventListener("change", applyModeVisibility);
+    applyModeVisibility();
+  }
+
+  initItemTypeHandlers();
+
+  if (itemsGroup) {
+    // Set order for existing empty rows (if any)
+    const rows = itemsGroup.querySelectorAll('tr.form-row');
+    rows.forEach((row) => {
+      setNextOrderIfEmpty(row);
+    });
+
+    // Use MutationObserver on the entire inline-group with subtree option
+    // This handles Unfold's structure where each row is in a separate tbody
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          // Check if it's a tbody (Unfold adds tbody elements)
+          if (node.nodeType === 1 && node.tagName === 'TBODY') {
+            const row = node.querySelector('tr.form-row');
+            if (row && !row.id.includes('__prefix__')) {
+              // Delay slightly to ensure DOM is fully updated
+              setTimeout(() => {
+                initSelect2OnRow(row);
+                applyInlineTypeStyles(row);
+                setNextOrderIfEmpty(row);
+                
+                const itemTypeSelect = row.querySelector('[name$="-item_type"]');
+                if (itemTypeSelect) {
+                  // For Select2, use jQuery event binding
+                  const $ = window.django && window.django.jQuery;
+                  if ($) {
+                    $(itemTypeSelect).on('change', function() {
+                      applyInlineTypeStyles(row);
+                    });
+                  }
+                }
+              }, 50);
+            }
+          }
+          // Also check if a TR was directly added
+          if (node.nodeType === 1 && node.tagName === 'TR' && node.classList.contains('form-row')) {
+            if (!node.id.includes('__prefix__')) {
+              setTimeout(() => {
+                initSelect2OnRow(node);
+                applyInlineTypeStyles(node);
+                setNextOrderIfEmpty(node);
+                
+                const itemTypeSelect = node.querySelector('[name$="-item_type"]');
+                if (itemTypeSelect) {
+                  const $ = window.django && window.django.jQuery;
+                  if ($) {
+                    $(itemTypeSelect).on('change', function() {
+                      applyInlineTypeStyles(node);
+                    });
+                  }
+                }
+              }, 50);
+            }
+          }
+        });
+      });
+    });
+
+    // Observe the table or inline-group with subtree to catch tbody additions
+    const table = itemsGroup.querySelector('table');
+    if (table) {
+      observer.observe(table, { childList: true, subtree: true });
+    } else {
+      observer.observe(itemsGroup, { childList: true, subtree: true });
+    }
+  }
+});
+</script>
+{% endblock %}

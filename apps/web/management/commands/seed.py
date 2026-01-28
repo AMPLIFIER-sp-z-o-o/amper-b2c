@@ -3,9 +3,9 @@ Seed command for populating the database with predefined data.
 
 It populates the current database with site settings, categories, products, etc.
 
-EXCLUDED (you must configure manually in CMS):
-- AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-- Google credentials (GOOGLE_CLIENT_ID, GOOGLE_SECRET_ID)
+Credentials loaded from environment variables (.env file):
+- AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY -> MediaStorageSettings
+- GOOGLE_CLIENT_ID, GOOGLE_SECRET_ID -> SocialApp (Google OAuth)
 
 Default superuser:
 - Email: admin@example.com
@@ -16,47 +16,53 @@ Usage:
     uv run manage.py seed --skip-users  # Skip superuser creation
 """
 
+import os
+from contextlib import contextmanager
 from decimal import Decimal
 
+from allauth.account.models import EmailAddress
+from django.conf import settings
 from django.contrib.sites.models import Site
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils.dateparse import parse_datetime
 
-from allauth.account.models import EmailAddress
-
-from apps.users.models import CustomUser
-from apps.web.models import (
-    TopBar,
-    CustomCSS,
-    SiteSettings,
-    Footer,
-    FooterSection,
-    FooterSectionLink,
-    FooterSocialMedia,
-    BottomBar,
-    BottomBarLink,
-)
 from apps.catalog.models import (
-    Category,
-    Product,
-    ProductImage,
     AttributeDefinition,
     AttributeOption,
+    Category,
+    Product,
     ProductAttributeValue,
+    ProductImage,
 )
 from apps.homepage.models import (
     Banner,
     HomepageSection,
-    HomepageSectionProduct,
     HomepageSectionBanner,
+    HomepageSectionProduct,
+    StorefrontCategoryBox,
+    StorefrontCategoryItem,
+    StorefrontHeroSection,
 )
+from allauth.socialaccount.models import SocialApp
 from apps.media.models import MediaStorageSettings
+from apps.users.models import CustomUser, SocialAppSettings
+from apps.web.models import (
+    BottomBar,
+    BottomBarLink,
+    CustomCSS,
+    Footer,
+    FooterSection,
+    FooterSectionLink,
+    FooterSocialMedia,
+    Navbar,
+    NavbarItem,
+    SiteSettings,
+    TopBar,
+)
 
-
-SITES_DATA = [
-    {"id": 1, "domain": "localhost:8000", "name": "AMPLFIER sp. z o.o."}
-]
+SITES_DATA = [{"id": 1, "domain": "localhost:8000", "name": "AMPLFIER sp. z o.o."}]
 
 TOPBAR_DATA = [
     {
@@ -190,12 +196,20 @@ SITE_SETTINGS_DATA = [
     }
 ]
 
+NAVBAR_DATA = [
+    {
+        "id": 1,
+        "singleton_key": 1,
+        "mode": "standard",
+    }
+]
+
 FOOTER_DATA = [
     {
         "id": 1,
         "singleton_key": 1,
         "content_type": "custom",
-        "custom_html": '''<div class="footer-sections"><div class="footer-section"><h6 class="footer-section-title">Test Section2</h6><ul class="footer-section-links"><li><a class="footer-link" href="/about/">About Us</a></li><li><a class="footer-link" href="/contact/">Contact</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Shop</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Catalog</a></li><li><a class="footer-link" href="/">New Arrivals</a></li><li><a class="footer-link" href="/">Best Sellers</a></li><li><a class="footer-link" href="/">Deals</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Support</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Help Center</a></li><li><a class="footer-link" href="/">Contact Us</a></li><li><a class="footer-link" href="/">Shipping</a></li><li><a class="footer-link" href="/">Returns</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Company</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">About Us</a></li><li><a class="footer-link" href="/">Careers</a></li><li><a class="footer-link" href="/">Press</a></li><li><a class="footer-link" href="/">Blog</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Legal</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Privacy Policy</a></li><li><a class="footer-link" href="/">Terms of Service</a></li><li><a class="footer-link" href="/">Cookie Policy</a></li><li><a class="footer-link" href="/">Sitemap</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Resources</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Documentation</a></li><li><a class="footer-link" href="/">API Reference</a></li><li><a class="footer-link" href="/">Community</a></li><li><a class="footer-link" href="/">Partners</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Account</h6><ul class="footer-section-links"><li><a class="footer-link" href="/users/profile/">My Profile</a></li><li><a class="footer-link" href="/">My Orders</a></li><li><a class="footer-link" href="/">Wishlist</a></li><li><a class="footer-link" href="/">Settings</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Social Media</h6><ul class="footer-section-links"><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://facebook.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd"></path></svg>Facebook</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://youtube.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.418-4.814a2.507 2.507 0 0 1 1.768-1.768C5.746 5 12 5 12 5s6.255 0 7.814.418zM15.194 12 10 15V9l5.194 3z" clip-rule="evenodd"></path></svg>YouTube</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://instagram.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd"></path></svg>Instagram</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://twitter.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path></svg>Twitter</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://tiktok.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"></path></svg>TikTok&nbsp;</a></li></ul></div></div>''',
+        "custom_html": """<div class="footer-sections"><div class="footer-section"><h6 class="footer-section-title">Test Section2</h6><ul class="footer-section-links"><li><a class="footer-link" href="/about/">About Us</a></li><li><a class="footer-link" href="/contact/">Contact</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Shop</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Catalog</a></li><li><a class="footer-link" href="/">New Arrivals</a></li><li><a class="footer-link" href="/">Best Sellers</a></li><li><a class="footer-link" href="/">Deals</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Support</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Help Center</a></li><li><a class="footer-link" href="/">Contact Us</a></li><li><a class="footer-link" href="/">Shipping</a></li><li><a class="footer-link" href="/">Returns</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Company</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">About Us</a></li><li><a class="footer-link" href="/">Careers</a></li><li><a class="footer-link" href="/">Press</a></li><li><a class="footer-link" href="/">Blog</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Legal</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Privacy Policy</a></li><li><a class="footer-link" href="/">Terms of Service</a></li><li><a class="footer-link" href="/">Cookie Policy</a></li><li><a class="footer-link" href="/">Sitemap</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Resources</h6><ul class="footer-section-links"><li><a class="footer-link" href="/">Documentation</a></li><li><a class="footer-link" href="/">API Reference</a></li><li><a class="footer-link" href="/">Community</a></li><li><a class="footer-link" href="/">Partners</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Account</h6><ul class="footer-section-links"><li><a class="footer-link" href="/users/profile/">My Profile</a></li><li><a class="footer-link" href="/">My Orders</a></li><li><a class="footer-link" href="/">Wishlist</a></li><li><a class="footer-link" href="/">Settings</a></li></ul></div><div class="footer-section"><h6 class="footer-section-title">Social Media</h6><ul class="footer-section-links"><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://facebook.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clip-rule="evenodd"></path></svg>Facebook</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://youtube.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M19.812 5.418c.861.23 1.538.907 1.768 1.768C21.998 8.746 22 12 22 12s0 3.255-.418 4.814a2.504 2.504 0 0 1-1.768 1.768c-1.56.419-7.814.419-7.814.419s-6.255 0-7.814-.419a2.505 2.505 0 0 1-1.768-1.768C2 15.255 2 12 2 12s0-3.255.418-4.814a2.507 2.507 0 0 1 1.768-1.768C5.746 5 12 5 12 5s6.255 0 7.814.418zM15.194 12 10 15V9l5.194 3z" clip-rule="evenodd"></path></svg>YouTube</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://instagram.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12.315 2c2.43 0 2.784.013 3.808.06 1.064.049 1.791.218 2.427.465a4.902 4.902 0 011.772 1.153 4.902 4.902 0 011.153 1.772c.247.636.416 1.363.465 2.427.048 1.067.06 1.407.06 4.123v.08c0 2.643-.012 2.987-.06 4.043-.049 1.064-.218 1.791-.465 2.427a4.902 4.902 0 01-1.153 1.772 4.902 4.902 0 01-1.772 1.153c-.636.247-1.363.416-2.427.465-1.067.048-1.407.06-4.123.06h-.08c-2.643 0-2.987-.012-4.043-.06-1.064-.049-1.791-.218-2.427-.465a4.902 4.902 0 01-1.772-1.153 4.902 4.902 0 01-1.153-1.772c-.247-.636-.416-1.363-.465-2.427-.047-1.024-.06-1.379-.06-3.808v-.63c0-2.43.013-2.784.06-3.808.049-1.064.218-1.791.465-2.427a4.902 4.902 0 011.153-1.772A4.902 4.902 0 015.45 2.525c.636-.247 1.363-.416 2.427-.465C8.901 2.013 9.256 2 11.685 2h.63zm-.081 1.802h-.468c-2.456 0-2.784.011-3.807.058-.975.045-1.504.207-1.857.344-.467.182-.8.398-1.15.748-.35.35-.566.683-.748 1.15-.137.353-.3.882-.344 1.857-.047 1.023-.058 1.351-.058 3.807v.468c0 2.456.011 2.784.058 3.807.045.975.207 1.504.344 1.857.182.466.399.8.748 1.15.35.35.683.566 1.15.748.353.137.882.3 1.857.344 1.054.048 1.37.058 4.041.058h.08c2.597 0 2.917-.01 3.96-.058.976-.045 1.505-.207 1.858-.344.466-.182.8-.398 1.15-.748.35-.35.566-.683.748-1.15.137-.353.3-.882.344-1.857.048-1.055.058-1.37.058-4.041v-.08c0-2.597-.01-2.917-.058-3.96-.045-.976-.207-1.505-.344-1.858a3.097 3.097 0 00-.748-1.15 3.098 3.098 0 00-1.15-.748c-.353-.137-.882-.3-1.857-.344-1.023-.047-1.351-.058-3.807-.058zM12 6.865a5.135 5.135 0 110 10.27 5.135 5.135 0 010-10.27zm0 1.802a3.333 3.333 0 100 6.666 3.333 3.333 0 000-6.666zm5.338-3.205a1.2 1.2 0 110 2.4 1.2 1.2 0 010-2.4z" clip-rule="evenodd"></path></svg>Instagram</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://twitter.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84"></path></svg>Twitter</a></li><li><a class="footer-social-link" target="_blank" rel="noopener noreferrer" href="https://tiktok.com"><svg class="footer-social-icon" fill="currentColor" viewbox="0 0 24 24" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"></path></svg>TikTok&nbsp;</a></li></ul></div></div>""",
         "custom_css": """/* Custom footer helpers */
 .footer-sections {
   display: grid;
@@ -339,16 +353,54 @@ FOOTER_SECTION_LINKS_DATA = [
 ]
 
 FOOTER_SOCIAL_MEDIA_DATA = [
-    {"id": 1, "footer_id": 1, "platform": "facebook", "label": "Facebook", "url": "https://facebook.com", "is_active": True, "order": 0},
-    {"id": 2, "footer_id": 1, "platform": "youtube", "label": "YouTube", "url": "https://youtube.com", "is_active": True, "order": 1},
-    {"id": 3, "footer_id": 1, "platform": "instagram", "label": "Instagram", "url": "https://instagram.com", "is_active": True, "order": 2},
-    {"id": 4, "footer_id": 1, "platform": "twitter", "label": "Twitter", "url": "https://twitter.com", "is_active": True, "order": 3},
-    {"id": 5, "footer_id": 1, "platform": "tiktok", "label": "TikTok", "url": "https://tiktok.com", "is_active": True, "order": 4},
+    {
+        "id": 1,
+        "footer_id": 1,
+        "platform": "facebook",
+        "label": "Facebook",
+        "url": "https://facebook.com",
+        "is_active": True,
+        "order": 0,
+    },
+    {
+        "id": 2,
+        "footer_id": 1,
+        "platform": "youtube",
+        "label": "YouTube",
+        "url": "https://youtube.com",
+        "is_active": True,
+        "order": 1,
+    },
+    {
+        "id": 3,
+        "footer_id": 1,
+        "platform": "instagram",
+        "label": "Instagram",
+        "url": "https://instagram.com",
+        "is_active": True,
+        "order": 2,
+    },
+    {
+        "id": 4,
+        "footer_id": 1,
+        "platform": "twitter",
+        "label": "Twitter",
+        "url": "https://twitter.com",
+        "is_active": True,
+        "order": 3,
+    },
+    {
+        "id": 5,
+        "footer_id": 1,
+        "platform": "tiktok",
+        "label": "TikTok",
+        "url": "https://tiktok.com",
+        "is_active": True,
+        "order": 4,
+    },
 ]
 
-BOTTOMBAR_DATA = [
-    {"id": 1, "singleton_key": 1, "is_active": True}
-]
+BOTTOMBAR_DATA = [{"id": 1, "singleton_key": 1, "is_active": True}]
 
 BOTTOMBAR_LINKS_DATA = [
     {"id": 1, "bottom_bar_id": 1, "label": "Legal Notice", "url": "/legal/", "order": 0},
@@ -359,17 +411,124 @@ BOTTOMBAR_LINKS_DATA = [
 ]
 
 CATEGORIES_DATA = [
-    {"id": 47, "name": "Car Accessories", "slug": "car-accessories", "parent_id": None, "image": ""},
-    {"id": 49, "name": "Lighting", "slug": "lighting", "parent_id": None, "image": ""},
-    {"id": 43, "name": "Wet Wipes", "slug": "wet-wipes", "parent_id": None, "image": ""},
-    {"id": 40, "name": "Batteries", "slug": "batteries", "parent_id": None, "image": ""},
-    {"id": 42, "name": "Watch Batteries", "slug": "watch-batteries", "parent_id": 40, "image": ""},
-    {"id": 41, "name": "Alkaline Batteries", "slug": "alkaline-batteries", "parent_id": 40, "image": ""},
-    {"id": 45, "name": "Kids Wipes", "slug": "kids-wipes", "parent_id": 43, "image": ""},
-    {"id": 44, "name": "Baby Wipes", "slug": "baby-wipes", "parent_id": 43, "image": ""},
-    {"id": 46, "name": "Intimate Care", "slug": "intimate-care", "parent_id": 43, "image": ""},
-    {"id": 48, "name": "Air Fresheners", "slug": "air-fresheners", "parent_id": 47, "image": ""},
-    {"id": 50, "name": "LED Bulbs", "slug": "led-bulbs", "parent_id": 49, "image": ""},
+     {"id": 47, "name": "Car Accessories", "slug": "car-accessories", "parent_id": None, "image": "", "icon": "truck", "sort_order": 1},
+    {"id": 49, "name": "Lighting", "slug": "lighting", "parent_id": None, "image": "", "icon": "light-bulb", "sort_order": 2},
+    {"id": 43, "name": "Wet Wipes", "slug": "wet-wipes", "parent_id": None, "image": "", "icon": "sparkles", "sort_order": 3},
+    {"id": 40, "name": "Batteries", "slug": "batteries", "parent_id": None, "image": "", "icon": "bolt", "sort_order": 4},
+    {"id": 61, "name": "Beauty & Health", "slug": "beauty-health", "parent_id": None, "image": "", "icon": "heart", "sort_order": 5},
+    {"id": 62, "name": "Household", "slug": "household", "parent_id": None, "image": "", "icon": "home", "sort_order": 6},
+    {"id": 63, "name": "Electronics", "slug": "electronics", "parent_id": None, "image": "", "icon": "device-mobile", "sort_order": 0},
+    {"id": 64, "name": "Pet Supplies", "slug": "pet-supplies", "parent_id": None, "image": "", "icon": "tag", "sort_order": 8},
+    {"id": 65, "name": "Office", "slug": "office", "parent_id": None, "image": "", "icon": "briefcase", "sort_order": 9},
+    # More root categories for testing scroll
+    {"id": 66, "name": "Toys & Games", "slug": "toys-games", "parent_id": None, "image": "", "icon": "puzzle-piece", "sort_order": 10},
+    {"id": 67, "name": "Sports & Outdoors", "slug": "sports-outdoors", "parent_id": None, "image": "", "icon": "fire", "sort_order": 11},
+    {"id": 68, "name": "Garden & Patio", "slug": "garden-patio", "parent_id": None, "image": "", "icon": "leaf", "sort_order": 12},
+    {"id": 69, "name": "Tools & Hardware", "slug": "tools-hardware", "parent_id": None, "image": "", "icon": "wrench", "sort_order": 13},
+    {"id": 70, "name": "Grocery & Gourmet", "slug": "grocery-gourmet", "parent_id": None, "image": "", "icon": "shopping-bag", "sort_order": 14},
+    {"id": 71, "name": "Baby", "slug": "baby", "parent_id": None, "image": "", "icon": "emoji-happy", "sort_order": 15},
+    {"id": 72, "name": "Automotive", "slug": "automotive", "parent_id": None, "image": "", "icon": "truck", "sort_order": 16},
+    {"id": 73, "name": "Industrial", "slug": "industrial", "parent_id": None, "image": "", "icon": "briefcase", "sort_order": 17},
+    {"id": 74, "name": "Arts & Crafts", "slug": "arts-crafts", "parent_id": None, "image": "", "icon": "scissors", "sort_order": 18},
+    {"id": 75, "name": "Books", "slug": "books", "parent_id": None, "image": "", "icon": "book-open", "sort_order": 19},
+    # Subcategories
+    {"id": 42, "name": "Watch Batteries", "slug": "watch-batteries", "parent_id": 40, "image": "", "icon": "clock", "sort_order": 0},
+    {"id": 41, "name": "Alkaline Batteries", "slug": "alkaline-batteries", "parent_id": 40, "image": "", "icon": "bolt", "sort_order": 0},
+    {"id": 300, "name": "AA Batteries", "slug": "aa-batteries", "parent_id": 41, "image": "", "icon": "bolt", "sort_order": 1},
+    {"id": 301, "name": "Bulk Packs", "slug": "bulk-packs", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 1},
+    {"id": 310, "name": "12-Pack", "slug": "bulk-12-pack", "parent_id": 301, "image": "", "icon": "bolt", "sort_order": 1},
+    {"id": 311, "name": "24-Pack", "slug": "bulk-24-pack", "parent_id": 301, "image": "", "icon": "bolt", "sort_order": 2},
+    {"id": 312, "name": "48-Pack", "slug": "bulk-48-pack", "parent_id": 301, "image": "", "icon": "bolt", "sort_order": 3},
+    {"id": 302, "name": "Value Packs", "slug": "value-packs", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 2},
+    {"id": 303, "name": "Industrial Packs", "slug": "industrial-packs", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 3},
+    {"id": 304, "name": "High Capacity", "slug": "high-capacity", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 4},
+    {"id": 305, "name": "Professional Series", "slug": "professional-series", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 5},
+    {"id": 306, "name": "Consumer Series", "slug": "consumer-series", "parent_id": 300, "image": "", "icon": "bolt", "sort_order": 6},
+    {"id": 200, "name": "Rechargeable Batteries", "slug": "rechargeable-batteries", "parent_id": 40, "image": "", "icon": "bolt", "sort_order": 2},
+    {"id": 201, "name": "Lithium Batteries", "slug": "lithium-batteries", "parent_id": 40, "image": "", "icon": "bolt", "sort_order": 3},
+    {"id": 202, "name": "Button Cells", "slug": "button-cells", "parent_id": 40, "image": "", "icon": "clock", "sort_order": 4},
+    {"id": 203, "name": "Hearing Aid Batteries", "slug": "hearing-aid-batteries", "parent_id": 40, "image": "", "icon": "heart", "sort_order": 5},
+    {"id": 204, "name": "Camera Batteries", "slug": "camera-batteries", "parent_id": 40, "image": "", "icon": "camera", "sort_order": 6},
+    {"id": 205, "name": "Power Tool Batteries", "slug": "power-tool-batteries", "parent_id": 40, "image": "", "icon": "wrench", "sort_order": 7},
+    {"id": 206, "name": "Battery Chargers", "slug": "battery-chargers", "parent_id": 40, "image": "", "icon": "sparkles", "sort_order": 8},
+    {"id": 207, "name": "Battery Holders", "slug": "battery-holders", "parent_id": 40, "image": "", "icon": "chip", "sort_order": 9},
+    {"id": 45, "name": "Kids Wipes", "slug": "kids-wipes", "parent_id": 43, "image": "", "icon": "puzzle-piece", "sort_order": 0},
+    {"id": 44, "name": "Baby Wipes", "slug": "baby-wipes", "parent_id": 43, "image": "", "icon": "heart", "sort_order": 0},
+    {"id": 46, "name": "Intimate Care", "slug": "intimate-care", "parent_id": 43, "image": "", "icon": "sparkles", "sort_order": 0},
+    {"id": 234, "name": "Antibacterial Wipes", "slug": "antibacterial-wipes", "parent_id": 43, "image": "", "icon": "sparkles", "sort_order": 1},
+    {"id": 235, "name": "Makeup Remover Wipes", "slug": "makeup-remover-wipes", "parent_id": 43, "image": "", "icon": "sparkles", "sort_order": 2},
+    {"id": 236, "name": "Household Wipes", "slug": "household-wipes", "parent_id": 43, "image": "", "icon": "sparkles", "sort_order": 3},
+    {"id": 237, "name": "Travel Wipes", "slug": "travel-wipes", "parent_id": 43, "image": "", "icon": "briefcase", "sort_order": 4},
+    {"id": 48, "name": "Air Fresheners", "slug": "air-fresheners", "parent_id": 47, "image": "", "icon": "sparkles", "sort_order": 0},
+    {"id": 226, "name": "Phone Holders", "slug": "phone-holders", "parent_id": 47, "image": "", "icon": "device-mobile", "sort_order": 1},
+    {"id": 227, "name": "Car Chargers", "slug": "car-chargers", "parent_id": 47, "image": "", "icon": "bolt", "sort_order": 2},
+    {"id": 228, "name": "Seat Covers", "slug": "seat-covers", "parent_id": 47, "image": "", "icon": "sparkles", "sort_order": 3},
+    {"id": 229, "name": "Floor Mats", "slug": "floor-mats", "parent_id": 47, "image": "", "icon": "sparkles", "sort_order": 4},
+    {"id": 50, "name": "LED Bulbs", "slug": "led-bulbs", "parent_id": 49, "image": "", "icon": "light-bulb", "sort_order": 0},
+    {"id": 230, "name": "Smart Bulbs", "slug": "smart-bulbs", "parent_id": 49, "image": "", "icon": "light-bulb", "sort_order": 1},
+    {"id": 231, "name": "Light Fixtures", "slug": "light-fixtures", "parent_id": 49, "image": "", "icon": "light-bulb", "sort_order": 2},
+    {"id": 232, "name": "Outdoor Lighting", "slug": "outdoor-lighting", "parent_id": 49, "image": "", "icon": "light-bulb", "sort_order": 3},
+    {"id": 233, "name": "LED Strips", "slug": "led-strips", "parent_id": 49, "image": "", "icon": "light-bulb", "sort_order": 4},
+    {"id": 208, "name": "Skincare", "slug": "skincare", "parent_id": 61, "image": "", "icon": "sparkles", "sort_order": 0},
+    {"id": 209, "name": "Hair Care", "slug": "hair-care", "parent_id": 61, "image": "", "icon": "sparkles", "sort_order": 1},
+    {"id": 210, "name": "Oral Care", "slug": "oral-care", "parent_id": 61, "image": "", "icon": "sparkles", "sort_order": 2},
+    {"id": 211, "name": "Vitamins & Supplements", "slug": "vitamins-supplements", "parent_id": 61, "image": "", "icon": "heart", "sort_order": 3},
+    {"id": 212, "name": "Personal Care", "slug": "personal-care", "parent_id": 61, "image": "", "icon": "heart", "sort_order": 4},
+    {"id": 213, "name": "Makeup", "slug": "makeup", "parent_id": 61, "image": "", "icon": "sparkles", "sort_order": 5},
+    {"id": 214, "name": "Cleaning Supplies", "slug": "cleaning-supplies", "parent_id": 62, "image": "", "icon": "sparkles", "sort_order": 0},
+    {"id": 215, "name": "Laundry", "slug": "laundry", "parent_id": 62, "image": "", "icon": "sparkles", "sort_order": 1},
+    {"id": 216, "name": "Kitchen Essentials", "slug": "kitchen-essentials", "parent_id": 62, "image": "", "icon": "shopping-bag", "sort_order": 2},
+    {"id": 217, "name": "Bathroom", "slug": "bathroom", "parent_id": 62, "image": "", "icon": "home", "sort_order": 3},
+    {"id": 218, "name": "Storage & Organization", "slug": "storage-organization", "parent_id": 62, "image": "", "icon": "briefcase", "sort_order": 4},
+    {"id": 219, "name": "Paper Goods", "slug": "paper-goods", "parent_id": 62, "image": "", "icon": "book-open", "sort_order": 5},
+    {"id": 220, "name": "Dog Food", "slug": "dog-food", "parent_id": 64, "image": "", "icon": "tag", "sort_order": 0},
+    {"id": 221, "name": "Cat Food", "slug": "cat-food", "parent_id": 64, "image": "", "icon": "tag", "sort_order": 1},
+    {"id": 222, "name": "Litter & Accessories", "slug": "litter-accessories", "parent_id": 64, "image": "", "icon": "sparkles", "sort_order": 2},
+    {"id": 223, "name": "Pet Toys", "slug": "pet-toys", "parent_id": 64, "image": "", "icon": "puzzle-piece", "sort_order": 3},
+    {"id": 224, "name": "Grooming", "slug": "pet-grooming", "parent_id": 64, "image": "", "icon": "sparkles", "sort_order": 4},
+    {"id": 225, "name": "Health & Wellness", "slug": "pet-health-wellness", "parent_id": 64, "image": "", "icon": "heart", "sort_order": 5},
+    # New sub-categories for recursion test under "Intimate Care" (id 46)
+    {"id": 51, "name": "Feminine Hygiene", "slug": "feminine-hygiene", "parent_id": 46, "image": "", "icon": "heart", "sort_order": 0},
+    {"id": 52, "name": "Daily Freshness", "slug": "daily-freshness", "parent_id": 46, "image": "", "icon": "sun", "sort_order": 0},
+    {"id": 53, "name": "Travel Packs", "slug": "travel-packs", "parent_id": 46, "image": "", "icon": "briefcase", "sort_order": 0},
+    {"id": 54, "name": "Eco Wipes", "slug": "eco-wipes", "parent_id": 46, "image": "", "icon": "leaf", "sort_order": 0},
+    {"id": 55, "name": "Sensitive", "slug": "sensitive", "parent_id": 46, "image": "", "icon": "shield-check", "sort_order": 0},
+    {"id": 56, "name": "Sport", "slug": "sport-care", "parent_id": 46, "image": "", "icon": "fire", "sort_order": 0},
+    {"id": 57, "name": "Fragrance Free", "slug": "fragrance-free", "parent_id": 46, "image": "", "icon": "x-circle", "sort_order": 0},
+    {"id": 58, "name": "Natural Cotton", "slug": "natural-cotton", "parent_id": 46, "image": "", "icon": "cloud", "sort_order": 0},
+    {"id": 59, "name": "Night Care", "slug": "night-care", "parent_id": 46, "image": "", "icon": "moon", "sort_order": 0},
+    # Level 4 Categories (Children of Sport)
+    {"id": 160, "name": "Gym Wipes", "slug": "gym-wipes", "parent_id": 56, "image": "", "icon": "fire", "sort_order": 0},
+    {"id": 161, "name": "Cycling Wipes", "slug": "cycling-wipes", "parent_id": 56, "image": "", "icon": "fire", "sort_order": 0},
+    # Subcategories for Electronics (ID 63) to test "More..." link
+    {"id": 80, "name": "Smartphones", "slug": "smartphones", "parent_id": 63, "image": "", "icon": "device-mobile", "sort_order": 0},
+    {"id": 81, "name": "Laptops", "slug": "laptops", "parent_id": 63, "image": "", "icon": "desktop-computer", "sort_order": 1},
+    {"id": 82, "name": "Tablets", "slug": "tablets", "parent_id": 63, "image": "", "icon": "device-tablet", "sort_order": 2},
+    {"id": 83, "name": "Cameras", "slug": "cameras", "parent_id": 63, "image": "", "icon": "camera", "sort_order": 3},
+    {"id": 84, "name": "Audio", "slug": "audio", "parent_id": 63, "image": "", "icon": "music-note", "sort_order": 4},
+    {"id": 85, "name": "Gaming", "slug": "gaming", "parent_id": 63, "image": "", "icon": "puzzle-piece", "sort_order": 5},
+    {"id": 86, "name": "Accessories", "slug": "accessories", "parent_id": 63, "image": "", "icon": "sparkles", "sort_order": 6},
+    {"id": 87, "name": "Components", "slug": "components", "parent_id": 63, "image": "", "icon": "chip", "sort_order": 7},
+    {"id": 88, "name": "Networking", "slug": "networking", "parent_id": 63, "image": "", "icon": "wifi", "sort_order": 8},
+    {"id": 89, "name": "Printers", "slug": "printers", "parent_id": 63, "image": "", "icon": "printer", "sort_order": 9},
+    {"id": 90, "name": "Monitors", "slug": "monitors", "parent_id": 63, "image": "", "icon": "desktop-computer", "sort_order": 10},
+    {"id": 91, "name": "Wearables", "slug": "wearables", "parent_id": 63, "image": "", "icon": "clock", "sort_order": 11},
+    {"id": 120, "name": "Home Cinema", "slug": "home-cinema", "parent_id": 63, "image": "", "icon": "video-camera", "sort_order": 12},
+    {"id": 121, "name": "Projectors", "slug": "projectors", "parent_id": 63, "image": "", "icon": "presentation-chart-bar", "sort_order": 13},
+    {"id": 122, "name": "Electric Scooters", "slug": "electric-scooters", "parent_id": 63, "image": "", "icon": "truck", "sort_order": 14},
+    {"id": 123, "name": "Drones", "slug": "drones", "parent_id": 63, "image": "", "icon": "paper-airplane", "sort_order": 15},
+    {"id": 124, "name": "Smart Home", "slug": "smart-home", "parent_id": 63, "image": "", "icon": "home", "sort_order": 16},
+    {"id": 125, "name": "Security Cameras", "slug": "security-cameras", "parent_id": 63, "image": "", "icon": "eye", "sort_order": 17},
+    {"id": 126, "name": "Car Electronics", "slug": "car-electronics", "parent_id": 63, "image": "", "icon": "device-tablet", "sort_order": 18},
+    {"id": 127, "name": "Media Players", "slug": "media-players", "parent_id": 63, "image": "", "icon": "play", "sort_order": 19},
+    {"id": 128, "name": "Portable Audio", "slug": "portable-audio", "parent_id": 63, "image": "", "icon": "music-note", "sort_order": 20},
+    {"id": 129, "name": "Microphones", "slug": "microphones", "parent_id": 63, "image": "", "icon": "microphone", "sort_order": 21},
+    {"id": 130, "name": "Keyboards", "slug": "keyboards", "parent_id": 63, "image": "", "icon": "calculator", "sort_order": 22},
+    {"id": 131, "name": "Mice", "slug": "mice", "parent_id": 63, "image": "", "icon": "cursor-click", "sort_order": 23},
+    {"id": 132, "name": "Cables", "slug": "cables", "parent_id": 63, "image": "", "icon": "link", "sort_order": 24},
+    {"id": 133, "name": "Storage", "slug": "storage", "parent_id": 63, "image": "", "icon": "database", "sort_order": 25},
+    {"id": 134, "name": "Power Banks", "slug": "power-banks", "parent_id": 63, "image": "", "icon": "lightning-bolt", "sort_order": 26},
+    {"id": 135, "name": "Cases", "slug": "cases", "parent_id": 63, "image": "", "icon": "briefcase", "sort_order": 27},
 ]
 
 ATTRIBUTE_DEFINITIONS_DATA = [
@@ -534,17 +693,121 @@ PRODUCTS_DATA = [
         "sales_per_month": "0",
         "description": '<h2><strong>Refresh Your Car Diffuser</strong></h2><p>Dual fragrance system: <strong>New Car</strong> and <strong>Cool Breeze</strong> scents in one!</p><h3>Features</h3><ul><li data-list-item-id="ef798f52db0e47085e20d2fbc48623d62"><strong>Scent Control</strong> - adjustable intensity</li><li data-list-item-id="e84c3726bdc76ead7ece12051832d5f8b"><strong>Eliminates odors</strong> effectively</li><li data-list-item-id="ee74e2a94ad35196013090f68bc70941f"><strong>Dual fragrance</strong> design</li><li data-list-item-id="ed94399150f6b60ad41d1b718911c6386"><strong>7ml</strong> long-lasting formula</li></ul><p>The innovative diffuser design allows you to <i>control scent intensity</i>. Available in multiple scent combinations.</p><blockquote><p>Scent Control / Réglage de l\'intensité - Your car, your way!</p></blockquote>',
     },
+    {
+        "id": 58,
+        "name": "Energizer Alkaline Power 9V 1-Pack",
+        "slug": "energizer-alkaline-power-9v-1-pack",
+        "category_id": 40,
+        "status": "active",
+        "price": "14.49",
+        "stock": 60,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Reliable 9V battery for smoke detectors and high-drain devices.</p>",
+    },
+    {
+        "id": 59,
+        "name": "Novita Wet Wipes Anti-bacterial 15pcs",
+        "slug": "novita-wet-wipes-anti-bacterial-15pcs",
+        "category_id": 43,
+        "status": "active",
+        "price": "4.99",
+        "stock": 200,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Anti-bacterial wet wipes for hands and surfaces.</p>",
+    },
+    {
+        "id": 150,
+        "name": "Energizer Industrial AA 10-Pack",
+        "slug": "energizer-industrial-aa-10-pack",
+        "category_id": 305,
+        "status": "active",
+        "price": "24.99",
+        "stock": 50,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Professional grade AA batteries in bulk.</p>",
+    },
+    {
+        "id": 151,
+        "name": "Energizer Everyday AA 4-Pack",
+        "slug": "energizer-everyday-aa-4-pack",
+        "category_id": 306,
+        "status": "active",
+        "price": "14.99",
+        "stock": 100,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Standard AA batteries for daily use.</p>",
+    },
 ]
 
 PRODUCT_IMAGES_DATA = [
-    {"id": 37, "product_id": 50, "image": "product-images/energizer-max-aaa-4-pack_5CvQIwn.webp", "alt_text": "Energizer MAX AAA 4-Pack", "sort_order": 0},
-    {"id": 38, "product_id": 51, "image": "product-images/energizer-silver-watch-battery-155v_BEyoBmV.webp", "alt_text": "Energizer Silver Watch Battery 1.55V", "sort_order": 0},
-    {"id": 39, "product_id": 52, "image": "product-images/novita-intimate-wet-wipes-15pcs_lAReI41.webp", "alt_text": "Novita Intimate Wet Wipes 15pcs", "sort_order": 0},
-    {"id": 40, "product_id": 53, "image": "product-images/california-scents-car-freshener-coronado-cherry-42.webp", "alt_text": "California Scents Car Freshener Coronado Cherry 42g", "sort_order": 0},
-    {"id": 41, "product_id": 54, "image": "product-images/energizer-led-r50-e14-62w-450-lumens_EV1fmMH.webp", "alt_text": "Energizer LED R50 E14 6.2W 450 Lumens", "sort_order": 0},
-    {"id": 42, "product_id": 55, "image": "product-images/smile-wet-wipes-cars-jackson-storm-15pcs_41Rbmtx.webp", "alt_text": "Smile Wet Wipes Cars Jackson Storm 15pcs", "sort_order": 0},
-    {"id": 43, "product_id": 56, "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs_g5Z4usZ.webp", "alt_text": "Smile Baby Wet Wipes with Chamomile 60pcs", "sort_order": 0},
-    {"id": 44, "product_id": 57, "image": "product-images/5050028253013.webp", "alt_text": "Refresh Your Car Diffuser New Car/Cool Breeze 7ml", "sort_order": 0},
+    {
+        "id": 37,
+        "product_id": 50,
+        "image": "product-images/energizer-max-aaa-4-pack_5CvQIwn.webp",
+        "alt_text": "Energizer MAX AAA 4-Pack",
+        "sort_order": 0,
+    },
+    {
+        "id": 38,
+        "product_id": 51,
+        "image": "product-images/energizer-silver-watch-battery-155v_BEyoBmV.webp",
+        "alt_text": "Energizer Silver Watch Battery 1.55V",
+        "sort_order": 0,
+    },
+    {
+        "id": 39,
+        "product_id": 52,
+        "image": "product-images/novita-intimate-wet-wipes-15pcs_lAReI41.webp",
+        "alt_text": "Novita Intimate Wet Wipes 15pcs",
+        "sort_order": 0,
+    },
+    {
+        "id": 40,
+        "product_id": 53,
+        "image": "product-images/california-scents-car-freshener-coronado-cherry-42.webp",
+        "alt_text": "California Scents Car Freshener Coronado Cherry 42g",
+        "sort_order": 0,
+    },
+    {
+        "id": 41,
+        "product_id": 54,
+        "image": "product-images/energizer-led-r50-e14-62w-450-lumens_EV1fmMH.webp",
+        "alt_text": "Energizer LED R50 E14 6.2W 450 Lumens",
+        "sort_order": 0,
+    },
+    {
+        "id": 42,
+        "product_id": 55,
+        "image": "product-images/smile-wet-wipes-cars-jackson-storm-15pcs_41Rbmtx.webp",
+        "alt_text": "Smile Wet Wipes Cars Jackson Storm 15pcs",
+        "sort_order": 0,
+    },
+    {
+        "id": 43,
+        "product_id": 56,
+        "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs_g5Z4usZ.webp",
+        "alt_text": "Smile Baby Wet Wipes with Chamomile 60pcs",
+        "sort_order": 0,
+    },
+    {
+        "id": 44,
+        "product_id": 57,
+        "image": "product-images/5050028253013.webp",
+        "alt_text": "Refresh Your Car Diffuser New Car/Cool Breeze 7ml",
+        "sort_order": 0,
+    },
 ]
 
 PRODUCT_ATTRIBUTE_VALUES_DATA = [
@@ -583,16 +846,70 @@ PRODUCT_ATTRIBUTE_VALUES_DATA = [
 ]
 
 BANNERS_DATA = [
-    {"id": 12, "name": "Electronics & Gadgets", "image": "banners/5e5b77c5-7a86-42a7-a8f8-6ecee165a5b1.png", "mobile_image": "banners/mobile_ab1de3ca-6957-4529-a629-06cc8e6e612d.png", "url": "", "is_active": True, "available_from": None, "available_to": None, "order": 0},
-    {"id": 13, "name": "Fashion Accessories", "image": "banners/9bf2da5c-3839-42fd-955e-a8f7e8be6181.png", "mobile_image": "banners/mobile_6be17e66-09e2-4c09-ab86-6dc009322ca2.png", "url": "", "is_active": True, "available_from": None, "available_to": None, "order": 1},
-
+    {
+        "id": 12,
+        "name": "Electronics & Gadgets",
+        "image": "banners/5e5b77c5-7a86-42a7-a8f8-6ecee165a5b1.png",
+        "mobile_image": "banners/mobile_ab1de3ca-6957-4529-a629-06cc8e6e612d.png",
+        "url": "",
+        "is_active": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 0,
+    },
+    {
+        "id": 13,
+        "name": "Fashion Accessories",
+        "image": "banners/9bf2da5c-3839-42fd-955e-a8f7e8be6181.png",
+        "mobile_image": "banners/mobile_6be17e66-09e2-4c09-ab86-6dc009322ca2.png",
+        "url": "",
+        "is_active": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 1,
+    },
 ]
 
 HOMEPAGE_SECTIONS_DATA = [
-    {"id": 12, "section_type": "custom_section", "name": "", "title": "", "custom_html": '<div style="background-color:#ffffff;border-radius:24px;box-shadow:0 10px 25px rgba(0,0,0,0.08);margin:40px auto;max-width:800px;padding:48px 32px;text-align:center;transition:transform 0.3s, box-shadow 0.3s;"><h1 style="font-size:40px;line-height:1.2;margin-bottom:16px;"><strong>Nowa kolekcja</strong></h1><p style="color:#555555;font-size:20px;margin-bottom:24px;">Sprawdź nasze bestsellery</p><p><a style="background-color:#000000;border-radius:16px;color:#ffffff;display:inline-block;font-size:16px;padding:16px 40px;text-decoration:none;transition:background-color 0.3s, transform 0.3s;" href="#">Zobacz produkty</a></p></div>', "custom_css": "", "custom_js": "", "is_enabled": True, "available_from": None, "available_to": None, "order": 0},
-    {"id": 18, "section_type": "product_list", "name": "Featured Products", "title": "Featured Products", "custom_html": "", "custom_css": "", "custom_js": "", "is_enabled": True, "available_from": None, "available_to": None, "order": 1},
-    {"id": 4, "section_type": "banner_section", "name": "", "title": "Promotions", "custom_html": "", "custom_css": "", "custom_js": "", "is_enabled": True, "available_from": None, "available_to": None, "order": 2},
-    {"id": 19, "section_type": "product_list", "name": "All Products", "title": "All Products", "custom_html": "", "custom_css": "", "custom_js": "", "is_enabled": True, "available_from": None, "available_to": None, "order": 3},
+    {
+        "id": 18,
+        "section_type": "product_list",
+        "name": "Featured Products",
+        "title": "Featured Products",
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 0,
+    },
+    {
+        "id": 4,
+        "section_type": "banner_section",
+        "name": "",
+        "title": "Promotions",
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 1,
+    },
+    {
+        "id": 19,
+        "section_type": "product_list",
+        "name": "All Products",
+        "title": "All Products",
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 2,
+    },
 ]
 
 HOMEPAGE_SECTION_PRODUCTS_DATA = [
@@ -610,10 +927,80 @@ HOMEPAGE_SECTION_PRODUCTS_DATA = [
     {"id": 42, "section_id": 19, "product_id": 57, "order": 7},
 ]
 
+# =============================================================================
+# Storefront Hero Section Data
+# =============================================================================
+
+STOREFRONT_HERO_SECTION_DATA = {
+    "id": 1,
+    "title": "Don’t miss out on exclusive deals.",
+    "subtitle": "Unlock even more exclusive member deals when you become a Plus or Diamond member.",
+    "primary_button_text": "Shop Now",
+    "primary_button_url": "#",
+    "secondary_button_text": "Learn more",
+    "secondary_button_url": "#",
+    "is_active": True,
+    "available_from": None,
+    "available_to": None,
+}
+
+STOREFRONT_CATEGORY_BOXES_DATA = [
+    {
+        "id": 1,
+        "section_id": 1,
+        "title": "Top categories",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "#",
+        "order": 0,
+    },
+    {
+        "id": 2,
+        "section_id": 1,
+        "title": "Shop consumer electronics",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "#",
+        "order": 1,
+    },
+]
+
+STOREFRONT_CATEGORY_ITEMS_DATA = [
+    # Box 1 - Top categories
+    {"id": 1, "category_box_id": 1, "name": "Computers", "image": "storefront/category_computers.svg", "url": "#", "order": 0},
+    {"id": 2, "category_box_id": 1, "name": "Gaming", "image": "storefront/category_gaming.svg", "url": "#", "order": 1},
+    {"id": 3, "category_box_id": 1, "name": "Tablets", "image": "storefront/category_tablets.svg", "url": "#", "order": 2},
+    {"id": 4, "category_box_id": 1, "name": "Fashion", "image": "storefront/category_fashion_v4.svg", "url": "#", "order": 3},
+    # Box 2 - Consumer electronics
+    {"id": 5, "category_box_id": 2, "name": "Laptops", "image": "storefront/category_laptops.svg", "url": "#", "order": 0},
+    {"id": 6, "category_box_id": 2, "name": "Watches", "image": "storefront/category_watches.svg", "url": "#", "order": 1},
+    {"id": 7, "category_box_id": 2, "name": "Tablets", "image": "storefront/category_ipad.svg", "url": "#", "order": 2},
+    {"id": 8, "category_box_id": 2, "name": "Accessories", "image": "storefront/category_accessories.svg", "url": "#", "order": 3},
+]
+
 HOMEPAGE_SECTION_BANNERS_DATA = [
-    {"id": 11, "section_id": 4, "name": "Seasonal Sale", "image": "section_banners/8b7c118b-1172-4b92-ac03-8d5580a307ed.png", "url": "", "order": 1},
-    {"id": 12, "section_id": 4, "name": "New Arrivals", "image": "section_banners/95e2bbd6-e24b-4225-864c-ba70cdf47aa5.jpg", "url": "", "order": 2},
-    {"id": 10, "section_id": 4, "name": "Smart Home Essentials", "image": "section_banners/8a5e7f6e-0d13-495a-8156-b785606cc9c0.png", "url": "https://www.google.pl", "order": 0},
+    {
+        "id": 11,
+        "section_id": 4,
+        "name": "Seasonal Sale",
+        "image": "section_banners/8b7c118b-1172-4b92-ac03-8d5580a307ed.png",
+        "url": "",
+        "order": 1,
+    },
+    {
+        "id": 12,
+        "section_id": 4,
+        "name": "New Arrivals",
+        "image": "section_banners/95e2bbd6-e24b-4225-864c-ba70cdf47aa5.jpg",
+        "url": "",
+        "order": 2,
+    },
+    {
+        "id": 10,
+        "section_id": 4,
+        "name": "Smart Home Essentials",
+        "image": "section_banners/8a5e7f6e-0d13-495a-8156-b785606cc9c0.png",
+        "url": "https://www.google.pl",
+        "order": 0,
+    },
 ]
 
 MEDIA_STORAGE_SETTINGS_DATA = {
@@ -629,6 +1016,17 @@ MEDIA_STORAGE_SETTINGS_DATA = {
 # =============================================================================
 # COMMAND
 # =============================================================================
+
+
+@contextmanager
+def _disable_simple_history():
+    previous = getattr(settings, "SIMPLE_HISTORY_ENABLED", True)
+    settings.SIMPLE_HISTORY_ENABLED = False
+    try:
+        yield
+    finally:
+        settings.SIMPLE_HISTORY_ENABLED = previous
+
 
 class Command(BaseCommand):
     help = "Seed database with predefined data"
@@ -646,25 +1044,32 @@ class Command(BaseCommand):
         self.stdout.write(self.style.NOTICE("Seeding database with predefined data..."))
 
         with transaction.atomic():
-            self._seed_sites()
-            self._seed_topbar()
-            self._seed_custom_css()
-            self._seed_site_settings()
-            self._seed_footer()
-            self._seed_bottombar()
-            self._seed_categories()
-            self._seed_attributes()
-            self._seed_products()
-            self._seed_banners()
-            self._seed_homepage_sections()
-            # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
-            self._seed_media_storage_settings()
+            with _disable_simple_history():
+                self._seed_sites()
+                self._seed_topbar()
+                self._seed_custom_css()
+                self._seed_site_settings()
+                self._seed_footer()
+                self._seed_bottombar()
+                self._seed_categories()
+                self._seed_navbar()
+                self._seed_attributes()
+                self._seed_products()
+                self._seed_banners()
+                self._seed_homepage_sections()
+                self._seed_storefront_hero_section()
+                # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
+                self._seed_media_storage_settings()
+                self._seed_social_apps()
 
-            if not skip_users:
-                self._create_superuser()
+                if not skip_users:
+                    self._create_superuser()
 
-            # Fix PostgreSQL sequences after inserting with explicit IDs
-            self._fix_sequences()
+                # Fix PostgreSQL sequences after inserting with explicit IDs
+                self._fix_sequences()
+
+            # Populate history for seeded data
+            self._populate_history()
 
         self.stdout.write(self.style.SUCCESS("Database seeded successfully!"))
 
@@ -677,10 +1082,7 @@ class Command(BaseCommand):
     def _seed_sites(self):
         """Seed Site model."""
         for item in SITES_DATA:
-            Site.objects.update_or_create(
-                id=item["id"],
-                defaults={"domain": item["domain"], "name": item["name"]}
-            )
+            Site.objects.update_or_create(id=item["id"], defaults={"domain": item["domain"], "name": item["name"]})
         self.stdout.write(f"  Site: {len(SITES_DATA)} records")
 
     def _seed_topbar(self):
@@ -703,7 +1105,7 @@ class Command(BaseCommand):
                     "available_from": self._parse_datetime(item["available_from"]),
                     "available_to": self._parse_datetime(item["available_to"]),
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  TopBar: {len(TOPBAR_DATA)} records")
 
@@ -715,7 +1117,7 @@ class Command(BaseCommand):
                 defaults={
                     "custom_css": item["custom_css"],
                     "custom_css_active": item["custom_css_active"],
-                }
+                },
             )
         self.stdout.write(f"  CustomCSS: {len(CUSTOM_CSS_DATA)} records")
 
@@ -731,7 +1133,7 @@ class Command(BaseCommand):
                     "keywords": item["keywords"],
                     "default_image": item["default_image"],
                     "currency": item["currency"],
-                }
+                },
             )
         self.stdout.write(f"  SiteSettings: {len(SITE_SETTINGS_DATA)} records")
 
@@ -747,7 +1149,7 @@ class Command(BaseCommand):
                     "custom_css": item["custom_css"],
                     "custom_js": item["custom_js"],
                     "is_active": item["is_active"],
-                }
+                },
             )
         self.stdout.write(f"  Footer: {len(FOOTER_DATA)} records")
 
@@ -758,7 +1160,7 @@ class Command(BaseCommand):
                     "footer_id": item["footer_id"],
                     "name": item["name"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  FooterSection: {len(FOOTER_SECTIONS_DATA)} records")
 
@@ -770,7 +1172,7 @@ class Command(BaseCommand):
                     "label": item["label"],
                     "url": item["url"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  FooterSectionLink: {len(FOOTER_SECTION_LINKS_DATA)} records")
 
@@ -784,7 +1186,7 @@ class Command(BaseCommand):
                     "url": item["url"],
                     "is_active": item["is_active"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  FooterSocialMedia: {len(FOOTER_SOCIAL_MEDIA_DATA)} records")
 
@@ -796,7 +1198,7 @@ class Command(BaseCommand):
                 defaults={
                     "singleton_key": item["singleton_key"],
                     "is_active": item["is_active"],
-                }
+                },
             )
         self.stdout.write(f"  BottomBar: {len(BOTTOMBAR_DATA)} records")
 
@@ -808,9 +1210,86 @@ class Command(BaseCommand):
                     "label": item["label"],
                     "url": item["url"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  BottomBarLink: {len(BOTTOMBAR_LINKS_DATA)} records")
+
+    def _seed_navbar(self):
+        """Seed Navbar and default custom navigation items mirroring standard categories."""
+        for item in NAVBAR_DATA:
+            Navbar.objects.update_or_create(
+                id=item["id"],
+                defaults={
+                    "singleton_key": item["singleton_key"],
+                    "mode": item["mode"],
+                },
+            )
+        self.stdout.write(f"  Navbar: {len(NAVBAR_DATA)} records")
+
+        navbar = Navbar.get_settings()
+
+        # Create custom navbar items matching standard (alphabetical root categories)
+        # Seed first 8 categories as custom items example
+        root_categories = list(
+            Category.objects.filter(parent__isnull=True)
+            .order_by("name")[:8]
+        )
+
+        # Clear existing items for a clean mirror
+        NavbarItem.objects.filter(navbar=navbar).delete()
+
+        navbar_items = []
+        for index, category in enumerate(root_categories, start=1):
+            navbar_items.append(
+                NavbarItem(
+                    navbar=navbar,
+                    item_type=NavbarItem.ItemType.CATEGORY,
+                    category=category,
+                    label="",
+                    url="",
+                    open_in_new_tab=False,
+                    label_color="",
+                    icon="",
+                    order=index,
+                    is_active=True,
+                )
+            )
+
+        # Add separator at position 9
+        navbar_items.append(
+            NavbarItem(
+                navbar=navbar,
+                item_type=NavbarItem.ItemType.SEPARATOR,
+                category=None,
+                label="",
+                url="",
+                open_in_new_tab=False,
+                label_color="",
+                icon="",
+                order=9,
+                is_active=True,
+            )
+        )
+
+        # Add "Promocje" custom link at position 10 with red color
+        navbar_items.append(
+            NavbarItem(
+                navbar=navbar,
+                item_type=NavbarItem.ItemType.CUSTOM_LINK,
+                category=None,
+                label="Promocje",
+                url="/promocje/",
+                open_in_new_tab=True,
+                label_color="#dc2626",
+                icon="",
+                order=10,
+                is_active=True,
+            )
+        )
+
+        if navbar_items:
+            NavbarItem.objects.bulk_create(navbar_items)
+        self.stdout.write(f"  NavbarItem: {len(navbar_items)} records")
 
     def _seed_categories(self):
         """Seed Category model."""
@@ -823,7 +1302,9 @@ class Command(BaseCommand):
                     "slug": item["slug"],
                     "parent_id": None,
                     "image": item["image"],
-                }
+                    "icon": item.get("icon", "circle"),
+                    "sort_order": item.get("sort_order", 0),
+                },
             )
         # Second pass: set parent_id
         for item in CATEGORIES_DATA:
@@ -839,7 +1320,7 @@ class Command(BaseCommand):
                 defaults={
                     "name": item["name"],
                     "display_name": item["display_name"],
-                }
+                },
             )
         self.stdout.write(f"  AttributeDefinition: {len(ATTRIBUTE_DEFINITIONS_DATA)} records")
 
@@ -849,7 +1330,7 @@ class Command(BaseCommand):
                 defaults={
                     "attribute_id": item["attribute_id"],
                     "value": item["value"],
-                }
+                },
             )
         self.stdout.write(f"  AttributeOption: {len(ATTRIBUTE_OPTIONS_DATA)} records")
 
@@ -870,7 +1351,7 @@ class Command(BaseCommand):
                     "sales_per_day": Decimal(item["sales_per_day"]),
                     "sales_per_month": Decimal(item["sales_per_month"]),
                     "description": item["description"],
-                }
+                },
             )
         self.stdout.write(f"  Product: {len(PRODUCTS_DATA)} records")
 
@@ -882,7 +1363,7 @@ class Command(BaseCommand):
                     "image": item["image"],
                     "alt_text": item["alt_text"],
                     "sort_order": item["sort_order"],
-                }
+                },
             )
         self.stdout.write(f"  ProductImage: {len(PRODUCT_IMAGES_DATA)} records")
 
@@ -892,7 +1373,7 @@ class Command(BaseCommand):
                 defaults={
                     "product_id": item["product_id"],
                     "option_id": item["option_id"],
-                }
+                },
             )
         self.stdout.write(f"  ProductAttributeValue: {len(PRODUCT_ATTRIBUTE_VALUES_DATA)} records")
 
@@ -910,7 +1391,7 @@ class Command(BaseCommand):
                     "available_from": self._parse_datetime(item["available_from"]),
                     "available_to": self._parse_datetime(item["available_to"]),
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  Banner: {len(BANNERS_DATA)} records")
 
@@ -930,7 +1411,7 @@ class Command(BaseCommand):
                     "available_from": self._parse_datetime(item["available_from"]),
                     "available_to": self._parse_datetime(item["available_to"]),
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  HomepageSection: {len(HOMEPAGE_SECTIONS_DATA)} records")
 
@@ -941,7 +1422,7 @@ class Command(BaseCommand):
                     "section_id": item["section_id"],
                     "product_id": item["product_id"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  HomepageSectionProduct: {len(HOMEPAGE_SECTION_PRODUCTS_DATA)} records")
 
@@ -954,12 +1435,57 @@ class Command(BaseCommand):
                     "image": item["image"],
                     "url": item["url"],
                     "order": item["order"],
-                }
+                },
             )
         self.stdout.write(f"  HomepageSectionBanner: {len(HOMEPAGE_SECTION_BANNERS_DATA)} records")
 
+    def _seed_storefront_hero_section(self):
+        """Seed StorefrontHeroSection and related models."""
+        if STOREFRONT_HERO_SECTION_DATA:
+            StorefrontHeroSection.objects.update_or_create(
+                id=STOREFRONT_HERO_SECTION_DATA["id"],
+                defaults={
+                    "title": STOREFRONT_HERO_SECTION_DATA["title"],
+                    "subtitle": STOREFRONT_HERO_SECTION_DATA["subtitle"],
+                    "primary_button_text": STOREFRONT_HERO_SECTION_DATA["primary_button_text"],
+                    "primary_button_url": STOREFRONT_HERO_SECTION_DATA["primary_button_url"],
+                    "secondary_button_text": STOREFRONT_HERO_SECTION_DATA["secondary_button_text"],
+                    "secondary_button_url": STOREFRONT_HERO_SECTION_DATA["secondary_button_url"],
+                    "is_active": STOREFRONT_HERO_SECTION_DATA["is_active"],
+                    "available_from": self._parse_datetime(STOREFRONT_HERO_SECTION_DATA["available_from"]),
+                    "available_to": self._parse_datetime(STOREFRONT_HERO_SECTION_DATA["available_to"]),
+                },
+            )
+            self.stdout.write("  StorefrontHeroSection: 1 record")
+
+        for item in STOREFRONT_CATEGORY_BOXES_DATA:
+            StorefrontCategoryBox.objects.update_or_create(
+                id=item["id"],
+                defaults={
+                    "section_id": item["section_id"],
+                    "title": item["title"],
+                    "shop_link_text": item["shop_link_text"],
+                    "shop_link_url": item["shop_link_url"],
+                    "order": item["order"],
+                },
+            )
+        self.stdout.write(f"  StorefrontCategoryBox: {len(STOREFRONT_CATEGORY_BOXES_DATA)} records")
+
+        for item in STOREFRONT_CATEGORY_ITEMS_DATA:
+            StorefrontCategoryItem.objects.update_or_create(
+                id=item["id"],
+                defaults={
+                    "category_box_id": item["category_box_id"],
+                    "name": item["name"],
+                    "image": item["image"],
+                    "url": item["url"],
+                    "order": item["order"],
+                },
+            )
+        self.stdout.write(f"  StorefrontCategoryItem: {len(STOREFRONT_CATEGORY_ITEMS_DATA)} records")
+
     def _seed_media_storage_settings(self):
-        """Seed MediaStorageSettings (without AWS keys)."""
+        """Seed MediaStorageSettings with AWS keys from environment variables."""
         if MEDIA_STORAGE_SETTINGS_DATA:
             settings_obj = MediaStorageSettings.get_settings()
             settings_obj.provider_type = MEDIA_STORAGE_SETTINGS_DATA["provider_type"]
@@ -968,11 +1494,43 @@ class Command(BaseCommand):
             settings_obj.aws_location = MEDIA_STORAGE_SETTINGS_DATA["aws_location"]
             settings_obj.cdn_enabled = MEDIA_STORAGE_SETTINGS_DATA["cdn_enabled"]
             settings_obj.cdn_domain = MEDIA_STORAGE_SETTINGS_DATA["cdn_domain"]
-            # AWS keys are NOT set - must be configured manually in CMS
-            settings_obj.aws_access_key_id = ""
-            settings_obj.aws_secret_access_key = ""
+            # Read AWS keys from environment variables
+            aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
+            aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+            settings_obj.aws_access_key_id = aws_access_key
+            settings_obj.aws_secret_access_key = aws_secret_key
             settings_obj.save()
-            self.stdout.write("  MediaStorageSettings: configured (without AWS keys)")
+            if aws_access_key and aws_secret_key:
+                self.stdout.write("  MediaStorageSettings: configured with AWS keys from env")
+            else:
+                self.stdout.write(self.style.WARNING("  MediaStorageSettings: configured (AWS keys not found in env)"))
+
+    def _seed_social_apps(self):
+        """Seed SocialApp for Google OAuth with credentials from environment variables."""
+        from django.contrib.sites.models import Site
+
+        google_client_id = os.environ.get("GOOGLE_CLIENT_ID", "")
+        google_secret_id = os.environ.get("GOOGLE_SECRET_ID", "")
+
+        if google_client_id and google_secret_id:
+            site = Site.objects.get(pk=1)
+            social_app, created = SocialApp.objects.update_or_create(
+                provider="google",
+                defaults={
+                    "name": "Google",
+                    "client_id": google_client_id,
+                    "secret": google_secret_id,
+                },
+            )
+            # Ensure the app is linked to the site
+            if site not in social_app.sites.all():
+                social_app.sites.add(site)
+            # Ensure SocialAppSettings exists and is active
+            SocialAppSettings.objects.get_or_create(social_app=social_app, defaults={"is_active": True})
+            action = "created" if created else "updated"
+            self.stdout.write(f"  SocialApp (Google): {action} with credentials from env")
+        else:
+            self.stdout.write(self.style.WARNING("  SocialApp (Google): skipped (credentials not found in env)"))
 
     def _create_superuser(self):
         """Create the default superuser."""
@@ -986,17 +1544,13 @@ class Command(BaseCommand):
                 "is_staff": True,
                 "is_superuser": True,
                 "is_active": True,
-            }
+            },
         )
 
         if created:
             user.set_password(password)
             user.save()
-            EmailAddress.objects.get_or_create(
-                user=user,
-                email=email,
-                defaults={"verified": True, "primary": True}
-            )
+            EmailAddress.objects.get_or_create(user=user, email=email, defaults={"verified": True, "primary": True})
             self.stdout.write(self.style.SUCCESS(f"  Superuser created: {email} / {password}"))
         else:
             user.is_staff = True
@@ -1021,6 +1575,8 @@ class Command(BaseCommand):
             "web_footersectionlink",
             "web_footersocialmedia",
             "web_bottombarlink",
+            "web_navbar",
+            "web_navbaritem",
             "web_topbar",
             "web_footer",
             "web_bottombar",
@@ -1036,6 +1592,9 @@ class Command(BaseCommand):
             "homepage_homepagesection",
             "homepage_homepagesectionproduct",
             "homepage_homepagesectionbanner",
+            "homepage_storefrontherosection",
+            "homepage_storefrontcategorybox",
+            "homepage_storefrontcategoryitem",
         ]
 
         fixed_count = 0
@@ -1058,3 +1617,166 @@ class Command(BaseCommand):
 
         self.stdout.write(f"  Sequences fixed: {fixed_count} tables")
 
+    def _populate_history(self):
+        """Populate historical records for seeded data."""
+        try:
+            call_command("populate_history", auto=True, stdout=self.stdout, stderr=self.stderr)
+            self.stdout.write("  History: initial records created")
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f"  History: skipped ({exc})"))
+
+STOREFRONT_HERO_SECTION_DATA = {
+    "id": 1,
+    "title": "Don’t miss out on exclusive deals.",
+    "subtitle": "Unlock even more exclusive member deals when you become a Plus or Diamond member.",
+    "primary_button_text": "Shop Now",
+    "primary_button_url": "https://google.com?q=shop",
+    "secondary_button_text": "Learn more",
+    "secondary_button_url": "https://google.com?q=learn+more",
+    "is_active": True,
+    "available_from": None,
+    "available_to": None,
+}
+
+STOREFRONT_CATEGORY_BOXES_DATA = [
+    {
+        "id": 1,
+        "section_id": 1,
+        "title": "Top categories",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "/categories/",
+        "order": 1,
+    },
+    {
+        "id": 2,
+        "section_id": 1,
+        "title": "Shop consumer electronics",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "/electronics/",
+        "order": 2,
+    },
+]
+
+# Note: Images will be replaced by the upload script results, using placeholders for now
+# which match the expected output paths from scripts/upload_assets.py
+STOREFRONT_CATEGORY_ITEMS_DATA = [
+    # Box 1: Top categories
+    {
+        "id": 1,
+        "category_box_id": 1,
+        "name": "Computers",
+        "image": "seeds/storefront/category_computers.png",
+        "url": "/c/computers/",
+        "order": 1,
+    },
+    {
+        "id": 2,
+        "category_box_id": 1,
+        "name": "Gaming",
+        "image": "seeds/storefront/category_gaming.png",
+        "url": "/c/gaming/",
+        "order": 2,
+    },
+    {
+        "id": 3,
+        "category_box_id": 1,
+        "name": "Tablets",
+        "image": "seeds/storefront/category_computers.png", # Reusing computer icon for tablet if generic
+        "url": "/c/tablets/",
+        "order": 3,
+    },
+    {
+        "id": 4,
+        "category_box_id": 1,
+        "name": "Fashion",
+        "image": "seeds/storefront/category_gaming.png", # Placeholder reuse
+        "url": "/c/fashion/",
+        "order": 4,
+    },
+    
+    # Box 2: Shop consumer electronics
+    {
+        "id": 5,
+        "category_box_id": 2,
+        "name": "Laptops",
+        "image": "seeds/storefront/category_computers.png",
+        "url": "/c/laptops/",
+        "order": 1,
+    },
+    {
+        "id": 6,
+        "category_box_id": 2,
+        "name": "Audio",
+        "image": "seeds/storefront/category_audio.png",
+        "url": "/c/audio/",
+        "order": 2,
+    },
+    {
+        "id": 7,
+        "category_box_id": 2,
+        "name": "Cameras",
+        "image": "seeds/storefront/category_cameras.png",
+        "url": "/c/cameras/",
+        "order": 3,
+    },
+    {
+        "id": 8,
+        "category_box_id": 2,
+        "name": "Accessories",
+        "image": "seeds/storefront/category_gaming.png", # Placeholder
+        "url": "/c/accessories/",
+        "order": 4,
+    },
+]
+
+STOREFRONT_BRAND_LOGOS_DATA = [
+    {
+        "id": 1,
+        "section_id": 1,
+        "name": "Volta",
+        "image": "seeds/storefront/brand_volta.png",
+        "url": "/brand/volta/",
+        "order": 1,
+    },
+    {
+        "id": 2,
+        "section_id": 1,
+        "name": "Nebula",
+        "image": "seeds/storefront/brand_nebula.png",
+        "url": "/brand/nebula/",
+        "order": 2,
+    },
+    {
+        "id": 3,
+        "section_id": 1,
+        "name": "Kinetix",
+        "image": "seeds/storefront/brand_kinetix.png",
+        "url": "/brand/kinetix/",
+        "order": 3,
+    },
+    {
+        "id": 4,
+        "section_id": 1,
+        "name": "Aura",
+        "image": "seeds/storefront/brand_aura.png",
+        "url": "/brand/aura/",
+        "order": 4,
+    },
+    # Extras for fullness
+    {
+        "id": 5,
+        "section_id": 1,
+        "name": "Flux",
+        "image": "seeds/storefront/brand_flux.png",
+        "url": "/brand/flux/",
+        "order": 5,
+    },
+    {
+        "id": 6,
+        "section_id": 1,
+        "name": "Zenith",
+        "image": "seeds/storefront/brand_zenith.png",
+        "url": "/brand/zenith/",
+        "order": 6,
+    },
+]

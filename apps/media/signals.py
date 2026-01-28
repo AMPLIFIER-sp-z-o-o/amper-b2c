@@ -12,7 +12,6 @@ from typing import Any
 from django.db import models, transaction
 from django.db.models.fields.files import FieldFile
 from django.db.models.signals import post_delete, post_save, pre_save
-from django.dispatch import receiver
 
 from apps.media.storage import DynamicMediaStorage
 
@@ -274,7 +273,7 @@ def setup_media_sync_signals() -> None:
     """
     Set up signals for all models that use DynamicMediaStorage.
     Called from MediaConfig.ready().
-    
+
     Automatically discovers all models in the project that have FileField/ImageField
     using DynamicMediaStorage - no hardcoding required.
     """
@@ -285,14 +284,14 @@ def setup_media_sync_signals() -> None:
         # Skip abstract or swapped models
         if model._meta.abstract or model._meta.swapped:
             continue
-            
+
         try:
             file_fields = _get_file_fields_with_dynamic_storage(model)
 
             if file_fields:
                 app_label = model._meta.app_label
                 model_name = model._meta.model_name
-                
+
                 # Connect signals
                 pre_save.connect(
                     handle_pre_save,
@@ -312,4 +311,3 @@ def setup_media_sync_signals() -> None:
                 logger.debug(f"Connected media sync signals for {app_label}.{model_name}")
         except Exception as e:
             logger.warning(f"Failed to connect signals for {model}: {e}")
-

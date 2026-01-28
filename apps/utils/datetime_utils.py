@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone as dt_timezone
+from datetime import UTC, datetime
 
 from django.utils import timezone
 
@@ -34,7 +34,7 @@ def wall_clock_utc_now() -> datetime:
     with no shifting) using Django ORM filters.
     """
     now_wall = wall_clock_now()
-    return timezone.make_aware(now_wall, dt_timezone.utc)
+    return timezone.make_aware(now_wall, UTC)
 
 
 def is_within_wall_clock_range(

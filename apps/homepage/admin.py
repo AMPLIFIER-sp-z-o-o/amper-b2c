@@ -5,12 +5,23 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
-from unfold.admin import ModelAdmin, TabularInline
+from unfold.admin import TabularInline
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
+from unfold.decorators import display
 
-from .models import Banner, HomepageSection, HomepageSectionBanner, HomepageSectionProduct, HomepageSectionType
-from apps.utils.admin_mixins import BaseModelAdmin
-from apps.utils.admin_utils import make_image_preview_html, make_status_badge_html
+from apps.utils.admin_mixins import BaseModelAdmin, HistoryModelAdmin
+from apps.utils.admin_utils import make_image_preview_html, make_status_badge_html, make_status_text_html
+
+from .models import (
+    Banner,
+    HomepageSection,
+    HomepageSectionBanner,
+    HomepageSectionProduct,
+    HomepageSectionType,
+    StorefrontCategoryBox,
+    StorefrontCategoryItem,
+    StorefrontHeroSection,
+)
 
 
 class BannerResource(resources.ModelResource):
@@ -40,10 +51,9 @@ class BannerAdmin(BaseModelAdmin, ImportExportModelAdmin):
             "all": ["css/admin_product_image_inline.css"],
         }
 
+    @display(description=_("Status"))
     def display_status(self, obj):
-        return make_status_badge_html(obj.is_active, obj.available_from, obj.available_to)
-
-    display_status.short_description = _("Status")
+        return make_status_text_html(obj.is_active, obj.available_from, obj.available_to)
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         formfield = super().formfield_for_dbfield(db_field, **kwargs)
@@ -84,7 +94,7 @@ class BannerAdmin(BaseModelAdmin, ImportExportModelAdmin):
         return make_image_preview_html(
             obj.image if obj else None,
             alt_text=f"{obj.name} (Desktop)" if obj else None,
-            show_open_link=bool(obj and obj.pk)
+            show_open_link=bool(obj and obj.pk),
         )
 
     desktop_preview.short_description = _("Preview")
@@ -94,19 +104,19 @@ class BannerAdmin(BaseModelAdmin, ImportExportModelAdmin):
         return make_image_preview_html(
             obj.mobile_image if obj else None,
             alt_text=f"{obj.name} (Mobile)" if obj else None,
-            show_open_link=bool(obj and obj.pk)
+            show_open_link=bool(obj and obj.pk),
         )
 
     mobile_preview.short_description = _("Preview")
 
 
 @admin.register(HomepageSectionBanner)
-class HomepageSectionBannerAdmin(ModelAdmin):
+class HomepageSectionBannerAdmin(HistoryModelAdmin):
     has_module_permission = lambda self, r: False
 
 
 @admin.register(HomepageSectionProduct)
-class HomepageSectionProductAdmin(ModelAdmin):
+class HomepageSectionProductAdmin(HistoryModelAdmin):
     has_module_permission = lambda self, r: False
 
 
@@ -132,20 +142,25 @@ class HomepageSectionProductInline(TabularInline):
     def get_queryset(self, request):
         """Prefetch product images to avoid N+1 queries."""
         from django.db.models import Prefetch
+
         from apps.catalog.models import ProductImage
-        return super().get_queryset(request).select_related("product").prefetch_related(
-            Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id"))
+
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("product")
+            .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id")))
         )
 
     def product_image_preview(self, obj):
         """Display the primary product image with link to open in new tab."""
         if not obj or not obj.product_id:
             return make_image_preview_html(None, size=50, show_open_link=False)
-        
+
         # Use prefetched images (access .all() to use cache, not .order_by which triggers new query)
         all_images = list(obj.product.images.all())
         primary_image = all_images[0] if all_images else None
-        
+
         if primary_image and primary_image.image:
             return make_image_preview_html(
                 primary_image.image,
@@ -180,8 +195,6 @@ class HomepageSectionBannerInline(TabularInline):
         css = {
             "all": ["css/admin_product_image_inline.css"],
         }
-
-
 
 
 class HomepageSectionForm(forms.ModelForm):
@@ -238,7 +251,16 @@ class HomepageSectionForm(forms.ModelForm):
 class HomepageSectionAdmin(BaseModelAdmin):
     form = HomepageSectionForm
     change_form_template = "admin/homepage/homepagesection/change_form.html"
-    list_display = ("name", "title", "section_type", "display_status", "is_enabled", "available_from", "available_to", "order")
+    list_display = (
+        "name",
+        "title",
+        "section_type",
+        "display_status",
+        "is_enabled",
+        "available_from",
+        "available_to",
+        "order",
+    )
     list_filter = ("section_type", "is_enabled", "available_from", "available_to")
     search_fields = ("name", "title")
     ordering = ("order", "-created_at")
@@ -315,7 +337,162 @@ class HomepageSectionAdmin(BaseModelAdmin):
             initial["section_type"] = request.GET.get("section_type")
         return initial
 
+    @display(description=_("Status"), label=True)
     def display_status(self, obj):
         return make_status_badge_html(obj.is_enabled, obj.available_from, obj.available_to)
 
-    display_status.short_description = _("Status")
+
+# =============================================================================
+# Storefront Hero Section Admin
+# =============================================================================
+
+
+@admin.register(StorefrontCategoryItem)
+class StorefrontCategoryItemAdmin(HistoryModelAdmin):
+    """Hidden admin for media library source links."""
+
+    has_module_permission = lambda self, r: False
+
+
+class StorefrontCategoryItemInline(TabularInline):
+    """Inline for category items within a category box."""
+
+    model = StorefrontCategoryItem
+    extra = 0
+    max_num = 4
+    fields = ("image_preview", "image", "name", "url", "open_in_new_tab", "order")
+    readonly_fields = ("image_preview",)
+    ordering = ("order", "id")
+    classes = ["tab-product-images"]
+    verbose_name_plural = format_html(
+        '{}<span style="margin-left: 10px; font-weight: normal; font-size: 12px; color: #64748b;">{}</span>',
+        _("Category Items"),
+        _("Up to 4 items per box. Formats: SVG, PNG, JPG, WEBP. URL: use # or full https://..."),
+    )
+
+    class Media:
+        css = {
+            "all": ["css/admin_product_image_inline.css"],
+        }
+
+    def image_preview(self, obj):
+        """Display image preview."""
+        return make_image_preview_html(obj.image if obj else None, size=50, show_open_link=bool(obj and obj.pk))
+
+    image_preview.short_description = _("Preview")
+
+
+@admin.register(StorefrontCategoryBox)
+class StorefrontCategoryBoxAdmin(BaseModelAdmin):
+    """Admin for managing StorefrontCategoryBox with items inline."""
+
+    list_display = ("title", "section", "shop_link_text", "order")
+    list_filter = ("section",)
+    search_fields = ("title", "shop_link_text")
+    ordering = ("section", "order", "id")
+    inlines = [StorefrontCategoryItemInline]
+
+    class Media:
+        css = {
+            "all": ["css/admin_product_image_inline.css"],
+        }
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("section", "title", "shop_link_text", "shop_link_url", "shop_link_open_in_new_tab", "order"),
+            },
+        ),
+    )
+
+    def has_module_permission(self, request):
+        """Hide from sidebar but allow access through parent."""
+        return False
+
+
+class StorefrontCategoryBoxInline(TabularInline):
+    """Inline for category boxes within the storefront section."""
+
+    model = StorefrontCategoryBox
+    extra = 0
+    max_num = 2
+    fields = ("title", "shop_link_text", "shop_link_url", "shop_link_open_in_new_tab", "order")
+    ordering = ("order", "id")
+    verbose_name_plural = format_html(
+        '{}<span style="margin-left: 10px; font-weight: normal; font-size: 12px; color: #64748b;">{}</span>',
+        _("Category Boxes"),
+        _("Up to 2 category boxes. Each box can contain up to 4 items - edit items after saving. URL: use # or full https://..."),
+    )
+    show_change_link = True
+
+
+@admin.register(StorefrontHeroSection)
+class StorefrontHeroSectionAdmin(BaseModelAdmin):
+    """Admin for Storefront Hero Section."""
+
+    list_display = (
+        "title_preview",
+        "display_status",
+        "is_active",
+    )
+    list_filter = ("is_active",)
+    search_fields = ("title", "subtitle")
+    list_editable = ("is_active",)
+    list_per_page = 50
+    show_full_result_count = False
+    inlines = [StorefrontCategoryBoxInline]
+
+    def has_add_permission(self, request):
+        """Only allow adding if no instance exists yet."""
+        return not StorefrontHeroSection.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of the singleton instance."""
+        return False
+
+    class Media:
+        css = {
+            "all": ["css/admin_product_image_inline.css"],
+        }
+
+    fieldsets = (
+        (
+            _("Left Side Content"),
+            {
+                "fields": ("title", "subtitle"),
+                "description": _("Main headline and description text displayed on the left side of the section."),
+            },
+        ),
+        (
+            _("Buttons"),
+            {
+                "fields": (
+                    "primary_button_text",
+                    "primary_button_url",
+                    "primary_button_open_in_new_tab",
+                    "secondary_button_text",
+                    "secondary_button_url",
+                    "secondary_button_open_in_new_tab",
+                ),
+                "description": _("Call-to-action buttons. Use '#' for placeholder or full URL (e.g., https://example.com)."),
+            },
+        ),
+        (
+            _("Availability"),
+            {
+                "fields": ("is_active",),
+                "description": _("Control when this section is displayed. Leave dates empty for always visible."),
+            },
+        ),
+    )
+
+    def title_preview(self, obj):
+        """Truncated title for list display."""
+        return obj.title[:50] + "..." if len(obj.title) > 50 else obj.title
+
+    title_preview.short_description = _("Title")
+
+    @display(description=_("Status"))
+    def display_status(self, obj):
+        return make_status_text_html(obj.is_active, obj.available_from, obj.available_to)

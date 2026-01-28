@@ -3,11 +3,11 @@ Admin configuration for Media Storage settings and Media Library.
 Uses Unfold admin theme for modern UI.
 """
 
+from django.apps import apps
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from django.apps import apps
-from unfold.admin import ModelAdmin
+from apps.utils.admin_mixins import HistoryModelAdmin, SingletonAdminMixin
 from unfold.decorators import display
 
 from .models import MediaFile, MediaStorageSettings
@@ -18,7 +18,7 @@ from .models import MediaFile, MediaStorageSettings
 
 
 @admin.register(MediaFile)
-class MediaFileAdmin(ModelAdmin):
+class MediaFileAdmin(HistoryModelAdmin):
     """
     Admin for media files - read-only gallery view of all media in the system.
     Files are added through the application (product images, banners, etc.),
@@ -94,7 +94,6 @@ class MediaFileAdmin(ModelAdmin):
             },
         ),
     )
-
 
     def has_add_permission(self, request):
         """Disable manual file adding - files come from application."""
@@ -185,18 +184,18 @@ class MediaFileAdmin(ModelAdmin):
         # Color palette for dynamic assignment (hex colors for inline styles)
         # Each tuple: (background with 20% opacity, text color)
         color_palette = [
-            ("rgba(59,130,246,0.2)", "#3b82f6"),   # blue
-            ("rgba(168,85,247,0.2)", "#a855f7"),   # purple
-            ("rgba(16,185,129,0.2)", "#10b981"),   # emerald
-            ("rgba(245,158,11,0.2)", "#f59e0b"),   # amber
-            ("rgba(6,182,212,0.2)", "#06b6d4"),    # cyan
-            ("rgba(244,63,94,0.2)", "#f43f5e"),    # rose
-            ("rgba(99,102,241,0.2)", "#6366f1"),   # indigo
-            ("rgba(20,184,166,0.2)", "#14b8a6"),   # teal
-            ("rgba(249,115,22,0.2)", "#f97316"),   # orange
-            ("rgba(236,72,153,0.2)", "#ec4899"),   # pink
-            ("rgba(132,204,22,0.2)", "#84cc16"),   # lime
-            ("rgba(139,92,246,0.2)", "#8b5cf6"),   # violet
+            ("rgba(59,130,246,0.2)", "#3b82f6"),  # blue
+            ("rgba(168,85,247,0.2)", "#a855f7"),  # purple
+            ("rgba(16,185,129,0.2)", "#10b981"),  # emerald
+            ("rgba(245,158,11,0.2)", "#f59e0b"),  # amber
+            ("rgba(6,182,212,0.2)", "#06b6d4"),  # cyan
+            ("rgba(244,63,94,0.2)", "#f43f5e"),  # rose
+            ("rgba(99,102,241,0.2)", "#6366f1"),  # indigo
+            ("rgba(20,184,166,0.2)", "#14b8a6"),  # teal
+            ("rgba(249,115,22,0.2)", "#f97316"),  # orange
+            ("rgba(236,72,153,0.2)", "#ec4899"),  # pink
+            ("rgba(132,204,22,0.2)", "#84cc16"),  # lime
+            ("rgba(139,92,246,0.2)", "#8b5cf6"),  # violet
         ]
 
         # Generate consistent color based on hash of source_model
@@ -208,6 +207,7 @@ class MediaFileAdmin(ModelAdmin):
         model_name = source_key.split(".")[-1] if "." in source_key else source_key
         # Convert camelCase/lowercase to readable format
         import re
+
         label = re.sub(r"([a-z])([A-Z])", r"\1 \2", model_name)
         label = label.replace("_", " ").title()
 
@@ -224,7 +224,8 @@ class MediaFileAdmin(ModelAdmin):
     def source_link(self, obj):
         """Display source model as a clickable badge linking to the source object."""
         import re
-        from django.urls import reverse, NoReverseMatch
+
+        from django.urls import NoReverseMatch, reverse
 
         if not obj.source_model:
             return format_html(
@@ -236,18 +237,18 @@ class MediaFileAdmin(ModelAdmin):
 
         # Color palette for dynamic assignment
         color_palette = [
-            ("rgba(59,130,246,0.2)", "#3b82f6"),   # blue
-            ("rgba(168,85,247,0.2)", "#a855f7"),   # purple
-            ("rgba(16,185,129,0.2)", "#10b981"),   # emerald
-            ("rgba(245,158,11,0.2)", "#f59e0b"),   # amber
-            ("rgba(6,182,212,0.2)", "#06b6d4"),    # cyan
-            ("rgba(244,63,94,0.2)", "#f43f5e"),    # rose
-            ("rgba(99,102,241,0.2)", "#6366f1"),   # indigo
-            ("rgba(20,184,166,0.2)", "#14b8a6"),   # teal
-            ("rgba(249,115,22,0.2)", "#f97316"),   # orange
-            ("rgba(236,72,153,0.2)", "#ec4899"),   # pink
-            ("rgba(132,204,22,0.2)", "#84cc16"),   # lime
-            ("rgba(139,92,246,0.2)", "#8b5cf6"),   # violet
+            ("rgba(59,130,246,0.2)", "#3b82f6"),  # blue
+            ("rgba(168,85,247,0.2)", "#a855f7"),  # purple
+            ("rgba(16,185,129,0.2)", "#10b981"),  # emerald
+            ("rgba(245,158,11,0.2)", "#f59e0b"),  # amber
+            ("rgba(6,182,212,0.2)", "#06b6d4"),  # cyan
+            ("rgba(244,63,94,0.2)", "#f43f5e"),  # rose
+            ("rgba(99,102,241,0.2)", "#6366f1"),  # indigo
+            ("rgba(20,184,166,0.2)", "#14b8a6"),  # teal
+            ("rgba(249,115,22,0.2)", "#f97316"),  # orange
+            ("rgba(236,72,153,0.2)", "#ec4899"),  # pink
+            ("rgba(132,204,22,0.2)", "#84cc16"),  # lime
+            ("rgba(139,92,246,0.2)", "#8b5cf6"),  # violet
         ]
 
         source_key = obj.source_model.lower()
@@ -279,11 +280,11 @@ class MediaFileAdmin(ModelAdmin):
         if admin_url:
             return format_html(
                 '<a href="{}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:4px; padding:4px 8px; '
-                'border-radius:6px; font-size:11px; font-weight:700; text-transform:uppercase; '
+                "border-radius:6px; font-size:11px; font-weight:700; text-transform:uppercase; "
                 'background:{}; color:{}; text-decoration:none; transition:transform 0.15s ease, box-shadow 0.15s ease;" '
                 'title="Open source in new tab" '
-                'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.15)\'" '
-                'onmouseout="this.style.transform=\'scale(1)\'; this.style.boxShadow=\'none\'">'
+                "onmouseover=\"this.style.transform='scale(1.05)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'\" "
+                "onmouseout=\"this.style.transform='scale(1)'; this.style.boxShadow='none'\">"
                 '{}<span style="font-size:14px;">↗</span></a>',
                 admin_url,
                 bg_color,
@@ -305,7 +306,8 @@ class MediaFileAdmin(ModelAdmin):
     def source_link_display(self, obj):
         """Display source model and field as a clickable badge for the change view."""
         import re
-        from django.urls import reverse, NoReverseMatch
+
+        from django.urls import NoReverseMatch, reverse
 
         if not obj.source_model:
             return format_html(
@@ -318,16 +320,16 @@ class MediaFileAdmin(ModelAdmin):
 
         # Color palette for dynamic assignment
         color_palette = [
-            ("rgba(59,130,246,0.15)", "#3b82f6"),   # blue
-            ("rgba(168,85,247,0.15)", "#a855f7"),   # purple
-            ("rgba(16,185,129,0.15)", "#10b981"),   # emerald
-            ("rgba(245,158,11,0.15)", "#f59e0b"),   # amber
-            ("rgba(6,182,212,0.15)", "#06b6d4"),    # cyan
-            ("rgba(244,63,94,0.15)", "#f43f5e"),    # rose
-            ("rgba(99,102,241,0.15)", "#6366f1"),   # indigo
-            ("rgba(20,184,166,0.15)", "#14b8a6"),   # teal
-            ("rgba(249,115,22,0.15)", "#f97316"),   # orange
-            ("rgba(236,72,153,0.15)", "#ec4899"),   # pink
+            ("rgba(59,130,246,0.15)", "#3b82f6"),  # blue
+            ("rgba(168,85,247,0.15)", "#a855f7"),  # purple
+            ("rgba(16,185,129,0.15)", "#10b981"),  # emerald
+            ("rgba(245,158,11,0.15)", "#f59e0b"),  # amber
+            ("rgba(6,182,212,0.15)", "#06b6d4"),  # cyan
+            ("rgba(244,63,94,0.15)", "#f43f5e"),  # rose
+            ("rgba(99,102,241,0.15)", "#6366f1"),  # indigo
+            ("rgba(20,184,166,0.15)", "#14b8a6"),  # teal
+            ("rgba(249,115,22,0.15)", "#f97316"),  # orange
+            ("rgba(236,72,153,0.15)", "#ec4899"),  # pink
         ]
 
         source_key = obj.source_model.lower()
@@ -369,15 +371,15 @@ class MediaFileAdmin(ModelAdmin):
             return format_html(
                 '<div style="display:flex; flex-direction:column; gap:4px;">'
                 '<a href="{}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; '
-                'gap:6px; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:700; '
-                'text-transform:uppercase; background:{}; color:{}; text-decoration:none; '
+                "gap:6px; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:700; "
+                "text-transform:uppercase; background:{}; color:{}; text-decoration:none; "
                 'transition:transform 0.15s ease, box-shadow 0.15s ease; width:fit-content;" '
                 'title="Open source in new tab" '
-                'onmouseover="this.style.transform=\'scale(1.05)\'; this.style.boxShadow=\'0 4px 12px rgba(0,0,0,0.15)\'" '
-                'onmouseout="this.style.transform=\'scale(1)\'; this.style.boxShadow=\'none\'">'
-                '{}'
+                "onmouseover=\"this.style.transform='scale(1.05)'; this.style.boxShadow='0 4px 12px rgba(0,0,0,0.15)'\" "
+                "onmouseout=\"this.style.transform='scale(1)'; this.style.boxShadow='none'\">"
+                "{}"
                 '<span class="material-symbols-outlined" style="font-size:16px;">open_in_new</span>'
-                '</a>{}</div>',
+                "</a>{}</div>",
                 admin_url,
                 bg_color,
                 text_color,
@@ -590,7 +592,7 @@ class MediaFileAdmin(ModelAdmin):
 
 
 @admin.register(MediaStorageSettings)
-class MediaStorageSettingsAdmin(ModelAdmin):
+class MediaStorageSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     """Admin for media storage settings - singleton model with direct form access."""
 
     def get_readonly_fields(self, request, obj=None):
@@ -626,8 +628,7 @@ class MediaStorageSettingsAdmin(ModelAdmin):
                 )
             else:
                 form.base_fields["aws_region"].help_text = _(
-                    "Select the AWS region where your S3 bucket is located. "
-                    "This cannot be changed after configuration."
+                    "Select the AWS region where your S3 bucket is located. This cannot be changed after configuration."
                 )
         return form
 

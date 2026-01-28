@@ -12,6 +12,18 @@ class SupportConfig(AppConfig):
         # Import admin to trigger model registrations
         from apps.support import admin  # noqa: F401
 
+        from allauth.socialaccount.models import SocialAccount, SocialApp, SocialToken
+        from django.contrib.auth.models import Group, Permission
+        from simple_history import register
+
+        def _register_history(model):
+            if hasattr(model, "history"):
+                return
+            register(model, app="apps.support")
+
+        for model in [Group, Permission, SocialApp, SocialAccount, SocialToken]:
+            _register_history(model)
+
         if getattr(template_loader, "_draft_preview_wrapped", False):
             return
 

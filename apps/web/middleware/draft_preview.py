@@ -1,5 +1,6 @@
-from django.shortcuts import redirect
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
+from django.shortcuts import redirect
 
 from apps.support.draft_utils import build_draft_map, get_active_drafts_for_session, get_draft_session_by_token
 

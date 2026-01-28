@@ -1,17 +1,21 @@
 from django.conf import settings
-from django.db.models import Count, Prefetch
-from django.http import Http404
+from django.db.models import Count, Prefetch, Q
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from health_check.views import MainView
 
+from apps.catalog.models import Category, Product, ProductStatus
 from apps.homepage.models import (
     Banner,
     HomepageSection,
     HomepageSectionBanner,
     HomepageSectionProduct,
     HomepageSectionType,
+    StorefrontCategoryBox,
+    StorefrontCategoryItem,
+    StorefrontHeroSection,
 )
-from apps.support.draft_utils import apply_draft_to_instance, get_draft_session_by_token
+from apps.support.draft_utils import apply_draft_to_instance, apply_drafts_to_context, get_draft_session_by_token
 
 
 def _get_new_draft_instances(request, model_class, model_name: str):
@@ -44,9 +48,7 @@ def home(request):
     draft_banners = _get_new_draft_instances(request, Banner, "banner")
     if draft_banners:
         draft_banners = [
-            banner
-            for banner in draft_banners
-            if banner.is_active and banner.is_available() and banner.image
+            banner for banner in draft_banners if banner.is_active and banner.is_available() and banner.image
         ]
         if draft_banners:
             banners = banners + draft_banners
@@ -115,7 +117,54 @@ def home(request):
             valid_banners = [b for b in section.section_banners.all() if b.image]
             section._filtered_banners = valid_banners
 
-    return render(request, "web/index.html", {"banners": banners, "homepage_sections": all_sections})
+    # Get active Storefront Hero Section
+    storefront_category_boxes = None
+    draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
+    draft_changes_map = getattr(request, "draft_changes_map", {})
+
+    if draft_preview_enabled:
+        storefront_hero = (
+            StorefrontHeroSection.objects.prefetch_related(
+                Prefetch(
+                    "category_boxes",
+                    queryset=StorefrontCategoryBox.objects.order_by("order", "id").prefetch_related(
+                        Prefetch("items", queryset=StorefrontCategoryItem.objects.order_by("order", "id"))
+                    ),
+                )
+            )
+            .order_by("id")
+            .first()
+        )
+
+        if storefront_hero and draft_changes_map:
+            apply_drafts_to_context(storefront_hero, draft_changes_map)
+
+        if storefront_hero:
+            storefront_category_boxes = list(storefront_hero.category_boxes.all())
+            if draft_changes_map:
+                storefront_category_boxes = apply_drafts_to_context(storefront_category_boxes, draft_changes_map)
+                for box in storefront_category_boxes:
+                    items = list(box.items.all())
+                    if items:
+                        items = apply_drafts_to_context(items, draft_changes_map)
+                    box.draft_items = items
+
+            if not storefront_hero.is_active or not storefront_hero.is_available():
+                storefront_hero = None
+                storefront_category_boxes = None
+    else:
+        storefront_hero = StorefrontHeroSection.get_active_section()
+
+    return render(
+        request,
+        "web/index.html",
+        {
+            "banners": banners,
+            "homepage_sections": all_sections,
+            "storefront_hero": storefront_hero,
+            "storefront_category_boxes": storefront_category_boxes,
+        },
+    )
 
 
 def simulate_error(request):
@@ -139,3 +188,58 @@ class HealthCheck(MainView):
         if tokens and request.GET.get("token") not in tokens:
             raise Http404
         return super().get(request, *args, **kwargs)
+
+
+def product_search(request):
+    """
+    Live search endpoint for products.
+    Returns JSON with matching products for search autocomplete.
+    """
+    query = request.GET.get("q", "").strip()
+
+    if len(query) < 2:
+        return JsonResponse({"products": [], "categories": [], "total_count": 0})
+
+    # Search products by name
+    products = (
+        Product.objects.filter(status=ProductStatus.ACTIVE)
+        .filter(Q(name__icontains=query))
+        .select_related("category")
+        .prefetch_related("images")
+        .order_by("name")[:10]
+    )
+
+    # Search categories by name
+    categories = Category.objects.filter(name__icontains=query).order_by("name")[:5]
+
+    # Get total count for "See all results" link
+    total_count = Product.objects.filter(status=ProductStatus.ACTIVE).filter(Q(name__icontains=query)).count()
+
+    products_data = []
+    for product in products:
+        image_url = None
+        first_image = product.images.first()
+        if first_image and first_image.image:
+            image_url = first_image.image.url
+
+        products_data.append(
+            {
+                "id": product.id,
+                "name": product.name,
+                "slug": product.slug,
+                "price": str(product.price),
+                "image_url": image_url,
+                "category_name": product.category.name if product.category else None,
+            }
+        )
+
+    categories_data = [{"id": cat.id, "name": cat.name, "slug": cat.slug} for cat in categories]
+
+    return JsonResponse(
+        {
+            "products": products_data,
+            "categories": categories_data,
+            "total_count": total_count,
+            "query": query,
+        }
+    )

@@ -1,630 +1,1930 @@
 {% load i18n static %}
-<nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-40 bg-white dark:bg-gray-800 antialiased">
-  <div class="max-w-screen-xl px-4 mx-auto 2xl:px-0 py-4">
-    <div class="flex items-center justify-between">
-      <div class="flex items-center space-x-8">
-        <div class="shrink-0">
-          <a href="{% url 'web:home' %}" title="" class="">
+
+<style>
+/* Hide scrollbar for categories nav */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Navigation button active state */
+.nav-category-btn.active,
+.nav-category-trigger:hover .nav-category-btn,
+#moreCategoriesWrapper:hover .nav-category-btn {
+  background-color: #f3f4f6; /* gray-100 - subtle gray */
+}
+
+.dark .nav-category-btn.active,
+.dark .nav-category-trigger:hover .nav-category-btn,
+.dark #moreCategoriesWrapper:hover .nav-category-btn {
+  background-color: #374151; /* gray-700 */
+}
+
+/* Fix for jumping text when dropdown is open */
+.nav-category-trigger.is-open .nav-category-btn {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important; /* gray-200 */
+  border-bottom: 1px solid white !important; /* Match border width to prevent jump */
+  padding-bottom: calc(0.625rem + 1px) !important; /* Compensate for the bridge look if needed, but keep total height same */
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  z-index: 60;
+  position: relative;
+  box-shadow: 0 -4px 6px -1px rgb(0 0 0 / 0.05); 
+}
+
+.dark .nav-category-trigger.is-open .nav-category-btn {
+  background-color: #1f2937 !important; /* gray-800 */
+  border-color: #374151 !important; /* gray-700 */
+  border-bottom-color: #1f2937 !important;
+  box-shadow: 0 -4px 10px -2px rgb(0 0 0 / 0.5);
+}
+
+.category-dropdown.is-connected:not(#cartDropdown):not(#accountDropdown) {
+  border-top-left-radius: 0 !important;
+  margin-top: 0 !important; 
+  border-top-width: 1px !important;
+}
+
+/* Align mega menu border with trigger like standard dropdowns */
+#dropdownMegaMenu {
+  margin-top: -1px;
+  border-top-width: 0;
+}
+
+/* Ensure the dropdown overlaps properly even with different button heights */
+.nav-category-trigger.is-open .nav-category-btn {
+  height: calc(100% + 1px);
+  margin-bottom: -1px;
+}
+
+.category-dropdown.is-connected.is-right-aligned:not(#cartDropdown):not(#accountDropdown) {
+  border-top-left-radius: 0.75rem; /* Restore if right aligned */
+  border-top-right-radius: 0;
+}
+
+/* Dropdown positioning - use fixed to escape overflow:hidden parent */
+.category-dropdown {
+  animation: fadeIn 0.15s ease-out;
+}
+
+.category-dropdown:not(#cartDropdown):not(#accountDropdown) {
+  position: fixed !important;
+}
+
+/* Keep dropdowns within viewport on desktop */
+@media (min-width: 768px) {
+  .category-dropdown:not(#cartDropdown):not(#accountDropdown) {
+    max-height: calc(100vh - 160px);
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Specific fade for unified dropdowns - no movement */
+.category-dropdown.is-connected:not(#cartDropdown):not(#accountDropdown) {
+  animation: fadeInOnly 0.15s ease-out;
+}
+
+@keyframes fadeInOnly {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animation-fade-in {
+  animation: fadeInContent 0.2s ease-out forwards;
+}
+
+@keyframes fadeInContent {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Custom scrollbar for left column */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 20px;
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
+/* Ensure proper stacking and hover area */
+.nav-category-trigger {
+  position: relative;
+  cursor: pointer; /* Fix: Ensure cursor stays pointer even in padding areas */
+}
+
+/* Hover bridge to keep dropdown open during transition from trigger to menu */
+.nav-category-trigger::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 20px;
+  background: transparent;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Enable bridge only when dropdown is open to prevent accidental triggers from below */
+.nav-category-trigger.is-open::after {
+  pointer-events: auto;
+}
+
+/* Fix: Ensure dropdown bridge does NOT block nav hover */
+.category-dropdown::before {
+  pointer-events: none;
+  background: transparent;
+}
+
+/* Categories nav container for proper dropdown positioning */
+#categories-nav {
+  position: relative;
+  padding-bottom: 4px; /* Tiny bit of extra space for hover */
+  margin-bottom: -4px;
+}
+
+/* Horizontal scroll drag cursor styles (standard mode only) */
+#categories-nav.scrollable-nav {
+  cursor: grab;
+}
+
+#categories-nav.scrollable-nav:active,
+#categories-nav.scrollable-nav.is-dragging {
+  cursor: grabbing;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 767px) {
+  .category-dropdown:not(#cartDropdown):not(#accountDropdown) {
+    display: none !important;
+  }
+
+  /* Desktop-only dropdowns: account stays as dropdown on mobile for now, cart becomes link */
+  #cartDropdown {
+    display: none !important;
+  }
+
+  #accountDropdown:not(.hidden) {
+    position: fixed !important;
+    top: var(--mobile-nav-offset, 64px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    max-height: calc(100vh - var(--mobile-nav-offset, 64px)) !important;
+    border-radius: 0 !important;
+    margin-top: 0 !important;
+    z-index: 50 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: 1px solid #e5e7eb !important;
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1) !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .dark #cartDropdown, .dark #accountDropdown {
+    border-top-color: #374151 !important;
+  }
+
+  html.nav-scroll-locked,
+  body.nav-scroll-locked {
+    overflow: hidden;
+    overscroll-behavior: contain;
+  }
+
+  /* Scrollbar styles for mobile menu */
+  #ecommerce-navbar-menu {
+    scrollbar-width: thin;
+  }
+
+  #ecommerce-navbar-menu::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  #ecommerce-navbar-menu::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  #ecommerce-navbar-menu::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 999px;
+  }
+
+  .dark #ecommerce-navbar-menu::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+}
+
+html.nav-scroll-locked,
+body.nav-scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* Search results scrollbar styling */
+#search-results::-webkit-scrollbar {
+  width: 6px;
+}
+
+#search-results::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+#search-results::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+#search-results::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Prevent Flowbite drawer backdrop from lingering */
+[drawer-backdrop] {
+  display: none !important;
+}
+
+/* Quick drawer icon visibility (desktop only) */
+.drawer-quick {
+  display: none;
+  /* Smooth transition for opacity only */
+  transition: opacity 0.3s ease-out;
+}
+
+@media (min-width: 768px) {
+  /* Default hidden state on desktop */
+  .drawer-quick {
+    display: inline-flex;
+    /* Reserve space to prevent layout shift */
+    width: 2.5rem; /* ~40px */
+    padding: 0.5rem; /* p-2 */
+    margin: 0;
+    
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Visible state - only animate opacity/scale */
+  .drawer-quick.is-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+</style>
+
+{# Backdrop overlay for dropdowns #}
+<div id="nav-backdrop" class="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 opacity-0 pointer-events-none" aria-hidden="true"></div>
+
+<nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-50 bg-white dark:bg-gray-800 antialiased border-b border-gray-200 dark:border-gray-700 relative">
+  {# Top row: Logo, Search, Cart, Account #}
+  <div class="py-4 border-b border-gray-200 dark:border-gray-700 relative z-20 bg-white dark:bg-gray-800">
+    <div class="max-w-7xl px-4 mx-auto 2xl:px-0">
+      <div class="flex flex-wrap items-center justify-between gap-x-16 gap-y-4 md:gap-x-8 lg:flex-nowrap">
+        {# Logo #}
+        <div class="shrink-0 md:order-1 flex items-center gap-2 relative">
+          <button
+            id="categories-drawer-quick"
+            type="button"
+            data-drawer-target="categoriesDrawer"
+            data-drawer-show="categoriesDrawer"
+            aria-controls="categoriesDrawer"
+            class="drawer-quick absolute right-full top-1/2 -translate-y-1/2 mr-3 cursor-pointer items-center justify-center p-2 text-sm font-medium text-gray-900 dark:text-white rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            <span class="sr-only">{% translate "All categories" %}</span>
+            <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18M3 19h18"></path>
+            </svg>
+          </button>
+          <a href="{% url 'web:home' %}" title="{{ project_meta.NAME }}">
             <img
-              class="block w-auto h-18 dark:hidden"
+              class="w-auto h-16 dark:hidden"
               src="{% static 'images/web/amper-b2c-logo.svg' %}"
-              alt=""
+              alt="{{ project_meta.NAME }}"
             />
             <img
-              class="hidden w-auto h-18 dark:block"
+              class="hidden w-auto h-16 dark:block"
               src="{% static 'images/web/amper-b2c-logo.svg' %}"
-              alt=""
+              alt="{{ project_meta.NAME }}"
             />
           </a>
         </div>
 
-        <ul
-          class="hidden lg:flex items-center justify-start gap-6 md:gap-8 py-3 sm:justify-center"
-        >
-          <li>
-            <a
-              href="{% url 'web:home' %}"
-              title=""
-              class="flex text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500"
-            >
-              Home
-            </a>
-          </li>
-          <li class="shrink-0">
-            <a
-              href="#"
-              title=""
-              class="flex text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500"
-            >
-              Best Sellers
-            </a>
-          </li>
-          <li class="shrink-0">
-            <a
-              href="#"
-              title=""
-              class="flex text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500"
-            >
-              Gift Ideas
-            </a>
-          </li>
-          <li class="shrink-0">
-            <a
-              href="#"
-              title=""
-              class="text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500"
-            >
-              Today's Deals
-            </a>
-          </li>
-          <li class="shrink-0">
-            <a
-              href="#"
-              title=""
-              class="text-sm font-medium text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500"
-            >
-              Sell
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <div class="flex items-center lg:space-x-2">
-        {% if user.is_superuser %}
-        <a
-          href="{% url 'admin:index' %}"
-          class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer"
-        >
-          <svg
-            class="w-5 h-5 me-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M4.857 3A1.857 1.857 0 0 0 3 4.857v4.286C3 10.169 3.831 11 4.857 11h4.286A1.857 1.857 0 0 0 11 9.143V4.857A1.857 1.857 0 0 0 9.143 3H4.857Zm10 0A1.857 1.857 0 0 0 13 4.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 21 9.143V4.857A1.857 1.857 0 0 0 19.143 3h-4.286Zm-10 10A1.857 1.857 0 0 0 3 14.857v4.286C3 20.169 3.831 21 4.857 21h4.286A1.857 1.857 0 0 0 11 19.143v-4.286A1.857 1.857 0 0 0 9.143 13H4.857Zm10 0A1.857 1.857 0 0 0 13 14.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 21 19.143v-4.286A1.857 1.857 0 0 0 19.143 13h-4.286Z"
-              clip-rule="evenodd"
-            />
-          </svg>
-          <span class="hidden sm:flex">CMS</span>
-        </a>
-        {% endif %}
-
-        <button
-          id="myCartDropdownButton1"
-          data-dropdown-toggle="myCartDropdown1"
-          type="button"
-          class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer"
-        >
-          <span class="sr-only"> Cart </span>
-          <svg
-            class="w-5 h-5 lg:me-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 4h1.5L9 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-8.5-3h9.25L19 7H7.312"
-            />
-          </svg>
-          <span class="hidden sm:flex">My Cart</span>
-          <svg
-            class="hidden sm:flex w-4 h-4 text-gray-900 dark:text-white ms-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="m19 9-7 7-7-7"
-            />
-          </svg>
-        </button>
-
-        <div
-          id="myCartDropdown1"
-          class="hidden z-10 mx-auto max-w-sm space-y-4 overflow-hidden rounded-lg bg-white p-4 antialiased shadow-lg dark:bg-gray-800"
-        >
-          <div class="grid grid-cols-2">
-            <div>
-              <a
-                href="#"
-                class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline"
-                >Apple iPhone 15</a
-              >
-              <p
-                class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400"
-              >
-                <span data-price="599" data-currency="{{ site_currency }}">
-                  599
-                </span>
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-6">
-              <p
-                class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400"
-              >
-                Qty: 1
-              </p>
-
-              <button
-                data-tooltip-target="tooltipRemoveItem1a"
-                type="button"
-                class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600 cursor-pointer"
-              >
-                <span class="sr-only"> Remove </span>
-                <svg
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-              <div
-                id="tooltipRemoveItem1a"
-                role="tooltip"
-                class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-              >
-                Remove item
-                <div class="tooltip-arrow" data-popper-arrow></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div>
-              <a
-                href="#"
-                class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline"
-                >Apple iPad Air</a
-              >
-              <p
-                class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400"
-              >
-                <span data-price="499" data-currency="{{ site_currency }}">
-                  499
-                </span>
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-6">
-              <p
-                class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400"
-              >
-                Qty: 1
-              </p>
-
-              <button
-                data-tooltip-target="tooltipRemoveItem2a"
-                type="button"
-                class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600 cursor-pointer"
-              >
-                <span class="sr-only"> Remove </span>
-                <svg
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-              <div
-                id="tooltipRemoveItem2a"
-                role="tooltip"
-                class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-              >
-                Remove item
-                <div class="tooltip-arrow" data-popper-arrow></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div>
-              <a
-                href="#"
-                class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline"
-                >Apple Watch SE</a
-              >
-              <p
-                class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400"
-              >
-                <span data-price="598" data-currency="{{ site_currency }}">
-                  598
-                </span>
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-6">
-              <p
-                class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400"
-              >
-                Qty: 2
-              </p>
-
-              <button
-                data-tooltip-target="tooltipRemoveItem3b"
-                type="button"
-                class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600 cursor-pointer"
-              >
-                <span class="sr-only"> Remove </span>
-                <svg
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-              <div
-                id="tooltipRemoveItem3b"
-                role="tooltip"
-                class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-              >
-                Remove item
-                <div class="tooltip-arrow" data-popper-arrow></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div>
-              <a
-                href="#"
-                class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline"
-                >Sony Playstation 5</a
-              >
-              <p
-                class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400"
-              >
-                <span data-price="799" data-currency="{{ site_currency }}">
-                  799
-                </span>
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-6">
-              <p
-                class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400"
-              >
-                Qty: 1
-              </p>
-
-              <button
-                data-tooltip-target="tooltipRemoveItem4b"
-                type="button"
-                class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600 cursor-pointer"
-              >
-                <span class="sr-only"> Remove </span>
-                <svg
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-              <div
-                id="tooltipRemoveItem4b"
-                role="tooltip"
-                class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-              >
-                Remove item
-                <div class="tooltip-arrow" data-popper-arrow></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2">
-            <div>
-              <a
-                href="#"
-                class="truncate text-sm font-semibold leading-none text-gray-900 dark:text-white hover:underline"
-                >Apple iMac 20"</a
-              >
-              <p
-                class="mt-0.5 truncate text-sm font-normal text-gray-500 dark:text-gray-400"
-              >
-                <span data-price="8997" data-currency="{{ site_currency }}">
-                  8997
-                </span>
-              </p>
-            </div>
-
-            <div class="flex items-center justify-end gap-6">
-              <p
-                class="text-sm font-normal leading-none text-gray-500 dark:text-gray-400"
-              >
-                Qty: 3
-              </p>
-
-              <button
-                data-tooltip-target="tooltipRemoveItem5b"
-                type="button"
-                class="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-600 cursor-pointer"
-              >
-                <span class="sr-only"> Remove </span>
-                <svg
-                  class="h-4 w-4"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    fill-rule="evenodd"
-                    d="M2 12a10 10 0 1 1 20 0 10 10 0 0 1-20 0Zm7.7-3.7a1 1 0 0 0-1.4 1.4l2.3 2.3-2.3 2.3a1 1 0 1 0 1.4 1.4l2.3-2.3 2.3 2.3a1 1 0 0 0 1.4-1.4L13.4 12l2.3-2.3a1 1 0 0 0-1.4-1.4L12 10.6 9.7 8.3Z"
-                    clip-rule="evenodd"
-                  />
-                </svg>
-              </button>
-              <div
-                id="tooltipRemoveItem5b"
-                role="tooltip"
-                class="tooltip invisible absolute z-10 inline-block rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white opacity-0 shadow-sm transition-opacity duration-300 dark:bg-gray-700"
-              >
-                Remove item
-                <div class="tooltip-arrow" data-popper-arrow></div>
-              </div>
-            </div>
-          </div>
-
+        {# Right side buttons: Cart, Account, Mobile Menu #}
+        <div class="flex items-center justify-end md:order-3 lg:space-x-2">
+          {% if user.is_superuser %}
           <a
-            href="#"
-            title=""
-            class="mb-2 me-2 inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-            role="button"
+            href="{% url 'admin:index' %}"
+            class="inline-flex items-center rounded-lg justify-center p-2.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer transition-colors duration-300"
           >
-            Proceed to Checkout
-          </a>
-        </div>
-
-        {% if user.is_authenticated %}
-        <button
-          id="userDropdownButton1"
-          data-dropdown-toggle="userDropdown1"
-          type="button"
-          class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer"
-        >
-          <svg
-            class="w-5 h-5 me-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-width="2"
-              d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-            />
-          </svg>
-          {% translate "Account" %}
-          <svg
-            class="w-4 h-4 text-gray-900 dark:text-white ms-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="m19 9-7 7-7-7"
-            />
-          </svg>
-        </button>
-
-        <div
-          id="userDropdown1"
-          class="hidden z-10 w-56 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white antialiased shadow dark:divide-gray-600 dark:bg-gray-700"
-        >
-          <ul
-            class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white"
-          >
-            <li>
-              <a
-                href="{% url 'users:user_profile' %}"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "My Account" %}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "My Orders" %}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "Settings" %}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "Favourites" %}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "Delivery Addresses" %}
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                title=""
-                class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
-              >
-                {% translate "Billing Data" %}
-              </a>
-            </li>
-          </ul>
-
-          <div class="p-2 text-sm font-medium text-gray-900 dark:text-white">
-            <a
-              href="{% url 'account_logout' %}"
-              title=""
-              class="inline-flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600"
+            <svg
+              class="w-6 h-6 md:w-5 md:h-5 me-1"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              viewBox="0 0 24 24"
             >
-              {% translate "Sign Out" %}
+              <path
+                fill-rule="evenodd"
+                d="M4.857 3A1.857 1.857 0 0 0 3 4.857v4.286C3 10.169 3.831 11 4.857 11h4.286A1.857 1.857 0 0 0 11 9.143V4.857A1.857 1.857 0 0 0 9.143 3H4.857Zm10 0A1.857 1.857 0 0 0 13 4.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 21 9.143V4.857A1.857 1.857 0 0 0 19.143 3h-4.286Zm-10 10A1.857 1.857 0 0 0 3 14.857v4.286C3 20.169 3.831 21 4.857 21h4.286A1.857 1.857 0 0 0 11 19.143v-4.286A1.857 1.857 0 0 0 9.143 13H4.857Zm10 0A1.857 1.857 0 0 0 13 14.857v4.286c0 1.026.831 1.857 1.857 1.857h4.286A1.857 1.857 0 0 0 21 19.143v-4.286A1.857 1.857 0 0 0 19.143 13h-4.286Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            <span class="hidden sm:flex">CMS</span>
+          </a>
+          {% endif %}
+
+          {# Cart Button #}
+          <div class="relative nav-category-trigger" data-dropdown-target="cartDropdown">
+            <a
+              href="#"
+              id="cartDropdownButton"
+              class="inline-flex items-center rounded-lg justify-center p-2.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer transition-colors duration-300"
+            >
+              <span class="sr-only">{% translate "Cart" %}</span>
+              <svg class="w-6 h-6 md:w-5 md:h-5 me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h1.5L9 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm-8.5-3h9.25L19 7H7.312"></path>
+              </svg>
+              <span class="hidden sm:flex me-1.5">{% translate "My Cart" %}</span>
+              <svg class="nav-dropdown-arrow w-4 h-4 text-gray-900 dark:text-white ms-1 hidden sm:block transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+              </svg>
             </a>
+
+            {# Cart Dropdown #}
+            <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-2 w-80 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
+              <div class="p-4 bg-gray-50 dark:bg-gray-800">
+                <dl class="flex items-center gap-2">
+                  <dt class="font-bold text-gray-900 dark:text-white">{% translate "Your shopping cart" %}</dt>
+                  <dd class="text-gray-500 dark:text-gray-400 font-medium">(6 {% translate "items" %})</dd>
+                </dl>
+              </div>
+
+              <div class="max-h-96 overflow-y-auto cursor-pointer">
+                {# Mocked items from our database #}
+                <div class="divide-y divide-gray-200 dark:divide-gray-600">
+                  {# Item 1 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">Energizer MAX AAA 4-Pack</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">12,99 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">2</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                  {# Item 2 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">Novita Intimate Wet Wipes 15pcs</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">5,49 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">3</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                  {# Item 3 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">California Scents Car Freshener</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">14,99 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">1</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                  {# Item 4 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">Smile Baby Wet Wipes</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">7,49 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">1</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                  {# Item 5 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">Refresh Your Car Diffuser</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">9,99 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">2</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                   {# Item 6 #}
+                  <div class="p-4 flex gap-4 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+                    <div class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+                       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-bold text-gray-900 dark:text-white truncate cursor-pointer">Energizer Alkaline Power 9V</p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">14,49 zł</p>
+                      <div class="flex items-center gap-2 mt-2">
+                        <div class="flex items-center border border-gray-200 dark:border-gray-500 rounded-md">
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-l-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M20 12H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                          <span class="px-2 text-xs font-medium">1</span>
+                          <button class="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-r-md cursor-pointer"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-width="2" stroke-linecap="round"/></svg></button>
+                        </div>
+                        <button class="text-red-600 hover:text-red-700 p-1 cursor-pointer"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="p-4 space-y-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600">
+                <div class="flex items-center justify-between text-base font-bold text-gray-900 dark:text-white">
+                  <span>{% translate "Total" %}</span>
+                  <span>92,94 zł</span>
+                </div>
+                <a href="#" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-colors duration-300" role="button">
+                  {% translate "See your cart" %}
+                </a>
+              </div>
+            </div>
+          </div>
+
+          {# Account Button & Dropdown #}
+          {% if user.is_authenticated %}
+          <div class="relative nav-category-trigger" data-dropdown-target="accountDropdown">
+            <button id="accountDropdownButton" type="button" class="inline-flex items-center rounded-lg justify-center p-2.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer transition-colors duration-300">
+              <svg class="w-6 h-6 md:w-5 md:h-5 lg:me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-width="2" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+              </svg>
+              <span class="hidden lg:block">{% translate "Account" %}</span>
+              <svg class="nav-dropdown-arrow w-4 h-4 text-gray-900 dark:text-white ms-1 transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+              </svg>
+            </button>
+
+            <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-2 w-60 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50">
+              <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
+                <li>
+                  <a href="{% url 'users:user_profile' %}" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600 transition-colors duration-200">
+                    <svg class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-width="2" d="M7 17v1c0 .6.4 1 1 1h8c.6 0 1-.4 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+                    </svg>
+                    {% translate "My Account" %}
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600 transition-colors duration-200">
+                    <svg class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h6l2 4m-8-4v8m0-8V6a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v9h2m8 0H9m4 0h2m4 0h2v-4m0 0h-5m3.5 5.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Zm-10 0a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0Z"></path>
+                    </svg>
+                    {% translate "My Orders" %}
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600 transition-colors duration-200">
+                    <svg class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6C6.5 1 1 8 5.8 13l6.2 7 6.2-7C23 8 17.5 1 12 6Z"></path>
+                    </svg>
+                    {% translate "Favourites" %}
+                  </a>
+                </li>
+                <li>
+                  <a href="#" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-600 transition-colors duration-200">
+                    <svg class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13v-2a1 1 0 0 0-1-1h-.8l-.7-1.7.6-.5a1 1 0 0 0 0-1.5L17.7 5a1 1 0 0 0-1.5 0l-.5.6-1.7-.7V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v.8l-1.7.7-.5-.6a1 1 0 0 0-1.5 0L5 6.3a1 1 0 0 0 0 1.5l.6.5-.7 1.7H4a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h.8l.7 1.7-.6.5a1 1 0 0 0 0 1.5L6.3 19a1 1 0 0 0 1.5 0l.5-.6 1.7.7v.8a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-.8l1.7-.7.5.6a1 1 0 0 0 1.5 0l1.4-1.4a1 1 0 0 0 0-1.5l-.6-.5.7-1.7h.8a1 1 0 0 0 1-1Z"></path>
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path>
+                    </svg>
+                    {% translate "Settings" %}
+                  </a>
+                </li>
+              </ul>
+
+              <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
+                <li>
+                  <a href="{% url 'account_logout' %}" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-500 dark:hover:bg-gray-600 transition-colors duration-200">
+                    <svg class="h-4 w-4 transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H8m12 0-4 4m4-4-4-4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2"></path>
+                    </svg>
+                    {% translate "Sign Out" %}
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+          {% else %}
+          <a
+            href="{% url 'account_login' %}"
+            class="inline-flex items-center rounded-lg justify-center p-2.5 md:p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white transition-colors duration-300"
+          >
+            <svg class="w-6 h-6 md:w-5 md:h-5 me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-width="2" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+            </svg>
+            {% translate "Sign In" %}
+          </a>
+          {% endif %}
+
+          {# Mobile Menu Toggle #}
+          <div class="relative md:hidden">
+            <button type="button" id="mobile-menu-toggle" class="inline-flex items-center justify-center p-2.5 text-base rounded-lg font-medium leading-none text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors duration-300">
+              <span class="sr-only">{% translate "Menu" %}</span>
+              <svg class="w-6 h-6 text-gray-900 dark:text-white transition-colors duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14M5 12h14M5 17h14"></path>
+              </svg>
+            </button>
           </div>
         </div>
-        {% else %}
-        <a
-          href="{% url 'account_login' %}"
-          class="inline-flex items-center rounded-lg justify-center p-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-medium leading-none text-gray-900 dark:text-white"
-        >
-          <svg
-            class="w-5 h-5 me-1"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-width="2"
-              d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
-            />
-          </svg>
-          {% translate "Sign In" %}
-        </a>
-        {% endif %}
 
-        <button
-          type="button"
-          data-collapse-toggle="ecommerce-navbar-menu-1"
-          aria-controls="ecommerce-navbar-menu-1"
-          aria-expanded="false"
-          class="inline-flex lg:hidden items-center justify-center hover:bg-gray-100 rounded-md dark:hover:bg-gray-700 p-2 text-gray-900 dark:text-white cursor-pointer"
-        >
-          <span class="sr-only"> Open Menu </span>
-          <svg
-            class="w-5 h-5"
-            aria-hidden="true"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-width="2"
-              d="M5 7h14M5 12h14M5 17h14"
+        {# Search Bar #}
+        <div class="w-full md:w-auto md:flex-1 md:order-2 relative" id="search-container">
+          <label for="navbar-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">{% translate "Search" %}</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 flex items-center pointer-events-none start-0 ps-3">
+              <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
+              </svg>
+            </div>
+            <input
+              type="search"
+              id="navbar-search"
+              class="block w-full p-3 text-base md:text-sm text-gray-900 border border-gray-300 rounded-lg ps-10 bg-gray-50 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              placeholder="{% translate 'Search products...' %}"
+              autocomplete="off"
             />
-          </svg>
-        </button>
+            <div id="search-loading" class="hidden absolute right-3 top-1/2 -translate-y-1/2">
+              <svg class="animate-spin h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </div>
+          </div>
+
+          {# Search Results Dropdown #}
+          <div id="search-results" class="hidden absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50 cursor-pointer">
+            <div id="search-results-content">
+              {# Content will be dynamically populated #}
+            </div>
+          </div>
+        </div>
+
+        {# Mobile Menu - Full Screen Overlay #}
+        <div id="ecommerce-navbar-menu" class="fixed inset-0 z-50 bg-white dark:bg-gray-800 hidden md:hidden flex-col">
+          {# Mobile Menu Header #}
+          <div class="flex items-center justify-between px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Categories" %}</h2>
+            <button type="button" id="mobile-menu-close" class="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+              <span class="sr-only">{% translate "Close menu" %}</span>
+            </button>
+          </div>
+          {# Mobile Menu Content - Scrollable #}
+          <div class="flex-1 overflow-y-auto">
+            <ul class="p-3 text-gray-900 dark:text-white text-base font-medium space-y-0.5">
+              <li>
+                <a href="{% url 'web:home' %}" class="flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+                  <svg class="w-5 h-5 mr-3 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                  </svg>
+                  {% translate "Home" %}
+                </a>
+              </li>
+              {% if navbar_mode == 'custom' %}
+              {# Custom navbar mode - show custom items in mobile menu #}
+              {% for item in custom_navbar_items %}
+              {% if item.item_type == 'separator' %}
+              <li class="py-2">
+                <hr class="border-gray-200 dark:border-gray-600">
+              </li>
+              {% elif item.item_type == 'custom_link' %}
+              <li>
+                <a href="{{ item.url }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %} class="flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" {% if item.label_color %}style="color: {{ item.label_color }};"{% endif %}>
+                  {% if item.icon %}<span class="mr-3">{{ item.icon }}</span>{% endif %}
+                  {{ item.label }}
+                </a>
+              </li>
+              {% elif item.item_type == 'category' and item.category %}
+              <li class="mobile-category-item">
+                <div class="flex items-center">
+                  <a href="{{ item.category.get_absolute_url }}" class="flex-1 px-3 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200" {% if item.label_color %}style="color: {{ item.label_color }};"{% endif %}>
+                    {% if item.icon %}<span class="mr-2">{{ item.icon }}</span>{% endif %}
+                    {{ item.get_display_label }}
+                  </a>
+                  {% if item.has_children %}
+                  <button type="button" class="mobile-category-toggle p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200">
+                    <svg class="w-5 h-5 transition-transform duration-300 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  {% endif %}
+                </div>
+                {% if item.has_children %}
+                <ul class="hidden ml-3 mt-0.5 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600">
+                  {% for child in item.category.children.all %}
+                  <li>
+                    <div class="flex items-center">
+                      <a href="{{ child.get_absolute_url }}" class="flex-1 px-2.5 py-2 ml-2 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 text-base">{{ child.name }}</a>
+                      {% if child.children.all %}
+                      <button type="button" class="mobile-category-toggle p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200">
+                        <svg class="w-4 h-4 transition-transform duration-300 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </button>
+                      {% endif %}
+                    </div>
+                    {% if child.children.all %}
+                    <ul class="hidden ml-3 mt-0.5 space-y-0.5 border-l-2 border-gray-100 dark:border-gray-700">
+                      {% for subchild in child.children.all %}
+                      <li>
+                        <a href="{{ subchild.get_absolute_url }}" class="block px-2.5 py-1.5 ml-2 text-base text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">{{ subchild.name }}</a>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                    {% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
+              </li>
+              {% endif %}
+              {% endfor %}
+              {% else %}
+              {# Default navbar mode - show categories alphabetically #}
+              {% for category in nav_categories %}
+              <li class="mobile-category-item">
+                <div class="flex items-center">
+                  <a href="{{ category.get_absolute_url }}" class="flex-1 px-3 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">{{ category.name }}</a>
+                  {% if category.children.all %}
+                  <button type="button" class="mobile-category-toggle p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200">
+                    <svg class="w-5 h-5 transition-transform duration-300 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </button>
+                  {% endif %}
+                </div>
+                {% if category.children.all %}
+                <ul class="hidden ml-3 mt-0.5 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600">
+                  {% for child in category.children.all %}
+                  <li>
+                    <div class="flex items-center">
+                      <a href="{{ child.get_absolute_url }}" class="flex-1 px-2.5 py-2 ml-2 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200 text-base">{{ child.name }}</a>
+                      {% if child.children.all %}
+                      <button type="button" class="mobile-category-toggle p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer transition-colors duration-200">
+                        <svg class="w-4 h-4 transition-transform duration-300 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                        </svg>
+                      </button>
+                      {% endif %}
+                    </div>
+                    {% if child.children.all %}
+                    <ul class="hidden ml-3 mt-0.5 space-y-0.5 border-l-2 border-gray-100 dark:border-gray-700">
+                      {% for subchild in child.children.all %}
+                      <li>
+                        <a href="{{ subchild.get_absolute_url }}" class="block px-2.5 py-1.5 ml-2 text-base text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200">{{ subchild.name }}</a>
+                      </li>
+                      {% endfor %}
+                    </ul>
+                    {% endif %}
+                  </li>
+                  {% endfor %}
+                </ul>
+                {% endif %}
+              </li>
+              {% endfor %}
+              {% endif %}
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
 
-    <div
-      id="ecommerce-navbar-menu-1"
-      class="bg-gray-50 dark:bg-gray-700 dark:border-gray-600 border border-gray-200 rounded-lg py-3 hidden px-4 mt-4"
-    >
-      <ul class="text-gray-900 dark:text-white text-sm font-medium space-y-3">
-        <li>
-          <a href="{% url 'web:home' %}" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Home</a
-          >
-        </li>
-        <li>
-          <a href="#" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Best Sellers</a
-          >
-        </li>
-        <li>
-          <a href="#" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Gift Ideas</a
-          >
-        </li>
-        <li>
-          <a href="#" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Games</a
-          >
-        </li>
-        <li>
-          <a href="#" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Electronics</a
-          >
-        </li>
-        <li>
-          <a href="#" class="hover:text-primary-700 dark:hover:text-primary-500"
-            >Home & Garden</a
-          >
-        </li>
+  {# Categories Navigation Row Container - NOT absolute, part of document flow #}
+
+
+
+</nav>
+
+{# MOVED Categories Navigation Row Container #}
+  <div class="hidden md:block relative w-full z-40" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
+    {# Categories Navigation Bar #}
+    <div class="py-3 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700" id="categories-nav-wrapper">
+    <div id="categories-nav-container" class="px-4 relative {% if navbar_mode == 'custom' %}w-full{% else %}mx-auto 2xl:px-0 max-w-7xl{% endif %}">
+      <div class="flex gap-0 items-center overflow-hidden {% if navbar_mode == 'custom' %}justify-center{% endif %}" id="categories-nav" data-navbar-mode="{{ navbar_mode }}" data-total-categories="{% if navbar_mode == 'custom' %}{{ custom_navbar_items|length }}{% else %}{{ nav_categories|length }}{% endif %}">
+        {# More Categories Drawer Trigger - Fixed at the beginning #}
+        <div id="moreCategoriesWrapper" class="shrink-0 flex items-center px-1 border-r border-gray-200 dark:border-gray-700 mr-1 h-full">
+          <button id="moreCategoriesButton" type="button" data-drawer-target="categoriesDrawer" data-drawer-show="categoriesDrawer" aria-controls="categoriesDrawer" class="nav-category-btn inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
+            <svg class="w-4 h-4 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18M3 19h18"></path>
+            </svg>
+            <span>{% translate "All categories" %}</span>
+          </button>
+        </div>
+
+        {% if navbar_mode == 'custom' %}
+        {# Custom navbar mode - show user-defined items #}
+        {% for item in custom_navbar_items %}
+        {% include "web/components/navbar_custom_item.html" with item=item loop_index=forloop.counter %}
+        {% endfor %}
+        {% else %}
+        {# Default navbar mode - show categories alphabetically #}
+        {% for category in nav_categories %}
+        <div class="shrink-0 nav-category-trigger nav-priority-item px-1 flex items-center {% if category.children.all %}has-children{% endif %}" data-category-id="{{ category.id }}" data-dropdown-target="categoryDropdown{{ category.id }}">
+          <button type="button" class="nav-category-btn inline-flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
+            <span>{{ category.name }}</span>
+            {% if category.children.all %}
+            <svg class="nav-dropdown-arrow w-4 h-4 transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
+            </svg>
+            {% endif %}
+          </button>
+        </div>
+        {% endfor %}
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+  </div>
+
+  {# Categories Drawer #}
+  <div id="categoriesDrawer" class="fixed top-0 left-0 z-80 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-2xl" tabindex="-1" aria-labelledby="drawer-label" data-drawer-body-scrolling="true" data-drawer-backdrop="false">
+    <div class="flex items-center justify-between mb-4">
+        <h5 id="drawer-label" class="text-base font-semibold text-gray-500 uppercase dark:text-gray-400">{% translate "All Categories" %}</h5>
+        <button type="button" data-drawer-hide="categoriesDrawer" aria-controls="categoriesDrawer" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex items-center justify-center dark:hover:bg-gray-600 dark:hover:text-white cursor-pointer">
+            <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+            </svg>
+            <span class="sr-only">{% translate "Close menu" %}</span>
+        </button>
+    </div>
+    <div class="py-2">
+      <ul class="space-y-2 font-medium">
+        {% for category in nav_categories %}
+          {% include "web/components/category_drawer_item.html" with item=category padding=1 %}
+        {% endfor %}
       </ul>
     </div>
   </div>
-</nav>
+
+
+  {# Category Dropdowns Container - Moved to body level #}
+  <div id="category-dropdowns-container" class="relative z-50">
+    {% for category in nav_categories %}
+    {% if category.children.all %}
+    <div id="categoryDropdown{{ category.id }}" class="category-dropdown is-connected transition-opacity duration-300 hidden absolute left-0 w-162.5 bg-white dark:bg-gray-800 rounded-lg shadow-2xl border border-gray-200 dark:border-gray-700 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
+        <div class="flex h-full min-h-95 overflow-hidden rounded-lg">
+          <!-- Left Column: Categories -->
+          <div class="w-1/2 border-r border-gray-100 dark:border-gray-700 p-3 flex flex-col bg-white dark:bg-gray-800">
+            <div class="mb-2 px-2">
+              <a href="{{ category.get_absolute_url }}" class="subcategory-item flex items-center gap-2 px-3 py-2 text-sm font-extrabold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                  data-preview-title="{{ category.name }}"
+                  data-preview-url="{{ category.get_absolute_url }}" 
+                  data-has-children="false"
+                  data-parent-id="{{ category.id }}">
+                {% translate "All" %} {{ category.name }}
+              </a>
+            </div>
+            <ul class="flex-1 overflow-y-auto max-h-100 cursor-pointer space-y-0.5 p-1 custom-scrollbar">
+              {% for child in category.children.all %}
+              <li class="subcategory-item group cursor-pointer" 
+                  data-preview-title="{{ child.name }}"
+                  data-preview-url="{{ child.get_absolute_url }}" 
+                  data-has-children="{% if child.children.all %}true{% else %}false{% endif %}"
+                  data-parent-id="{{ category.id }}">
+                <a href="{{ child.get_absolute_url }}" class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 group-hover:bg-gray-100 dark:group-hover:bg-gray-700 rounded-lg transition-colors duration-200">
+                  <span class="font-medium">{{ child.name }}</span>
+                  {% if child.children.all %}
+                  <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
+                  </svg>
+                  {% endif %}
+                </a>
+                
+                {% if child.children.all %}
+                <div class="hidden sub-children-data">
+                  {% include "web/components/category_mega_tree.html" with items=child.children.all indent=1 %}
+                </div>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          
+          <!-- Right Column: Previews -->
+          <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-50 dark:bg-gray-900 p-6 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview">
+             <!-- Default State -->
+             <div id="preview-default-{{ category.id }}" class="subcategory-preview-default transition-all duration-300 transform scale-100 opacity-100 z-10">
+               {% if category.image %}
+                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-32 h-32 object-contain mb-4 mix-blend-multiply dark:mix-blend-normal transform transition-transform duration-500 group-hover/preview:scale-110">
+               {% else %}
+                <div class="w-32 h-32 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110">
+                  <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                </div>
+               {% endif %}
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ category.name }}</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">{% translate "Explore" %} {{ category.name }}</p>
+             </div>
+
+             <!-- Hover State (Template) -->
+             <div id="preview-active-{{ category.id }}" class="subcategory-preview-active absolute inset-0 p-6 flex flex-col justify-center items-center transition-all duration-300 transform translate-x-full opacity-0">
+                <div class="w-24 h-24 bg-primary-50 dark:bg-primary-900/30 rounded-full flex items-center justify-center mb-4">
+                  <svg class="w-10 h-10 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h3 class="preview-title text-lg font-bold text-gray-900 dark:text-white mb-2"></h3>
+                <a href="#" class="preview-link text-sm font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 flex items-center gap-1 group/link">
+                  {% translate "Browse Category" %}
+                  <svg class="w-4 h-4 transition-transform group-hover/link:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                </a>
+             </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // ===========================
+  // SEARCH FUNCTIONALITY
+  // ===========================
+  const searchInput = document.getElementById('navbar-search');
+  const searchResults = document.getElementById('search-results');
+  const searchResultsContent = document.getElementById('search-results-content');
+  const searchLoading = document.getElementById('search-loading');
+  const searchContainer = document.getElementById('search-container');
+
+  let searchTimeout = null;
+  let currentQuery = '';
+
+  // Show all categories functionality
+  const showAllBtn = document.getElementById('showAllCategoriesBtn');
+  const allCategoriesSection = document.getElementById('allCategoriesSection');
+
+  if (showAllBtn && allCategoriesSection) {
+    showAllBtn.addEventListener('click', function() {
+      allCategoriesSection.classList.toggle('hidden');
+      const isHidden = allCategoriesSection.classList.contains('hidden');
+      showAllBtn.innerHTML = isHidden
+        ? `{% translate "See all categories" %} <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"></path></svg>`
+        : `{% translate "Show less" %} <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"></path></svg>`;
+    });
+  }
+
+  if (searchInput && searchResults && searchResultsContent) {
+    function showLoading(show) {
+      if (searchLoading) {
+        searchLoading.classList.toggle('hidden', !show);
+      }
+    }
+
+    function formatPrice(price, currency) {
+      const numPrice = parseFloat(price);
+      try {
+        // Polish locale for proper formatting (e.g., 6,99 zł)
+        return new Intl.NumberFormat('pl-PL', {
+          style: 'currency',
+          currency: currency || 'PLN'
+        }).format(numPrice);
+      } catch (e) {
+        return `${numPrice.toFixed(2).replace('.', ',')} ${currency || 'zł'}`;
+      }
+    }
+
+    function renderSearchResults(data) {
+      const { products, categories, total_count, query } = data;
+
+      if (products.length === 0 && categories.length === 0) {
+        searchResultsContent.innerHTML = `
+          <div class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            {% translate "No results found for" %} "<strong>${escapeHtml(query)}</strong>"
+          </div>
+        `;
+        searchResults.classList.remove('hidden');
+        return;
+      }
+
+      let html = '';
+
+      // Header
+      html += `
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <span class="text-sm font-medium text-gray-900 dark:text-white">{% translate "Search results:" %}</span>
+        </div>
+      `;
+
+      // Products section FIRST (as requested)
+      if (products.length > 0) {
+        html += `
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+            <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Products" %}</span>
+          </div>
+        `;
+        products.forEach(product => {
+          const imageHtml = product.image_url
+            ? `<img src="${product.image_url}" alt="${escapeHtml(product.name)}" class="w-12 h-12 object-cover rounded-lg shrink-0">`
+            : `<div class="w-12 h-12 bg-gray-200 dark:bg-gray-600 rounded-lg flex items-center justify-center shrink-0">
+                 <svg class="w-6 h-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                 </svg>
+               </div>`;
+
+          html += `
+            <a href="#" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+              ${imageHtml}
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${escapeHtml(product.name)}</p>
+                ${product.category_name ? `<p class="text-xs text-primary-600 dark:text-primary-400">${escapeHtml(product.category_name)}</p>` : ''}
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-sm font-semibold text-primary-700 dark:text-primary-500">${formatPrice(product.price, '{{ site_currency }}')}</span>
+              </div>
+            </a>
+          `;
+        });
+      }
+
+      // Categories section SECOND (without icons as requested)
+      if (categories.length > 0) {
+        html += `
+          <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
+            <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Categories" %}</span>
+          </div>
+        `;
+        categories.forEach(cat => {
+          html += `
+            <a href="#" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+              <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(cat.name)}</span>
+            </a>
+          `;
+        });
+      }
+
+      // Footer with "See all results"
+      if (total_count > products.length) {
+        html += `
+          <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+            <a href="#" class="text-sm font-medium text-primary-700 dark:text-primary-500 hover:underline transition-colors duration-200">
+              {% translate "See all" %} ${total_count} {% translate "results" %} →
+            </a>
+          </div>
+        `;
+      }
+
+      searchResultsContent.innerHTML = html;
+      searchResults.classList.remove('hidden');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function performSearch(query) {
+      if (query.length < 2) {
+        searchResults.classList.add('hidden');
+        return;
+      }
+
+      if (query === currentQuery) return;
+      currentQuery = query;
+
+      showLoading(true);
+
+      try {
+        const response = await fetch(`{% url 'web:product_search' %}?q=${encodeURIComponent(query)}`);
+        const data = await response.json();
+
+        // Only render if this is still the current query
+        if (query === currentQuery) {
+          renderSearchResults(data);
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        searchResultsContent.innerHTML = `
+          <div class="p-4 text-center text-sm text-red-500">
+            {% translate "An error occurred. Please try again." %}
+          </div>
+        `;
+        searchResults.classList.remove('hidden');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Input event with debounce
+    searchInput.addEventListener('input', function(e) {
+      const query = e.target.value.trim();
+
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+
+      if (query.length < 2) {
+        searchResults.classList.add('hidden');
+        currentQuery = '';
+        return;
+      }
+
+      searchTimeout = setTimeout(() => {
+        performSearch(query);
+      }, 300);
+    });
+
+    // Hide results when clicking outside
+    document.addEventListener('click', function(e) {
+      if (!searchContainer.contains(e.target)) {
+        searchResults.classList.add('hidden');
+      }
+    });
+
+    // Show results on focus if there's content
+    searchInput.addEventListener('focus', function() {
+      if (searchInput.value.trim().length >= 2 && searchResultsContent.innerHTML.trim()) {
+        searchResults.classList.remove('hidden');
+      }
+    });
+
+    // Handle escape key
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        searchResults.classList.add('hidden');
+        searchInput.blur();
+      }
+    });
+  }
+
+  // ===========================
+  // NAVIGATION DROPDOWN SYSTEM
+  // ===========================
+  const backdrop = document.getElementById('nav-backdrop');
+  // We treat the "nav bar categories area" + "dropdowns" as one interactive zone
+  const navContainer = document.querySelector('.top-nav-standard'); 
+  let activeDropdown = null;
+  let isBackdropVisible = false;
+  let lastPreviewedItem = null;
+  let isScrollLocked = false;
+  let initialBodyPaddingRight = '';
+  let initialHtmlPaddingRight = '';
+  
+  // Triggers are the buttons in the top bar
+  const triggers = document.querySelectorAll('.nav-category-trigger');
+  const navCategoriesContainer = document.getElementById('categories-nav');
+  
+  function showBackdrop() {
+    if (!backdrop) return;
+    if (isBackdropVisible) return; // already shown
+    
+    backdrop.classList.remove('hidden');
+    backdrop.classList.remove('pointer-events-none');
+    // Force reflow
+    void backdrop.offsetWidth;
+    backdrop.classList.add('opacity-100');
+    backdrop.classList.remove('opacity-0');
+    isBackdropVisible = true;
+  }
+
+  function hideBackdrop(force = false) {
+    if (!backdrop) return;
+    if (!force) {
+      const drawerEl = document.getElementById('categoriesDrawer');
+      const drawerOpen = drawerEl && !drawerEl.classList.contains('-translate-x-full');
+      const dropdownOpen = !!document.querySelector('.category-dropdown:not(.hidden)');
+      if (drawerOpen || dropdownOpen) return;
+    }
+    if (!isBackdropVisible && !force) return;
+
+    backdrop.classList.remove('opacity-100');
+    backdrop.classList.add('opacity-0');
+    backdrop.classList.add('pointer-events-none');
+    isBackdropVisible = false;
+  }
+
+  const scrollLockKeys = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ']);
+
+  function preventScroll(e) {
+    if (!isScrollLocked) return;
+
+    const scrollable = e.target.closest('.custom-scrollbar, .overflow-y-auto, #search-results');
+    if (scrollable && scrollable.scrollHeight > scrollable.clientHeight) {
+      if (e.type === 'touchmove') {
+        return;
+      }
+
+      const deltaY = typeof e.deltaY === 'number' ? e.deltaY : 0;
+      const atTop = scrollable.scrollTop <= 0;
+      const atBottom = scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1;
+
+      if ((deltaY < 0 && atTop) || (deltaY > 0 && atBottom)) {
+        e.preventDefault();
+      }
+      return;
+    }
+
+    e.preventDefault();
+  }
+
+  function preventScrollKeys(e) {
+    if (!isScrollLocked) return;
+    if (scrollLockKeys.has(e.key)) {
+      e.preventDefault();
+    }
+  }
+
+  function setScrollLocked(locked) {
+    if (isScrollLocked === locked) return;
+    isScrollLocked = locked;
+
+    document.body.classList.toggle('nav-scroll-locked', locked);
+    document.documentElement.classList.toggle('nav-scroll-locked', locked);
+
+    if (locked) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      initialBodyPaddingRight = document.body.style.paddingRight || '';
+      initialHtmlPaddingRight = document.documentElement.style.paddingRight || '';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+        document.documentElement.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      window.addEventListener('wheel', preventScroll, { passive: false });
+      window.addEventListener('touchmove', preventScroll, { passive: false });
+      window.addEventListener('keydown', preventScrollKeys);
+    } else {
+      document.body.style.paddingRight = initialBodyPaddingRight;
+      document.documentElement.style.paddingRight = initialHtmlPaddingRight;
+      window.removeEventListener('wheel', preventScroll);
+      window.removeEventListener('touchmove', preventScroll);
+      window.removeEventListener('keydown', preventScrollKeys);
+    }
+  }
+
+  function closeAllDropdowns() {
+    document.querySelectorAll('.category-dropdown').forEach(el => {
+      el.classList.add('hidden');
+      el.classList.remove('is-connected');
+    });
+
+    // Close Drawer if open
+    const drawer = document.getElementById('categoriesDrawer');
+    if (drawer && !drawer.classList.contains('-translate-x-full')) {
+        hideDrawer();
+    }
+
+    // Reset arrows
+    document.querySelectorAll('.nav-dropdown-arrow').forEach(svg => {
+      svg.classList.remove('rotate-180');
+    });
+    
+    // De-activate buttons and triggers
+    document.querySelectorAll('.nav-category-btn').forEach(btn => {
+      btn.classList.remove('active', 'bg-gray-100', 'dark:bg-gray-700');
+    });
+    document.querySelectorAll('.nav-category-trigger').forEach(trigger => {
+      trigger.classList.remove('is-open');
+    });
+
+    activeDropdown = null;
+    lastPreviewedItem = null;
+
+    // Unlock body scroll if mobile menu is also hidden
+    const mobileMenu = document.getElementById('ecommerce-navbar-menu');
+    const isMobileMenuOpen = mobileMenu && !mobileMenu.classList.contains('hidden');
+    
+    setScrollLocked(isMobileMenuOpen);
+    window.removeEventListener('scroll', closeOnScroll);
+  }
+
+  function closeOnScroll() {
+    if (activeDropdown) {
+      closeAllDropdowns();
+      hideBackdrop();
+    }
+  }
+
+  function openDropdown(trigger) {
+    // Close drawer first to avoid overlapping
+    hideDrawer();
+
+    const targetId = trigger.dataset.dropdownTarget;
+    if (!targetId) return;
+
+    // Skip cart dropdown on mobile (it should act as a link)
+    if (targetId === 'cartDropdown' && window.innerWidth < 768) {
+      return;
+    }
+
+    const dropdown = document.getElementById(targetId);
+
+    // Toggle behavior: if clicking the same trigger that's already open, close it
+    if (activeDropdown && activeDropdown === dropdown && window.innerWidth < 768) {
+      closeAllDropdowns();
+      hideBackdrop();
+      return;
+    }
+
+    // If we have an active dropdown that is different from the target (or target doesn't exist)
+    // we should close the active one.
+    if (activeDropdown && activeDropdown !== dropdown) {
+      activeDropdown.classList.add('hidden');
+      // Reset previous trigger style
+      const prevTrigger = document.querySelector(`.nav-category-trigger[data-dropdown-target="${activeDropdown.id}"]`);
+      if (prevTrigger) {
+         prevTrigger.classList.remove('is-open');
+         const btn = prevTrigger.querySelector('.nav-category-btn');
+         const arrow = prevTrigger.querySelector('.nav-dropdown-arrow');
+         if (btn) btn.classList.remove('active', 'bg-gray-100', 'dark:bg-gray-700');
+         if (arrow) arrow.classList.remove('rotate-180');
+      }
+      activeDropdown = null; // Clear it, will be set below if new one exists
+    }
+
+    if (!dropdown) return;
+
+    if (activeDropdown !== dropdown) {
+      // Position the dropdown
+      if (dropdown.id === 'dropdownMegaMenu') {
+        // Mega menu is full width centered
+      } else if (dropdown.id === 'cartDropdown' || dropdown.id === 'accountDropdown') {
+        if (window.innerWidth < 768) {
+          // Mobile specific: let CSS handle positioning
+          dropdown.style.position = '';
+          dropdown.style.left = '';
+          dropdown.style.right = '';
+          dropdown.style.top = '';
+          dropdown.style.width = '';
+        } else {
+          dropdown.style.position = '';
+          dropdown.style.left = '';
+          dropdown.style.right = '';
+          dropdown.style.top = '';
+        }
+      } else {
+        // Standard category dropdowns
+        const btn = trigger.querySelector('.nav-category-btn');
+        const rect = btn.getBoundingClientRect();
+        dropdown.style.position = 'fixed';
+        dropdown.style.top = `${rect.bottom - 1}px`; // Overlap by 1px
+        
+        // Initial positioning
+        dropdown.style.left = `${rect.left}px`;
+        dropdown.style.right = 'auto';
+        
+        // Show temporarily to measure
+        dropdown.classList.remove('hidden');
+        const dropdownWidth = dropdown.offsetWidth;
+        
+        // Check overflow
+        if (rect.left + dropdownWidth > window.innerWidth - 20) {
+            dropdown.style.left = 'auto';
+            dropdown.style.right = `${window.innerWidth - rect.right}px`;
+            dropdown.classList.add('is-right-aligned');
+        } else {
+            dropdown.classList.remove('is-right-aligned');
+        }
+
+        // Add class to visually connect dropdown to button
+        dropdown.classList.add('is-connected');
+      }
+
+      dropdown.classList.remove('hidden');
+
+      // FIX: Calculate available height to ensure dropdown fits in viewport
+      // We calculate the distance from the top of the dropdown to the bottom of the viewport
+      const rect = dropdown.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      // 16px buffer for bottom spacing
+      const availableHeight = viewportHeight - rect.top - 16;
+      
+      // Apply the calculated height if valid
+      if (availableHeight > 100) {
+        dropdown.style.maxHeight = `${availableHeight}px`;
+        // Only show scrollbar for simple dropdowns, not mega menu with sub-scrollers
+        if (dropdown.id !== 'dropdownMegaMenu' && !dropdown.id.startsWith('categoryDropdown')) {
+          dropdown.style.overflowY = 'auto';
+        } else {
+          dropdown.style.overflowY = 'hidden';
+        }
+      }
+
+      // Style active trigger
+      trigger.classList.add('is-open');
+      const btn = trigger.querySelector('.nav-category-btn');
+      const arrow = trigger.querySelector('.nav-dropdown-arrow');
+      if (btn) btn.classList.add('active', 'bg-gray-100', 'dark:bg-gray-700');
+      if (arrow) arrow.classList.add('rotate-180');
+      
+      activeDropdown = dropdown;
+    }
+
+    showBackdrop();
+    
+    // Lock body scroll if dropdown is open (only on mobile)
+    if (window.innerWidth < 768) {
+      setScrollLocked(true);
+    } else {
+      window.addEventListener('scroll', closeOnScroll, { passive: true });
+    }
+  }
+
+      // Subcategory Preview Logic
+      document.addEventListener('mouseover', function(e) {
+        const subItem = e.target.closest('.subcategory-item');
+        if (subItem) {
+          if (lastPreviewedItem === subItem) return;
+          lastPreviewedItem = subItem;
+    
+          const parentId = subItem.dataset.parentId;
+          const previewTitle = subItem.dataset.previewTitle;
+          const previewUrl = subItem.dataset.previewUrl;
+          const hasChildren = subItem.dataset.hasChildren === 'true';
+          const previewPane = document.getElementById(`previewPane${parentId}`);
+          
+          if (previewPane) {
+            // Prepare subchildren HTML if they exist
+            let subchildrenHtml = '';
+            const dataContainer = subItem.querySelector('.sub-children-data');
+            
+            if (dataContainer && hasChildren) {
+                 const treeHtml = dataContainer.innerHTML.trim();
+                 if (treeHtml) {
+                     subchildrenHtml = `<div class="w-full flex-1 overflow-y-auto px-6 mb-4 custom-scrollbar">${treeHtml}</div>`;
+                 }
+            }
+    
+            // Only show header and list if there are children. If no children, show button only (centered)
+            let contentHtml = '';
+            
+            if (hasChildren) {
+                contentHtml = `
+                    <div class="w-full px-6 mb-2 mt-6">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">${previewTitle}</h3>
+                    </div>
+                    ${subchildrenHtml}
+                `;
+            } else {
+                // Empty state / Generic state
+                contentHtml = `
+                    <div class="h-full flex flex-col items-center justify-center p-6 text-center">
+                        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-400">
+                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">${previewTitle}</h3>
+                        <a href="${previewUrl}" class="inline-flex items-center justify-center w-auto px-6 py-2.5 bg-primary-700 text-white hover:bg-primary-800 text-sm font-bold rounded-lg transition-colors duration-300 shadow-sm">
+                          {% translate "Go to" %} ${previewTitle}
+                       </a>
+                    </div>
+                `;
+            }
+    
+            previewPane.innerHTML = `
+              <div class="preview-content flex flex-col items-center w-full h-full animate-fade-in">
+                ${contentHtml}
+              </div>
+            `;
+          }
+        }
+      });
+
+  document.addEventListener('mouseout', function(e) {
+    // No specific action needed for preview pane on simple mouseout of subitem, 
+    // it will be replaced by the next hover.
+  });
+
+  // Event Listeners for Hover Intent
+  
+  triggers.forEach(trigger => {
+    trigger.addEventListener('mouseenter', () => {
+      if (window.innerWidth >= 768) {
+        openDropdown(trigger);
+      }
+    });
+    
+    // On click, valid for touch devices too
+    trigger.addEventListener('click', (e) => {
+        const targetId = trigger.dataset.dropdownTarget;
+        
+        // Mobile cart click behavior: let it navigate
+        if (targetId === 'cartDropdown' && window.innerWidth < 768) {
+          return; // Let the link be followed
+        }
+
+        // If clicking the button/link inside
+        if (e.target.closest('button, a')) {
+             e.preventDefault();
+             openDropdown(trigger);
+        }
+    });
+
+    // When leaving the trigger
+    trigger.addEventListener('mouseleave', (e) => {
+      const targetId = trigger.dataset.dropdownTarget;
+      const dropdown = document.getElementById(targetId);
+      
+      // Check where we are going
+      const destination = e.relatedTarget;
+      
+      // If we are going into the dropdown associated with this trigger, don't close
+      // Note: for nested dropdowns, e.relatedTarget might be the dropdown itself or a child
+      if (dropdown && (dropdown === destination || dropdown.contains(destination))) {
+        return;
+      }
+
+      // If we are moving to ANOTHER trigger, do NOT close everything immediately.
+      // The 'mouseenter' event of the *new* trigger will handle closing other dropdowns.
+      // This prevents flickering/closing when moving laterally.
+      if (destination && destination.closest('.nav-category-trigger')) {
+        return;
+      }
+      
+      closeAllDropdowns();
+      hideBackdrop();
+    });
+  });
+
+  // Keep open when hovering the dropdown itself
+  document.querySelectorAll('.category-dropdown').forEach(dropdown => {
+    // When leaving the dropdown
+    dropdown.addEventListener('mouseleave', (e) => {
+      const destination = e.relatedTarget;
+      
+      // If we are going back to the trigger that opened this
+      const trigger = document.querySelector(`.nav-category-trigger[data-dropdown-target="${dropdown.id}"]`);
+      if (trigger && (trigger === destination || trigger.contains(destination))) {
+        return;
+      }
+
+      // If we are moving to ANOTHER trigger (e.g. from dropdown of A to trigger B)
+      // let trigger B handle the state change.
+      if (destination && destination.closest('.nav-category-trigger')) {
+         return;
+      }
+      
+      closeAllDropdowns();
+      hideBackdrop();
+    });
+  });
+  
+  if (backdrop) {
+      backdrop.addEventListener('click', () => {
+          // Close on click of backdrop
+          closeAllDropdowns();
+          hideBackdrop();
+      });
+  }
+
+  // Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeAllDropdowns();
+      hideBackdrop();
+    }
+  });
+
+  // ===========================
+  // MOBILE MENU FUNCTIONALITY
+  // ===========================
+  const mobileMenu = document.getElementById('ecommerce-navbar-menu');
+  const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+  const mobileMenuClose = document.getElementById('mobile-menu-close');
+  const topNav = document.querySelector('.top-nav-standard');
+
+  function openMobileMenu() {
+    if (!mobileMenu) return;
+    mobileMenu.classList.remove('hidden');
+    mobileMenu.classList.add('flex');
+    setScrollLocked(true);
+  }
+
+  function closeMobileMenu() {
+    if (!mobileMenu) return;
+    mobileMenu.classList.add('hidden');
+    mobileMenu.classList.remove('flex');
+    setScrollLocked(false);
+  }
+
+  // Toggle button in navbar
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (mobileMenu.classList.contains('hidden')) {
+        openMobileMenu();
+      } else {
+        closeMobileMenu();
+      }
+    });
+  }
+
+  // Close button inside menu
+  if (mobileMenuClose) {
+    mobileMenuClose.addEventListener('click', closeMobileMenu);
+  }
+
+  // Handle category expand/collapse with delegation
+  if (mobileMenu) {
+    mobileMenu.addEventListener('click', function(e) {
+      const btn = e.target.closest('.mobile-category-toggle');
+      if (!btn) return;
+      
+      e.preventDefault();
+      const parentLi = btn.closest('li');
+      if (!parentLi) return;
+      
+      const submenu = parentLi.querySelector(':scope > ul');
+      const arrow = btn.querySelector('svg');
+      
+      if (submenu) {
+        submenu.classList.toggle('hidden');
+        if (arrow) {
+          arrow.classList.toggle('rotate-180');
+        }
+        
+        // Scroll the parent item into view if it was opened
+        if (!submenu.classList.contains('hidden')) {
+          setTimeout(() => {
+            parentLi.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+      }
+    });
+    
+    // Close menu when clicking a link (navigation)
+    mobileMenu.addEventListener('click', function(e) {
+      const link = e.target.closest('a[href]');
+      if (link && !link.getAttribute('href').startsWith('#')) {
+        closeMobileMenu();
+      }
+    });
+  }
+
+  // Close mobile menu on resize to desktop
+  window.addEventListener('resize', () => {
+    if (window.innerWidth >= 768 && mobileMenu && !mobileMenu.classList.contains('hidden')) {
+      closeMobileMenu();
+    }
+  });
+
+  // Close on Escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileMenu && !mobileMenu.classList.contains('hidden')) {
+      closeMobileMenu();
+    }
+  });
+
+  // ===========================
+  // SCROLL DRAG FOR CATEGORIES NAV (standard mode only)
+  // ===========================
+  if (navCategoriesContainer && navCategoriesContainer.dataset.navbarMode !== 'custom') {
+    let isDown = false;
+    let startX;
+    let scrollLeft;
+
+    // Check if content is scrollable and add appropriate class
+    function updateScrollableState() {
+      const isScrollable = navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth;
+      navCategoriesContainer.classList.toggle('scrollable-nav', isScrollable);
+    }
+
+    // Initial check and on resize
+    updateScrollableState();
+    window.addEventListener('resize', updateScrollableState);
+
+    navCategoriesContainer.addEventListener('mousedown', (e) => {
+      // Only enable drag if scrollable
+      if (navCategoriesContainer.scrollWidth <= navCategoriesContainer.clientWidth) return;
+      isDown = true;
+      navCategoriesContainer.classList.add('is-dragging');
+      startX = e.pageX - navCategoriesContainer.offsetLeft;
+      scrollLeft = navCategoriesContainer.scrollLeft;
+    });
+
+    navCategoriesContainer.addEventListener('mouseleave', () => {
+      isDown = false;
+      navCategoriesContainer.classList.remove('is-dragging');
+    });
+
+    navCategoriesContainer.addEventListener('mouseup', () => {
+      isDown = false;
+      navCategoriesContainer.classList.remove('is-dragging');
+    });
+
+    navCategoriesContainer.addEventListener('mousemove', (e) => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = e.pageX - navCategoriesContainer.offsetLeft;
+      const walk = (x - startX) * 2;
+      navCategoriesContainer.scrollLeft = scrollLeft - walk;
+    });
+  }
+
+  // ===========================
+  // CATEGORIES DRAWER FUNCTIONALITY
+  // ===========================
+  const drawer = document.getElementById('categoriesDrawer');
+  const drawerToggles = document.querySelectorAll('[data-drawer-target="categoriesDrawer"]');
+  const drawerHideButtons = document.querySelectorAll('[data-drawer-hide="categoriesDrawer"]');
+  const drawerCollapseToggles = document.querySelectorAll('[data-collapse-toggle^="drawer-"]');
+
+  function removeDrawerBackdrops() {
+    document.querySelectorAll('[drawer-backdrop]').forEach(el => el.remove());
+  }
+
+  function showDrawer() {
+    if (!drawer) return;
+    removeDrawerBackdrops();
+    
+    // Close any active dropdowns first to ensure clean state
+    document.querySelectorAll('.category-dropdown').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.nav-dropdown-arrow').forEach(svg => svg.classList.remove('rotate-180'));
+    document.querySelectorAll('.nav-category-btn').forEach(btn => btn.classList.remove('active', 'bg-gray-100', 'dark:bg-gray-700'));
+    document.querySelectorAll('.nav-category-trigger').forEach(trigger => trigger.classList.remove('is-open'));
+    activeDropdown = null;
+
+    drawer.classList.remove('-translate-x-full');
+    
+    const navbarMain = document.querySelector('.top-nav-standard');
+    const rowWrapper = document.getElementById('categories-row-wrapper');
+    const drawerQuick = document.getElementById('categories-drawer-quick');
+
+    // Lock main nav in place while drawer is open
+    let navTopOffset = 0;
+    if (navbarMain) {
+      const navStyles = window.getComputedStyle(navbarMain);
+      navTopOffset = parseFloat(navStyles.top) || 0;
+
+      navbarMain.dataset.drawerPrevPosition = navbarMain.style.position || '';
+      navbarMain.dataset.drawerPrevTop = navbarMain.style.top || '';
+      navbarMain.dataset.drawerPrevLeft = navbarMain.style.left || '';
+      navbarMain.dataset.drawerPrevRight = navbarMain.style.right || '';
+      navbarMain.dataset.drawerPrevWidth = navbarMain.style.width || '';
+      navbarMain.dataset.drawerPrevZ = navbarMain.style.zIndex || '';
+
+      navbarMain.style.position = 'fixed';
+      navbarMain.style.top = `${navTopOffset}px`;
+      navbarMain.style.left = '0';
+      navbarMain.style.right = '0';
+      navbarMain.style.width = '100%';
+      navbarMain.style.zIndex = '50';
+    }
+
+    // Hide the horizontal categories row while drawer is open
+    if (rowWrapper) {
+      rowWrapper.dataset.drawerPrevDisplay = rowWrapper.style.display || '';
+      rowWrapper.style.display = 'none';
+    }
+
+    if (drawerQuick) {
+      drawerQuick.classList.remove('is-visible');
+    }
+
+    // Show backdrop over the rest of the page (including the menu)
+    if (backdrop) {
+      backdrop.style.top = '0';
+      backdrop.style.height = '100%';
+      backdrop.classList.remove('z-40');
+      backdrop.classList.add('z-[70]');
+      showBackdrop();
+    }
+    setScrollLocked(true);
+  }
+
+  function hideDrawer() {
+    if (!drawer) return;
+    drawer.classList.add('-translate-x-full');
+    
+    // Reset backdrop positioning and hide it
+    if (backdrop) {
+        // Force hide backdrop logic regardless of previous state to ensure clean close
+        hideBackdrop(true);
+        backdrop.style.top = '';
+        backdrop.style.height = '';
+      backdrop.classList.remove('z-[70]');
+      backdrop.classList.add('z-40');
+    }
+    // Restore nav + categories row positioning
+    const navbarMain = document.querySelector('.top-nav-standard');
+    if (navbarMain && 'drawerPrevPosition' in navbarMain.dataset) {
+      navbarMain.style.position = navbarMain.dataset.drawerPrevPosition;
+      navbarMain.style.top = navbarMain.dataset.drawerPrevTop;
+      navbarMain.style.left = navbarMain.dataset.drawerPrevLeft;
+      navbarMain.style.right = navbarMain.dataset.drawerPrevRight;
+      navbarMain.style.width = navbarMain.dataset.drawerPrevWidth;
+      navbarMain.style.zIndex = navbarMain.dataset.drawerPrevZ;
+
+      delete navbarMain.dataset.drawerPrevPosition;
+      delete navbarMain.dataset.drawerPrevTop;
+      delete navbarMain.dataset.drawerPrevLeft;
+      delete navbarMain.dataset.drawerPrevRight;
+      delete navbarMain.dataset.drawerPrevWidth;
+      delete navbarMain.dataset.drawerPrevZ;
+    }
+
+    const rowWrapper = document.getElementById('categories-row-wrapper');
+    if (rowWrapper && 'drawerPrevDisplay' in rowWrapper.dataset) {
+      rowWrapper.style.display = rowWrapper.dataset.drawerPrevDisplay;
+      delete rowWrapper.dataset.drawerPrevDisplay;
+    }
+
+    removeDrawerBackdrops();
+    setScrollLocked(false);
+    // Ensure Flowbite's overflow-hidden is also removed from body
+    document.body.classList.remove('overflow-hidden');
+    
+    // Force re-evaluate categories row visibility after drawer closes
+    // This ensures the row shows/hides correctly based on scroll position
+    setTimeout(() => {
+      const rowWrapper = document.getElementById('categories-row-wrapper');
+      const drawerQuick = document.getElementById('categories-drawer-quick');
+      if (rowWrapper && drawerQuick) {
+        const currentScrollY = Math.max(0, window.scrollY);
+        const rowHeight = rowWrapper.offsetHeight;
+        const shouldHide = currentScrollY > rowHeight;
+        
+        if (shouldHide) {
+          rowWrapper.style.transform = 'translateY(-100%)';
+          rowWrapper.style.opacity = '0';
+          drawerQuick.classList.add('is-visible');
+        } else {
+          rowWrapper.style.transform = 'translateY(0)';
+          rowWrapper.style.opacity = '1';
+          drawerQuick.classList.remove('is-visible');
+        }
+      }
+    }, 50);
+  }
+
+  drawerToggles.forEach(toggle => {
+      toggle.addEventListener('click', (e) => {
+          e.preventDefault();
+          showDrawer();
+      });
+  });
+  
+  drawerHideButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+          hideDrawer();
+      });
+  });
+
+  // ===========================
+  // STICKY CATEGORIES NAV LOGIC
+  // ===========================
+  const drawerQuick = document.getElementById('categories-drawer-quick');
+  const rowWrapper = document.getElementById('categories-row-wrapper');
+  const navbarMain = document.querySelector('.top-nav-standard');
+  
+  if (drawerQuick && rowWrapper && navbarMain) {
+    let isHidden = false;
+
+    // We don't need a spacer for sticky positioning as it stays in flow
+    // Remove spacer if it exists (cleanup from previous version)
+    const existingSpacer = document.getElementById('categories-nav-spacer');
+    if (existingSpacer) {
+        existingSpacer.remove();
+    }
+
+    const updateLayout = () => {
+       const navHeight = navbarMain.offsetHeight;
+       
+       // Position Row Wrapper Sticky
+       rowWrapper.style.position = 'sticky';
+       rowWrapper.style.top = `${navHeight}px`; // Stick exactly below the main nav
+       rowWrapper.style.zIndex = '40'; // Ensure it is below nav (50) but above content
+       
+       // Reset width/left which might have been set by fixed logic
+       rowWrapper.style.width = '100%';
+       rowWrapper.style.left = '';
+    };
+
+    const updateNav = () => {
+       // Don't hide categories row when drawer is open
+       const drawer = document.getElementById('categoriesDrawer');
+       const isDrawerOpen = drawer && !drawer.classList.contains('-translate-x-full');
+       
+       const currentScrollY = Math.max(0, window.scrollY);
+       const rowHeight = rowWrapper.offsetHeight;
+       
+       // Hide only after scrolling past the element's height (but not when drawer is open)
+       const shouldHide = currentScrollY > rowHeight && !isDrawerOpen;
+
+       if (shouldHide !== isHidden) {
+          isHidden = shouldHide;
+          if (isHidden) {
+             // Slide up and fade out together
+             rowWrapper.style.transform = 'translateY(-100%)';
+             rowWrapper.style.opacity = '0';
+             drawerQuick.classList.add('is-visible');
+          } else {
+             // Slide down and fade in together
+             rowWrapper.style.transform = 'translateY(0)';
+             rowWrapper.style.opacity = '1';
+             drawerQuick.classList.remove('is-visible');
+          }
+       }
+    };
+
+    // Initial calculations
+    window.addEventListener('load', updateLayout);
+    window.addEventListener('resize', () => {
+        updateLayout();
+        updateNav();
+    });
+    
+    // Run immediately
+    updateLayout();
+
+    // Scroll Handler
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(() => {
+                updateNav();
+                ticking = false;
+            });
+            ticking = true;
+        }
+    }, { passive: true });
+    
+    updateNav();
+  }
+});
+</script>
+
+

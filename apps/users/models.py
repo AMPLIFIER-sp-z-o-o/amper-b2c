@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.translation import gettext_lazy as _
+from simple_history.models import HistoricalRecords
 
 from apps.users.helpers import validate_profile_picture
 
@@ -23,6 +24,7 @@ class CustomUser(AbstractUser):
     Add additional fields to the user model here.
     """
 
+    history = HistoricalRecords()
     avatar = models.FileField(upload_to=_get_avatar_filename, blank=True, validators=[validate_profile_picture])
     language = models.CharField(max_length=10, blank=True, null=True)
     timezone = models.CharField(max_length=100, blank=True, default="")
@@ -57,6 +59,7 @@ class SocialAppSettings(models.Model):
     Extended settings for SocialApp to enable/disable providers without deleting them.
     """
 
+    history = HistoricalRecords()
     social_app = models.OneToOneField(
         SocialApp,
         on_delete=models.CASCADE,

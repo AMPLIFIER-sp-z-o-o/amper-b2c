@@ -31,7 +31,7 @@
                     <ul class="space-y-3">
                       {% for link in section.links.all %}
                         <li>
-                          <a href="{{ link.url }}" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link.label }}</a>
+                          <a href="{{ link.url }}" class="text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link.label }}</a>
                         </li>
                       {% endfor %}
                     </ul>
@@ -46,7 +46,7 @@
                   <ul class="space-y-3">
                     {% for social in footer_social_media %}
                       <li>
-                        <a href="{{ social.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                        <a href="{{ social.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                           {# Platform icons #}
                           {% if social.platform == 'facebook' %}
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -94,7 +94,7 @@
         {% if bottom_bar_links %}
           <ul class="flex flex-wrap items-center gap-4 text-sm text-gray-900 dark:text-white xl:justify-center">
             {% for link in bottom_bar_links %}
-              <li><a href="{{ link.url }}" title="" class="font-medium hover:underline">{{ link.label }}</a></li>
+              <li><a href="{{ link.url }}" title="" class="font-medium transition-colors duration-200 hover:underline hover:text-primary-600 dark:hover:text-primary-500">{{ link.label }}</a></li>
             {% endfor %}
           </ul>
         {% endif %}

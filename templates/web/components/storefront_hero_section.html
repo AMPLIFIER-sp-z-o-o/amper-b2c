@@ -1,0 +1,79 @@
+{% if storefront_hero %}
+<section id="storefront-hero-section-{{ storefront_hero.id }}" class="storefront-hero-section bg-white pt-8 pb-4 antialiased dark:bg-gray-900 md:pt-16 md:pb-8">
+  <div class="mx-auto grid max-w-screen-xl px-4 xl:grid-cols-12 xl:gap-16 2xl:px-0">
+    <!-- Left Side Content -->
+    <div class="mx-auto content-center text-center xl:col-span-5 xl:justify-self-start xl:text-start">
+      <h1 class="mb-4 text-4xl font-extrabold leading-[1.1] tracking-tight text-gray-900 dark:text-white md:max-w-2xl md:text-5xl xl:text-6xl" style="font-family: system-ui, -apple-system, sans-serif;">{{ storefront_hero.title }}</h1>
+      <p class="mb-4 max-w-2xl text-gray-500 dark:text-gray-400 md:text-lg xl:mb-8 xl:text-xl">{{ storefront_hero.subtitle }}</p>
+      <div class="mb-6 flex items-center justify-center space-x-4 md:mb-0 xl:justify-start">
+        {% if storefront_hero.primary_button_text %}
+        <a href="{{ storefront_hero.primary_button_url|default:'#' }}" {% if storefront_hero.primary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="rounded-lg bg-primary-700 px-6 py-3.5 text-center font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{{ storefront_hero.primary_button_text }}</a>
+        {% endif %}
+        {% if storefront_hero.secondary_button_text %}
+        <a href="{{ storefront_hero.secondary_button_url|default:'#' }}" {% if storefront_hero.secondary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-6 py-3.5 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">
+          {{ storefront_hero.secondary_button_text }}
+          <svg class="-me-1 ms-2 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+          </svg>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+    
+    <!-- Right Side - Category Boxes -->
+    {% with category_boxes=storefront_category_boxes|default:storefront_hero.category_boxes.all %}
+    {% if category_boxes %}
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:mt-8 xl:col-span-7 xl:mt-0 xl:gap-8">
+      {% for box in category_boxes %}
+      <div class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ box.title }}</h2>
+        
+        {% with items=box.draft_items|default:box.items.all %}
+        {% if items %}
+        <div class="grid grid-cols-2 text-gray-900 dark:text-white">
+          {% for item in items|slice:":4" %}
+          <div class="relative flex flex-col items-center p-4 text-center {% if forloop.counter0 == 0 %}border-b border-r border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 1 %}border-b border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 2 %}border-r border-gray-200 dark:border-gray-700{% endif %}">
+            <a href="{{ item.url|default:'#' }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}>
+              <img class="mx-auto mb-4 h-20 w-auto object-contain" src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy" />
+            </a>
+            <a href="{{ item.url|default:'#' }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ item.name }}" class="font-medium hover:underline">{{ item.name }}</a>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+        
+        {% if box.shop_link_text %}
+        <a href="{{ box.shop_link_url|default:'#' }}" {% if box.shop_link_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ box.shop_link_text }}" class="flex items-center gap-1 font-medium text-primary-700 hover:text-primary-600 hover:underline dark:text-primary-500 dark:hover:text-primary-400">
+          {{ box.shop_link_text }}
+          <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"></path>
+          </svg>
+        </a>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+  </div>
+</section>
+
+<style>
+/* Storefront Hero Section Responsive Styles */
+
+/* Ensure consistent image sizes in category boxes */
+.storefront-hero-section .grid img {
+  max-width: 100%;
+  height: 5rem;
+  object-fit: contain;
+}
+
+/* Mobile adjustments for category boxes */
+@media (max-width: 640px) {
+  .storefront-hero-section .grid.sm\\:grid-cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endif %}

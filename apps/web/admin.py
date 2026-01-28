@@ -3,10 +3,12 @@ from django.contrib import admin
 from django.db import models
 from django.shortcuts import redirect
 from django.urls import reverse
-from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
-from unfold.admin import ModelAdmin, StackedInline, TabularInline
-from unfold.widgets import UnfoldAdminSelect2Widget
+from unfold.admin import StackedInline, TabularInline
+from unfold.widgets import UnfoldAdminColorInputWidget, UnfoldAdminSelect2Widget
+
+from apps.utils.admin_mixins import BaseModelAdmin, HistoryModelAdmin, SingletonAdminMixin
+from apps.utils.admin_utils import make_image_preview_html
 
 from .models import (
     BottomBar,
@@ -16,17 +18,20 @@ from .models import (
     FooterSection,
     FooterSectionLink,
     FooterSocialMedia,
+    Navbar,
+    NavbarItem,
     SiteSettings,
     TopBar,
 )
-from apps.utils.admin_mixins import BaseModelAdmin
-from apps.utils.admin_utils import make_image_preview_html
 
 
 class TopBarForm(forms.ModelForm):
     class Meta:
         model = TopBar
         fields = "__all__"
+        widgets = {
+            "content_type": UnfoldAdminSelect2Widget,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,7 +94,7 @@ class TopBarAdmin(BaseModelAdmin):
 
 
 @admin.register(CustomCSS)
-class CustomCSSAdmin(ModelAdmin):
+class CustomCSSAdmin(SingletonAdminMixin, HistoryModelAdmin):
     change_form_template = "admin/web/customcss/change_form.html"
     list_display = ("custom_css_active", "updated_at")
     fieldsets = (
@@ -126,7 +131,7 @@ class SiteSettingsForm(forms.ModelForm):
 
 
 @admin.register(SiteSettings)
-class SiteSettingsAdmin(ModelAdmin):
+class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     form = SiteSettingsForm
     list_display = ("store_name", "currency", "updated_at")
     readonly_fields = ("default_image_preview",)
@@ -190,6 +195,9 @@ class FooterForm(forms.ModelForm):
     class Meta:
         model = Footer
         fields = "__all__"
+        widgets = {
+            "content_type": UnfoldAdminSelect2Widget,
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -215,12 +223,12 @@ class FooterSectionLinkInline(TabularInline):
 
 
 @admin.register(FooterSectionLink)
-class FooterSectionLinkAdmin(ModelAdmin):
+class FooterSectionLinkAdmin(HistoryModelAdmin):
     has_module_permission = lambda self, r: False
 
 
 @admin.register(FooterSection)
-class FooterSectionAdmin(ModelAdmin):
+class FooterSectionAdmin(HistoryModelAdmin):
     inlines = [FooterSectionLinkInline]
     list_display = ("name", "order")
     ordering = ("order", "id")
@@ -245,8 +253,18 @@ class FooterSectionInline(StackedInline):
     show_change_link = True
 
 
+class FooterSocialMediaForm(forms.ModelForm):
+    class Meta:
+        model = FooterSocialMedia
+        fields = "__all__"
+        widgets = {
+            "platform": UnfoldAdminSelect2Widget,
+        }
+
+
 class FooterSocialMediaInline(TabularInline):
     model = FooterSocialMedia
+    form = FooterSocialMediaForm
     extra = 0
     fields = ("platform", "label", "url", "is_active", "order")
     ordering = ("order", "id")
@@ -256,7 +274,7 @@ class FooterSocialMediaInline(TabularInline):
 
 
 @admin.register(Footer)
-class FooterAdmin(ModelAdmin):
+class FooterAdmin(SingletonAdminMixin, HistoryModelAdmin):
     form = FooterForm
     change_form_template = "admin/web/footer/change_form.html"
     inlines = [FooterSocialMediaInline, FooterSectionInline]
@@ -296,12 +314,12 @@ class BottomBarLinkInline(TabularInline):
 
 
 @admin.register(BottomBarLink)
-class BottomBarLinkAdmin(ModelAdmin):
+class BottomBarLinkAdmin(HistoryModelAdmin):
     has_module_permission = lambda self, r: False
 
 
 @admin.register(BottomBar)
-class BottomBarAdmin(ModelAdmin):
+class BottomBarAdmin(SingletonAdminMixin, HistoryModelAdmin):
     inlines = [BottomBarLinkInline]
     list_display = ("__str__", "is_active")
     fieldsets = (
@@ -323,3 +341,146 @@ class BottomBarAdmin(ModelAdmin):
     def changelist_view(self, request, extra_context=None):
         settings_obj = BottomBar.get_settings()
         return redirect(reverse("admin:web_bottombar_change", args=[settings_obj.pk]))
+
+
+# ============================================================================
+# Navbar Admin
+# ============================================================================
+
+
+
+class NavbarItemForm(forms.ModelForm):
+    label_color = forms.CharField(
+        widget=UnfoldAdminColorInputWidget,
+        required=False,
+    )
+
+    class Meta:
+        model = NavbarItem
+        fields = "__all__"
+        widgets = {
+            "item_type": UnfoldAdminSelect2Widget,
+            "category": UnfoldAdminSelect2Widget,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Get item_type from form data (handles inline prefix) or instance
+        item_type = None
+        if self.data:
+            # For inline forms, the field name includes prefix like "items-0-item_type"
+            prefix = self.prefix
+            if prefix:
+                item_type = self.data.get(f"{prefix}-item_type")
+            else:
+                item_type = self.data.get("item_type")
+        
+        if not item_type:
+            item_type = (
+                self.initial.get("item_type")
+                or (self.instance.item_type if self.instance.pk else None)
+                or NavbarItem.ItemType.CATEGORY
+            )
+
+        is_category = item_type == NavbarItem.ItemType.CATEGORY
+        is_custom_link = item_type == NavbarItem.ItemType.CUSTOM_LINK
+
+        # Set required fields based on type
+        if "category" in self.fields:
+            self.fields["category"].required = is_category
+        if "label" in self.fields:
+            self.fields["label"].required = is_custom_link
+        if "url" in self.fields:
+            self.fields["url"].required = is_custom_link
+
+
+class NavbarItemInline(TabularInline):
+    model = NavbarItem
+    form = NavbarItemForm
+    extra = 0
+    fields = ("order", "item_type", "category", "label", "url", "label_color", "open_in_new_tab", "is_active")
+    ordering = ("order", "id")
+    
+    # Don't show add/change/delete buttons for related objects
+    def get_formset(self, request, obj=None, **kwargs):
+        formset = super().get_formset(request, obj, **kwargs)
+        # Disable related widget wrapper buttons for category field
+        if 'category' in formset.form.base_fields:
+            formset.form.base_fields['category'].widget.can_add_related = False
+            formset.form.base_fields['category'].widget.can_change_related = False
+            formset.form.base_fields['category'].widget.can_delete_related = False
+            formset.form.base_fields['category'].widget.can_view_related = False
+        return formset
+
+
+@admin.register(NavbarItem)
+class NavbarItemAdmin(HistoryModelAdmin):
+    form = NavbarItemForm
+    list_display = ("__str__", "item_type", "order", "is_active")
+    list_filter = ("item_type", "is_active")
+    list_editable = ("order", "is_active")
+    ordering = ("order", "id")
+
+    fieldsets = (
+        (
+            _("Item Configuration"),
+            {
+                "fields": ("navbar", "item_type", "category", "label", "url", "open_in_new_tab"),
+                "description": _("Configure the navigation item type and target."),
+            },
+        ),
+        (
+            _("Styling"),
+            {
+                "fields": ("label_color", "icon"),
+                "description": _("Optional styling for the label."),
+            },
+        ),
+        (
+            _("Display"),
+            {
+                "fields": ("order", "is_active"),
+            },
+        ),
+    )
+
+    def has_module_permission(self, request):
+        # Hide from sidebar - only accessible via Navbar admin
+        return False
+
+
+class NavbarForm(forms.ModelForm):
+    class Meta:
+        model = Navbar
+        fields = "__all__"
+
+
+@admin.register(Navbar)
+class NavbarAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    form = NavbarForm
+    change_form_template = "admin/web/navbar/change_form.html"
+    inlines = [NavbarItemInline]
+    list_display = ("__str__", "mode")
+    fieldsets = (
+        (
+            _("Navigation Mode"),
+            {
+                "fields": ("mode",),
+                "description": _(
+                    "Choose between default navigation (categories shown alphabetically) "
+                    "or custom navigation (manually configured items below)."
+                ),
+            },
+        ),
+    )
+
+    def has_add_permission(self, request):
+        return not Navbar.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        settings_obj = Navbar.get_settings()
+        return redirect(reverse("admin:web_navbar_change", args=[settings_obj.pk]))

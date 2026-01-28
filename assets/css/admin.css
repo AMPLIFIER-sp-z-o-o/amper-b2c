@@ -198,6 +198,19 @@ textarea[id$="_custom_js"],
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* =====================================================================
+   Admin form "Change" link hover underline
+   ===================================================================== */
+
+/* Django admin related widget "Change" links */
+a.change-related:hover,
+.change-related:hover,
+a.related-widget-wrapper-link.change-related:hover,
+a.inlinechangelink:hover,
+.inlinechangelink:hover {
+  text-decoration: underline;
+}
+
 #nav-sidebar-apps:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
 }

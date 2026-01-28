@@ -1,5 +1,4 @@
 from allauth.account.signals import email_confirmed, user_signed_up
-from django.conf import settings
 from django.core.files.storage import default_storage
 from django.core.mail import mail_admins
 from django.db.models.signals import post_delete, pre_save
@@ -28,9 +27,10 @@ def update_user_email(sender, request, email_address, **kwargs):
 
 def _notify_admins_of_signup(user):
     from apps.web.models import SiteSettings
+
     site_settings = SiteSettings.get_settings()
     store_name = site_settings.store_name if site_settings and site_settings.store_name else "the site"
-    
+
     mail_admins(
         f"Yowsers, someone signed up for {store_name}!",
         f"Email: {user.email}",

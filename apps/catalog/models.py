@@ -26,9 +26,11 @@ class Category(BaseModel):
         on_delete=models.SET_NULL,
     )
     image = models.ImageField(upload_to="category-images/", blank=True, null=True, storage=DynamicMediaStorage())
+    sort_order = models.IntegerField(default=0, help_text=_("Sort order in navigation menu (lower numbers first)."))
+    icon = models.CharField(max_length=50, blank=True, default="circle", help_text=_("Icon name for the menu."))
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["sort_order", "name"]
         verbose_name_plural = "Categories"
 
     def __str__(self) -> str:
@@ -51,22 +53,30 @@ class Product(BaseModel):
     price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     stock = models.PositiveIntegerField(default=0)
     sales_total = models.DecimalField(
-        max_digits=15, decimal_places=2, default=0,
+        max_digits=15,
+        decimal_places=2,
+        default=0,
         verbose_name=_("Units sold (total)"),
         help_text=_("Total number of units sold."),
     )
     revenue_total = models.DecimalField(
-        max_digits=15, decimal_places=2, default=0,
+        max_digits=15,
+        decimal_places=2,
+        default=0,
         verbose_name=_("Revenue (total)"),
         help_text=_("Total revenue generated."),
     )
     sales_per_day = models.DecimalField(
-        max_digits=15, decimal_places=2, default=0,
+        max_digits=15,
+        decimal_places=2,
+        default=0,
         verbose_name=_("Units sold (daily avg)"),
         help_text=_("Average units sold per day."),
     )
     sales_per_month = models.DecimalField(
-        max_digits=15, decimal_places=2, default=0,
+        max_digits=15,
+        decimal_places=2,
+        default=0,
         verbose_name=_("Units sold (monthly avg)"),
         help_text=_("Average units sold per month."),
     )
@@ -105,9 +115,9 @@ class ProductImage(BaseModel):
     def save(self, *args, **kwargs):
         # Auto-increment sort_order for new images if not explicitly set
         if self._state.adding and self.sort_order == 0:
-            max_order = ProductImage.objects.filter(product=self.product).aggregate(
-                max_order=models.Max("sort_order")
-            )["max_order"]
+            max_order = ProductImage.objects.filter(product=self.product).aggregate(max_order=models.Max("sort_order"))[
+                "max_order"
+            ]
             if max_order is not None:
                 self.sort_order = max_order + 1
         super().save(*args, **kwargs)

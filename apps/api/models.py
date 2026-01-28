@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from simple_history.models import HistoricalRecords
 from rest_framework_api_key.models import AbstractAPIKey
 
 
@@ -10,6 +11,7 @@ class UserAPIKey(AbstractAPIKey):
     """
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="api_keys")
+    history = HistoricalRecords()
 
     class Meta(AbstractAPIKey.Meta):
         verbose_name = "User API key"

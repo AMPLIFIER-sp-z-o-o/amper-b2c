@@ -9,21 +9,21 @@ from django.utils.html import format_html, mark_safe
 from django.utils.translation import gettext_lazy as _
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
-from unfold.admin import ModelAdmin, TabularInline
+from unfold.admin import TabularInline
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
 
+from apps.utils.admin_mixins import HistoryModelAdmin
 from apps.utils.admin_utils import make_image_preview_html
 from apps.web.models import SiteSettings
-
 
 from .models import (
     AttributeDefinition,
     AttributeOption,
     Category,
     Product,
-    ProductStatus,
     ProductAttributeValue,
     ProductImage,
+    ProductStatus,
 )
 
 
@@ -45,17 +45,28 @@ class ProductImageInline(TabularInline):
         show_link = obj and obj.pk
         return make_image_preview_html(
             obj.image if obj else None,
-            alt_text=getattr(obj, 'alt_text', None),
+            alt_text=getattr(obj, "alt_text", None),
             show_open_link=show_link,
         )
 
     image_preview.short_description = _("Preview")
 
 
+class ProductAttributeValueForm(forms.ModelForm):
+    class Meta:
+        model = ProductAttributeValue
+        fields = "__all__"
+        labels = {
+            "option": _("Attribute value"),
+        }
+
+
 class ProductAttributeValueInline(TabularInline):
+    form = ProductAttributeValueForm
     model = ProductAttributeValue
     extra = 1
     autocomplete_fields = ["option"]
+    hide_title = True
 
     def get_formset(self, request, obj=None, **kwargs):
         """Dynamically set the title of the inline section to include the product name."""
@@ -94,19 +105,22 @@ class CategoryProductInline(TabularInline):
     def get_queryset(self, request):
         """Prefetch product images to avoid N+1 queries."""
         from django.db.models import Prefetch
-        return super().get_queryset(request).prefetch_related(
-            Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id"))
+
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id")))
         )
 
     def product_image_preview(self, obj):
         """Display the primary product image with link to open in new tab."""
         if not obj or not obj.pk:
             return make_image_preview_html(None, size=50, show_open_link=False)
-        
+
         # Use prefetched images (access .all() to use cache, not .order_by which triggers new query)
         all_images = list(obj.images.all())
         primary_image = all_images[0] if all_images else None
-        
+
         if primary_image and primary_image.image:
             return make_image_preview_html(
                 primary_image.image,
@@ -130,8 +144,8 @@ class CategoryProductInline(TabularInline):
             '<div class="flex gap-3 mt-1 text-xs">'
             '<a href="{change_url}" class="text-primary-600 hover:underline dark:text-primary-500">{change_label}</a>'
             '<a href="{site_url}" target="_blank" rel="noopener" class="text-primary-600 hover:underline dark:text-primary-500">{view_label}</a>'
-            '</div>'
-            '</div>',
+            "</div>"
+            "</div>",
             name=obj.name,
             change_url=change_url,
             site_url=site_url,
@@ -191,7 +205,7 @@ class ProductResource(resources.ModelResource):
 
 
 @admin.register(Product)
-class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
+class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     resource_class = ProductResource
     import_form_class = ImportForm
     export_form_class = ExportForm
@@ -201,8 +215,11 @@ class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
 
     def get_queryset(self, request):
         from django.db.models import Prefetch
-        return super().get_queryset(request).prefetch_related(
-            Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id"))
+
+        return (
+            super()
+            .get_queryset(request)
+            .prefetch_related(Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id")))
         )
 
     list_display = (
@@ -230,18 +247,35 @@ class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
         "sales_per_month_display",
     )
     fieldsets = (
-        (None, {
-            "fields": ("name", "category", "status", "description"),
-        }),
-        (_("Pricing & Inventory"), {
-            "fields": ("price", "stock"),
-        }),
-        (_("Statistics"), {
-            "fields": ("sales_total_display", "revenue_total_display", "sales_per_day_display", "sales_per_month_display"),
-        }),
-        (_("Timestamps"), {
-            "fields": ("created_at", "updated_at"),
-        }),
+        (
+            None,
+            {
+                "fields": ("name", "category", "status", "description"),
+            },
+        ),
+        (
+            _("Pricing & Inventory"),
+            {
+                "fields": ("price", "stock"),
+            },
+        ),
+        (
+            _("Statistics"),
+            {
+                "fields": (
+                    "sales_total_display",
+                    "revenue_total_display",
+                    "sales_per_day_display",
+                    "sales_per_month_display",
+                ),
+            },
+        ),
+        (
+            _("Timestamps"),
+            {
+                "fields": ("created_at", "updated_at"),
+            },
+        ),
     )
 
     @admin.display(description=_("Price"), ordering="price")
@@ -254,7 +288,7 @@ class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
         """Display product's primary image in list view."""
         if not obj or not obj.pk:
             return make_image_preview_html(None, size=40, show_open_link=False)
-        
+
         # Access prefetched images via .all() and convert to list to ensure we use the prefetched cache
         # with the correct order defined in get_queryset
         all_images = list(obj.images.all())
@@ -275,7 +309,9 @@ class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
     def revenue_display(self, obj):
         """Display revenue with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "PLN"
-        return mark_safe(f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>')
+        return mark_safe(
+            f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
+        )
 
     @admin.display(description=_("Sales"), ordering="sales_total")
     def sales_total_list(self, obj):
@@ -289,7 +325,9 @@ class ProductAdmin(ModelAdmin, ImportExportModelAdmin):
     def revenue_total_display(self, obj):
         """Display revenue with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "PLN"
-        return mark_safe(f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>')
+        return mark_safe(
+            f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
+        )
 
     @admin.display(description=_("Units sold (daily avg)"))
     def sales_per_day_display(self, obj):
@@ -313,20 +351,21 @@ class CategoryForm(forms.ModelForm):
         model = Category
         fields = "__all__"
         labels = {
-            "image": _("Product Image"),
+            "image": _("Category Image"),
         }
 
 
 @admin.register(Category)
-class CategoryAdmin(ModelAdmin, ImportExportModelAdmin):
+class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     form = CategoryForm
     resource_class = CategoryResource
     import_form_class = ImportForm
     export_form_class = ExportForm
-    list_display = ("name", "parent", "slug", "product_count")
+    list_display = ("name", "parent", "slug", "sort_order", "product_count")
+    list_editable = ["sort_order"]
     list_select_related = ["parent"]
     search_fields = ("name", "slug")
-    ordering = ("name",)
+    ordering = ("sort_order", "name")
     autocomplete_fields = ["parent"]
     inlines = [CategoryProductInline]
     readonly_fields = ["image_preview", "product_count_detail"]
@@ -358,9 +397,7 @@ class CategoryAdmin(ModelAdmin, ImportExportModelAdmin):
 
     def get_queryset(self, request):
         """Annotate product count to avoid N+1 queries."""
-        return super().get_queryset(request).annotate(
-            _product_count=models.Count("products")
-        )
+        return super().get_queryset(request).annotate(_product_count=models.Count("products"))
 
     def product_count(self, obj):
         """Display product count in list view."""
@@ -408,7 +445,7 @@ class AttributeDefinitionResource(resources.ModelResource):
 
 
 @admin.register(AttributeDefinition)
-class AttributeDefinitionAdmin(ModelAdmin, ImportExportModelAdmin):
+class AttributeDefinitionAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     resource_class = AttributeDefinitionResource
     import_form_class = ImportForm
     export_form_class = ExportForm
@@ -426,7 +463,7 @@ class AttributeOptionResource(resources.ModelResource):
 
 
 @admin.register(AttributeOption)
-class AttributeOptionAdmin(ModelAdmin, ImportExportModelAdmin):
+class AttributeOptionAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     resource_class = AttributeOptionResource
     import_form_class = ImportForm
     export_form_class = ExportForm
@@ -438,7 +475,7 @@ class AttributeOptionAdmin(ModelAdmin, ImportExportModelAdmin):
 
 
 @admin.register(ProductAttributeValue)
-class ProductAttributeValueAdmin(ModelAdmin):
+class ProductAttributeValueAdmin(HistoryModelAdmin):
     list_display = ("product", "option")
     list_select_related = ["product", "option", "option__attribute"]
     list_filter = ("option__attribute",)
@@ -447,7 +484,7 @@ class ProductAttributeValueAdmin(ModelAdmin):
 
 
 @admin.register(ProductImage)
-class ProductImageAdmin(ModelAdmin):
+class ProductImageAdmin(HistoryModelAdmin):
     list_display = ("product", "sort_order", "alt_text")
     list_select_related = ["product"]
     list_filter = ("product",)

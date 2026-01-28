@@ -1,6 +1,4 @@
 document.addEventListener("DOMContentLoaded", function () {
-  document.getElementById("myCartDropdownButton1").click();
-
   // Format prices using browser locale with Intl.NumberFormat
   formatPrices();
 

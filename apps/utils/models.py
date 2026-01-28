@@ -1,4 +1,5 @@
 from django.db import models
+from simple_history.models import HistoricalRecords
 
 
 class BaseModel(models.Model):
@@ -6,6 +7,7 @@ class BaseModel(models.Model):
     Base model that includes default created / updated timestamps.
     """
 
+    history = HistoricalRecords(inherit=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

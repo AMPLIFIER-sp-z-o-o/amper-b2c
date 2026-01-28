@@ -64,8 +64,8 @@ reset-db: ## Drop and recreate database, run migrations
 
 reset-db-seed: reset-db seed ## Reset database and seed with default data
 
-test: ## Run Django tests
-	@uv run manage.py test ${ARGS}
+test: ## Run tests with pytest
+	@uv run pytest ${ARGS}
 
 init: setup-env start-bg migrations migrate npm-install-all ## Quickly get up and running (start containers and bootstrap DB)
 

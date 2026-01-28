@@ -2,6 +2,10 @@
 
 {% block body %}
 
+    {# Storefront Hero Section - displays below Hero Banner #}
+    {% if storefront_hero %}
+        {% include "web/components/storefront_hero_section.html" with storefront_hero=storefront_hero %}
+    {% endif %}
 
     {% if homepage_sections %}
         {% for section in homepage_sections %}

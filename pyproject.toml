@@ -24,6 +24,16 @@ indent-style = "space"
 skip-magic-trailing-comma = false
 line-ending = "auto"
 
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "amplifier.settings"
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--reuse-db",
+    "-v",
+]
+
 [tool.uv.sources]
 # allow installing django-celery-beat 2.8.1 with django 6.0
 # until https://github.com/celery/django-celery-beat/issues/977 is resolved
@@ -70,6 +80,8 @@ dependencies = [
     "redis",
     "tinycss2>=1.5.1",
     "django-import-export>=4.4.0",
+    "django-simple-history",
+    "django-colorfield>=0.14.0",
 ]
 
 [dependency-groups]
@@ -77,6 +89,8 @@ dev = [
     "channels[daphne]",
     "django-debug-toolbar",
     "pre-commit",
+    "pytest>=8.0.0",
+    "pytest-django>=4.8.0",
     "ruff>=0.13.1",
 ]
 prod = [

@@ -38,26 +38,52 @@
     {% vite_hmr_client %}
     {% vite_asset 'assets/css/site.css' %}
     {% vite_asset 'assets/js/site.js' %}
+    {% if site_settings and site_settings.custom_css_active and site_settings.custom_css %}
+    <style id="custom-css">
+      {{ site_settings.custom_css|safe }}
+    </style>
+    {% endif %}
     {% if GOOGLE_ANALYTICS_ID %}
         {% include 'web/components/google_analytics.html' %}
     {% endif %}
     {% block extra_head %}{% endblock %}
+    <style>
+      .no-transitions * {
+        -webkit-transition: none !important;
+        -moz-transition: none !important;
+        -ms-transition: none !important;
+        -o-transition: none !important;
+        transition: none !important;
+      }
+    </style>
   </head>
 <body
-  class="bg-base-100"
+  class="bg-base-100 no-transitions"
   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
   data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
-  style="opacity: 0; transition: opacity 0.1s ease-in;"
+  style="opacity: 0;"
 >
 <script>
-  // Prevent FOUC - show body after styles are loaded
-  document.addEventListener('DOMContentLoaded', function() {
-    document.body.style.opacity = '1';
-  });
-  // Fallback in case DOMContentLoaded already fired
-  if (document.readyState !== 'loading') {
-    document.body.style.opacity = '1';
-  }
+  (function() {
+    // Prevent FOUC - show body after styles are likely loaded
+    function showBody() {
+      document.body.style.opacity = '1';
+      // Allow a small delay for the browser to paint before enabling transitions
+      setTimeout(function() {
+        document.body.classList.remove('no-transitions');
+      }, 50);
+    }
+
+    if (document.readyState === 'complete') {
+        showBody();
+    } else {
+        window.addEventListener('load', showBody);
+        // Fallback for DOMContentLoaded if load takes too long (e.g. slow images)
+        document.addEventListener('DOMContentLoaded', function() {
+          setTimeout(showBody, 100); 
+        });
+    }
+  })();
 </script>
 {% block body_wrapper %}
   {% include 'web/components/draft_preview_notice.html' %}
@@ -83,10 +109,5 @@
 
 {% block page_js %}
 {% endblock page_js %}
-    {% if site_settings and site_settings.custom_css_active and site_settings.custom_css %}
-    <style id="custom-css">
-      {{ site_settings.custom_css|safe }}
-    </style>
-    {% endif %}
     <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
 </html>

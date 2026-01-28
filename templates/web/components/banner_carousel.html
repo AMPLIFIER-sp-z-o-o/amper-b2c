@@ -229,7 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 0;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: auto;
     border: 1px solid transparent;
     overflow: hidden;
@@ -242,8 +242,9 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 .banner-swiper .swiper-button-prev:hover,
 .banner-swiper .swiper-button-next:hover {
-    background-color: rgba(0, 0, 0, 0.5);
-    border-color: rgba(255, 255, 255, 0.5);
+    background-color: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
 }
 
 /* Click effect (ripple) */
@@ -258,7 +259,7 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: rgba(255, 255, 255, 0.4);
     border-radius: 50%;
     transform: translate(-50%, -50%);
-    transition: width 0.3s ease, height 0.3s ease, opacity 0.3s ease;
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     opacity: 0;
     pointer-events: none;
     z-index: 1;
@@ -267,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .banner-swiper .swiper-button-next:active::before {
     width: 100px;
     height: 100px;
-    opacity: 1;
+    opacity: 0.5;
     transition: 0s;
 }
 .banner-swiper .swiper-button-prev::after,
@@ -277,7 +278,10 @@ document.addEventListener('DOMContentLoaded', function() {
     color: white;
     position: relative;
     z-index: 2;
+    transition: transform 0.2s ease;
 }
+.banner-swiper .swiper-button-prev:hover::after { transform: translateX(-2px); }
+.banner-swiper .swiper-button-next:hover::after { transform: translateX(2px); }
 
 /* Desktop pagination (on image) */
 .banner-swiper .swiper-pagination {
@@ -290,13 +294,13 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 10px;
     border: 1px solid rgba(0, 0, 0, 0.2);
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.4);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .banner-swiper .swiper-pagination-bullet-active {
     opacity: 1;
     background: white;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-    transform: scale(1.1);
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+    transform: scale(1.25);
 }
 
 /* Mobile navigation bar (below banner) */
@@ -319,16 +323,17 @@ document.addEventListener('DOMContentLoaded', function() {
     border: none;
     color: white;
     cursor: pointer;
-    border-radius: 0;
-    transition: background 0.2s ease;
+    border-radius: 4px;
+    transition: all 0.2s ease;
 }
 .banner-mobile-prev:hover,
 .banner-mobile-next:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
 }
 .banner-mobile-prev:active,
 .banner-mobile-next:active {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.9);
 }
 
 /* Mobile pagination dots */
@@ -342,11 +347,12 @@ document.addEventListener('DOMContentLoaded', function() {
     height: 10px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.4);
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .mobile-dot.active {
     background: #ff6b00;
-    transform: scale(1.2);
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(255, 107, 0, 0.5);
 }
 
 /* Hide desktop elements on mobile/tablet, show mobile nav */

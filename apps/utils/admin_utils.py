@@ -73,17 +73,17 @@ def make_image_preview_html(
 
                 # Build HTML with thumbnail + optional open link
                 open_link_html = ""
-                # We show open link if we have a view_url. 
+                # We show open link if we have a view_url.
                 # We skip storage.exists() for performance, especially in list views.
                 if show_open_link and view_url:
                     open_link_html = format_html(
                         '<a href="{}" target="_blank" rel="noopener" '
                         'style="display: inline-flex; align-items: center; justify-content: center; '
-                        'width: 24px; height: 24px; border-radius: 4px; background: rgba(0,0,0,0.05); '
+                        "width: 24px; height: 24px; border-radius: 4px; background: rgba(0,0,0,0.05); "
                         'color: #6b7280; text-decoration: none; margin-left: 8px;" '
                         'title="Open in new tab">'
                         '<span class="material-symbols-outlined" style="font-size: 16px;">open_in_new</span>'
-                        '</a>',
+                        "</a>",
                         view_url,
                     )
 
@@ -91,11 +91,11 @@ def make_image_preview_html(
                     '<div class="product-image-preview" style="display: flex; align-items: center;">'
                     '<img src="{url}" alt="{alt}" title="{filename}" data-filename="{filename}" '
                     'style="width: {size}px; height: {size}px; object-fit: contain; border-radius: 8px; '
-                    'background: #f9fafb; border: 2px solid #f3f4f6; cursor: pointer; '
+                    "background: #f9fafb; border: 2px solid #f3f4f6; cursor: pointer; "
                     'box-shadow: 0 1px 3px rgba(0,0,0,0.1);" '
                     'onclick="openFullscreen(this)" />'
-                    '{open_link}'
-                    '</div>',
+                    "{open_link}"
+                    "</div>",
                     url=thumbnail_url,
                     alt=alt_text,
                     filename=filename,
@@ -109,11 +109,11 @@ def make_image_preview_html(
     return mark_safe(
         f'<div class="product-image-preview">'
         f'<div style="width: {size}px; height: {size}px; background: rgba(0,0,0,0.05); '
-        f'border-radius: 8px; border: 1px dashed #d1d5db; display: flex; '
+        f"border-radius: 8px; border: 1px dashed #d1d5db; display: flex; "
         f'align-items: center; justify-content: center;">'
         f'<span class="material-symbols-outlined" style="color: #9ca3af;">image</span>'
-        f'</div>'
-        f'</div>'
+        f"</div>"
+        f"</div>"
     )
 
 
@@ -135,12 +135,13 @@ def make_status_badge_html(is_enabled: bool, available_from, available_to):
     Returns:
         SafeString with HTML badge markup
     """
-    from apps.utils.datetime_utils import to_wall_clock, wall_clock_now
     from django.utils.translation import gettext_lazy as _
+
+    from apps.utils.datetime_utils import to_wall_clock, wall_clock_now
 
     if not is_enabled:
         return format_html(
-            '<span class="px-2 py-1 rounded-md text-xs font-bold bg-slate-500/20 text-slate-600 uppercase">{}</span>',
+            '<span class="rounded-md text-xs font-bold bg-slate-500/20 text-slate-600 uppercase">{}</span>',
             _("Disabled"),
         )
 
@@ -150,17 +151,58 @@ def make_status_badge_html(is_enabled: bool, available_from, available_to):
 
     if available_from and now < available_from:
         return format_html(
-            '<span class="px-2 py-1 rounded-md text-xs font-bold bg-blue-500/20 text-blue-600 uppercase">{}</span>',
+            '<span class="rounded-md text-xs font-bold bg-blue-500/20 text-blue-600 uppercase">{}</span>',
             _("Pending"),
         )
     if available_to and now > available_to:
         return format_html(
-            '<span class="px-2 py-1 rounded-md text-xs font-bold bg-rose-500/20 text-rose-600 uppercase">{}</span>',
+            '<span class="rounded-md text-xs font-bold bg-rose-500/20 text-rose-600 uppercase">{}</span>',
             _("Expired"),
         )
 
     return format_html(
-        '<span class="px-2 py-1 rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-600 uppercase">{}</span>',
+        '<span class="rounded-md text-xs font-bold bg-emerald-500/20 text-emerald-600 uppercase">{}</span>',
+        _("Active"),
+    )
+
+
+def make_status_text_html(is_enabled: bool, available_from, available_to):
+    """
+    Generate a plain status text (no badge background) for list alignment.
+
+    Returns a colored uppercase label indicating one of:
+    - Disabled
+    - Pending
+    - Expired
+    - Active
+    """
+    from django.utils.translation import gettext_lazy as _
+
+    from apps.utils.datetime_utils import to_wall_clock, wall_clock_now
+
+    if not is_enabled:
+        return format_html(
+            '<span class="text-xs font-bold uppercase text-slate-500">{}</span>',
+            _("Disabled"),
+        )
+
+    now = wall_clock_now()
+    available_from = to_wall_clock(available_from)
+    available_to = to_wall_clock(available_to)
+
+    if available_from and now < available_from:
+        return format_html(
+            '<span class="text-xs font-bold uppercase text-blue-600">{}</span>',
+            _("Pending"),
+        )
+    if available_to and now > available_to:
+        return format_html(
+            '<span class="text-xs font-bold uppercase text-rose-600">{}</span>',
+            _("Expired"),
+        )
+
+    return format_html(
+        '<span class="text-xs font-bold uppercase text-emerald-600">{}</span>',
         _("Active"),
     )
 

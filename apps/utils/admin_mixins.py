@@ -31,13 +31,58 @@ Usage:
         return is_within_wall_clock_range(self.available_from, self.available_to)
 """
 
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.db import models
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
 
 from apps.utils.datetime_utils import to_wall_clock
 from apps.utils.forms import WallClockDateTimeField
+
+
+class SingletonAdminMixin:
+    """
+    Mixin for singleton models to:
+    1. Fix success messages by removing the redundant object name.
+    2. Simplify breadcrumbs by hiding the instance level if it's a singleton.
+    """
+
+    def message_user(
+        self, request, message, level=messages.SUCCESS, extra_tags="", fail_silently=False
+    ):
+        """
+        Intervene in message creation to remove quoted object names for singletons.
+        Changes 'The Navigation bar "Navigation bar" was changed' to 'Navigation bar was changed'.
+        """
+        # Convert to string to check content
+        msg_str = str(message)
+        
+        # Matches common patterns in English and Polish
+        patterns = [
+            "was changed successfully",
+            "został pomyślnie zmieniony",
+            "was added successfully",
+            "został pomyślnie dodany",
+        ]
+        
+        if any(p in msg_str for p in patterns):
+            message = _("%(name)s was changed successfully.") % {
+                "name": self.model._meta.verbose_name
+            }
+        return super().message_user(request, message, level, extra_tags, fail_silently)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        # Unfold uses 'title' for the page heading and 'obj' for the breadcrumb part.
+        # By setting obj to None or empty in context, we might influence Unfold.
+        # However, extra_context usually merges.
+        
+        # This fixes the main title heading in Unfold
+        extra_context["title"] = self.model._meta.verbose_name
+        return super().change_view(request, object_id, form_url, extra_context=extra_context)
+
 
 # Field names that should use wall-clock handling
 WALL_CLOCK_FIELD_NAMES = frozenset({"available_from", "available_to"})
@@ -84,7 +129,11 @@ def _model_has_wall_clock_fields(model) -> bool:
     return bool(WALL_CLOCK_FIELD_NAMES & field_names)
 
 
-class BaseModelAdmin(ModelAdmin):
+class HistoryModelAdmin(SimpleHistoryAdmin, ModelAdmin):
+    """Unfold ModelAdmin with django-simple-history support."""
+
+
+class BaseModelAdmin(HistoryModelAdmin):
     """
     Base ModelAdmin that auto-detects and handles wall-clock fields.
 

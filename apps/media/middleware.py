@@ -28,7 +28,7 @@ def get_current_user() -> Any:
 class CurrentUserMiddleware:
     """
     Middleware that stores the current authenticated user in thread-local storage.
-    
+
     This makes the current user accessible from signal handlers via get_current_user().
     """
 
@@ -38,11 +38,11 @@ class CurrentUserMiddleware:
     def __call__(self, request: HttpRequest) -> HttpResponse:
         # Store user in thread-local storage
         _thread_locals.user = getattr(request, "user", None)
-        
+
         try:
             response = self.get_response(request)
         finally:
             # Clean up after request
             _thread_locals.user = None
-        
+
         return response

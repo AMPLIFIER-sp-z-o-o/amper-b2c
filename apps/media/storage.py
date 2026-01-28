@@ -48,10 +48,10 @@ def _get_cached_s3_client():
     if cache_key in _s3_client_cache:
         return _s3_client_cache[cache_key]
 
-    from apps.media.models import MediaStorageSettings
-
     import boto3
     from botocore.config import Config
+
+    from apps.media.models import MediaStorageSettings
 
     media_settings = MediaStorageSettings.get_settings()
     if media_settings.provider_type != "s3":
@@ -166,9 +166,18 @@ class DynamicMediaStorage(FileSystemStorage):
     def url(self, name, inline=True):
         """
         Get URL for the file.
-        For S3, generates a presigned URL with response-content-disposition.
+        For files in PUBLIC_PATHS (like storefront/), returns a Django proxy URL
+        to avoid CORS/ORB issues with SVG files from S3.
+        For other S3 files, generates a presigned URL with response-content-disposition.
         Uses cached S3 client for performance.
         """
+        from django.urls import reverse
+        
+        # Files in public paths are served through Django proxy to avoid CORS issues
+        PUBLIC_PATHS = ["storefront/", "seeds/"]
+        if any(name.startswith(prefix) for prefix in PUBLIC_PATHS):
+            return reverse("media:view_public_file", kwargs={"path": name})
+        
         try:
             s3_cache = _get_cached_s3_client()
             if s3_cache:

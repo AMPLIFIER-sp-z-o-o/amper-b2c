@@ -45,6 +45,7 @@ DJANGO_APPS = [
     "unfold.contrib.forms",
     "unfold.contrib.inlines",
     "unfold.contrib.import_export",
+    "unfold.contrib.simple_history",
     "import_export",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -95,6 +96,8 @@ THIRD_PARTY_APPS = [
     "health_check.contrib.celery",
     "health_check.contrib.redis",
     "django_celery_beat",
+    "simple_history",
+    "colorfield",
 ]
 
 # Put your project-specific apps here
@@ -111,7 +114,8 @@ PROJECT_APPS = [
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 UNFOLD = {
-    "SITE_TITLE": "AMPLFIER Admin",
+    "SITE_TITLE": "AMPER B2C Admin",
+    "SITE_HEADER": "AMPER B2C",
     "STYLES": [
         # Custom admin styles are loaded via vite_asset in templates/admin/base.html
     ],
@@ -149,6 +153,10 @@ UNFOLD = {
                     {
                         "title": gettext_lazy("Hero Banners"),
                         "link": reverse_lazy("admin:homepage_banner_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Storefront Hero Section"),
+                        "link": reverse_lazy("admin:homepage_storefrontherosection_changelist"),
                     },
                     {
                         "title": gettext_lazy("Sections"),
@@ -211,6 +219,10 @@ UNFOLD = {
                         "link": reverse_lazy("admin:web_topbar_changelist"),
                     },
                     {
+                        "title": gettext_lazy("Navigation bar"),
+                        "link": reverse_lazy("admin:web_navbar_changelist"),
+                    },
+                    {
                         "title": gettext_lazy("Footer"),
                         "link": reverse_lazy("admin:web_footer_changelist"),
                     },
@@ -244,6 +256,7 @@ MIDDLEWARE = [
     "django.contrib.redirects.middleware.RedirectFallbackMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "simple_history.middleware.HistoryRequestMiddleware",
     "apps.media.middleware.CurrentUserMiddleware",
     "apps.support.middleware.admin_draft_cleanup.AdminDraftCleanupMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
@@ -255,6 +268,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "hijack.middleware.HijackUserMiddleware",
 ]
+
+MESSAGE_STORAGE = "apps.support.message_storage.AdminScopedFallbackStorage"
 
 if ENABLE_DEBUG_TOOLBAR:
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
@@ -295,6 +310,7 @@ TEMPLATES = [
                 "apps.web.context_processors.top_bar_section",
                 "apps.web.context_processors.footer_context",
                 "apps.web.context_processors.bottom_bar_context",
+                "apps.web.context_processors.navigation_categories",
                 "apps.support.context_processors.admin_extra_userlinks",
                 "apps.support.context_processors.draft_preview",
             ],
