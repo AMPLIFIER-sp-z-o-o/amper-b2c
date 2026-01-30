@@ -806,14 +806,15 @@ body.nav-scroll-locked {
         {# Default navbar mode - show categories alphabetically #}
         {% for category in nav_categories %}
         <div class="shrink-0 nav-category-trigger nav-priority-item px-1 flex items-center {% if category.children.all %}has-children{% endif %}" data-category-id="{{ category.id }}" data-dropdown-target="categoryDropdown{{ category.id }}">
-          <button type="button" class="nav-category-btn inline-flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
+          {# Category name is always a clickable link #}
+          <a href="{{ category.get_absolute_url }}" class="nav-category-btn inline-flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
             <span>{{ category.name }}</span>
             {% if category.children.all %}
             <svg class="nav-dropdown-arrow w-4 h-4 transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path>
             </svg>
             {% endif %}
-          </button>
+          </a>
         </div>
         {% endfor %}
         {% endif %}
@@ -1007,7 +1008,7 @@ document.addEventListener('DOMContentLoaded', function() {
                </div>`;
 
           html += `
-            <a href="#" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+            <a href="{% url 'web:product_list' %}?q=${encodeURIComponent(query)}" class="flex items-center gap-3 px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
               ${imageHtml}
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${escapeHtml(product.name)}</p>
@@ -1030,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         categories.forEach(cat => {
           html += `
-            <a href="#" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
+            <a href="${cat.url}" class="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
               <span class="text-sm text-gray-900 dark:text-white">${escapeHtml(cat.name)}</span>
             </a>
           `;
@@ -1041,7 +1042,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (total_count > products.length) {
         html += `
           <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
-            <a href="#" class="text-sm font-medium text-primary-700 dark:text-primary-500 hover:underline transition-colors duration-200">
+            <a href="{% url 'web:product_list' %}?q=${encodeURIComponent(query)}" class="text-sm font-medium text-primary-700 dark:text-primary-500 hover:underline transition-colors duration-200">
               {% translate "See all" %} ${total_count} {% translate "results" %} →
             </a>
           </div>
@@ -1128,6 +1129,13 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.key === 'Escape') {
         searchResults.classList.add('hidden');
         searchInput.blur();
+      }
+      // Handle Enter key - redirect to product list with search
+      if (e.key === 'Enter') {
+        const query = searchInput.value.trim();
+        if (query.length >= 1) {
+          window.location.href = '{% url "web:product_list" %}?q=' + encodeURIComponent(query);
+        }
       }
     });
   }
@@ -1468,12 +1476,42 @@ document.addEventListener('DOMContentLoaded', function() {
     // it will be replaced by the next hover.
   });
 
-  // Event Listeners for Hover Intent
+  // Event Listeners for Hover Intent with Delay
+  // Hover intent delay prevents accidental dropdown opens when moving mouse quickly across categories
+  const HOVER_INTENT_DELAY = 150; // ms - time to wait before opening dropdown
+  const hoverTimeouts = new Map(); // Track pending timeouts per trigger
+  
+  // Track which triggers have had mouse leave at least once
+  // This prevents dropdown from opening on page load when mouse is already over a category
+  const triggersReady = new WeakSet();
+  
+  // Also track if initial page load grace period has passed
+  let pageLoadGracePeriod = true;
+  setTimeout(() => {
+    pageLoadGracePeriod = false;
+  }, 500); // 500ms after page load, allow normal hover behavior
   
   triggers.forEach(trigger => {
     trigger.addEventListener('mouseenter', () => {
       if (window.innerWidth >= 768) {
-        openDropdown(trigger);
+        // During page load grace period, only allow hover if trigger is marked as ready
+        // (meaning mouse has left it at least once before)
+        if (pageLoadGracePeriod && !triggersReady.has(trigger)) {
+          return; // Skip - mouse was already over this element on page load
+        }
+        
+        // Clear any existing timeout for this trigger
+        if (hoverTimeouts.has(trigger)) {
+          clearTimeout(hoverTimeouts.get(trigger));
+        }
+        
+        // Set a delay before opening dropdown (hover intent)
+        const timeoutId = setTimeout(() => {
+          openDropdown(trigger);
+          hoverTimeouts.delete(trigger);
+        }, HOVER_INTENT_DELAY);
+        
+        hoverTimeouts.set(trigger, timeoutId);
       }
     });
     
@@ -1486,15 +1524,36 @@ document.addEventListener('DOMContentLoaded', function() {
           return; // Let the link be followed
         }
 
-        // If clicking the button/link inside
-        if (e.target.closest('button, a')) {
+        // If clicking a button inside, prevent default and open dropdown
+        // If clicking a link inside, let it navigate normally
+        const clickedButton = e.target.closest('button');
+        const clickedLink = e.target.closest('a.nav-category-btn');
+        
+        if (clickedButton) {
              e.preventDefault();
+             // Clear any pending hover timeout for immediate response
+             if (hoverTimeouts.has(trigger)) {
+               clearTimeout(hoverTimeouts.get(trigger));
+               hoverTimeouts.delete(trigger);
+             }
              openDropdown(trigger);
+        } else if (clickedLink) {
+             // Allow navigation for category links
+             // Don't prevent default - let the link work normally
         }
     });
 
     // When leaving the trigger
     trigger.addEventListener('mouseleave', (e) => {
+      // Mark this trigger as "ready" - mouse has left it once, so future hovers are intentional
+      triggersReady.add(trigger);
+      
+      // Cancel any pending hover intent timeout
+      if (hoverTimeouts.has(trigger)) {
+        clearTimeout(hoverTimeouts.get(trigger));
+        hoverTimeouts.delete(trigger);
+      }
+      
       const targetId = trigger.dataset.dropdownTarget;
       const dropdown = document.getElementById(targetId);
       

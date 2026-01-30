@@ -6,6 +6,8 @@ from . import views
 app_name = "web"
 urlpatterns = [
     path("", views.home, name="home"),
+    path("products/", views.product_list, name="product_list"),
+    path("category/<int:category_id>/<slug:category_slug>/", views.product_list, name="product_list_category"),
     path("search/", views.product_search, name="product_search"),
     path("preview/<str:token>/", views.preview_draft, name="preview_draft"),
     path("terms/", TemplateView.as_view(template_name="terms.html"), name="terms"),

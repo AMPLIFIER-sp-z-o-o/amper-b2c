@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import re
+
 from autoslug import AutoSlugField
 from django.db import models
 from django.urls import reverse
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
 
@@ -37,7 +40,7 @@ class Category(BaseModel):
         return self.name
 
     def get_absolute_url(self) -> str:
-        return reverse("web:home")
+        return reverse("web:product_list_category", args=[self.id, self.slug])
 
 
 class Product(BaseModel):
@@ -99,6 +102,50 @@ class Product(BaseModel):
     def get_absolute_url(self) -> str:
         return reverse("web:home")
 
+    @property
+    def tile_display_attributes(self) -> list:
+        """
+        Get attributes for display on product tiles (slider, grid, list views).
+        
+        Returns up to 4 attributes sorted by:
+        1. tile_display_order (lower first)
+        2. display_name (alphabetically) when order is the same
+        
+        Only attributes with show_on_tile=True are included.
+        
+        Returns a list of dicts with keys:
+        - attribute_name: The display name of the attribute
+        - full_value: The complete value
+        - display_value: The truncated value (with ... if truncated)
+        - is_truncated: Boolean indicating if value was truncated
+        """
+        max_attrs = 4
+        max_value_length = 25
+        attrs = []
+        # Get attribute values with related attribute definitions
+        attr_values = self.attribute_values.select_related(
+            "option__attribute"
+        ).filter(
+            option__attribute__show_on_tile=True
+        ).order_by(
+            "option__attribute__tile_display_order",
+            "option__attribute__display_name"
+        )[:max_attrs]
+        
+        for av in attr_values:
+            full_value = av.option.value
+            is_truncated = len(full_value) > max_value_length
+            display_value = full_value[:max_value_length] + "..." if is_truncated else full_value
+            
+            attrs.append({
+                "attribute_name": av.option.attribute.display_name,
+                "full_value": full_value,
+                "display_value": display_value,
+                "is_truncated": is_truncated,
+            })
+        
+        return attrs
+
 
 class ProductImage(BaseModel):
     product = models.ForeignKey(Product, related_name="images", on_delete=models.CASCADE)
@@ -126,12 +173,34 @@ class ProductImage(BaseModel):
 class AttributeDefinition(BaseModel):
     name = models.CharField(max_length=100, unique=True)
     display_name = models.CharField(max_length=150)
+    # Controls whether this attribute appears on product tiles (slider, grid, list views)
+    show_on_tile = models.BooleanField(
+        default=True,
+        verbose_name=_("Show on product tiles"),
+        help_text=_("Whether to display this attribute on product cards/tiles."),
+    )
+    # Order in which attributes appear on tiles (lower = shown first)
+    tile_display_order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Tile display order"),
+        help_text=_("Order in which attribute appears on product tiles. Lower numbers appear first."),
+    )
 
     class Meta:
         ordering = ["display_name"]
 
     def __str__(self) -> str:
         return self.display_name
+
+    def save(self, *args, **kwargs):
+        # Auto-assign display order for new attributes
+        if self._state.adding and self.tile_display_order == 0:
+            max_order = AttributeDefinition.objects.aggregate(
+                max_order=models.Max("tile_display_order")
+            )["max_order"]
+            if max_order is not None:
+                self.tile_display_order = max_order + 1
+        super().save(*args, **kwargs)
 
 
 class AttributeOption(BaseModel):
@@ -146,6 +215,25 @@ class AttributeOption(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.attribute.display_name}: {self.value}"
+
+    @property
+    def slug(self) -> str:
+        """Return a slug combining id and slugified value for URL param use (e.g., '4-hp')."""
+        return f"{self.id}-{slugify(self.value)}"
+
+    @staticmethod
+    def parse_slug(slug_value: str) -> int | None:
+        """Parse a slug value (e.g., '4-hp') and return the option ID, or None if invalid."""
+        if not slug_value:
+            return None
+        match = re.match(r"^(\d+)-", slug_value)
+        if match:
+            return int(match.group(1))
+        # Fallback: try to parse as plain integer for backwards compatibility
+        try:
+            return int(slug_value)
+        except (ValueError, TypeError):
+            return None
 
 
 class ProductAttributeValue(BaseModel):

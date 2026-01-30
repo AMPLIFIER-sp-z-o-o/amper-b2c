@@ -20,9 +20,14 @@ for ext, mime_type in ADDITIONAL_IMAGE_MIMETYPES.items():
     mimetypes.add_type(mime_type, ext)
 
 # Paths that can be served publicly without authentication
+# Also includes drafts/ for preview files during draft sessions
 PUBLIC_PATHS = [
     "storefront/",
     "seeds/",
+    "drafts/",
+    "banners/",
+    "section_banners/",
+    "product-images/",
 ]
 
 

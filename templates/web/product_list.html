@@ -1,0 +1,327 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+
+{% block hero_banner %}{% endblock %}
+
+{% block body %}
+<section id="product-list-page" class="bg-gray-50 py-8 antialiased dark:bg-gray-900 md:py-12">
+  <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+    <!-- Header with breadcrumb and controls -->
+    <div class="mb-4 items-end justify-between sm:flex md:mb-8">
+      <div class="mb-4 sm:mb-0">
+        <!-- Breadcrumb -->
+        <nav class="flex" aria-label="Breadcrumb">
+          <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
+            <li class="inline-flex items-center">
+              <a href="{% url 'web:home' %}" class="-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                <svg class="me-2.5 h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z" />
+                </svg>
+                {% translate "Home" %}
+              </a>
+            </li>
+            {% for item in breadcrumb %}
+            <li {% if forloop.last %}aria-current="page"{% endif %}>
+              <div class="flex items-center">
+                <svg class="h-5 w-5 text-gray-400 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+                </svg>
+                
+                <div class="relative">
+                  <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 px-3 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-700 dark:text-gray-400">
+                    {{ item.category.name }}
+                    <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                    </svg>
+                  </button>
+
+                  <!-- Dropdown menu -->
+                  <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
+                      <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
+                        {% for sibling in item.siblings %}
+                        <li>
+                          <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
+                            {{ sibling.name }}
+                          </a>
+                        </li>
+                        {% endfor %}
+                      </ul>
+                  </div>
+                </div>
+              </div>
+            </li>
+            {% endfor %}
+          </ol>
+        </nav>
+        <h2 class="mt-3 text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">{{ page_title }}</h2>
+        {% if total_count %}
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {% blocktrans count counter=total_count %}{{ counter }} product found{% plural %}{{ counter }} products found{% endblocktrans %}
+        </p>
+        {% endif %}
+      </div>
+      <div class="flex items-center space-x-4">
+        <!-- Mobile Filter Button -->
+        <button
+          data-drawer-target="drawer-mobile-filter"
+          data-drawer-show="drawer-mobile-filter"
+          aria-controls="drawer-mobile-filter"
+          type="button"
+          class="flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700 sm:w-auto lg:hidden"
+        >
+          <svg class="-ms-0.5 me-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M18.796 4H5.204a1 1 0 0 0-.753 1.659l5.302 6.058a1 1 0 0 1 .247.659v4.874a.5.5 0 0 0 .2.4l3 2.25a.5.5 0 0 0 .8-.4v-7.124a1 1 0 0 1 .247-.659l5.302-6.059c.566-.646.106-1.658-.753-1.658Z" />
+          </svg>
+          {% translate "Filters" %}
+          <svg class="-me-0.5 ms-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="gap-6 lg:flex">
+      <!-- Desktop Sidebar -->
+      <aside id="sidebar" class="hidden h-full w-80 shrink-0 overflow-hidden border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:block lg:rounded-lg">
+        {% include "web/components/product_list_filters.html" %}
+      </aside>
+
+      <!-- Products Grid -->
+      <div class="w-full" id="products-container">
+        {% include "web/product_list_partial.html" %}
+      </div>
+    </div>
+
+    <!-- Mobile Filter Drawer -->
+    <form action="" method="get" id="drawer-mobile-filter" class="fixed left-0 top-0 z-60 h-screen w-full max-w-xs -translate-x-full flex flex-col bg-white transition-transform dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-label">
+      <!-- Header -->
+      <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
+        <h5 id="drawer-label" class="inline-flex items-center text-base font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Filters" %}</h5>
+        <button type="button" data-drawer-dismiss="drawer-mobile-filter" aria-controls="drawer-mobile-filter" class="inline-flex items-center rounded-lg bg-transparent p-1.5 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white">
+          <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6" />
+          </svg>
+          <span class="sr-only">{% translate "Close menu" %}</span>
+        </button>
+      </div>
+
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto overflow-x-hidden p-3">
+        {% include "web/components/product_list_filters.html" with is_mobile=True %}
+      </div>
+      
+      <!-- Sticky Footer Buttons -->
+      <div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">
+        <div class="flex gap-2">
+          <button type="submit" class="flex-1 rounded-lg bg-primary-700 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-700 dark:hover:bg-primary-800 dark:focus:ring-primary-800">{% translate "Apply filters" %}</button>
+          <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% else %}{% url 'web:product_list' %}{% endif %}" class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700">{% translate "Clear all" %}</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block page_js %}
+<script>
+// Toggle view mode without page reload (HTMX-like fetch)
+function toggleViewMode(newView) {
+  const urlParams = new URLSearchParams(window.location.search);
+  urlParams.set('view', newView);
+  const baseUrl = window.location.pathname;
+  const newUrl = `${baseUrl}?${urlParams.toString()}`;
+  
+  // Update browser URL without reload
+  window.history.pushState({}, '', newUrl);
+  
+  // Show loading indicator
+  if (typeof showProductsLoading === 'function') {
+    showProductsLoading();
+  }
+  
+  // Fetch and update only products container
+  const productsContainer = document.getElementById('products-container');
+  if (productsContainer) {
+    fetch(newUrl, {
+      headers: {
+        'HX-Request': 'true'
+      }
+    })
+    .then(response => response.text())
+    .then(html => {
+      productsContainer.innerHTML = html;
+      // Re-trigger price formatting
+      formatPrices(productsContainer);
+      // Re-initialize Flowbite components
+      if (typeof initFlowbite === 'function') {
+        initFlowbite();
+      }
+      initBreadcrumbDropdowns();
+    })
+    .catch(error => {
+      console.error('Error fetching products:', error);
+      if (typeof hideProductsLoading === 'function') {
+        hideProductsLoading();
+      }
+    });
+  }
+}
+
+// Format prices with Polish locale (global function for use by toggleViewMode)
+function formatPrices(container) {
+  const selector = container ? container.querySelectorAll('[data-price]') : document.querySelectorAll('[data-price]');
+  selector.forEach(function(el) {
+    const price = parseFloat(el.dataset.price);
+    const currency = el.dataset.currency || 'PLN';
+    if (!isNaN(price)) {
+      el.textContent = new Intl.NumberFormat('pl-PL', {
+        style: 'currency',
+        currency: currency
+      }).format(price);
+    }
+  });
+}
+
+function initBreadcrumbDropdowns() {
+  const triggers = document.querySelectorAll('[data-breadcrumb-trigger]');
+  if (!triggers.length) return;
+
+  const HOVER_INTENT_DELAY = 150;
+  const CLOSE_DELAY = 200; // Small grace period to cross the gap between trigger and menu
+
+  triggers.forEach(trigger => {
+    if (trigger.dataset.breadcrumbInit === 'true') return;
+
+    const menuId = trigger.getAttribute('data-breadcrumb-trigger');
+    const menu = document.getElementById(menuId);
+    if (!menu) return;
+
+    trigger.dataset.breadcrumbInit = 'true';
+    menu.dataset.breadcrumbInit = 'true';
+
+    let hoverTimeoutId = null;
+    let closeTimeoutId = null;
+    let isOpen = false;
+
+    const clearTimeouts = () => {
+      if (hoverTimeoutId) clearTimeout(hoverTimeoutId);
+      if (closeTimeoutId) clearTimeout(closeTimeoutId);
+      hoverTimeoutId = null;
+      closeTimeoutId = null;
+    };
+
+    const openMenu = () => {
+      if (isOpen) return;
+      menu.classList.remove('hidden');
+      trigger.setAttribute('aria-expanded', 'true');
+      isOpen = true;
+    };
+
+    const closeMenu = () => {
+      if (!isOpen) return;
+      menu.classList.add('hidden');
+      trigger.setAttribute('aria-expanded', 'false');
+      isOpen = false;
+    };
+
+    trigger.addEventListener('mouseenter', () => {
+      clearTimeouts();
+      hoverTimeoutId = setTimeout(openMenu, HOVER_INTENT_DELAY);
+    });
+
+    trigger.addEventListener('mouseleave', (e) => {
+      clearTimeouts();
+      closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
+    });
+
+    menu.addEventListener('mouseenter', () => {
+      clearTimeouts();
+      openMenu();
+    });
+
+    menu.addEventListener('mouseleave', (e) => {
+      clearTimeouts();
+      closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
+    });
+
+    trigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearTimeouts();
+      if (isOpen) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initial price formatting
+  formatPrices();
+  
+  // Scroll to top when clicking pagination or sort links
+  document.addEventListener('click', function(e) {
+    const link = e.target.closest('[data-scroll-top="true"]');
+    if (link) {
+      // Store scroll intent in sessionStorage
+      sessionStorage.setItem('scrollToTop', 'true');
+    }
+  });
+  
+  // Check if we should scroll to top (after page navigation)
+  if (sessionStorage.getItem('scrollToTop') === 'true') {
+    sessionStorage.removeItem('scrollToTop');
+    // Scroll to product list controls
+    const controls = document.getElementById('product-controls-top');
+    if (controls) {
+      controls.scrollIntoView({ behavior: 'instant', block: 'start' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }
+  
+  // Handle responsive view mode - grid on mobile by default
+  function handleResponsiveView() {
+    const productsGrid = document.getElementById('products-grid');
+    if (!productsGrid) return;
+    
+    const isMobile = window.innerWidth < 640;
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlViewMode = urlParams.get('view');
+    
+    // If user hasn't explicitly set a view mode in URL, use responsive defaults
+    if (!urlViewMode) {
+      const viewList = productsGrid.querySelector('.view-list');
+      const viewGrid = productsGrid.querySelector('.view-grid');
+      
+      if (isMobile) {
+        // Mobile: Show grid by default
+        if (viewList) viewList.classList.add('hidden');
+        if (viewGrid) viewGrid.classList.remove('hidden');
+      } else {
+        // Desktop: Show list by default
+        if (viewList) viewList.classList.remove('hidden');
+        if (viewGrid) viewGrid.classList.add('hidden');
+      }
+    }
+  }
+  
+  // Apply responsive view immediately
+  handleResponsiveView();
+  
+  // Re-apply on resize (debounced)
+  let resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(handleResponsiveView, 150);
+  });
+  
+  // Re-initialize Flowbite dropdowns for dynamically loaded content
+  if (typeof initFlowbite === 'function') {
+    initFlowbite();
+  }
+  initBreadcrumbDropdowns();
+});
+</script>
+{% endblock %}

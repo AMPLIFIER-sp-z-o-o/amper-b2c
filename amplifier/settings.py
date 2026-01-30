@@ -152,11 +152,7 @@ UNFOLD = {
                 "items": [
                     {
                         "title": gettext_lazy("Hero Banners"),
-                        "link": reverse_lazy("admin:homepage_banner_changelist"),
-                    },
-                    {
-                        "title": gettext_lazy("Storefront Hero Section"),
-                        "link": reverse_lazy("admin:homepage_storefrontherosection_changelist"),
+                        "link": reverse_lazy("admin:homepage_bannergroup_changelist"),
                     },
                     {
                         "title": gettext_lazy("Sections"),

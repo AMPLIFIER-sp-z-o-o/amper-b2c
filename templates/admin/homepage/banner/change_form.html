@@ -1,0 +1,16 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+  /* Hide redundant "Currently" link under URL field */
+  .field-url p.file-upload {
+    display: none !important;
+  }
+  /* Style improvements for banner type selector */
+  .field-banner_type select {
+    font-weight: 500;
+  }
+</style>
+{% endblock %}

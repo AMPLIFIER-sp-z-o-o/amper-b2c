@@ -17,12 +17,15 @@ Usage:
 """
 
 import os
+import re
 from contextlib import contextmanager
 from decimal import Decimal
+from pathlib import Path
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.contrib.sites.models import Site
+from django.core.files.base import ContentFile
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -38,12 +41,15 @@ from apps.catalog.models import (
 )
 from apps.homepage.models import (
     Banner,
+    BannerGroup,
+    BannerSettings,
+    BannerType,
     HomepageSection,
     HomepageSectionBanner,
+    HomepageSectionCategoryBox,
+    HomepageSectionCategoryItem,
     HomepageSectionProduct,
-    StorefrontCategoryBox,
-    StorefrontCategoryItem,
-    StorefrontHeroSection,
+    HomepageSectionType,
 )
 from allauth.socialaccount.models import SocialApp
 from apps.media.models import MediaStorageSettings
@@ -532,21 +538,21 @@ CATEGORIES_DATA = [
 ]
 
 ATTRIBUTE_DEFINITIONS_DATA = [
-    {"id": 44, "name": "brand", "display_name": "Brand"},
-    {"id": 45, "name": "battery_type", "display_name": "Battery Type"},
-    {"id": 46, "name": "pack_size", "display_name": "Pack Size"},
-    {"id": 47, "name": "product_line", "display_name": "Product Line"},
-    {"id": 48, "name": "voltage", "display_name": "Voltage"},
-    {"id": 49, "name": "wipe_type", "display_name": "Wipe Type"},
-    {"id": 50, "name": "scent", "display_name": "Scent"},
-    {"id": 51, "name": "weight", "display_name": "Weight"},
-    {"id": 52, "name": "product_type", "display_name": "Product Type"},
-    {"id": 53, "name": "wattage", "display_name": "Wattage"},
-    {"id": 54, "name": "lumens", "display_name": "Lumens"},
-    {"id": 55, "name": "socket_type", "display_name": "Socket Type"},
-    {"id": 56, "name": "character", "display_name": "Character"},
-    {"id": 57, "name": "age_range", "display_name": "Age Range"},
-    {"id": 58, "name": "volume", "display_name": "Volume"},
+    {"id": 44, "name": "brand", "display_name": "Brand", "show_on_tile": True, "tile_display_order": 1},
+    {"id": 45, "name": "battery_type", "display_name": "Battery Type", "show_on_tile": True, "tile_display_order": 2},
+    {"id": 46, "name": "pack_size", "display_name": "Pack Size", "show_on_tile": True, "tile_display_order": 3},
+    {"id": 47, "name": "product_line", "display_name": "Product Line", "show_on_tile": True, "tile_display_order": 4},
+    {"id": 48, "name": "voltage", "display_name": "Voltage", "show_on_tile": True, "tile_display_order": 5},
+    {"id": 49, "name": "wipe_type", "display_name": "Wipe Type", "show_on_tile": True, "tile_display_order": 6},
+    {"id": 50, "name": "scent", "display_name": "Scent", "show_on_tile": True, "tile_display_order": 7},
+    {"id": 51, "name": "weight", "display_name": "Weight", "show_on_tile": True, "tile_display_order": 8},
+    {"id": 52, "name": "product_type", "display_name": "Product Type", "show_on_tile": True, "tile_display_order": 9},
+    {"id": 53, "name": "wattage", "display_name": "Wattage", "show_on_tile": True, "tile_display_order": 10},
+    {"id": 54, "name": "lumens", "display_name": "Lumens", "show_on_tile": True, "tile_display_order": 11},
+    {"id": 55, "name": "socket_type", "display_name": "Socket Type", "show_on_tile": True, "tile_display_order": 12},
+    {"id": 56, "name": "character", "display_name": "Character", "show_on_tile": True, "tile_display_order": 13},
+    {"id": 57, "name": "age_range", "display_name": "Age Range", "show_on_tile": True, "tile_display_order": 14},
+    {"id": 58, "name": "volume", "display_name": "Volume", "show_on_tile": True, "tile_display_order": 15},
 ]
 
 ATTRIBUTE_OPTIONS_DATA = [
@@ -578,6 +584,70 @@ ATTRIBUTE_OPTIONS_DATA = [
     {"id": 107, "attribute_id": 50, "value": "New Car + Cool Breeze"},
     {"id": 108, "attribute_id": 58, "value": "7ml"},
     {"id": 109, "attribute_id": 52, "value": "Car Diffuser"},
+    # Additional brands for Alkaline Batteries
+    {"id": 110, "attribute_id": 44, "value": "Duracell"},
+    {"id": 111, "attribute_id": 44, "value": "Panasonic"},
+    {"id": 112, "attribute_id": 44, "value": "Varta"},
+    {"id": 113, "attribute_id": 44, "value": "GP"},
+    # Additional battery types
+    {"id": 114, "attribute_id": 45, "value": "AA"},
+    # Additional pack sizes
+    {"id": 115, "attribute_id": 46, "value": "8"},
+    # Additional product lines
+    {"id": 116, "attribute_id": 47, "value": "Plus"},
+    {"id": 117, "attribute_id": 47, "value": "Ultra"},
+    {"id": 118, "attribute_id": 47, "value": "Evolta"},
+    {"id": 119, "attribute_id": 47, "value": "Longlife"},
+    {"id": 120, "attribute_id": 47, "value": "High Energy"},
+    {"id": 121, "attribute_id": 47, "value": "Ultra Plus"},
+    # Additional voltages
+    {"id": 122, "attribute_id": 48, "value": "1.5V"},
+    # Additional brands for Alkaline Batteries
+    {"id": 123, "attribute_id": 44, "value": "Amazon Basics"},
+    {"id": 124, "attribute_id": 44, "value": "Ikea"},
+    {"id": 125, "attribute_id": 44, "value": "Toshiba"},
+    {"id": 126, "attribute_id": 44, "value": "Sanyo"},
+    {"id": 127, "attribute_id": 44, "value": "Eveready"},
+    {"id": 128, "attribute_id": 44, "value": "Philips"},
+    {"id": 129, "attribute_id": 44, "value": "Rayovac"},
+    {"id": 130, "attribute_id": 44, "value": "Maxell"},
+    {"id": 131, "attribute_id": 44, "value": "Kodak"},
+    {"id": 132, "attribute_id": 44, "value": "Camelion"},
+    {"id": 133, "attribute_id": 44, "value": "Fujitsu"},
+    {"id": 134, "attribute_id": 44, "value": "Ansmann"},
+    {"id": 135, "attribute_id": 44, "value": "Procell"},
+    {"id": 136, "attribute_id": 44, "value": "Sony"},
+    # Additional battery types
+    {"id": 137, "attribute_id": 45, "value": "C"},
+    {"id": 138, "attribute_id": 45, "value": "D"},
+    {"id": 139, "attribute_id": 45, "value": "9V"},
+    {"id": 140, "attribute_id": 45, "value": "AA/AAA"},
+    # Additional pack sizes
+    {"id": 141, "attribute_id": 46, "value": "2"},
+    {"id": 142, "attribute_id": 46, "value": "6"},
+    {"id": 143, "attribute_id": 46, "value": "10"},
+    {"id": 144, "attribute_id": 46, "value": "12"},
+    {"id": 145, "attribute_id": 46, "value": "16"},
+    {"id": 146, "attribute_id": 46, "value": "20"},
+    {"id": 147, "attribute_id": 46, "value": "24"},
+    {"id": 148, "attribute_id": 46, "value": "36"},
+    {"id": 149, "attribute_id": 46, "value": "40"},
+    {"id": 150, "attribute_id": 46, "value": "48"},
+    {"id": 151, "attribute_id": 46, "value": "1"},
+    # Additional product lines
+    {"id": 152, "attribute_id": 47, "value": "Coppertop"},
+    {"id": 153, "attribute_id": 47, "value": "Optimum"},
+    {"id": 154, "attribute_id": 47, "value": "Power Seal"},
+    {"id": 155, "attribute_id": 47, "value": "Industrial"},
+    {"id": 156, "attribute_id": 47, "value": "Eco Advanced"},
+    {"id": 157, "attribute_id": 47, "value": "Pro Power"},
+    {"id": 158, "attribute_id": 47, "value": "Gold"},
+    {"id": 159, "attribute_id": 47, "value": "Xtralife"},
+    {"id": 160, "attribute_id": 47, "value": "Stamina Plus"},
+    {"id": 161, "attribute_id": 47, "value": "Fusion"},
+    {"id": 162, "attribute_id": 47, "value": "Premium"},
+    {"id": 163, "attribute_id": 47, "value": "Ultra Alkaline"},
+    {"id": 164, "attribute_id": 47, "value": "Power Life"},
 ]
 
 PRODUCTS_DATA = [
@@ -749,65 +819,708 @@ PRODUCTS_DATA = [
         "sales_per_month": "0",
         "description": "<p>Standard AA batteries for daily use.</p>",
     },
+    # Products for parent categories without subcategories to populate navigation
+    {
+        "id": 160,
+        "name": "Samsung Galaxy Buds Pro",
+        "slug": "samsung-galaxy-buds-pro",
+        "category_id": 63,  # Electronics (parent)
+        "status": "active",
+        "price": "199.99",
+        "stock": 45,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Premium wireless earbuds with active noise cancellation.</p>",
+    },
+    {
+        "id": 161,
+        "name": "Vitamin C Serum 30ml",
+        "slug": "vitamin-c-serum-30ml",
+        "category_id": 61,  # Beauty & Health (parent)
+        "status": "active",
+        "price": "29.99",
+        "stock": 120,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Brightening vitamin C facial serum for radiant skin.</p>",
+    },
+    {
+        "id": 162,
+        "name": "Multi-Purpose Cleaner 750ml",
+        "slug": "multi-purpose-cleaner-750ml",
+        "category_id": 62,  # Household (parent)
+        "status": "active",
+        "price": "8.99",
+        "stock": 200,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>All-surface cleaning solution for kitchen and bathroom.</p>",
+    },
+    {
+        "id": 163,
+        "name": "Premium Dog Food 2kg",
+        "slug": "premium-dog-food-2kg",
+        "category_id": 64,  # Pet Supplies (parent)
+        "status": "active",
+        "price": "24.99",
+        "stock": 80,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>High-protein dog food for adult dogs of all breeds.</p>",
+    },
+    {
+        "id": 164,
+        "name": "A4 Copy Paper 500 Sheets",
+        "slug": "a4-copy-paper-500-sheets",
+        "category_id": 65,  # Office (parent)
+        "status": "active",
+        "price": "12.99",
+        "stock": 300,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Premium quality A4 paper for printing and copying.</p>",
+    },
+    {
+        "id": 165,
+        "name": "LEGO City Police Station",
+        "slug": "lego-city-police-station",
+        "category_id": 66,  # Toys & Games (parent)
+        "status": "active",
+        "price": "89.99",
+        "stock": 25,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Build your own police station with this 743-piece LEGO set.</p>",
+    },
+    {
+        "id": 166,
+        "name": "Yoga Mat Premium 6mm",
+        "slug": "yoga-mat-premium-6mm",
+        "category_id": 67,  # Sports & Outdoors (parent)
+        "status": "active",
+        "price": "34.99",
+        "stock": 75,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Non-slip yoga mat with excellent cushioning for all exercises.</p>",
+    },
+    {
+        "id": 167,
+        "name": "Garden Hose 15m",
+        "slug": "garden-hose-15m",
+        "category_id": 68,  # Garden & Patio (parent)
+        "status": "active",
+        "price": "29.99",
+        "stock": 50,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Flexible garden hose with spray nozzle included.</p>",
+    },
+    {
+        "id": 168,
+        "name": "Cordless Drill 18V",
+        "slug": "cordless-drill-18v",
+        "category_id": 69,  # Tools & Hardware (parent)
+        "status": "active",
+        "price": "79.99",
+        "stock": 40,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Professional cordless drill with two batteries included.</p>",
+    },
+    {
+        "id": 169,
+        "name": "Organic Extra Virgin Olive Oil 500ml",
+        "slug": "organic-olive-oil-500ml",
+        "category_id": 70,  # Grocery & Gourmet (parent)
+        "status": "active",
+        "price": "15.99",
+        "stock": 150,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Cold-pressed extra virgin olive oil from organic olives.</p>",
+    },
+    {
+        "id": 170,
+        "name": "Baby Bottle Set 3-Pack",
+        "slug": "baby-bottle-set-3-pack",
+        "category_id": 71,  # Baby (parent)
+        "status": "active",
+        "price": "18.99",
+        "stock": 90,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Anti-colic baby bottles with slow flow nipples.</p>",
+    },
+    {
+        "id": 171,
+        "name": "Car Wax Premium 500ml",
+        "slug": "car-wax-premium-500ml",
+        "category_id": 72,  # Automotive (parent)
+        "status": "active",
+        "price": "22.99",
+        "stock": 60,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Long-lasting car wax for ultimate shine and protection.</p>",
+    },
+    {
+        "id": 172,
+        "name": "Safety Gloves Industrial Pack",
+        "slug": "safety-gloves-industrial",
+        "category_id": 73,  # Industrial (parent)
+        "status": "active",
+        "price": "19.99",
+        "stock": 200,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Heavy-duty work gloves for industrial applications.</p>",
+    },
+    {
+        "id": 173,
+        "name": "Acrylic Paint Set 24 Colors",
+        "slug": "acrylic-paint-set-24-colors",
+        "category_id": 74,  # Arts & Crafts (parent)
+        "status": "active",
+        "price": "24.99",
+        "stock": 85,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Vibrant acrylic paint set perfect for beginners and professionals.</p>",
+    },
+    {
+        "id": 174,
+        "name": "The Art of Programming",
+        "slug": "the-art-of-programming-book",
+        "category_id": 75,  # Books (parent)
+        "status": "active",
+        "price": "49.99",
+        "stock": 55,
+        "sales_total": "0",
+        "revenue_total": "0",
+        "sales_per_day": "0",
+        "sales_per_month": "0",
+        "description": "<p>Classic computer science book covering algorithms and data structures.</p>",
+    },
+    # === Alkaline Batteries Category (41) - Products for pagination testing ===
+    # Adding 144 products to test 4 pages of 36 products each
+    {"id": 200, "name": "Energizer MAX AA 4-Pack", "slug": "energizer-max-aa-4-pack", "category_id": 41, "status": "active", "price": "14.99", "stock": 200, "sales_total": "150", "revenue_total": "2248.50", "sales_per_day": "5", "sales_per_month": "150", "description": "<p>Long-lasting AA alkaline batteries.</p>"},
+    {"id": 201, "name": "Energizer MAX AA 8-Pack", "slug": "energizer-max-aa-8-pack", "category_id": 41, "status": "active", "price": "24.99", "stock": 180, "sales_total": "120", "revenue_total": "2998.80", "sales_per_day": "4", "sales_per_month": "120", "description": "<p>Value pack of 8 AA batteries.</p>"},
+    {"id": 202, "name": "Energizer MAX AAA 8-Pack", "slug": "energizer-max-aaa-8-pack", "category_id": 41, "status": "active", "price": "22.99", "stock": 175, "sales_total": "110", "revenue_total": "2528.90", "sales_per_day": "4", "sales_per_month": "110", "description": "<p>Value pack of 8 AAA batteries.</p>"},
+    {"id": 203, "name": "Duracell Plus AA 4-Pack", "slug": "duracell-plus-aa-4-pack", "category_id": 41, "status": "active", "price": "15.49", "stock": 220, "sales_total": "180", "revenue_total": "2788.20", "sales_per_day": "6", "sales_per_month": "180", "description": "<p>Duracell Plus Power AA batteries.</p>"},
+    {"id": 204, "name": "Duracell Plus AA 8-Pack", "slug": "duracell-plus-aa-8-pack", "category_id": 41, "status": "active", "price": "25.99", "stock": 160, "sales_total": "95", "revenue_total": "2469.05", "sales_per_day": "3", "sales_per_month": "95", "description": "<p>Duracell Plus Power AA batteries, 8 pack.</p>"},
+    {"id": 205, "name": "Duracell Plus AAA 4-Pack", "slug": "duracell-plus-aaa-4-pack", "category_id": 41, "status": "active", "price": "14.49", "stock": 210, "sales_total": "160", "revenue_total": "2318.40", "sales_per_day": "5", "sales_per_month": "160", "description": "<p>Duracell Plus Power AAA batteries.</p>"},
+    {"id": 206, "name": "Duracell Plus AAA 8-Pack", "slug": "duracell-plus-aaa-8-pack", "category_id": 41, "status": "active", "price": "23.99", "stock": 155, "sales_total": "85", "revenue_total": "2039.15", "sales_per_day": "3", "sales_per_month": "85", "description": "<p>Duracell Plus Power AAA batteries, 8 pack.</p>"},
+    {"id": 207, "name": "Duracell Ultra AA 4-Pack", "slug": "duracell-ultra-aa-4-pack", "category_id": 41, "status": "active", "price": "17.99", "stock": 140, "sales_total": "70", "revenue_total": "1259.30", "sales_per_day": "2", "sales_per_month": "70", "description": "<p>Duracell Ultra Power AA batteries with extended life.</p>"},
+    {"id": 208, "name": "Duracell Ultra AAA 4-Pack", "slug": "duracell-ultra-aaa-4-pack", "category_id": 41, "status": "active", "price": "16.99", "stock": 145, "sales_total": "65", "revenue_total": "1104.35", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Duracell Ultra Power AAA batteries with extended life.</p>"},
+    {"id": 209, "name": "Panasonic Evolta AA 4-Pack", "slug": "panasonic-evolta-aa-4-pack", "category_id": 41, "status": "active", "price": "13.99", "stock": 190, "sales_total": "140", "revenue_total": "1958.60", "sales_per_day": "5", "sales_per_month": "140", "description": "<p>Panasonic Evolta premium AA batteries.</p>"},
+    {"id": 210, "name": "Panasonic Evolta AA 8-Pack", "slug": "panasonic-evolta-aa-8-pack", "category_id": 41, "status": "active", "price": "23.49", "stock": 130, "sales_total": "75", "revenue_total": "1761.75", "sales_per_day": "3", "sales_per_month": "75", "description": "<p>Panasonic Evolta premium AA batteries, 8 pack.</p>"},
+    {"id": 211, "name": "Panasonic Evolta AAA 4-Pack", "slug": "panasonic-evolta-aaa-4-pack", "category_id": 41, "status": "active", "price": "12.99", "stock": 185, "sales_total": "130", "revenue_total": "1688.70", "sales_per_day": "4", "sales_per_month": "130", "description": "<p>Panasonic Evolta premium AAA batteries.</p>"},
+    {"id": 212, "name": "Panasonic Evolta AAA 8-Pack", "slug": "panasonic-evolta-aaa-8-pack", "category_id": 41, "status": "active", "price": "21.99", "stock": 125, "sales_total": "60", "revenue_total": "1319.40", "sales_per_day": "2", "sales_per_month": "60", "description": "<p>Panasonic Evolta premium AAA batteries, 8 pack.</p>"},
+    {"id": 213, "name": "Varta Longlife AA 4-Pack", "slug": "varta-longlife-aa-4-pack", "category_id": 41, "status": "active", "price": "11.99", "stock": 250, "sales_total": "200", "revenue_total": "2398.00", "sales_per_day": "7", "sales_per_month": "200", "description": "<p>Varta Longlife AA alkaline batteries.</p>"},
+    {"id": 214, "name": "Varta Longlife AA 8-Pack", "slug": "varta-longlife-aa-8-pack", "category_id": 41, "status": "active", "price": "19.99", "stock": 180, "sales_total": "120", "revenue_total": "2398.80", "sales_per_day": "4", "sales_per_month": "120", "description": "<p>Varta Longlife AA batteries, value 8 pack.</p>"},
+    {"id": 215, "name": "Varta Longlife AAA 4-Pack", "slug": "varta-longlife-aaa-4-pack", "category_id": 41, "status": "active", "price": "10.99", "stock": 240, "sales_total": "190", "revenue_total": "2088.10", "sales_per_day": "6", "sales_per_month": "190", "description": "<p>Varta Longlife AAA alkaline batteries.</p>"},
+    {"id": 216, "name": "Varta Longlife AAA 8-Pack", "slug": "varta-longlife-aaa-8-pack", "category_id": 41, "status": "active", "price": "18.49", "stock": 170, "sales_total": "100", "revenue_total": "1849.00", "sales_per_day": "3", "sales_per_month": "100", "description": "<p>Varta Longlife AAA batteries, value 8 pack.</p>"},
+    {"id": 217, "name": "Varta High Energy AA 4-Pack", "slug": "varta-high-energy-aa-4-pack", "category_id": 41, "status": "active", "price": "14.49", "stock": 165, "sales_total": "90", "revenue_total": "1304.10", "sales_per_day": "3", "sales_per_month": "90", "description": "<p>Varta High Energy AA batteries for high-drain devices.</p>"},
+    {"id": 218, "name": "Varta High Energy AAA 4-Pack", "slug": "varta-high-energy-aaa-4-pack", "category_id": 41, "status": "active", "price": "13.49", "stock": 160, "sales_total": "85", "revenue_total": "1146.65", "sales_per_day": "3", "sales_per_month": "85", "description": "<p>Varta High Energy AAA batteries for high-drain devices.</p>"},
+    {"id": 219, "name": "GP Ultra Plus AA 4-Pack", "slug": "gp-ultra-plus-aa-4-pack", "category_id": 41, "status": "active", "price": "9.99", "stock": 300, "sales_total": "250", "revenue_total": "2497.50", "sales_per_day": "8", "sales_per_month": "250", "description": "<p>GP Ultra Plus alkaline AA batteries.</p>"},
+    {"id": 220, "name": "GP Ultra Plus AA 8-Pack", "slug": "gp-ultra-plus-aa-8-pack", "category_id": 41, "status": "active", "price": "16.99", "stock": 220, "sales_total": "150", "revenue_total": "2548.50", "sales_per_day": "5", "sales_per_month": "150", "description": "<p>GP Ultra Plus alkaline AA batteries, 8 pack.</p>"},
+    {"id": 221, "name": "GP Ultra Plus AAA 4-Pack", "slug": "gp-ultra-plus-aaa-4-pack", "category_id": 41, "status": "active", "price": "8.99", "stock": 290, "sales_total": "240", "revenue_total": "2157.60", "sales_per_day": "8", "sales_per_month": "240", "description": "<p>GP Ultra Plus alkaline AAA batteries.</p>"},
+    {"id": 222, "name": "GP Ultra Plus AAA 8-Pack", "slug": "gp-ultra-plus-aaa-8-pack", "category_id": 41, "status": "active", "price": "15.49", "stock": 210, "sales_total": "140", "revenue_total": "2168.60", "sales_per_day": "5", "sales_per_month": "140", "description": "<p>GP Ultra Plus alkaline AAA batteries, 8 pack.</p>"},
+    {"id": 223, "name": "GP Super AA 4-Pack", "slug": "gp-super-aa-4-pack", "category_id": 41, "status": "active", "price": "7.99", "stock": 350, "sales_total": "300", "revenue_total": "2397.00", "sales_per_day": "10", "sales_per_month": "300", "description": "<p>GP Super budget-friendly AA batteries.</p>"},
+    {"id": 224, "name": "GP Super AAA 4-Pack", "slug": "gp-super-aaa-4-pack", "category_id": 41, "status": "active", "price": "6.99", "stock": 340, "sales_total": "280", "revenue_total": "1957.20", "sales_per_day": "9", "sales_per_month": "280", "description": "<p>GP Super budget-friendly AAA batteries.</p>"},
+    {"id": 225, "name": "Energizer Industrial AA 10-Pack", "slug": "energizer-industrial-aa-10-pack-alk", "category_id": 41, "status": "active", "price": "29.99", "stock": 100, "sales_total": "45", "revenue_total": "1349.55", "sales_per_day": "2", "sales_per_month": "45", "description": "<p>Professional grade AA batteries for industrial use.</p>"},
+    {"id": 226, "name": "Energizer Industrial AAA 10-Pack", "slug": "energizer-industrial-aaa-10-pack-alk", "category_id": 41, "status": "active", "price": "27.99", "stock": 95, "sales_total": "40", "revenue_total": "1119.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>Professional grade AAA batteries for industrial use.</p>"},
+    {"id": 227, "name": "Duracell Industrial AA 10-Pack", "slug": "duracell-industrial-aa-10-pack", "category_id": 41, "status": "active", "price": "31.99", "stock": 90, "sales_total": "35", "revenue_total": "1119.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>Duracell Procell AA batteries for business.</p>"},
+    {"id": 228, "name": "Duracell Industrial AAA 10-Pack", "slug": "duracell-industrial-aaa-10-pack", "category_id": 41, "status": "active", "price": "29.99", "stock": 85, "sales_total": "30", "revenue_total": "899.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>Duracell Procell AAA batteries for business.</p>"},
+    {"id": 229, "name": "Energizer MAX AA 12-Pack", "slug": "energizer-max-aa-12-pack", "category_id": 41, "status": "active", "price": "34.99", "stock": 120, "sales_total": "60", "revenue_total": "2099.40", "sales_per_day": "2", "sales_per_month": "60", "description": "<p>Family size 12-pack of AA batteries.</p>"},
+    {"id": 230, "name": "Energizer MAX AAA 12-Pack", "slug": "energizer-max-aaa-12-pack", "category_id": 41, "status": "active", "price": "32.99", "stock": 115, "sales_total": "55", "revenue_total": "1814.45", "sales_per_day": "2", "sales_per_month": "55", "description": "<p>Family size 12-pack of AAA batteries.</p>"},
+    {"id": 231, "name": "Duracell Plus AA 12-Pack", "slug": "duracell-plus-aa-12-pack", "category_id": 41, "status": "active", "price": "36.99", "stock": 110, "sales_total": "50", "revenue_total": "1849.50", "sales_per_day": "2", "sales_per_month": "50", "description": "<p>Duracell Plus Power AA 12-pack.</p>"},
+    {"id": 232, "name": "Duracell Plus AAA 12-Pack", "slug": "duracell-plus-aaa-12-pack", "category_id": 41, "status": "active", "price": "34.99", "stock": 105, "sales_total": "45", "revenue_total": "1574.55", "sales_per_day": "2", "sales_per_month": "45", "description": "<p>Duracell Plus Power AAA 12-pack.</p>"},
+    {"id": 233, "name": "Energizer MAX C 2-Pack", "slug": "energizer-max-c-2-pack", "category_id": 41, "status": "active", "price": "12.99", "stock": 80, "sales_total": "25", "revenue_total": "324.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Energizer MAX C size batteries, 2 pack.</p>"},
+    {"id": 234, "name": "Energizer MAX D 2-Pack", "slug": "energizer-max-d-2-pack", "category_id": 41, "status": "active", "price": "14.99", "stock": 75, "sales_total": "20", "revenue_total": "299.80", "sales_per_day": "1", "sales_per_month": "20", "description": "<p>Energizer MAX D size batteries, 2 pack.</p>"},
+    {"id": 235, "name": "Duracell Plus C 2-Pack", "slug": "duracell-plus-c-2-pack", "category_id": 41, "status": "active", "price": "13.49", "stock": 78, "sales_total": "22", "revenue_total": "296.78", "sales_per_day": "1", "sales_per_month": "22", "description": "<p>Duracell Plus C size batteries, 2 pack.</p>"},
+    {"id": 236, "name": "Duracell Plus D 2-Pack", "slug": "duracell-plus-d-2-pack", "category_id": 41, "status": "active", "price": "15.49", "stock": 72, "sales_total": "18", "revenue_total": "278.82", "sales_per_day": "1", "sales_per_month": "18", "description": "<p>Duracell Plus D size batteries, 2 pack.</p>"},
+    {"id": 237, "name": "Varta Longlife C 2-Pack", "slug": "varta-longlife-c-2-pack", "category_id": 41, "status": "active", "price": "11.99", "stock": 82, "sales_total": "28", "revenue_total": "335.72", "sales_per_day": "1", "sales_per_month": "28", "description": "<p>Varta Longlife C size batteries.</p>"},
+    {"id": 238, "name": "Varta Longlife D 2-Pack", "slug": "varta-longlife-d-2-pack", "category_id": 41, "status": "active", "price": "13.99", "stock": 70, "sales_total": "15", "revenue_total": "209.85", "sales_per_day": "1", "sales_per_month": "15", "description": "<p>Varta Longlife D size batteries.</p>"},
+    {"id": 239, "name": "Panasonic Evolta C 2-Pack", "slug": "panasonic-evolta-c-2-pack", "category_id": 41, "status": "active", "price": "12.49", "stock": 76, "sales_total": "24", "revenue_total": "299.76", "sales_per_day": "1", "sales_per_month": "24", "description": "<p>Panasonic Evolta C size batteries.</p>"},
+    {"id": 240, "name": "Panasonic Evolta D 2-Pack", "slug": "panasonic-evolta-d-2-pack", "category_id": 41, "status": "active", "price": "14.49", "stock": 68, "sales_total": "16", "revenue_total": "231.84", "sales_per_day": "1", "sales_per_month": "16", "description": "<p>Panasonic Evolta D size batteries.</p>"},
+    {"id": 241, "name": "Energizer MAX AA 24-Pack", "slug": "energizer-max-aa-24-pack", "category_id": 41, "status": "active", "price": "54.99", "stock": 60, "sales_total": "25", "revenue_total": "1374.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Bulk pack of 24 AA batteries.</p>"},
+    {"id": 242, "name": "Energizer MAX AAA 24-Pack", "slug": "energizer-max-aaa-24-pack", "category_id": 41, "status": "active", "price": "49.99", "stock": 55, "sales_total": "22", "revenue_total": "1099.78", "sales_per_day": "1", "sales_per_month": "22", "description": "<p>Bulk pack of 24 AAA batteries.</p>"},
+    {"id": 243, "name": "Duracell Plus AA 24-Pack", "slug": "duracell-plus-aa-24-pack", "category_id": 41, "status": "active", "price": "59.99", "stock": 50, "sales_total": "20", "revenue_total": "1199.80", "sales_per_day": "1", "sales_per_month": "20", "description": "<p>Duracell value pack of 24 AA batteries.</p>"},
+    {"id": 244, "name": "Duracell Plus AAA 24-Pack", "slug": "duracell-plus-aaa-24-pack", "category_id": 41, "status": "active", "price": "54.99", "stock": 48, "sales_total": "18", "revenue_total": "989.82", "sales_per_day": "1", "sales_per_month": "18", "description": "<p>Duracell value pack of 24 AAA batteries.</p>"},
+    {"id": 245, "name": "GP Ultra AA 16-Pack", "slug": "gp-ultra-aa-16-pack", "category_id": 41, "status": "active", "price": "29.99", "stock": 140, "sales_total": "80", "revenue_total": "2399.20", "sales_per_day": "3", "sales_per_month": "80", "description": "<p>GP Ultra alkaline AA family pack.</p>"},
+    {"id": 246, "name": "GP Ultra AAA 16-Pack", "slug": "gp-ultra-aaa-16-pack", "category_id": 41, "status": "active", "price": "27.99", "stock": 135, "sales_total": "75", "revenue_total": "2099.25", "sales_per_day": "3", "sales_per_month": "75", "description": "<p>GP Ultra alkaline AAA family pack.</p>"},
+    {"id": 247, "name": "Energizer Eco Advanced AA 4-Pack", "slug": "energizer-eco-advanced-aa-4-pack", "category_id": 41, "status": "active", "price": "16.99", "stock": 100, "sales_total": "45", "revenue_total": "764.55", "sales_per_day": "2", "sales_per_month": "45", "description": "<p>Made with recycled batteries - eco-friendly choice.</p>"},
+    {"id": 248, "name": "Energizer Eco Advanced AAA 4-Pack", "slug": "energizer-eco-advanced-aaa-4-pack", "category_id": 41, "status": "active", "price": "15.99", "stock": 95, "sales_total": "40", "revenue_total": "639.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>Made with recycled batteries - eco-friendly AAA.</p>"},
+    {"id": 249, "name": "Varta Industrial AA 10-Pack", "slug": "varta-industrial-aa-10-pack", "category_id": 41, "status": "active", "price": "24.99", "stock": 110, "sales_total": "55", "revenue_total": "1374.45", "sales_per_day": "2", "sales_per_month": "55", "description": "<p>Varta Industrial Pro AA for professionals.</p>"},
+    {"id": 250, "name": "Varta Industrial AAA 10-Pack", "slug": "varta-industrial-aaa-10-pack", "category_id": 41, "status": "active", "price": "22.99", "stock": 105, "sales_total": "50", "revenue_total": "1149.50", "sales_per_day": "2", "sales_per_month": "50", "description": "<p>Varta Industrial Pro AAA for professionals.</p>"},
+    {"id": 251, "name": "Philips Power Life AA 4-Pack", "slug": "philips-power-life-aa-4-pack", "category_id": 41, "status": "active", "price": "8.99", "stock": 200, "sales_total": "160", "revenue_total": "1438.40", "sales_per_day": "5", "sales_per_month": "160", "description": "<p>Philips Power Life AA alkaline batteries.</p>"},
+    {"id": 252, "name": "Philips Power Life AAA 4-Pack", "slug": "philips-power-life-aaa-4-pack", "category_id": 41, "status": "active", "price": "7.99", "stock": 195, "sales_total": "150", "revenue_total": "1198.50", "sales_per_day": "5", "sales_per_month": "150", "description": "<p>Philips Power Life AAA alkaline batteries.</p>"},
+    {"id": 253, "name": "Philips Ultra Alkaline AA 4-Pack", "slug": "philips-ultra-aa-4-pack", "category_id": 41, "status": "active", "price": "11.49", "stock": 150, "sales_total": "90", "revenue_total": "1034.10", "sales_per_day": "3", "sales_per_month": "90", "description": "<p>Philips Ultra Alkaline AA for high performance.</p>"},
+    {"id": 254, "name": "Philips Ultra Alkaline AAA 4-Pack", "slug": "philips-ultra-aaa-4-pack", "category_id": 41, "status": "active", "price": "10.49", "stock": 145, "sales_total": "85", "revenue_total": "891.65", "sales_per_day": "3", "sales_per_month": "85", "description": "<p>Philips Ultra Alkaline AAA for high performance.</p>"},
+    {"id": 255, "name": "Sony Stamina Plus AA 4-Pack", "slug": "sony-stamina-plus-aa-4-pack", "category_id": 41, "status": "active", "price": "10.99", "stock": 170, "sales_total": "100", "revenue_total": "1099.00", "sales_per_day": "3", "sales_per_month": "100", "description": "<p>Sony Stamina Plus AA batteries.</p>"},
+    {"id": 256, "name": "Sony Stamina Plus AAA 4-Pack", "slug": "sony-stamina-plus-aaa-4-pack", "category_id": 41, "status": "active", "price": "9.99", "stock": 165, "sales_total": "95", "revenue_total": "949.05", "sales_per_day": "3", "sales_per_month": "95", "description": "<p>Sony Stamina Plus AAA batteries.</p>"},
+    {"id": 257, "name": "Rayovac High Energy AA 8-Pack", "slug": "rayovac-high-energy-aa-8-pack", "category_id": 41, "status": "active", "price": "14.99", "stock": 180, "sales_total": "110", "revenue_total": "1648.90", "sales_per_day": "4", "sales_per_month": "110", "description": "<p>Rayovac High Energy AA value pack.</p>"},
+    {"id": 258, "name": "Rayovac High Energy AAA 8-Pack", "slug": "rayovac-high-energy-aaa-8-pack", "category_id": 41, "status": "active", "price": "13.99", "stock": 175, "sales_total": "105", "revenue_total": "1468.95", "sales_per_day": "4", "sales_per_month": "105", "description": "<p>Rayovac High Energy AAA value pack.</p>"},
+    {"id": 259, "name": "Maxell Alkaline AA 4-Pack", "slug": "maxell-alkaline-aa-4-pack", "category_id": 41, "status": "active", "price": "7.49", "stock": 230, "sales_total": "180", "revenue_total": "1348.20", "sales_per_day": "6", "sales_per_month": "180", "description": "<p>Maxell alkaline AA everyday batteries.</p>"},
+    {"id": 260, "name": "Maxell Alkaline AAA 4-Pack", "slug": "maxell-alkaline-aaa-4-pack", "category_id": 41, "status": "active", "price": "6.49", "stock": 225, "sales_total": "170", "revenue_total": "1103.30", "sales_per_day": "6", "sales_per_month": "170", "description": "<p>Maxell alkaline AAA everyday batteries.</p>"},
+    {"id": 261, "name": "Kodak Xtralife AA 4-Pack", "slug": "kodak-xtralife-aa-4-pack", "category_id": 41, "status": "active", "price": "6.99", "stock": 260, "sales_total": "200", "revenue_total": "1398.00", "sales_per_day": "7", "sales_per_month": "200", "description": "<p>Kodak Xtralife alkaline AA batteries.</p>"},
+    {"id": 262, "name": "Kodak Xtralife AAA 4-Pack", "slug": "kodak-xtralife-aaa-4-pack", "category_id": 41, "status": "active", "price": "5.99", "stock": 255, "sales_total": "190", "revenue_total": "1138.10", "sales_per_day": "6", "sales_per_month": "190", "description": "<p>Kodak Xtralife alkaline AAA batteries.</p>"},
+    {"id": 263, "name": "Kodak Max AA 8-Pack", "slug": "kodak-max-aa-8-pack", "category_id": 41, "status": "active", "price": "12.99", "stock": 190, "sales_total": "120", "revenue_total": "1558.80", "sales_per_day": "4", "sales_per_month": "120", "description": "<p>Kodak Max alkaline AA 8-pack.</p>"},
+    {"id": 264, "name": "Kodak Max AAA 8-Pack", "slug": "kodak-max-aaa-8-pack", "category_id": 41, "status": "active", "price": "11.99", "stock": 185, "sales_total": "115", "revenue_total": "1378.85", "sales_per_day": "4", "sales_per_month": "115", "description": "<p>Kodak Max alkaline AAA 8-pack.</p>"},
+    {"id": 265, "name": "Energizer Ultimate Lithium AA 4-Pack", "slug": "energizer-lithium-aa-4-pack", "category_id": 41, "status": "active", "price": "24.99", "stock": 80, "sales_total": "35", "revenue_total": "874.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>World's longest lasting AA battery.</p>"},
+    {"id": 266, "name": "Energizer Ultimate Lithium AAA 4-Pack", "slug": "energizer-lithium-aaa-4-pack", "category_id": 41, "status": "active", "price": "22.99", "stock": 75, "sales_total": "30", "revenue_total": "689.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>World's longest lasting AAA battery.</p>"},
+    {"id": 267, "name": "Duracell Optimum AA 4-Pack", "slug": "duracell-optimum-aa-4-pack", "category_id": 41, "status": "active", "price": "18.99", "stock": 120, "sales_total": "65", "revenue_total": "1234.35", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Duracell Optimum extra power AA.</p>"},
+    {"id": 268, "name": "Duracell Optimum AAA 4-Pack", "slug": "duracell-optimum-aaa-4-pack", "category_id": 41, "status": "active", "price": "17.99", "stock": 115, "sales_total": "60", "revenue_total": "1079.40", "sales_per_day": "2", "sales_per_month": "60", "description": "<p>Duracell Optimum extra power AAA.</p>"},
+    {"id": 269, "name": "Energizer MAX Plus AA 4-Pack", "slug": "energizer-max-plus-aa-4-pack", "category_id": 41, "status": "active", "price": "16.49", "stock": 140, "sales_total": "75", "revenue_total": "1236.75", "sales_per_day": "3", "sales_per_month": "75", "description": "<p>Energizer MAX Plus enhanced performance.</p>"},
+    {"id": 270, "name": "Energizer MAX Plus AAA 4-Pack", "slug": "energizer-max-plus-aaa-4-pack", "category_id": 41, "status": "active", "price": "15.49", "stock": 135, "sales_total": "70", "revenue_total": "1084.30", "sales_per_day": "2", "sales_per_month": "70", "description": "<p>Energizer MAX Plus enhanced performance AAA.</p>"},
+    {"id": 271, "name": "GP ReCyko AA 4-Pack (Rechargeable)", "slug": "gp-recyko-aa-4-pack", "category_id": 41, "status": "active", "price": "19.99", "stock": 90, "sales_total": "40", "revenue_total": "799.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>GP ReCyko rechargeable AA - up to 1000 cycles.</p>"},
+    {"id": 272, "name": "GP ReCyko AAA 4-Pack (Rechargeable)", "slug": "gp-recyko-aaa-4-pack", "category_id": 41, "status": "active", "price": "17.99", "stock": 85, "sales_total": "35", "revenue_total": "629.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>GP ReCyko rechargeable AAA - up to 1000 cycles.</p>"},
+    {"id": 273, "name": "Panasonic Eneloop AA 4-Pack", "slug": "panasonic-eneloop-aa-4-pack", "category_id": 41, "status": "active", "price": "24.99", "stock": 70, "sales_total": "30", "revenue_total": "749.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>Panasonic Eneloop rechargeable AA - 2100 cycles.</p>"},
+    {"id": 274, "name": "Panasonic Eneloop AAA 4-Pack", "slug": "panasonic-eneloop-aaa-4-pack", "category_id": 41, "status": "active", "price": "22.99", "stock": 65, "sales_total": "25", "revenue_total": "574.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Panasonic Eneloop rechargeable AAA - 2100 cycles.</p>"},
+    {"id": 275, "name": "Amazon Basics AA 20-Pack", "slug": "amazon-basics-aa-20-pack", "category_id": 41, "status": "active", "price": "29.99", "stock": 200, "sales_total": "150", "revenue_total": "4498.50", "sales_per_day": "5", "sales_per_month": "150", "description": "<p>Amazon Basics high-performance AA batteries.</p>"},
+    {"id": 276, "name": "Amazon Basics AAA 20-Pack", "slug": "amazon-basics-aaa-20-pack", "category_id": 41, "status": "active", "price": "27.99", "stock": 195, "sales_total": "145", "revenue_total": "4058.55", "sales_per_day": "5", "sales_per_month": "145", "description": "<p>Amazon Basics high-performance AAA batteries.</p>"},
+    {"id": 277, "name": "Amazon Basics AA 48-Pack", "slug": "amazon-basics-aa-48-pack", "category_id": 41, "status": "active", "price": "59.99", "stock": 80, "sales_total": "40", "revenue_total": "2399.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>Amazon Basics bulk pack of 48 AA batteries.</p>"},
+    {"id": 278, "name": "Amazon Basics AAA 48-Pack", "slug": "amazon-basics-aaa-48-pack", "category_id": 41, "status": "active", "price": "54.99", "stock": 75, "sales_total": "35", "revenue_total": "1924.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>Amazon Basics bulk pack of 48 AAA batteries.</p>"},
+    {"id": 279, "name": "Ikea LADDA AA 4-Pack", "slug": "ikea-ladda-aa-4-pack", "category_id": 41, "status": "active", "price": "9.99", "stock": 150, "sales_total": "100", "revenue_total": "999.00", "sales_per_day": "3", "sales_per_month": "100", "description": "<p>Ikea LADDA rechargeable AA batteries.</p>"},
+    {"id": 280, "name": "Ikea LADDA AAA 4-Pack", "slug": "ikea-ladda-aaa-4-pack", "category_id": 41, "status": "active", "price": "8.99", "stock": 145, "sales_total": "95", "revenue_total": "854.05", "sales_per_day": "3", "sales_per_month": "95", "description": "<p>Ikea LADDA rechargeable AAA batteries.</p>"},
+    {"id": 281, "name": "Energizer Power Seal AA 6-Pack", "slug": "energizer-power-seal-aa-6-pack", "category_id": 41, "status": "active", "price": "18.99", "stock": 130, "sales_total": "70", "revenue_total": "1329.30", "sales_per_day": "2", "sales_per_month": "70", "description": "<p>Energizer with Power Seal technology.</p>"},
+    {"id": 282, "name": "Energizer Power Seal AAA 6-Pack", "slug": "energizer-power-seal-aaa-6-pack", "category_id": 41, "status": "active", "price": "17.49", "stock": 125, "sales_total": "65", "revenue_total": "1136.85", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Energizer AAA with Power Seal technology.</p>"},
+    {"id": 283, "name": "Toshiba High Power AA 4-Pack", "slug": "toshiba-high-power-aa-4-pack", "category_id": 41, "status": "active", "price": "8.49", "stock": 180, "sales_total": "120", "revenue_total": "1018.80", "sales_per_day": "4", "sales_per_month": "120", "description": "<p>Toshiba High Power alkaline AA.</p>"},
+    {"id": 284, "name": "Toshiba High Power AAA 4-Pack", "slug": "toshiba-high-power-aaa-4-pack", "category_id": 41, "status": "active", "price": "7.49", "stock": 175, "sales_total": "115", "revenue_total": "861.35", "sales_per_day": "4", "sales_per_month": "115", "description": "<p>Toshiba High Power alkaline AAA.</p>"},
+    {"id": 285, "name": "Sanyo Eneloop Pro AA 4-Pack", "slug": "sanyo-eneloop-pro-aa-4-pack", "category_id": 41, "status": "active", "price": "29.99", "stock": 60, "sales_total": "25", "revenue_total": "749.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>High capacity rechargeable AA.</p>"},
+    {"id": 286, "name": "Sanyo Eneloop Pro AAA 4-Pack", "slug": "sanyo-eneloop-pro-aaa-4-pack", "category_id": 41, "status": "active", "price": "27.99", "stock": 55, "sales_total": "20", "revenue_total": "559.80", "sales_per_day": "1", "sales_per_month": "20", "description": "<p>High capacity rechargeable AAA.</p>"},
+    {"id": 287, "name": "Varta Recharge Accu Power AA 4-Pack", "slug": "varta-recharge-aa-4-pack", "category_id": 41, "status": "active", "price": "21.99", "stock": 75, "sales_total": "35", "revenue_total": "769.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>Varta rechargeable AA 2600mAh.</p>"},
+    {"id": 288, "name": "Varta Recharge Accu Power AAA 4-Pack", "slug": "varta-recharge-aaa-4-pack", "category_id": 41, "status": "active", "price": "19.99", "stock": 70, "sales_total": "30", "revenue_total": "599.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>Varta rechargeable AAA 1000mAh.</p>"},
+    {"id": 289, "name": "Duracell Recharge Ultra AA 4-Pack", "slug": "duracell-recharge-ultra-aa-4-pack", "category_id": 41, "status": "active", "price": "23.99", "stock": 65, "sales_total": "28", "revenue_total": "671.72", "sales_per_day": "1", "sales_per_month": "28", "description": "<p>Duracell rechargeable AA 2500mAh.</p>"},
+    {"id": 290, "name": "Duracell Recharge Ultra AAA 4-Pack", "slug": "duracell-recharge-ultra-aaa-4-pack", "category_id": 41, "status": "active", "price": "21.99", "stock": 60, "sales_total": "25", "revenue_total": "549.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Duracell rechargeable AAA 900mAh.</p>"},
+    {"id": 291, "name": "Energizer Recharge Universal AA 4-Pack", "slug": "energizer-recharge-aa-4-pack", "category_id": 41, "status": "active", "price": "19.99", "stock": 80, "sales_total": "38", "revenue_total": "759.62", "sales_per_day": "1", "sales_per_month": "38", "description": "<p>Energizer rechargeable AA 2000mAh.</p>"},
+    {"id": 292, "name": "Energizer Recharge Universal AAA 4-Pack", "slug": "energizer-recharge-aaa-4-pack", "category_id": 41, "status": "active", "price": "17.99", "stock": 75, "sales_total": "33", "revenue_total": "593.67", "sales_per_day": "1", "sales_per_month": "33", "description": "<p>Energizer rechargeable AAA 700mAh.</p>"},
+    {"id": 293, "name": "GP Super Alkaline C 2-Pack", "slug": "gp-super-c-2-pack", "category_id": 41, "status": "active", "price": "8.99", "stock": 100, "sales_total": "50", "revenue_total": "449.50", "sales_per_day": "2", "sales_per_month": "50", "description": "<p>GP Super alkaline C size batteries.</p>"},
+    {"id": 294, "name": "GP Super Alkaline D 2-Pack", "slug": "gp-super-d-2-pack", "category_id": 41, "status": "active", "price": "10.99", "stock": 95, "sales_total": "45", "revenue_total": "494.55", "sales_per_day": "2", "sales_per_month": "45", "description": "<p>GP Super alkaline D size batteries.</p>"},
+    {"id": 295, "name": "Energizer AA 36-Pack Value Box", "slug": "energizer-aa-36-pack-box", "category_id": 41, "status": "active", "price": "69.99", "stock": 40, "sales_total": "15", "revenue_total": "1049.85", "sales_per_day": "1", "sales_per_month": "15", "description": "<p>Energizer family value box of 36 AA batteries.</p>"},
+    {"id": 296, "name": "Energizer AAA 36-Pack Value Box", "slug": "energizer-aaa-36-pack-box", "category_id": 41, "status": "active", "price": "64.99", "stock": 38, "sales_total": "12", "revenue_total": "779.88", "sales_per_day": "1", "sales_per_month": "12", "description": "<p>Energizer family value box of 36 AAA batteries.</p>"},
+    {"id": 297, "name": "Duracell AA 36-Pack Value Box", "slug": "duracell-aa-36-pack-box", "category_id": 41, "status": "active", "price": "74.99", "stock": 35, "sales_total": "10", "revenue_total": "749.90", "sales_per_day": "1", "sales_per_month": "10", "description": "<p>Duracell family value box of 36 AA batteries.</p>"},
+    {"id": 298, "name": "Duracell AAA 36-Pack Value Box", "slug": "duracell-aaa-36-pack-box", "category_id": 41, "status": "active", "price": "69.99", "stock": 32, "sales_total": "8", "revenue_total": "559.92", "sales_per_day": "1", "sales_per_month": "8", "description": "<p>Duracell family value box of 36 AAA batteries.</p>"},
+    {"id": 299, "name": "Varta AA 40-Pack Megabox", "slug": "varta-aa-40-pack-megabox", "category_id": 41, "status": "active", "price": "49.99", "stock": 50, "sales_total": "25", "revenue_total": "1249.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Varta megabox of 40 AA batteries.</p>"},
+    {"id": 300, "name": "Varta AAA 40-Pack Megabox", "slug": "varta-aaa-40-pack-megabox", "category_id": 41, "status": "active", "price": "44.99", "stock": 48, "sales_total": "22", "revenue_total": "989.78", "sales_per_day": "1", "sales_per_month": "22", "description": "<p>Varta megabox of 40 AAA batteries.</p>"},
+    {"id": 301, "name": "Energizer AA & AAA Combo 24-Pack", "slug": "energizer-combo-pack-24", "category_id": 41, "status": "active", "price": "44.99", "stock": 60, "sales_total": "30", "revenue_total": "1349.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>12x AA + 12x AAA combo pack.</p>"},
+    {"id": 302, "name": "Duracell AA & AAA Combo 24-Pack", "slug": "duracell-combo-pack-24", "category_id": 41, "status": "active", "price": "47.99", "stock": 55, "sales_total": "28", "revenue_total": "1343.72", "sales_per_day": "1", "sales_per_month": "28", "description": "<p>12x AA + 12x AAA Duracell combo pack.</p>"},
+    {"id": 303, "name": "GP Premium AA 10-Pack", "slug": "gp-premium-aa-10-pack", "category_id": 41, "status": "active", "price": "16.99", "stock": 160, "sales_total": "95", "revenue_total": "1614.05", "sales_per_day": "3", "sales_per_month": "95", "description": "<p>GP Premium alkaline AA 10-pack.</p>"},
+    {"id": 304, "name": "GP Premium AAA 10-Pack", "slug": "gp-premium-aaa-10-pack", "category_id": 41, "status": "active", "price": "14.99", "stock": 155, "sales_total": "90", "revenue_total": "1349.10", "sales_per_day": "3", "sales_per_month": "90", "description": "<p>GP Premium alkaline AAA 10-pack.</p>"},
+    {"id": 340, "name": "Philips Power AA 8-Pack", "slug": "philips-power-aa-8-pack", "category_id": 41, "status": "active", "price": "13.99", "stock": 140, "sales_total": "80", "revenue_total": "1119.20", "sales_per_day": "3", "sales_per_month": "80", "description": "<p>Philips Power alkaline AA 8-pack.</p>"},
+    {"id": 341, "name": "Philips Power AAA 8-Pack", "slug": "philips-power-aaa-8-pack", "category_id": 41, "status": "active", "price": "12.49", "stock": 135, "sales_total": "75", "revenue_total": "936.75", "sales_per_day": "3", "sales_per_month": "75", "description": "<p>Philips Power alkaline AAA 8-pack.</p>"},
+    {"id": 342, "name": "Rayovac Fusion AA 8-Pack", "slug": "rayovac-fusion-aa-8-pack", "category_id": 41, "status": "active", "price": "15.99", "stock": 120, "sales_total": "65", "revenue_total": "1039.35", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Rayovac Fusion premium AA batteries.</p>"},
+    {"id": 343, "name": "Rayovac Fusion AAA 8-Pack", "slug": "rayovac-fusion-aaa-8-pack", "category_id": 41, "status": "active", "price": "14.49", "stock": 115, "sales_total": "60", "revenue_total": "869.40", "sales_per_day": "2", "sales_per_month": "60", "description": "<p>Rayovac Fusion premium AAA batteries.</p>"},
+    {"id": 344, "name": "Maxell Gold AA 6-Pack", "slug": "maxell-gold-aa-6-pack", "category_id": 41, "status": "active", "price": "11.99", "stock": 160, "sales_total": "100", "revenue_total": "1199.00", "sales_per_day": "3", "sales_per_month": "100", "description": "<p>Maxell Gold alkaline AA batteries.</p>"},
+    {"id": 345, "name": "Maxell Gold AAA 6-Pack", "slug": "maxell-gold-aaa-6-pack", "category_id": 41, "status": "active", "price": "10.99", "stock": 155, "sales_total": "95", "revenue_total": "1044.05", "sales_per_day": "3", "sales_per_month": "95", "description": "<p>Maxell Gold alkaline AAA batteries.</p>"},
+    {"id": 346, "name": "Energizer Max AA 16-Pack", "slug": "energizer-max-aa-16-pack", "category_id": 41, "status": "active", "price": "39.99", "stock": 90, "sales_total": "45", "revenue_total": "1799.55", "sales_per_day": "2", "sales_per_month": "45", "description": "<p>Energizer Max AA family 16-pack.</p>"},
+    {"id": 347, "name": "Energizer Max AAA 16-Pack", "slug": "energizer-max-aaa-16-pack", "category_id": 41, "status": "active", "price": "37.99", "stock": 85, "sales_total": "40", "revenue_total": "1519.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>Energizer Max AAA family 16-pack.</p>"},
+    # Additional products to reach 144+ total
+    {"id": 348, "name": "Panasonic Pro Power AA 4-Pack", "slug": "panasonic-pro-power-aa-4", "category_id": 41, "status": "active", "price": "11.49", "stock": 180, "sales_total": "110", "revenue_total": "1263.90", "sales_per_day": "4", "sales_per_month": "110", "description": "<p>Panasonic Pro Power alkaline AA.</p>"},
+    {"id": 349, "name": "Panasonic Pro Power AAA 4-Pack", "slug": "panasonic-pro-power-aaa-4", "category_id": 41, "status": "active", "price": "10.49", "stock": 175, "sales_total": "105", "revenue_total": "1101.45", "sales_per_day": "4", "sales_per_month": "105", "description": "<p>Panasonic Pro Power alkaline AAA.</p>"},
+    {"id": 350, "name": "Panasonic Pro Power AA 8-Pack", "slug": "panasonic-pro-power-aa-8", "category_id": 41, "status": "active", "price": "19.99", "stock": 120, "sales_total": "65", "revenue_total": "1299.35", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Panasonic Pro Power AA 8 pack.</p>"},
+    {"id": 351, "name": "Panasonic Pro Power AAA 8-Pack", "slug": "panasonic-pro-power-aaa-8", "category_id": 41, "status": "active", "price": "18.49", "stock": 115, "sales_total": "60", "revenue_total": "1109.40", "sales_per_day": "2", "sales_per_month": "60", "description": "<p>Panasonic Pro Power AAA 8 pack.</p>"},
+    {"id": 352, "name": "Camelion Plus AA 4-Pack", "slug": "camelion-plus-aa-4", "category_id": 41, "status": "active", "price": "5.99", "stock": 300, "sales_total": "220", "revenue_total": "1317.80", "sales_per_day": "7", "sales_per_month": "220", "description": "<p>Budget-friendly Camelion AA batteries.</p>"},
+    {"id": 353, "name": "Camelion Plus AAA 4-Pack", "slug": "camelion-plus-aaa-4", "category_id": 41, "status": "active", "price": "4.99", "stock": 290, "sales_total": "210", "revenue_total": "1047.90", "sales_per_day": "7", "sales_per_month": "210", "description": "<p>Budget-friendly Camelion AAA batteries.</p>"},
+    {"id": 354, "name": "Camelion Plus AA 8-Pack", "slug": "camelion-plus-aa-8", "category_id": 41, "status": "active", "price": "9.99", "stock": 200, "sales_total": "140", "revenue_total": "1398.60", "sales_per_day": "5", "sales_per_month": "140", "description": "<p>Camelion AA value 8-pack.</p>"},
+    {"id": 355, "name": "Camelion Plus AAA 8-Pack", "slug": "camelion-plus-aaa-8", "category_id": 41, "status": "active", "price": "8.99", "stock": 195, "sales_total": "135", "revenue_total": "1213.65", "sales_per_day": "5", "sales_per_month": "135", "description": "<p>Camelion AAA value 8-pack.</p>"},
+    {"id": 356, "name": "Fujitsu G Plus AA 4-Pack", "slug": "fujitsu-g-plus-aa-4", "category_id": 41, "status": "active", "price": "12.99", "stock": 130, "sales_total": "70", "revenue_total": "909.30", "sales_per_day": "2", "sales_per_month": "70", "description": "<p>Fujitsu G Plus alkaline AA batteries.</p>"},
+    {"id": 357, "name": "Fujitsu G Plus AAA 4-Pack", "slug": "fujitsu-g-plus-aaa-4", "category_id": 41, "status": "active", "price": "11.99", "stock": 125, "sales_total": "65", "revenue_total": "779.35", "sales_per_day": "2", "sales_per_month": "65", "description": "<p>Fujitsu G Plus alkaline AAA batteries.</p>"},
+    {"id": 358, "name": "Eveready Gold AA 4-Pack", "slug": "eveready-gold-aa-4", "category_id": 41, "status": "active", "price": "7.99", "stock": 220, "sales_total": "160", "revenue_total": "1278.40", "sales_per_day": "5", "sales_per_month": "160", "description": "<p>Eveready Gold AA batteries.</p>"},
+    {"id": 359, "name": "Eveready Gold AAA 4-Pack", "slug": "eveready-gold-aaa-4", "category_id": 41, "status": "active", "price": "6.99", "stock": 215, "sales_total": "155", "revenue_total": "1083.45", "sales_per_day": "5", "sales_per_month": "155", "description": "<p>Eveready Gold AAA batteries.</p>"},
+    {"id": 360, "name": "Eveready Super Heavy Duty AA 4-Pack", "slug": "eveready-heavy-duty-aa-4", "category_id": 41, "status": "active", "price": "4.49", "stock": 350, "sales_total": "280", "revenue_total": "1257.20", "sales_per_day": "9", "sales_per_month": "280", "description": "<p>Eveready Super Heavy Duty AA - budget choice.</p>"},
+    {"id": 361, "name": "Eveready Super Heavy Duty AAA 4-Pack", "slug": "eveready-heavy-duty-aaa-4", "category_id": 41, "status": "active", "price": "3.99", "stock": 340, "sales_total": "270", "revenue_total": "1077.30", "sales_per_day": "9", "sales_per_month": "270", "description": "<p>Eveready Super Heavy Duty AAA - budget choice.</p>"},
+    {"id": 362, "name": "Energizer AA + Charger Kit", "slug": "energizer-aa-charger-kit", "category_id": 41, "status": "active", "price": "34.99", "stock": 50, "sales_total": "22", "revenue_total": "769.78", "sales_per_day": "1", "sales_per_month": "22", "description": "<p>4x rechargeable AA + Base Charger.</p>"},
+    {"id": 363, "name": "Energizer AAA + Charger Kit", "slug": "energizer-aaa-charger-kit", "category_id": 41, "status": "active", "price": "32.99", "stock": 48, "sales_total": "20", "revenue_total": "659.80", "sales_per_day": "1", "sales_per_month": "20", "description": "<p>4x rechargeable AAA + Base Charger.</p>"},
+    {"id": 364, "name": "Duracell AA + Charger Kit", "slug": "duracell-aa-charger-kit", "category_id": 41, "status": "active", "price": "39.99", "stock": 45, "sales_total": "18", "revenue_total": "719.82", "sales_per_day": "1", "sales_per_month": "18", "description": "<p>4x rechargeable AA + Duracell Charger.</p>"},
+    {"id": 365, "name": "Duracell AAA + Charger Kit", "slug": "duracell-aaa-charger-kit", "category_id": 41, "status": "active", "price": "37.99", "stock": 42, "sales_total": "15", "revenue_total": "569.85", "sales_per_day": "1", "sales_per_month": "15", "description": "<p>4x rechargeable AAA + Duracell Charger.</p>"},
+    {"id": 366, "name": "Ansmann Industrial AA 10-Pack", "slug": "ansmann-industrial-aa-10", "category_id": 41, "status": "active", "price": "18.99", "stock": 100, "sales_total": "55", "revenue_total": "1044.45", "sales_per_day": "2", "sales_per_month": "55", "description": "<p>Ansmann Industrial alkaline AA.</p>"},
+    {"id": 367, "name": "Ansmann Industrial AAA 10-Pack", "slug": "ansmann-industrial-aaa-10", "category_id": 41, "status": "active", "price": "16.99", "stock": 95, "sales_total": "50", "revenue_total": "849.50", "sales_per_day": "2", "sales_per_month": "50", "description": "<p>Ansmann Industrial alkaline AAA.</p>"},
+    {"id": 368, "name": "Procell AA 10-Pack", "slug": "procell-aa-10-pack", "category_id": 41, "status": "active", "price": "22.99", "stock": 80, "sales_total": "40", "revenue_total": "919.60", "sales_per_day": "1", "sales_per_month": "40", "description": "<p>Procell (by Duracell) professional AA.</p>"},
+    {"id": 369, "name": "Procell AAA 10-Pack", "slug": "procell-aaa-10-pack", "category_id": 41, "status": "active", "price": "20.99", "stock": 75, "sales_total": "35", "revenue_total": "734.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>Procell (by Duracell) professional AAA.</p>"},
+    {"id": 370, "name": "Energizer Industrial LR14 C 12-Pack", "slug": "energizer-industrial-c-12", "category_id": 41, "status": "active", "price": "49.99", "stock": 40, "sales_total": "15", "revenue_total": "749.85", "sales_per_day": "1", "sales_per_month": "15", "description": "<p>Industrial C batteries 12-pack.</p>"},
+    {"id": 371, "name": "Energizer Industrial LR20 D 12-Pack", "slug": "energizer-industrial-d-12", "category_id": 41, "status": "active", "price": "54.99", "stock": 35, "sales_total": "12", "revenue_total": "659.88", "sales_per_day": "1", "sales_per_month": "12", "description": "<p>Industrial D batteries 12-pack.</p>"},
+    {"id": 372, "name": "GP Super Alkaline AA 12-Pack", "slug": "gp-super-aa-12-pack", "category_id": 41, "status": "active", "price": "17.99", "stock": 150, "sales_total": "90", "revenue_total": "1619.10", "sales_per_day": "3", "sales_per_month": "90", "description": "<p>GP Super AA value 12-pack.</p>"},
+    {"id": 373, "name": "GP Super Alkaline AAA 12-Pack", "slug": "gp-super-aaa-12-pack", "category_id": 41, "status": "active", "price": "15.99", "stock": 145, "sales_total": "85", "revenue_total": "1359.15", "sales_per_day": "3", "sales_per_month": "85", "description": "<p>GP Super AAA value 12-pack.</p>"},
+    {"id": 374, "name": "Varta AA & AAA Combo 20-Pack", "slug": "varta-combo-20", "category_id": 41, "status": "active", "price": "34.99", "stock": 70, "sales_total": "35", "revenue_total": "1224.65", "sales_per_day": "1", "sales_per_month": "35", "description": "<p>10x AA + 10x AAA combo.</p>"},
+    {"id": 375, "name": "Energizer Max Power Seal AA 20-Pack", "slug": "energizer-power-seal-aa-20", "category_id": 41, "status": "active", "price": "44.99", "stock": 65, "sales_total": "30", "revenue_total": "1349.70", "sales_per_day": "1", "sales_per_month": "30", "description": "<p>Power Seal technology 20-pack.</p>"},
+    {"id": 376, "name": "Energizer Max Power Seal AAA 20-Pack", "slug": "energizer-power-seal-aaa-20", "category_id": 41, "status": "active", "price": "42.99", "stock": 60, "sales_total": "25", "revenue_total": "1074.75", "sales_per_day": "1", "sales_per_month": "25", "description": "<p>Power Seal technology AAA 20-pack.</p>"},
+    {"id": 377, "name": "Duracell Coppertop AA 4-Pack", "slug": "duracell-coppertop-aa-4", "category_id": 41, "status": "active", "price": "13.99", "stock": 200, "sales_total": "125", "revenue_total": "1748.75", "sales_per_day": "4", "sales_per_month": "125", "description": "<p>Duracell Coppertop reliable AA.</p>"},
+    {"id": 378, "name": "Duracell Coppertop AAA 4-Pack", "slug": "duracell-coppertop-aaa-4", "category_id": 41, "status": "active", "price": "12.99", "stock": 195, "sales_total": "120", "revenue_total": "1558.80", "sales_per_day": "4", "sales_per_month": "120", "description": "<p>Duracell Coppertop reliable AAA.</p>"},
+    {"id": 379, "name": "Duracell Coppertop AA 8-Pack", "slug": "duracell-coppertop-aa-8", "category_id": 41, "status": "active", "price": "23.99", "stock": 140, "sales_total": "75", "revenue_total": "1799.25", "sales_per_day": "3", "sales_per_month": "75", "description": "<p>Duracell Coppertop AA 8-pack.</p>"},
+    {"id": 380, "name": "Duracell Coppertop AAA 8-Pack", "slug": "duracell-coppertop-aaa-8", "category_id": 41, "status": "active", "price": "21.99", "stock": 135, "sales_total": "70", "revenue_total": "1539.30", "sales_per_day": "2", "sales_per_month": "70", "description": "<p>Duracell Coppertop AAA 8-pack.</p>"},
 ]
 
 PRODUCT_IMAGES_DATA = [
     {
         "id": 37,
         "product_id": 50,
-        "image": "product-images/energizer-max-aaa-4-pack_5CvQIwn.webp",
+        "image": "product-images/energizer-max-aaa-4-pack.jpg",
         "alt_text": "Energizer MAX AAA 4-Pack",
         "sort_order": 0,
     },
     {
         "id": 38,
         "product_id": 51,
-        "image": "product-images/energizer-silver-watch-battery-155v_BEyoBmV.webp",
+        "image": "product-images/energizer-silver-watch-battery-155v.jpg",
         "alt_text": "Energizer Silver Watch Battery 1.55V",
         "sort_order": 0,
     },
     {
         "id": 39,
         "product_id": 52,
-        "image": "product-images/novita-intimate-wet-wipes-15pcs_lAReI41.webp",
+        "image": "product-images/novita-intimate-wet-wipes-15pcs.jpg",
         "alt_text": "Novita Intimate Wet Wipes 15pcs",
         "sort_order": 0,
     },
     {
         "id": 40,
         "product_id": 53,
-        "image": "product-images/california-scents-car-freshener-coronado-cherry-42.webp",
+        "image": "product-images/california-scents-car-freshener-coronado-cherry-42.jpg",
         "alt_text": "California Scents Car Freshener Coronado Cherry 42g",
         "sort_order": 0,
     },
     {
         "id": 41,
         "product_id": 54,
-        "image": "product-images/energizer-led-r50-e14-62w-450-lumens_EV1fmMH.webp",
+        "image": "product-images/energizer-led-r50-e14-62w-450-lumens.jpg",
         "alt_text": "Energizer LED R50 E14 6.2W 450 Lumens",
         "sort_order": 0,
     },
     {
         "id": 42,
         "product_id": 55,
-        "image": "product-images/smile-wet-wipes-cars-jackson-storm-15pcs_41Rbmtx.webp",
+        "image": "product-images/smile-wet-wipes-cars-jackson-storm-15pcs.jpg",
         "alt_text": "Smile Wet Wipes Cars Jackson Storm 15pcs",
         "sort_order": 0,
     },
     {
         "id": 43,
         "product_id": 56,
-        "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs_g5Z4usZ.webp",
+        "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs.jpg",
         "alt_text": "Smile Baby Wet Wipes with Chamomile 60pcs",
         "sort_order": 0,
     },
     {
         "id": 44,
         "product_id": 57,
-        "image": "product-images/5050028253013.webp",
+        "image": "product-images/refresh-your-car-diffuser-new-carcool-breeze-7ml.jpg",
         "alt_text": "Refresh Your Car Diffuser New Car/Cool Breeze 7ml",
         "sort_order": 0,
     },
+    {
+        "id": 45,
+        "product_id": 58,
+        "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg",
+        "alt_text": "Energizer Alkaline Power 9V 1-Pack",
+        "sort_order": 0,
+    },
+    {
+        "id": 46,
+        "product_id": 59,
+        "image": "product-images/novita-intimate-wet-wipes-15pcs.jpg",
+        "alt_text": "Novita Wet Wipes Anti-bacterial 15pcs",
+        "sort_order": 0,
+    },
+    {
+        "id": 47,
+        "product_id": 150,
+        "image": "product-images/energizer-max-plus-aa-31-pack.jpg",
+        "alt_text": "Energizer Industrial AA 10-Pack",
+        "sort_order": 0,
+    },
+    {
+        "id": 48,
+        "product_id": 151,
+        "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg",
+        "alt_text": "Energizer Everyday AA 4-Pack",
+        "sort_order": 0,
+    },
+    # Products 160-174 - using existing images (cycling through available ones)
+    {
+        "id": 49,
+        "product_id": 160,
+        "image": "product-images/energizer-max-aaa-4-pack.jpg",
+        "alt_text": "Samsung Galaxy Buds Pro",
+        "sort_order": 0,
+    },
+    {
+        "id": 50,
+        "product_id": 161,
+        "image": "product-images/novita-intimate-wet-wipes-15pcs.jpg",
+        "alt_text": "Vitamin C Serum 30ml",
+        "sort_order": 0,
+    },
+    {
+        "id": 51,
+        "product_id": 162,
+        "image": "product-images/california-scents-car-freshener-coronado-cherry-42.jpg",
+        "alt_text": "Multi-Purpose Cleaner 750ml",
+        "sort_order": 0,
+    },
+    {
+        "id": 52,
+        "product_id": 163,
+        "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs.jpg",
+        "alt_text": "Premium Dog Food 2kg",
+        "sort_order": 0,
+    },
+    {
+        "id": 53,
+        "product_id": 164,
+        "image": "product-images/energizer-led-r50-e14-62w-450-lumens.jpg",
+        "alt_text": "A4 Copy Paper 500 Sheets",
+        "sort_order": 0,
+    },
+    {
+        "id": 54,
+        "product_id": 165,
+        "image": "product-images/smile-wet-wipes-cars-jackson-storm-15pcs.jpg",
+        "alt_text": "LEGO City Police Station",
+        "sort_order": 0,
+    },
+    {
+        "id": 55,
+        "product_id": 166,
+        "image": "product-images/refresh-your-car-diffuser-new-carcool-breeze-7ml.jpg",
+        "alt_text": "Yoga Mat Premium 6mm",
+        "sort_order": 0,
+    },
+    {
+        "id": 56,
+        "product_id": 167,
+        "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg",
+        "alt_text": "Garden Hose 15m",
+        "sort_order": 0,
+    },
+    {
+        "id": 57,
+        "product_id": 168,
+        "image": "product-images/energizer-max-plus-aa-31-pack.jpg",
+        "alt_text": "Cordless Drill 18V",
+        "sort_order": 0,
+    },
+    {
+        "id": 58,
+        "product_id": 169,
+        "image": "product-images/california-scents-car-freshener-coronado-cherry-42.jpg",
+        "alt_text": "Organic Extra Virgin Olive Oil 500ml",
+        "sort_order": 0,
+    },
+    {
+        "id": 59,
+        "product_id": 170,
+        "image": "product-images/smile-baby-wet-wipes-with-chamomile-60pcs.jpg",
+        "alt_text": "Baby Bottle Set 3-Pack",
+        "sort_order": 0,
+    },
+    {
+        "id": 60,
+        "product_id": 171,
+        "image": "product-images/energizer-silver-watch-battery-155v.jpg",
+        "alt_text": "Car Floor Mats Set",
+        "sort_order": 0,
+    },
+    {
+        "id": 61,
+        "product_id": 172,
+        "image": "product-images/energizer-max-aaa-4-pack.jpg",
+        "alt_text": "Industrial Work Gloves",
+        "sort_order": 0,
+    },
+    {
+        "id": 62,
+        "product_id": 173,
+        "image": "product-images/novita-intimate-wet-wipes-15pcs.jpg",
+        "alt_text": "Acrylic Paint Set 24 Colors",
+        "sort_order": 0,
+    },
+    {
+        "id": 63,
+        "product_id": 174,
+        "image": "product-images/energizer-led-r50-e14-62w-450-lumens.jpg",
+        "alt_text": "The Art of Programming",
+        "sort_order": 0,
+    },
+    # === Alkaline Batteries Category Images (Products 200-380) ===
+    # Cycling through existing battery images on S3
+    {"id": 64, "product_id": 200, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer MAX AA 4-Pack", "sort_order": 0},
+    {"id": 65, "product_id": 201, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer MAX AA 8-Pack", "sort_order": 0},
+    {"id": 66, "product_id": 202, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer MAX AAA 8-Pack", "sort_order": 0},
+    {"id": 67, "product_id": 203, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Plus AA 4-Pack", "sort_order": 0},
+    {"id": 68, "product_id": 204, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Plus AA 8-Pack", "sort_order": 0},
+    {"id": 69, "product_id": 205, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Duracell Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 70, "product_id": 206, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell Plus AAA 8-Pack", "sort_order": 0},
+    {"id": 71, "product_id": 207, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Ultra AA 4-Pack", "sort_order": 0},
+    {"id": 72, "product_id": 208, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Ultra AAA 4-Pack", "sort_order": 0},
+    {"id": 73, "product_id": 209, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Panasonic Evolta AA 4-Pack", "sort_order": 0},
+    {"id": 74, "product_id": 210, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Panasonic Evolta AA 8-Pack", "sort_order": 0},
+    {"id": 75, "product_id": 211, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Panasonic Evolta AAA 4-Pack", "sort_order": 0},
+    {"id": 76, "product_id": 212, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Panasonic Evolta AAA 8-Pack", "sort_order": 0},
+    {"id": 77, "product_id": 213, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Varta Longlife AA 4-Pack", "sort_order": 0},
+    {"id": 78, "product_id": 214, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Varta Longlife AA 8-Pack", "sort_order": 0},
+    {"id": 79, "product_id": 215, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Varta Longlife AAA 4-Pack", "sort_order": 0},
+    {"id": 80, "product_id": 216, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Varta Longlife AAA 8-Pack", "sort_order": 0},
+    {"id": 81, "product_id": 217, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Varta High Energy AA 4-Pack", "sort_order": 0},
+    {"id": 82, "product_id": 218, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Varta High Energy AAA 4-Pack", "sort_order": 0},
+    {"id": 83, "product_id": 219, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "GP Ultra Plus AA 4-Pack", "sort_order": 0},
+    {"id": 84, "product_id": 220, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "GP Ultra Plus AA 8-Pack", "sort_order": 0},
+    {"id": 85, "product_id": 221, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "GP Ultra Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 86, "product_id": 222, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "GP Ultra Plus AAA 8-Pack", "sort_order": 0},
+    {"id": 87, "product_id": 223, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "GP Super AA 4-Pack", "sort_order": 0},
+    {"id": 88, "product_id": 224, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "GP Super AAA 4-Pack", "sort_order": 0},
+    {"id": 89, "product_id": 225, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer Industrial AA 10-Pack", "sort_order": 0},
+    {"id": 90, "product_id": 226, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer Industrial AAA 10-Pack", "sort_order": 0},
+    {"id": 91, "product_id": 227, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Industrial AA 10-Pack", "sort_order": 0},
+    {"id": 92, "product_id": 228, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Industrial AAA 10-Pack", "sort_order": 0},
+    {"id": 93, "product_id": 229, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer MAX AA 12-Pack", "sort_order": 0},
+    {"id": 94, "product_id": 230, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer MAX AAA 12-Pack", "sort_order": 0},
+    {"id": 95, "product_id": 231, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Plus AA 12-Pack", "sort_order": 0},
+    {"id": 96, "product_id": 232, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Plus AAA 12-Pack", "sort_order": 0},
+    {"id": 97, "product_id": 233, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer MAX C 2-Pack", "sort_order": 0},
+    {"id": 98, "product_id": 234, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer MAX D 2-Pack", "sort_order": 0},
+    {"id": 99, "product_id": 235, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Plus C 2-Pack", "sort_order": 0},
+    {"id": 100, "product_id": 236, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Plus D 2-Pack", "sort_order": 0},
+    {"id": 101, "product_id": 237, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Varta Longlife C 2-Pack", "sort_order": 0},
+    {"id": 102, "product_id": 238, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Varta Longlife D 2-Pack", "sort_order": 0},
+    {"id": 103, "product_id": 239, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Panasonic Evolta C 2-Pack", "sort_order": 0},
+    {"id": 104, "product_id": 240, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Panasonic Evolta D 2-Pack", "sort_order": 0},
+    {"id": 105, "product_id": 241, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer MAX AA 24-Pack", "sort_order": 0},
+    {"id": 106, "product_id": 242, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer MAX AAA 24-Pack", "sort_order": 0},
+    {"id": 107, "product_id": 243, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Plus AA 24-Pack", "sort_order": 0},
+    {"id": 108, "product_id": 244, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Plus AAA 24-Pack", "sort_order": 0},
+    {"id": 109, "product_id": 245, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "GP Ultra AA 16-Pack", "sort_order": 0},
+    {"id": 110, "product_id": 246, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "GP Ultra AAA 16-Pack", "sort_order": 0},
+    {"id": 111, "product_id": 247, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer Eco Advanced AA 4-Pack", "sort_order": 0},
+    {"id": 112, "product_id": 248, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer Eco Advanced AAA 4-Pack", "sort_order": 0},
+    {"id": 113, "product_id": 249, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Varta Industrial AA 10-Pack", "sort_order": 0},
+    {"id": 114, "product_id": 250, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Varta Industrial AAA 10-Pack", "sort_order": 0},
+    {"id": 115, "product_id": 251, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Philips Power Life AA 4-Pack", "sort_order": 0},
+    {"id": 116, "product_id": 252, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Philips Power Life AAA 4-Pack", "sort_order": 0},
+    {"id": 117, "product_id": 253, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Philips Ultra Alkaline AA 4-Pack", "sort_order": 0},
+    {"id": 118, "product_id": 254, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Philips Ultra Alkaline AAA 4-Pack", "sort_order": 0},
+    {"id": 119, "product_id": 255, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Sony Stamina Plus AA 4-Pack", "sort_order": 0},
+    {"id": 120, "product_id": 256, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Sony Stamina Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 121, "product_id": 257, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Rayovac High Energy AA 8-Pack", "sort_order": 0},
+    {"id": 122, "product_id": 258, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Rayovac High Energy AAA 8-Pack", "sort_order": 0},
+    {"id": 123, "product_id": 259, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Maxell Alkaline AA 4-Pack", "sort_order": 0},
+    {"id": 124, "product_id": 260, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Maxell Alkaline AAA 4-Pack", "sort_order": 0},
+    {"id": 125, "product_id": 261, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Kodak Xtralife AA 4-Pack", "sort_order": 0},
+    {"id": 126, "product_id": 262, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Kodak Xtralife AAA 4-Pack", "sort_order": 0},
+    {"id": 127, "product_id": 263, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Kodak Max AA 8-Pack", "sort_order": 0},
+    {"id": 128, "product_id": 264, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Kodak Max AAA 8-Pack", "sort_order": 0},
+    {"id": 129, "product_id": 265, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer Ultimate Lithium AA 4-Pack", "sort_order": 0},
+    {"id": 130, "product_id": 266, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer Ultimate Lithium AAA 4-Pack", "sort_order": 0},
+    {"id": 131, "product_id": 267, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Optimum AA 4-Pack", "sort_order": 0},
+    {"id": 132, "product_id": 268, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Optimum AAA 4-Pack", "sort_order": 0},
+    {"id": 133, "product_id": 269, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer MAX Plus AA 4-Pack", "sort_order": 0},
+    {"id": 134, "product_id": 270, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer MAX Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 135, "product_id": 271, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "GP ReCyko AA 4-Pack", "sort_order": 0},
+    {"id": 136, "product_id": 272, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "GP ReCyko AAA 4-Pack", "sort_order": 0},
+    {"id": 137, "product_id": 273, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Panasonic Eneloop AA 4-Pack", "sort_order": 0},
+    {"id": 138, "product_id": 274, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Panasonic Eneloop AAA 4-Pack", "sort_order": 0},
+    {"id": 139, "product_id": 275, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Amazon Basics AA 20-Pack", "sort_order": 0},
+    {"id": 140, "product_id": 276, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Amazon Basics AAA 20-Pack", "sort_order": 0},
+    {"id": 141, "product_id": 277, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Amazon Basics AA 48-Pack", "sort_order": 0},
+    {"id": 142, "product_id": 278, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Amazon Basics AAA 48-Pack", "sort_order": 0},
+    {"id": 143, "product_id": 279, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Ikea LADDA AA 4-Pack", "sort_order": 0},
+    {"id": 144, "product_id": 280, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Ikea LADDA AAA 4-Pack", "sort_order": 0},
+    {"id": 145, "product_id": 281, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer Power Seal AA 6-Pack", "sort_order": 0},
+    {"id": 146, "product_id": 282, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Energizer Power Seal AAA 6-Pack", "sort_order": 0},
+    {"id": 147, "product_id": 283, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Toshiba High Power AA 4-Pack", "sort_order": 0},
+    {"id": 148, "product_id": 284, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Toshiba High Power AAA 4-Pack", "sort_order": 0},
+    {"id": 149, "product_id": 285, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Sanyo Eneloop Pro AA 4-Pack", "sort_order": 0},
+    {"id": 150, "product_id": 286, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Sanyo Eneloop Pro AAA 4-Pack", "sort_order": 0},
+    {"id": 151, "product_id": 287, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Varta Recharge Accu Power AA 4-Pack", "sort_order": 0},
+    {"id": 152, "product_id": 288, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Varta Recharge Accu Power AAA 4-Pack", "sort_order": 0},
+    {"id": 153, "product_id": 289, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Duracell Recharge Ultra AA 4-Pack", "sort_order": 0},
+    {"id": 154, "product_id": 290, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell Recharge Ultra AAA 4-Pack", "sort_order": 0},
+    {"id": 155, "product_id": 291, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer Recharge Universal AA 4-Pack", "sort_order": 0},
+    {"id": 156, "product_id": 292, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer Recharge Universal AAA 4-Pack", "sort_order": 0},
+    {"id": 157, "product_id": 293, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "GP Super Alkaline C 2-Pack", "sort_order": 0},
+    {"id": 158, "product_id": 294, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "GP Super Alkaline D 2-Pack", "sort_order": 0},
+    {"id": 159, "product_id": 295, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer AA 36-Pack Value Box", "sort_order": 0},
+    {"id": 160, "product_id": 296, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer AAA 36-Pack Value Box", "sort_order": 0},
+    {"id": 161, "product_id": 297, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Duracell AA 36-Pack Value Box", "sort_order": 0},
+    {"id": 162, "product_id": 298, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell AAA 36-Pack Value Box", "sort_order": 0},
+    {"id": 163, "product_id": 299, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Varta AA 40-Pack Megabox", "sort_order": 0},
+    {"id": 164, "product_id": 300, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Varta AAA 40-Pack Megabox", "sort_order": 0},
+    {"id": 165, "product_id": 301, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer AA & AAA Combo 24-Pack", "sort_order": 0},
+    {"id": 166, "product_id": 302, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell AA & AAA Combo 24-Pack", "sort_order": 0},
+    {"id": 167, "product_id": 303, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "GP Premium AA 10-Pack", "sort_order": 0},
+    {"id": 168, "product_id": 304, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "GP Premium AAA 10-Pack", "sort_order": 0},
+    # Products 340-380
+    {"id": 169, "product_id": 340, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Philips Power AA 8-Pack", "sort_order": 0},
+    {"id": 170, "product_id": 341, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Philips Power AAA 8-Pack", "sort_order": 0},
+    {"id": 171, "product_id": 342, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Rayovac Fusion AA 8-Pack", "sort_order": 0},
+    {"id": 172, "product_id": 343, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Rayovac Fusion AAA 8-Pack", "sort_order": 0},
+    {"id": 173, "product_id": 344, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Maxell Gold AA 6-Pack", "sort_order": 0},
+    {"id": 174, "product_id": 345, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Maxell Gold AAA 6-Pack", "sort_order": 0},
+    {"id": 175, "product_id": 346, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer Max AA 16-Pack", "sort_order": 0},
+    {"id": 176, "product_id": 347, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer Max AAA 16-Pack", "sort_order": 0},
+    {"id": 177, "product_id": 348, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Panasonic Pro Power AA 4-Pack", "sort_order": 0},
+    {"id": 178, "product_id": 349, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Panasonic Pro Power AAA 4-Pack", "sort_order": 0},
+    {"id": 179, "product_id": 350, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Panasonic Pro Power AA 8-Pack", "sort_order": 0},
+    {"id": 180, "product_id": 351, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Panasonic Pro Power AAA 8-Pack", "sort_order": 0},
+    {"id": 181, "product_id": 352, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Camelion Plus AA 4-Pack", "sort_order": 0},
+    {"id": 182, "product_id": 353, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Camelion Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 183, "product_id": 354, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Camelion Plus AA 8-Pack", "sort_order": 0},
+    {"id": 184, "product_id": 355, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Camelion Plus AAA 8-Pack", "sort_order": 0},
+    {"id": 185, "product_id": 356, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Fujitsu G Plus AA 4-Pack", "sort_order": 0},
+    {"id": 186, "product_id": 357, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Fujitsu G Plus AAA 4-Pack", "sort_order": 0},
+    {"id": 187, "product_id": 358, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Eveready Gold AA 4-Pack", "sort_order": 0},
+    {"id": 188, "product_id": 359, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Eveready Gold AAA 4-Pack", "sort_order": 0},
+    {"id": 189, "product_id": 360, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Eveready Super Heavy Duty AA 4-Pack", "sort_order": 0},
+    {"id": 190, "product_id": 361, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Eveready Super Heavy Duty AAA 4-Pack", "sort_order": 0},
+    {"id": 191, "product_id": 362, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer AA + Charger Kit", "sort_order": 0},
+    {"id": 192, "product_id": 363, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer AAA + Charger Kit", "sort_order": 0},
+    {"id": 193, "product_id": 364, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Duracell AA + Charger Kit", "sort_order": 0},
+    {"id": 194, "product_id": 365, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell AAA + Charger Kit", "sort_order": 0},
+    {"id": 195, "product_id": 366, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Ansmann Industrial AA 10-Pack", "sort_order": 0},
+    {"id": 196, "product_id": 367, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Ansmann Industrial AAA 10-Pack", "sort_order": 0},
+    {"id": 197, "product_id": 368, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Procell AA 10-Pack", "sort_order": 0},
+    {"id": 198, "product_id": 369, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Procell AAA 10-Pack", "sort_order": 0},
+    {"id": 199, "product_id": 370, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Energizer Industrial LR14 C 12-Pack", "sort_order": 0},
+    {"id": 200, "product_id": 371, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer Industrial LR20 D 12-Pack", "sort_order": 0},
+    {"id": 201, "product_id": 372, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "GP Super Alkaline AA 12-Pack", "sort_order": 0},
+    {"id": 202, "product_id": 373, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "GP Super Alkaline AAA 12-Pack", "sort_order": 0},
+    {"id": 203, "product_id": 374, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Varta AA & AAA Combo 20-Pack", "sort_order": 0},
+    {"id": 204, "product_id": 375, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Energizer Max Power Seal AA 20-Pack", "sort_order": 0},
+    {"id": 205, "product_id": 376, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Energizer Max Power Seal AAA 20-Pack", "sort_order": 0},
+    {"id": 206, "product_id": 377, "image": "product-images/energizer-alkaline-power-aaa-12-pack-strip.jpg", "alt_text": "Duracell Coppertop AA 4-Pack", "sort_order": 0},
+    {"id": 207, "product_id": 378, "image": "product-images/energizer-alkaline-power-aaa-family-pack-24.jpg", "alt_text": "Duracell Coppertop AAA 4-Pack", "sort_order": 0},
+    {"id": 208, "product_id": 379, "image": "product-images/energizer-max-aaa-4-pack.jpg", "alt_text": "Duracell Coppertop AA 8-Pack", "sort_order": 0},
+    {"id": 209, "product_id": 380, "image": "product-images/energizer-max-plus-aa-31-pack.jpg", "alt_text": "Duracell Coppertop AAA 8-Pack", "sort_order": 0},
 ]
 
 PRODUCT_ATTRIBUTE_VALUES_DATA = [
@@ -843,39 +1556,315 @@ PRODUCT_ATTRIBUTE_VALUES_DATA = [
     {"id": 130, "product_id": 57, "option_id": 107},
     {"id": 131, "product_id": 57, "option_id": 108},
     {"id": 132, "product_id": 57, "option_id": 109},
+    # Alkaline Batteries (category 41) - auto-generated below with 3-4 attributes each
 ]
 
+_ALKALINE_BRAND_PATTERNS = [
+    (re.compile(r"^amazon basics\b", re.IGNORECASE), 123),
+    (re.compile(r"^energizer\b", re.IGNORECASE), 82),
+    (re.compile(r"^duracell\b", re.IGNORECASE), 110),
+    (re.compile(r"^panasonic\b", re.IGNORECASE), 111),
+    (re.compile(r"^varta\b", re.IGNORECASE), 112),
+    (re.compile(r"^gp\b", re.IGNORECASE), 113),
+    (re.compile(r"^ikea\b", re.IGNORECASE), 124),
+    (re.compile(r"^toshiba\b", re.IGNORECASE), 125),
+    (re.compile(r"^sanyo\b", re.IGNORECASE), 126),
+    (re.compile(r"^eveready\b", re.IGNORECASE), 127),
+    (re.compile(r"^philips\b", re.IGNORECASE), 128),
+    (re.compile(r"^rayovac\b", re.IGNORECASE), 129),
+    (re.compile(r"^maxell\b", re.IGNORECASE), 130),
+    (re.compile(r"^kodak\b", re.IGNORECASE), 131),
+    (re.compile(r"^camelion\b", re.IGNORECASE), 132),
+    (re.compile(r"^fujitsu\b", re.IGNORECASE), 133),
+    (re.compile(r"^ansmann\b", re.IGNORECASE), 134),
+    (re.compile(r"^procell\b", re.IGNORECASE), 135),
+    (re.compile(r"^sony\b", re.IGNORECASE), 136),
+]
+
+_ALKALINE_PRODUCT_LINE_PATTERNS = [
+    (re.compile(r"\bultra\s+plus\b", re.IGNORECASE), 121),
+    (re.compile(r"\bpower\s+seal\b", re.IGNORECASE), 154),
+    (re.compile(r"\beco\s+advanced\b", re.IGNORECASE), 156),
+    (re.compile(r"\bstamina\s+plus\b", re.IGNORECASE), 160),
+    (re.compile(r"\bultra\s+alkaline\b", re.IGNORECASE), 163),
+    (re.compile(r"\bpower\s+life\b", re.IGNORECASE), 164),
+    (re.compile(r"\bcoppertop\b", re.IGNORECASE), 152),
+    (re.compile(r"\boptimum\b", re.IGNORECASE), 153),
+    (re.compile(r"\bindustrial\b", re.IGNORECASE), 155),
+    (re.compile(r"\bpro\s+power\b", re.IGNORECASE), 157),
+    (re.compile(r"\bxtralife\b", re.IGNORECASE), 159),
+    (re.compile(r"\bgold\b", re.IGNORECASE), 158),
+    (re.compile(r"\bfusion\b", re.IGNORECASE), 161),
+    (re.compile(r"\bpremium\b", re.IGNORECASE), 162),
+    (re.compile(r"\bhigh\s+energy\b", re.IGNORECASE), 120),
+    (re.compile(r"\blonglife\b", re.IGNORECASE), 119),
+    (re.compile(r"\bevolta\b", re.IGNORECASE), 118),
+    (re.compile(r"\bultra\b", re.IGNORECASE), 117),
+    (re.compile(r"\bplus\b", re.IGNORECASE), 116),
+    (re.compile(r"\bmax\b", re.IGNORECASE), 85),
+]
+
+_ALKALINE_BATTERY_TYPE_OPTION_IDS = {
+    "AA": 114,
+    "AAA": 83,
+    "C": 137,
+    "D": 138,
+    "9V": 139,
+    "AA/AAA": 140,
+}
+
+_ALKALINE_PACK_SIZE_OPTION_IDS = {
+    "1": 151,
+    "2": 141,
+    "4": 84,
+    "6": 142,
+    "8": 115,
+    "10": 143,
+    "12": 144,
+    "16": 145,
+    "20": 146,
+    "24": 147,
+    "36": 148,
+    "40": 149,
+    "48": 150,
+    "60": 103,
+}
+
+_ALKALINE_VOLTAGE_OPTION_ID = 122
+
+
+def _extract_pack_size_option_id(name):
+    match = re.search(r"(\d+)\s*-\s*Pack", name, re.IGNORECASE)
+    if not match:
+        match = re.search(r"(\d+)\s*Pack", name, re.IGNORECASE)
+    if not match:
+        return None
+    size = match.group(1)
+    return _ALKALINE_PACK_SIZE_OPTION_IDS.get(size)
+
+
+def _extract_battery_type_option_id(name):
+    if re.search(r"aa\s*(?:&|\+|/)\s*aaa", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("AA/AAA")
+    if re.search(r"\baaa\b", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("AAA")
+    if re.search(r"\baa\b", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("AA")
+    if re.search(r"\b9v\b", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("9V")
+    if re.search(r"\bc\b", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("C")
+    if re.search(r"\bd\b", name, re.IGNORECASE):
+        return _ALKALINE_BATTERY_TYPE_OPTION_IDS.get("D")
+    return None
+
+
+def _extract_brand_option_id(name):
+    for pattern, option_id in _ALKALINE_BRAND_PATTERNS:
+        if pattern.search(name):
+            return option_id
+    return None
+
+
+def _extract_product_line_option_id(name):
+    for pattern, option_id in _ALKALINE_PRODUCT_LINE_PATTERNS:
+        if pattern.search(name):
+            return option_id
+    return None
+
+
+def _dedupe_option_ids(option_ids):
+    seen = set()
+    unique_ids = []
+    for option_id in option_ids:
+        if option_id and option_id not in seen:
+            unique_ids.append(option_id)
+            seen.add(option_id)
+    return unique_ids
+
+
+_existing_product_option_pairs = {
+    (item["product_id"], item["option_id"]) for item in PRODUCT_ATTRIBUTE_VALUES_DATA
+}
+_existing_product_option_map = {}
+for item in PRODUCT_ATTRIBUTE_VALUES_DATA:
+    _existing_product_option_map.setdefault(item["product_id"], []).append(item["option_id"])
+
+_next_attribute_value_id = max(item["id"] for item in PRODUCT_ATTRIBUTE_VALUES_DATA) + 1
+
+# Generate attributes for ALL Alkaline Batteries products (category 41)
+# Each product gets 3 or 4 attributes (minimum 3, never less)
+for product in PRODUCTS_DATA:
+    if product["category_id"] != 41:
+        continue
+    product_id = product["id"]
+    existing_option_ids = _existing_product_option_map.get(product_id, [])
+    existing_count = len(existing_option_ids)
+    # Alternate between 3 and 4 attributes, ensuring minimum 3
+    target_count = 4 if product_id % 2 == 0 else 3
+    if existing_count >= target_count:
+        continue
+
+    brand_option_id = _extract_brand_option_id(product["name"])
+    battery_type_option_id = _extract_battery_type_option_id(product["name"])
+    pack_size_option_id = _extract_pack_size_option_id(product["name"])
+    product_line_option_id = _extract_product_line_option_id(product["name"])
+
+    option_candidates = _dedupe_option_ids(
+        [
+            brand_option_id,
+            battery_type_option_id,
+            pack_size_option_id,
+            product_line_option_id,
+            _ALKALINE_VOLTAGE_OPTION_ID,
+        ]
+    )
+
+    if pack_size_option_id is None:
+        option_candidates.append(_ALKALINE_PACK_SIZE_OPTION_IDS.get("4"))
+    if battery_type_option_id is None:
+        option_candidates.append(_ALKALINE_BATTERY_TYPE_OPTION_IDS.get("AA"))
+    option_candidates = _dedupe_option_ids(option_candidates)
+
+    for option_id in option_candidates:
+        if existing_count >= target_count:
+            break
+        if (product_id, option_id) in _existing_product_option_pairs:
+            continue
+        PRODUCT_ATTRIBUTE_VALUES_DATA.append(
+            {"id": _next_attribute_value_id, "product_id": product_id, "option_id": option_id}
+        )
+        _existing_product_option_pairs.add((product_id, option_id))
+        _existing_product_option_map.setdefault(product_id, []).append(option_id)
+        _next_attribute_value_id += 1
+        existing_count += 1
+
+BANNER_SETTINGS_DATA = {
+    "active_banner_type": "content",
+    "available_from": None,
+    "available_to": None,
+}
+
 BANNERS_DATA = [
+    # Simple banners
     {
         "id": 12,
+        "banner_type": "simple",
         "name": "Electronics & Gadgets",
-        "image": "banners/5e5b77c5-7a86-42a7-a8f8-6ecee165a5b1.png",
-        "mobile_image": "banners/mobile_ab1de3ca-6957-4529-a629-06cc8e6e612d.png",
-        "url": "",
+        "image": "banners/hero-imac.jpg",
+        "mobile_image": "",
+        "url": "/products/electronics/",
         "is_active": True,
+        "order": 0,
         "available_from": None,
         "available_to": None,
-        "order": 0,
     },
     {
         "id": 13,
+        "banner_type": "simple",
         "name": "Fashion Accessories",
-        "image": "banners/9bf2da5c-3839-42fd-955e-a8f7e8be6181.png",
-        "mobile_image": "banners/mobile_6be17e66-09e2-4c09-ab86-6dc009322ca2.png",
-        "url": "",
+        "image": "banners/hero-fashion.jpg",
+        "mobile_image": "",
+        "url": "/products/fashion/",
         "is_active": True,
+        "order": 1,
         "available_from": None,
         "available_to": None,
+    },
+    # Content banners
+    {
+        "id": 14,
+        "banner_type": "content",
+        "name": "iMac Sale Banner",
+        "image": "banners/content-imac.jpg",
+        "mobile_image": "",
+        "url": "",
+        "is_active": True,
+        "order": 0,
+        "available_from": None,
+        "available_to": None,
+        "badge_label": "Sale",
+        "badge_text": "Up to 30% OFF if you order today",
+        "title": "Save today on your new iMac computer.",
+        "subtitle": "Reserve your new Apple iMac 27\" today and enjoy exclusive savings. Pre-order now to secure your discount.",
+        "text_alignment": "left",
+        "overlay_opacity": 50,
+        "primary_button_text": "Pre-order now",
+        "primary_button_url": "#",
+        "primary_button_open_in_new_tab": False,
+        "primary_button_icon": "",
+        "secondary_button_text": "",
+        "secondary_button_url": "#",
+        "secondary_button_open_in_new_tab": False,
+        "secondary_button_icon": "",
+    },
+    {
+        "id": 15,
+        "banner_type": "content",
+        "name": "Fashion New Arrivals",
+        "image": "banners/content-fashion.jpg",
+        "mobile_image": "",
+        "url": "",
+        "is_active": True,
         "order": 1,
+        "available_from": None,
+        "available_to": None,
+        "badge_label": "New arrival",
+        "badge_text": "",
+        "title": "New arrivals picked just for you",
+        "subtitle": "Less is more never out of date.",
+        "text_alignment": "left",
+        "overlay_opacity": 50,
+        "primary_button_text": "Discover more",
+        "primary_button_url": "#",
+        "primary_button_open_in_new_tab": False,
+        "primary_button_icon": "",
+        "secondary_button_text": "View catalog",
+        "secondary_button_url": "#",
+        "secondary_button_open_in_new_tab": False,
+        "secondary_button_icon": "play",
+    },
+    {
+        "id": 16,
+        "banner_type": "content",
+        "name": "Gamers' Favorites",
+        "image": "banners/content-gaming.jpg",
+        "mobile_image": "",
+        "url": "",
+        "is_active": True,
+        "order": 2,
+        "available_from": None,
+        "available_to": None,
+        "badge_label": "Offer",
+        "badge_text": "Save $25 when you spend $250 In-Store or Online",
+        "title": "Gamers' Favorites. Best Sellers.",
+        "subtitle": "The world's largest retail gaming and trade-in destination for Xbox, PlayStation, and Nintendo games, systems, consoles & accessories.",
+        "text_alignment": "left",
+        "overlay_opacity": 50,
+        "primary_button_text": "Find a store",
+        "primary_button_url": "#",
+        "primary_button_open_in_new_tab": False,
+        "primary_button_icon": "location",
+        "secondary_button_text": "",
+        "secondary_button_url": "#",
+        "secondary_button_open_in_new_tab": False,
+        "secondary_button_icon": "",
     },
 ]
 
 HOMEPAGE_SECTIONS_DATA = [
     {
-        "id": 18,
-        "section_type": "product_list",
-        "name": "Featured Products",
-        "title": "Featured Products",
+        "id": 1,
+        "section_type": "storefront_hero",
+        "name": "Storefront Hero",
+        "title": "Don't miss out on exclusive deals.",
+        "subtitle": "Unlock even more exclusive member deals when you become a Plus or Diamond member.",
+        "primary_button_text": "Shop Now",
+        "primary_button_url": "https://google.com?q=shop",
+        "primary_button_open_in_new_tab": True,
+        "secondary_button_text": "Learn more",
+        "secondary_button_url": "https://google.com?q=learn+more",
+        "secondary_button_open_in_new_tab": True,
         "custom_html": "",
         "custom_css": "",
         "custom_js": "",
@@ -885,10 +1874,23 @@ HOMEPAGE_SECTIONS_DATA = [
         "order": 0,
     },
     {
-        "id": 4,
-        "section_type": "banner_section",
-        "name": "",
-        "title": "Promotions",
+        "id": 18,
+        "section_type": "product_list",
+        "name": "Featured Products",
+        "title": "",
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": False,
+        "available_from": None,
+        "available_to": None,
+        "order": 1,
+    },
+    {
+        "id": 20,
+        "section_type": "product_slider",
+        "name": "Product Slider",
+        "title": "",
         "custom_html": "",
         "custom_css": "",
         "custom_js": "",
@@ -898,10 +1900,10 @@ HOMEPAGE_SECTIONS_DATA = [
         "order": 1,
     },
     {
-        "id": 19,
-        "section_type": "product_list",
-        "name": "All Products",
-        "title": "All Products",
+        "id": 4,
+        "section_type": "banner_section",
+        "name": "",
+        "title": "",
         "custom_html": "",
         "custom_css": "",
         "custom_js": "",
@@ -910,6 +1912,97 @@ HOMEPAGE_SECTIONS_DATA = [
         "available_to": None,
         "order": 2,
     },
+    {
+        "id": 19,
+        "section_type": "product_list",
+        "name": "All Products",
+        "title": "",
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": False,
+        "available_from": None,
+        "available_to": None,
+        "order": 3,
+    },
+    {
+        "id": 21,
+        "section_type": "storefront_hero",
+        "name": "Promotions Storefront Hero",
+        "title": "Discover our best promotions.",
+        "subtitle": "Save big with exclusive discounts and special offers available for a limited time.",
+        "primary_button_text": "Show promotions",
+        "primary_button_url": "/promotions/",
+        "primary_button_open_in_new_tab": False,
+        "secondary_button_text": "Learn more",
+        "secondary_button_url": "/about-promotions/",
+        "secondary_button_open_in_new_tab": False,
+        "custom_html": "",
+        "custom_css": "",
+        "custom_js": "",
+        "is_enabled": True,
+        "available_from": None,
+        "available_to": None,
+        "order": 4,
+    },
+]
+
+HOMEPAGE_SECTION_CATEGORY_BOXES_DATA = [
+    {
+        "id": 1,
+        "section_id": 1,
+        "title": "Top categories",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "/categories/",
+        "order": 0,
+    },
+    {
+        "id": 2,
+        "section_id": 1,
+        "title": "Shop consumer electronics",
+        "shop_link_text": "Shop now",
+        "shop_link_url": "/electronics/",
+        "order": 1,
+    },
+    {
+        "id": 3,
+        "section_id": 21,
+        "title": "Top promotions",
+        "shop_link_text": "Show promotions",
+        "shop_link_url": "/promotions/",
+        "order": 0,
+    },
+    {
+        "id": 4,
+        "section_id": 21,
+        "title": "Shop promotional offers",
+        "shop_link_text": "Show promotions",
+        "shop_link_url": "/offers/",
+        "order": 1,
+    },
+]
+
+HOMEPAGE_SECTION_CATEGORY_ITEMS_DATA = [
+    # Box 1: Top categories
+    {"id": 1, "category_box_id": 1, "name": "Electronics", "image": "storefront/category_computers.svg", "url": "/products/electronics/", "order": 0},
+    {"id": 2, "category_box_id": 1, "name": "Batteries", "image": "storefront/category_gaming.svg", "url": "/products/batteries/", "order": 1},
+    {"id": 3, "category_box_id": 1, "name": "Car Accessories", "image": "storefront/category_tablets.svg", "url": "/products/car-accessories/", "order": 2},
+    {"id": 4, "category_box_id": 1, "name": "Lighting", "image": "storefront/category_watches.svg", "url": "/products/lighting/", "order": 3},
+    # Box 2: Consumer electronics
+    {"id": 5, "category_box_id": 2, "name": "Beauty & Health", "image": "storefront/category_laptops.svg", "url": "/products/beauty-health/", "order": 0},
+    {"id": 6, "category_box_id": 2, "name": "Household", "image": "storefront/category_watches.svg", "url": "/products/household/", "order": 1},
+    {"id": 7, "category_box_id": 2, "name": "Pet Supplies", "image": "storefront/category_ipad.svg", "url": "/products/pet-supplies/", "order": 2},
+    {"id": 8, "category_box_id": 2, "name": "Wet Wipes", "image": "storefront/category_accessories.svg", "url": "/products/wet-wipes/", "order": 3},
+    # Box 3: Top promotions (section 21)
+    {"id": 9, "category_box_id": 3, "name": "Electronics", "image": "storefront/category_computers.svg", "url": "/products/electronics/", "order": 0},
+    {"id": 10, "category_box_id": 3, "name": "Batteries", "image": "storefront/category_gaming.svg", "url": "/products/batteries/", "order": 1},
+    {"id": 11, "category_box_id": 3, "name": "Car Accessories", "image": "storefront/category_tablets.svg", "url": "/products/car-accessories/", "order": 2},
+    {"id": 12, "category_box_id": 3, "name": "Lighting", "image": "storefront/category_watches.svg", "url": "/products/lighting/", "order": 3},
+    # Box 4: Promotional offers (section 21)
+    {"id": 13, "category_box_id": 4, "name": "Beauty & Health", "image": "storefront/category_laptops.svg", "url": "/products/beauty-health/", "order": 0},
+    {"id": 14, "category_box_id": 4, "name": "Household", "image": "storefront/category_watches.svg", "url": "/products/household/", "order": 1},
+    {"id": 15, "category_box_id": 4, "name": "Pet Supplies", "image": "storefront/category_ipad.svg", "url": "/products/pet-supplies/", "order": 2},
+    {"id": 16, "category_box_id": 4, "name": "Wet Wipes", "image": "storefront/category_accessories.svg", "url": "/products/wet-wipes/", "order": 3},
 ]
 
 HOMEPAGE_SECTION_PRODUCTS_DATA = [
@@ -925,55 +2018,13 @@ HOMEPAGE_SECTION_PRODUCTS_DATA = [
     {"id": 40, "section_id": 19, "product_id": 55, "order": 5},
     {"id": 41, "section_id": 19, "product_id": 56, "order": 6},
     {"id": 42, "section_id": 19, "product_id": 57, "order": 7},
-]
-
-# =============================================================================
-# Storefront Hero Section Data
-# =============================================================================
-
-STOREFRONT_HERO_SECTION_DATA = {
-    "id": 1,
-    "title": "Don’t miss out on exclusive deals.",
-    "subtitle": "Unlock even more exclusive member deals when you become a Plus or Diamond member.",
-    "primary_button_text": "Shop Now",
-    "primary_button_url": "#",
-    "secondary_button_text": "Learn more",
-    "secondary_button_url": "#",
-    "is_active": True,
-    "available_from": None,
-    "available_to": None,
-}
-
-STOREFRONT_CATEGORY_BOXES_DATA = [
-    {
-        "id": 1,
-        "section_id": 1,
-        "title": "Top categories",
-        "shop_link_text": "Shop now",
-        "shop_link_url": "#",
-        "order": 0,
-    },
-    {
-        "id": 2,
-        "section_id": 1,
-        "title": "Shop consumer electronics",
-        "shop_link_text": "Shop now",
-        "shop_link_url": "#",
-        "order": 1,
-    },
-]
-
-STOREFRONT_CATEGORY_ITEMS_DATA = [
-    # Box 1 - Top categories
-    {"id": 1, "category_box_id": 1, "name": "Computers", "image": "storefront/category_computers.svg", "url": "#", "order": 0},
-    {"id": 2, "category_box_id": 1, "name": "Gaming", "image": "storefront/category_gaming.svg", "url": "#", "order": 1},
-    {"id": 3, "category_box_id": 1, "name": "Tablets", "image": "storefront/category_tablets.svg", "url": "#", "order": 2},
-    {"id": 4, "category_box_id": 1, "name": "Fashion", "image": "storefront/category_fashion_v4.svg", "url": "#", "order": 3},
-    # Box 2 - Consumer electronics
-    {"id": 5, "category_box_id": 2, "name": "Laptops", "image": "storefront/category_laptops.svg", "url": "#", "order": 0},
-    {"id": 6, "category_box_id": 2, "name": "Watches", "image": "storefront/category_watches.svg", "url": "#", "order": 1},
-    {"id": 7, "category_box_id": 2, "name": "Tablets", "image": "storefront/category_ipad.svg", "url": "#", "order": 2},
-    {"id": 8, "category_box_id": 2, "name": "Accessories", "image": "storefront/category_accessories.svg", "url": "#", "order": 3},
+    # Product Slider section (id=20)
+    {"id": 43, "section_id": 20, "product_id": 50, "order": 0},
+    {"id": 44, "section_id": 20, "product_id": 51, "order": 1},
+    {"id": 45, "section_id": 20, "product_id": 52, "order": 2},
+    {"id": 46, "section_id": 20, "product_id": 53, "order": 3},
+    {"id": 47, "section_id": 20, "product_id": 54, "order": 4},
+    {"id": 48, "section_id": 20, "product_id": 55, "order": 5},
 ]
 
 HOMEPAGE_SECTION_BANNERS_DATA = [
@@ -981,7 +2032,7 @@ HOMEPAGE_SECTION_BANNERS_DATA = [
         "id": 11,
         "section_id": 4,
         "name": "Seasonal Sale",
-        "image": "section_banners/8b7c118b-1172-4b92-ac03-8d5580a307ed.png",
+        "image": "section_banners/seeds/promo_sale.jpg",
         "url": "",
         "order": 1,
     },
@@ -989,7 +2040,7 @@ HOMEPAGE_SECTION_BANNERS_DATA = [
         "id": 12,
         "section_id": 4,
         "name": "New Arrivals",
-        "image": "section_banners/95e2bbd6-e24b-4225-864c-ba70cdf47aa5.jpg",
+        "image": "section_banners/seeds/promo_arrivals.jpg",
         "url": "",
         "order": 2,
     },
@@ -997,7 +2048,7 @@ HOMEPAGE_SECTION_BANNERS_DATA = [
         "id": 10,
         "section_id": 4,
         "name": "Smart Home Essentials",
-        "image": "section_banners/8a5e7f6e-0d13-495a-8156-b785606cc9c0.png",
+        "image": "section_banners/seeds/promo_smarthome.jpg",
         "url": "https://www.google.pl",
         "order": 0,
     },
@@ -1049,6 +2100,7 @@ class Command(BaseCommand):
                 self._seed_topbar()
                 self._seed_custom_css()
                 self._seed_site_settings()
+                self._seed_media_storage_settings()
                 self._seed_footer()
                 self._seed_bottombar()
                 self._seed_categories()
@@ -1059,7 +2111,6 @@ class Command(BaseCommand):
                 self._seed_homepage_sections()
                 self._seed_storefront_hero_section()
                 # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
-                self._seed_media_storage_settings()
                 self._seed_social_apps()
 
                 if not skip_users:
@@ -1072,6 +2123,56 @@ class Command(BaseCommand):
             self._populate_history()
 
         self.stdout.write(self.style.SUCCESS("Database seeded successfully!"))
+
+    def _upload_if_missing(self, instance, field_name, relative_path):
+        """Upload seed file to storage if it doesn't exist.
+        
+        Uses storage.save() directly to preserve the exact path from seed data,
+        instead of using the field's upload_to which generates UUID filenames.
+        """
+        if not relative_path:
+            return
+
+        image_field = getattr(instance, field_name)
+        storage = image_field.storage
+
+        def ensure_public_acl():
+            try:
+                from apps.media.models import MediaStorageSettings
+                from apps.media.storage import _build_s3_key
+
+                if hasattr(storage, "bucket"):
+                    settings = MediaStorageSettings.get_settings()
+                    key = _build_s3_key(relative_path, settings)
+                    storage.bucket.Object(key).Acl().put(ACL="public-read")
+            except Exception:
+                pass
+
+        # Check if file exists on storage
+        try:
+            if storage.exists(relative_path):
+                ensure_public_acl()
+                return
+        except Exception:
+            pass
+
+        # Search for file in seed directories
+        seed_dirs = [
+            Path(settings.BASE_DIR) / "assets" / "seeds",
+            Path(settings.BASE_DIR) / "media",
+        ]
+
+        for seed_dir in seed_dirs:
+            full_path = seed_dir / relative_path
+            if full_path.exists():
+                self.stdout.write(f"    Uploading {relative_path} to storage...")
+                with open(full_path, "rb") as f:
+                    # Save directly to storage with the exact path, bypassing upload_to
+                    storage.save(relative_path, ContentFile(f.read()))
+                ensure_public_acl()
+                return
+
+        self.stdout.write(self.style.WARNING(f"    Warning: Seed file not found: {relative_path}"))
 
     def _parse_datetime(self, dt_str):
         """Parse datetime string."""
@@ -1320,6 +2421,8 @@ class Command(BaseCommand):
                 defaults={
                     "name": item["name"],
                     "display_name": item["display_name"],
+                    "show_on_tile": item.get("show_on_tile", True),
+                    "tile_display_order": item.get("tile_display_order", 0),
                 },
             )
         self.stdout.write(f"  AttributeDefinition: {len(ATTRIBUTE_DEFINITIONS_DATA)} records")
@@ -1356,7 +2459,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  Product: {len(PRODUCTS_DATA)} records")
 
         for item in PRODUCT_IMAGES_DATA:
-            ProductImage.objects.update_or_create(
+            obj, created = ProductImage.objects.update_or_create(
                 id=item["id"],
                 defaults={
                     "product_id": item["product_id"],
@@ -1365,6 +2468,7 @@ class Command(BaseCommand):
                     "sort_order": item["sort_order"],
                 },
             )
+            self._upload_if_missing(obj, "image", item["image"])
         self.stdout.write(f"  ProductImage: {len(PRODUCT_IMAGES_DATA)} records")
 
         for item in PRODUCT_ATTRIBUTE_VALUES_DATA:
@@ -1378,40 +2482,111 @@ class Command(BaseCommand):
         self.stdout.write(f"  ProductAttributeValue: {len(PRODUCT_ATTRIBUTE_VALUES_DATA)} records")
 
     def _seed_banners(self):
-        """Seed Banner model."""
+        """Seed BannerGroup, BannerSettings and Banner models."""
+        # First, ensure BannerGroup instances exist for each type
+        content_group, _ = BannerGroup.objects.update_or_create(
+            banner_type=BannerType.CONTENT,
+            defaults={
+                "is_active": BANNER_SETTINGS_DATA["active_banner_type"] == "content",
+                "available_from": self._parse_datetime(BANNER_SETTINGS_DATA["available_from"]),
+                "available_to": self._parse_datetime(BANNER_SETTINGS_DATA["available_to"]),
+            }
+        )
+        simple_group, _ = BannerGroup.objects.update_or_create(
+            banner_type=BannerType.SIMPLE,
+            defaults={
+                "is_active": BANNER_SETTINGS_DATA["active_banner_type"] == "simple",
+                "available_from": self._parse_datetime(BANNER_SETTINGS_DATA["available_from"]),
+                "available_to": self._parse_datetime(BANNER_SETTINGS_DATA["available_to"]),
+            }
+        )
+        self.stdout.write("  BannerGroup: 2 records")
+
+        # Seed the legacy settings singleton for backwards compatibility
+        settings_obj = BannerSettings.get_settings()
+        settings_obj.active_banner_type = BANNER_SETTINGS_DATA["active_banner_type"]
+        settings_obj.available_from = self._parse_datetime(BANNER_SETTINGS_DATA["available_from"])
+        settings_obj.available_to = self._parse_datetime(BANNER_SETTINGS_DATA["available_to"])
+        settings_obj.save()
+        self.stdout.write("  BannerSettings: configured")
+
+        # Map banner types to groups
+        group_map = {
+            "content": content_group,
+            "simple": simple_group,
+        }
+
+        # Then seed the banners
         for item in BANNERS_DATA:
-            Banner.objects.update_or_create(
+            defaults = {
+                "group": group_map.get(item["banner_type"]),
+                "banner_type": item["banner_type"],
+                "name": item["name"],
+                "image": item["image"],
+                "mobile_image": item["mobile_image"],
+                "url": item.get("url", ""),
+                "is_active": item["is_active"],
+                "order": item["order"],
+                "available_from": self._parse_datetime(item.get("available_from")),
+                "available_to": self._parse_datetime(item.get("available_to")),
+            }
+            # Add content banner fields if present
+            if "badge_label" in item:
+                defaults.update({
+                    "badge_label": item.get("badge_label", ""),
+                    "badge_text": item.get("badge_text", ""),
+                    "title": item.get("title", ""),
+                    "subtitle": item.get("subtitle", ""),
+                    "text_alignment": item.get("text_alignment", "left"),
+                    "overlay_opacity": item.get("overlay_opacity", 50),
+                    "primary_button_text": item.get("primary_button_text", ""),
+                    "primary_button_url": item.get("primary_button_url", "#"),
+                    "primary_button_open_in_new_tab": item.get("primary_button_open_in_new_tab", False),
+                    "primary_button_icon": item.get("primary_button_icon", ""),
+                    "secondary_button_text": item.get("secondary_button_text", ""),
+                    "secondary_button_url": item.get("secondary_button_url", "#"),
+                    "secondary_button_open_in_new_tab": item.get("secondary_button_open_in_new_tab", False),
+                    "secondary_button_icon": item.get("secondary_button_icon", ""),
+                })
+            obj, created = Banner.objects.update_or_create(
                 id=item["id"],
-                defaults={
-                    "name": item["name"],
-                    "image": item["image"],
-                    "mobile_image": item["mobile_image"],
-                    "url": item["url"],
-                    "is_active": item["is_active"],
-                    "available_from": self._parse_datetime(item["available_from"]),
-                    "available_to": self._parse_datetime(item["available_to"]),
-                    "order": item["order"],
-                },
+                defaults=defaults,
             )
+            # Ensure images are uploaded to storage
+            self._upload_if_missing(obj, "image", item["image"])
+            if item.get("mobile_image"):
+                self._upload_if_missing(obj, "mobile_image", item["mobile_image"])
         self.stdout.write(f"  Banner: {len(BANNERS_DATA)} records")
 
     def _seed_homepage_sections(self):
         """Seed HomepageSection and related models."""
         for item in HOMEPAGE_SECTIONS_DATA:
+            defaults = {
+                "section_type": item["section_type"],
+                "name": item["name"],
+                "title": item["title"],
+                "custom_html": item["custom_html"],
+                "custom_css": item["custom_css"],
+                "custom_js": item["custom_js"],
+                "is_enabled": item["is_enabled"],
+                "available_from": self._parse_datetime(item["available_from"]),
+                "available_to": self._parse_datetime(item["available_to"]),
+                "order": item["order"],
+            }
+            # Add storefront hero fields if present
+            if item["section_type"] == "storefront_hero":
+                defaults.update({
+                    "subtitle": item.get("subtitle", ""),
+                    "primary_button_text": item.get("primary_button_text", ""),
+                    "primary_button_url": item.get("primary_button_url", ""),
+                    "primary_button_open_in_new_tab": item.get("primary_button_open_in_new_tab", False),
+                    "secondary_button_text": item.get("secondary_button_text", ""),
+                    "secondary_button_url": item.get("secondary_button_url", ""),
+                    "secondary_button_open_in_new_tab": item.get("secondary_button_open_in_new_tab", False),
+                })
             HomepageSection.objects.update_or_create(
                 id=item["id"],
-                defaults={
-                    "section_type": item["section_type"],
-                    "name": item["name"],
-                    "title": item["title"],
-                    "custom_html": item["custom_html"],
-                    "custom_css": item["custom_css"],
-                    "custom_js": item["custom_js"],
-                    "is_enabled": item["is_enabled"],
-                    "available_from": self._parse_datetime(item["available_from"]),
-                    "available_to": self._parse_datetime(item["available_to"]),
-                    "order": item["order"],
-                },
+                defaults=defaults,
             )
         self.stdout.write(f"  HomepageSection: {len(HOMEPAGE_SECTIONS_DATA)} records")
 
@@ -1427,7 +2602,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  HomepageSectionProduct: {len(HOMEPAGE_SECTION_PRODUCTS_DATA)} records")
 
         for item in HOMEPAGE_SECTION_BANNERS_DATA:
-            HomepageSectionBanner.objects.update_or_create(
+            obj, created = HomepageSectionBanner.objects.update_or_create(
                 id=item["id"],
                 defaults={
                     "section_id": item["section_id"],
@@ -1437,29 +2612,12 @@ class Command(BaseCommand):
                     "order": item["order"],
                 },
             )
+            self._upload_if_missing(obj, "image", item["image"])
         self.stdout.write(f"  HomepageSectionBanner: {len(HOMEPAGE_SECTION_BANNERS_DATA)} records")
 
-    def _seed_storefront_hero_section(self):
-        """Seed StorefrontHeroSection and related models."""
-        if STOREFRONT_HERO_SECTION_DATA:
-            StorefrontHeroSection.objects.update_or_create(
-                id=STOREFRONT_HERO_SECTION_DATA["id"],
-                defaults={
-                    "title": STOREFRONT_HERO_SECTION_DATA["title"],
-                    "subtitle": STOREFRONT_HERO_SECTION_DATA["subtitle"],
-                    "primary_button_text": STOREFRONT_HERO_SECTION_DATA["primary_button_text"],
-                    "primary_button_url": STOREFRONT_HERO_SECTION_DATA["primary_button_url"],
-                    "secondary_button_text": STOREFRONT_HERO_SECTION_DATA["secondary_button_text"],
-                    "secondary_button_url": STOREFRONT_HERO_SECTION_DATA["secondary_button_url"],
-                    "is_active": STOREFRONT_HERO_SECTION_DATA["is_active"],
-                    "available_from": self._parse_datetime(STOREFRONT_HERO_SECTION_DATA["available_from"]),
-                    "available_to": self._parse_datetime(STOREFRONT_HERO_SECTION_DATA["available_to"]),
-                },
-            )
-            self.stdout.write("  StorefrontHeroSection: 1 record")
-
-        for item in STOREFRONT_CATEGORY_BOXES_DATA:
-            StorefrontCategoryBox.objects.update_or_create(
+        # Seed category boxes for storefront hero sections
+        for item in HOMEPAGE_SECTION_CATEGORY_BOXES_DATA:
+            HomepageSectionCategoryBox.objects.update_or_create(
                 id=item["id"],
                 defaults={
                     "section_id": item["section_id"],
@@ -1469,10 +2627,10 @@ class Command(BaseCommand):
                     "order": item["order"],
                 },
             )
-        self.stdout.write(f"  StorefrontCategoryBox: {len(STOREFRONT_CATEGORY_BOXES_DATA)} records")
+        self.stdout.write(f"  HomepageSectionCategoryBox: {len(HOMEPAGE_SECTION_CATEGORY_BOXES_DATA)} records")
 
-        for item in STOREFRONT_CATEGORY_ITEMS_DATA:
-            StorefrontCategoryItem.objects.update_or_create(
+        for item in HOMEPAGE_SECTION_CATEGORY_ITEMS_DATA:
+            obj, created = HomepageSectionCategoryItem.objects.update_or_create(
                 id=item["id"],
                 defaults={
                     "category_box_id": item["category_box_id"],
@@ -1482,7 +2640,13 @@ class Command(BaseCommand):
                     "order": item["order"],
                 },
             )
-        self.stdout.write(f"  StorefrontCategoryItem: {len(STOREFRONT_CATEGORY_ITEMS_DATA)} records")
+            self._upload_if_missing(obj, "image", item["image"])
+        self.stdout.write(f"  HomepageSectionCategoryItem: {len(HOMEPAGE_SECTION_CATEGORY_ITEMS_DATA)} records")
+
+    def _seed_storefront_hero_section(self):
+        """Legacy storefront hero section - now handled via HomepageSection with type storefront_hero."""
+        # Category boxes and items are now seeded in _seed_homepage_sections
+        self.stdout.write("  StorefrontHeroSection: skipped (using section type instead)")
 
     def _seed_media_storage_settings(self):
         """Seed MediaStorageSettings with AWS keys from environment variables."""
@@ -1589,9 +2753,13 @@ class Command(BaseCommand):
             "catalog_attributeoption",
             "catalog_productattributevalue",
             "homepage_banner",
+            "homepage_bannergroup",
+            "homepage_bannersettings",
             "homepage_homepagesection",
             "homepage_homepagesectionproduct",
             "homepage_homepagesectionbanner",
+            "homepage_homepagesectioncategorybox",
+            "homepage_homepagesectioncategoryitem",
             "homepage_storefrontherosection",
             "homepage_storefrontcategorybox",
             "homepage_storefrontcategoryitem",
@@ -1625,158 +2793,3 @@ class Command(BaseCommand):
         except Exception as exc:
             self.stdout.write(self.style.WARNING(f"  History: skipped ({exc})"))
 
-STOREFRONT_HERO_SECTION_DATA = {
-    "id": 1,
-    "title": "Don’t miss out on exclusive deals.",
-    "subtitle": "Unlock even more exclusive member deals when you become a Plus or Diamond member.",
-    "primary_button_text": "Shop Now",
-    "primary_button_url": "https://google.com?q=shop",
-    "secondary_button_text": "Learn more",
-    "secondary_button_url": "https://google.com?q=learn+more",
-    "is_active": True,
-    "available_from": None,
-    "available_to": None,
-}
-
-STOREFRONT_CATEGORY_BOXES_DATA = [
-    {
-        "id": 1,
-        "section_id": 1,
-        "title": "Top categories",
-        "shop_link_text": "Shop now",
-        "shop_link_url": "/categories/",
-        "order": 1,
-    },
-    {
-        "id": 2,
-        "section_id": 1,
-        "title": "Shop consumer electronics",
-        "shop_link_text": "Shop now",
-        "shop_link_url": "/electronics/",
-        "order": 2,
-    },
-]
-
-# Note: Images will be replaced by the upload script results, using placeholders for now
-# which match the expected output paths from scripts/upload_assets.py
-STOREFRONT_CATEGORY_ITEMS_DATA = [
-    # Box 1: Top categories
-    {
-        "id": 1,
-        "category_box_id": 1,
-        "name": "Computers",
-        "image": "seeds/storefront/category_computers.png",
-        "url": "/c/computers/",
-        "order": 1,
-    },
-    {
-        "id": 2,
-        "category_box_id": 1,
-        "name": "Gaming",
-        "image": "seeds/storefront/category_gaming.png",
-        "url": "/c/gaming/",
-        "order": 2,
-    },
-    {
-        "id": 3,
-        "category_box_id": 1,
-        "name": "Tablets",
-        "image": "seeds/storefront/category_computers.png", # Reusing computer icon for tablet if generic
-        "url": "/c/tablets/",
-        "order": 3,
-    },
-    {
-        "id": 4,
-        "category_box_id": 1,
-        "name": "Fashion",
-        "image": "seeds/storefront/category_gaming.png", # Placeholder reuse
-        "url": "/c/fashion/",
-        "order": 4,
-    },
-    
-    # Box 2: Shop consumer electronics
-    {
-        "id": 5,
-        "category_box_id": 2,
-        "name": "Laptops",
-        "image": "seeds/storefront/category_computers.png",
-        "url": "/c/laptops/",
-        "order": 1,
-    },
-    {
-        "id": 6,
-        "category_box_id": 2,
-        "name": "Audio",
-        "image": "seeds/storefront/category_audio.png",
-        "url": "/c/audio/",
-        "order": 2,
-    },
-    {
-        "id": 7,
-        "category_box_id": 2,
-        "name": "Cameras",
-        "image": "seeds/storefront/category_cameras.png",
-        "url": "/c/cameras/",
-        "order": 3,
-    },
-    {
-        "id": 8,
-        "category_box_id": 2,
-        "name": "Accessories",
-        "image": "seeds/storefront/category_gaming.png", # Placeholder
-        "url": "/c/accessories/",
-        "order": 4,
-    },
-]
-
-STOREFRONT_BRAND_LOGOS_DATA = [
-    {
-        "id": 1,
-        "section_id": 1,
-        "name": "Volta",
-        "image": "seeds/storefront/brand_volta.png",
-        "url": "/brand/volta/",
-        "order": 1,
-    },
-    {
-        "id": 2,
-        "section_id": 1,
-        "name": "Nebula",
-        "image": "seeds/storefront/brand_nebula.png",
-        "url": "/brand/nebula/",
-        "order": 2,
-    },
-    {
-        "id": 3,
-        "section_id": 1,
-        "name": "Kinetix",
-        "image": "seeds/storefront/brand_kinetix.png",
-        "url": "/brand/kinetix/",
-        "order": 3,
-    },
-    {
-        "id": 4,
-        "section_id": 1,
-        "name": "Aura",
-        "image": "seeds/storefront/brand_aura.png",
-        "url": "/brand/aura/",
-        "order": 4,
-    },
-    # Extras for fullness
-    {
-        "id": 5,
-        "section_id": 1,
-        "name": "Flux",
-        "image": "seeds/storefront/brand_flux.png",
-        "url": "/brand/flux/",
-        "order": 5,
-    },
-    {
-        "id": 6,
-        "section_id": 1,
-        "name": "Zenith",
-        "image": "seeds/storefront/brand_zenith.png",
-        "url": "/brand/zenith/",
-        "order": 6,
-    },
-]

@@ -1,0 +1,522 @@
+{% load i18n %}
+<div id="{% if is_mobile %}filters-sidebar-mobile{% else %}filters-sidebar{% endif %}" class="filters-sidebar">
+  
+  <!-- Subcategories Navigation -->
+  {% if current_category and subcategories_nav %}
+  <div class="mb-6">
+    <!-- Parent Category Link -->
+    {% if current_category.parent %}
+    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+      <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+      </svg>
+      <span>{{ current_category.parent.name }}</span>
+      {% if parent_category_product_count %}<span class="text-gray-400">({{ parent_category_product_count }})</span>{% endif %}
+    </a>
+    {% endif %}
+    
+    <!-- Current Category Name -->
+    <div class="mb-2">
+      <span class="text-base font-bold text-gray-900 dark:text-white">{{ current_category.name }}</span>
+      {% if current_category_product_count %}<span class="text-sm text-gray-400 dark:text-gray-500 ml-1">({{ current_category_product_count }})</span>{% endif %}
+    </div>
+    
+    <!-- Subcategories List -->
+    <ul class="space-y-0.5 mt-1 {% if is_mobile %}-mx-3{% else %}-mx-4{% endif %}">
+      {% for subcategory in subcategories_nav %}
+      <li>
+        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}px-3{% else %}px-4{% endif %} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          {{ subcategory.name }}
+          {% if subcategory.total_product_count %}<span class="text-gray-400 dark:text-gray-500">({{ subcategory.total_product_count }})</span>{% endif %}
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Parent Category Navigation (when no subcategories) -->
+  {% if current_category and current_category.parent and not subcategories_nav %}
+  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+    <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+    </svg>
+    <span>{{ current_category.parent.name }}</span>
+    {% if current_category.parent.product_count %}<span class="text-gray-400">({{ current_category.parent.product_count }})</span>{% endif %}
+  </a>
+  {% endif %}
+
+  {% if not is_mobile %}
+  <!-- Hidden form for filter submission -->
+  <form id="desktop-filter-form" action="" method="get" class="hidden">
+    {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
+    {% if current_sort and current_sort != 'newest' %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
+  </form>
+
+  <!-- Filters Header with Clear Link -->
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-xl font-bold text-gray-900 dark:text-white">{% trans "Filters" %}</h2>
+    <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
+       id="clear-filters-link"
+       class="text-xs transition-all {% if selected_attributes or current_price_min or current_price_max %}text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
+      {% trans "Clear all" %}
+    </a>
+  </div>
+
+  <!-- Filter Search Input -->
+  <div class="mb-4">
+    <div class="relative">
+      <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
+        <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+        </svg>
+      </div>
+      <input type="text" id="filter-search-input" class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="{% trans 'Search filters...' %}" />
+    </div>
+  </div>
+  {% endif %}
+
+  <div id="accordion-flush">
+    
+    <!-- Search Box (for mobile filter drawer) -->
+    {% if is_mobile and search_query %}
+    <div class="mb-4">
+      <label for="mobile-search" class="sr-only">{% trans "Search" %}</label>
+      <div class="relative">
+        <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3">
+          <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
+          </svg>
+        </div>
+        <input type="search" name="q" id="mobile-search" value="{{ search_query }}" class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="{% trans 'Search products...' %}" />
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Price Filter -->
+    <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800" data-filter-name="{% trans 'Price' %}">
+      <h2 id="accordion-flush-heading-price">
+        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer" data-accordion-target="#accordion-flush-body-price" aria-expanded="true" aria-controls="accordion-flush-body-price">
+          <span class="text-base">{% trans "Price" %}</span>
+          <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
+          </svg>
+        </button>
+      </h2>
+      <div id="accordion-flush-body-price" class="mt-4" aria-labelledby="accordion-flush-heading-price">
+        <div class="flex items-center gap-2">
+          <!-- Min Price Input -->
+          <div class="flex-1 flex items-center border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 bg-white dark:bg-gray-700">
+            <span class="text-sm text-gray-400 dark:text-gray-500 mr-2">from</span>
+            <input type="number" 
+                   name="price_min" 
+                   id="price_min{% if is_mobile %}_mobile{% endif %}" 
+                   value="{{ current_price_min }}"
+                   min="0"
+                   step="0.01"
+                   class="flex-1 w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-2">zł</span>
+          </div>
+          <!-- Separator -->
+          <span class="text-gray-400 dark:text-gray-500">—</span>
+          <!-- Max Price Input -->
+          <div class="flex-1 flex items-center border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 bg-white dark:bg-gray-700">
+            <span class="text-sm text-gray-400 dark:text-gray-500 mr-2">to</span>
+            <input type="number" 
+                   name="price_max" 
+                   id="price_max{% if is_mobile %}_mobile{% endif %}" 
+                   value="{{ current_price_max }}"
+                   min="0"
+                   step="0.01"
+                   class="flex-1 w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-2">zł</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attribute Filters -->
+    {% for attribute in available_attributes %}
+    {% if attribute.filtered_options %}
+    <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0" data-filter-name="{{ attribute.display_name }}">
+      <h2 id="accordion-flush-heading-attr-{{ attribute.id }}">
+        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer transition-colors" data-accordion-target="#accordion-flush-body-attr-{{ attribute.id }}" aria-expanded="true" aria-controls="accordion-flush-body-attr-{{ attribute.id }}">
+          <span class="text-base">{{ attribute.display_name }}</span>
+          <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
+          </svg>
+        </button>
+      </h2>
+      <div id="accordion-flush-body-attr-{{ attribute.id }}" class="mt-0" aria-labelledby="accordion-flush-heading-attr-{{ attribute.id }}">
+        <!-- Select All / Clear Link -->
+        <button type="button" 
+                data-attribute-action="{{ attribute.id }}"
+                data-attr-name="attr_{{ attribute.id }}"
+                class="text-sm text-gray-600 dark:text-gray-400 transition-colors cursor-pointer mt-1 mb-1 font-medium rounded-lg px-3 py-1.5 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-800">
+          <span class="action-text">{% trans "Select all" %}</span>
+        </button>
+        <!-- Options Container -->
+        <div class="options-container space-y-0.5" data-attr-id="{{ attribute.id }}" data-collapsed="true">
+          {% for option in attribute.filtered_options %}
+          <div class="flex items-center py-1.5 {% if is_mobile %}-mx-3 px-3{% else %}-mx-4 px-4{% endif %} hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors option-item group {% if forloop.counter > 5 %}hidden extra-option{% endif %}">
+            <input id="attr-{{ attribute.id }}-{{ option.id }}{% if is_mobile %}-mobile{% endif %}" 
+                   name="attr_{{ attribute.id }}" 
+                   value="{{ option.slug }}" 
+                   data-option-id="{{ option.id }}"
+                   type="checkbox" 
+                   {% if option.id in selected_attributes %}checked{% endif %}
+                   class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-primary-600 focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600 cursor-pointer flex-shrink-0 transition-all group-hover:border-primary-500 ring-0" />
+            <label for="attr-{{ attribute.id }}-{{ option.id }}{% if is_mobile %}-mobile{% endif %}" class="ms-2 text-sm text-gray-900 dark:text-gray-300 cursor-pointer">
+              {{ option.value }}
+              {% if option.product_count %}<span class="text-gray-400 dark:text-gray-500">({{ option.product_count }})</span>{% endif %}
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+        <!-- Show More / Less Toggle -->
+        {% if attribute.filtered_options|length > 5 %}
+        <button type="button" 
+                class="show-more-btn flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1 mb-1 cursor-pointer transition-colors rounded-lg px-3 py-1.5 w-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                data-attr-id="{{ attribute.id }}"
+                data-total="{{ attribute.filtered_options|length }}"
+                data-expanded="false">
+          <span class="icon transition-transform">+</span>
+          <span class="text font-medium">{% trans "More" %} ({{ attribute.filtered_options|length|add:"-5" }})</span>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  {% if not is_mobile %}
+  <!-- Apply Filters Button removed - auto-apply active -->
+  {% endif %}
+</div>
+
+{% if not is_mobile %}
+<script>
+// Build query string from current filter state
+function buildFilterQueryString() {
+  const params = new URLSearchParams();
+  
+  // Add search query if present
+  const searchInput = document.querySelector('input[name="q"]');
+  if (searchInput && searchInput.value) {
+    params.append('q', searchInput.value);
+  }
+  
+  // Add sort if not default
+  const sortInput = document.querySelector('input[name="sort"]');
+  if (sortInput && sortInput.value && sortInput.value !== 'newest') {
+    params.append('sort', sortInput.value);
+  }
+  
+  // Collect all checked attribute checkboxes (only from desktop sidebar)
+  document.querySelectorAll('#filters-sidebar input[name^="attr_"]:checked').forEach(function(checkbox) {
+    params.append(checkbox.name, checkbox.value);
+  });
+  
+  // Add price filters
+  const priceMin = document.getElementById('price_min');
+  const priceMax = document.getElementById('price_max');
+  if (priceMin && priceMin.value) {
+    params.append('price_min', priceMin.value);
+  }
+  if (priceMax && priceMax.value) {
+    params.append('price_max', priceMax.value);
+  }
+  
+  return params.toString();
+}
+
+// Show loading overlay on products container
+function showProductsLoading() {
+  const productsContainer = document.getElementById('products-container');
+  if (!productsContainer) return;
+  
+  // Create loading overlay if it doesn't exist
+  let overlay = document.getElementById('products-loading-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'products-loading-overlay';
+    overlay.className = 'absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10 transition-opacity duration-200';
+    overlay.innerHTML = `
+      <div class="flex flex-col items-center gap-3">
+        <div role="status">
+          <svg aria-hidden="true" class="w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+          </svg>
+          <span class="sr-only">Loading...</span>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Make container relative for overlay positioning
+  productsContainer.style.position = 'relative';
+  productsContainer.style.minHeight = '200px';
+  productsContainer.appendChild(overlay);
+}
+
+// Hide loading overlay
+function hideProductsLoading() {
+  const overlay = document.getElementById('products-loading-overlay');
+  if (overlay) {
+    overlay.remove();
+  }
+}
+
+// Apply filters using fetch API (no page reload, no scroll jump)
+function applyFiltersWithHtmx() {
+  const queryString = buildFilterQueryString();
+  const baseUrl = window.location.pathname;
+  const newUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  
+  // Update browser URL without reload
+  window.history.pushState({}, '', newUrl);
+  
+  // Show loading indicator
+  showProductsLoading();
+  
+  // Use fetch API to get and update only the products container
+  const productsContainer = document.getElementById('products-container');
+  if (productsContainer) {
+    fetch(newUrl, {
+      headers: {
+        'HX-Request': 'true'
+      }
+    })
+    .then(response => response.text())
+    .then(html => {
+      productsContainer.innerHTML = html;
+      // Re-trigger price formatting
+      document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
+        const price = parseFloat(el.dataset.price);
+        const currency = el.dataset.currency || 'PLN';
+        if (!isNaN(price)) {
+          el.textContent = new Intl.NumberFormat('pl-PL', {
+            style: 'currency',
+            currency: currency
+          }).format(price);
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching products:', error);
+      hideProductsLoading();
+    });
+  }
+}
+
+// Debounce function for price inputs
+let priceDebounceTimer;
+function debouncedApplyFilters() {
+  clearTimeout(priceDebounceTimer);
+  priceDebounceTimer = setTimeout(applyFiltersWithHtmx, 800);
+}
+
+// Filter search functionality
+document.addEventListener('DOMContentLoaded', function() {
+  // Expand all accordions by default
+  document.querySelectorAll('#accordion-flush [data-accordion-target]').forEach(function(button) {
+    const targetId = button.getAttribute('data-accordion-target');
+    const target = document.querySelector(targetId);
+    const icon = button.querySelector('[data-accordion-icon]');
+    
+    if (target) {
+      // Expand: remove hidden, set aria-expanded true, rotate icon
+      target.classList.remove('hidden');
+      button.setAttribute('aria-expanded', 'true');
+      if (icon) icon.classList.add('rotate-180');
+    }
+  });
+
+  const searchInput = document.getElementById('filter-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      const query = e.target.value.toLowerCase().trim();
+      const filterGroups = document.querySelectorAll('.filter-group');
+      
+      filterGroups.forEach(function(group) {
+        const filterName = group.getAttribute('data-filter-name').toLowerCase();
+        
+        // Check if filter name matches
+        if (query === '' || filterName.includes(query)) {
+          group.style.display = '';
+          // Show all options when filter name matches or empty query
+          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
+            checkbox.closest('.flex.items-center').style.display = '';
+          });
+        } else {
+          // Search in option values
+          let hasMatchingOption = false;
+          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
+            const optionRow = checkbox.closest('.flex.items-center');
+            const label = optionRow.querySelector('label');
+            const optionText = label ? label.textContent.toLowerCase() : '';
+            
+            if (optionText.includes(query)) {
+              optionRow.style.display = '';
+              hasMatchingOption = true;
+            } else {
+              optionRow.style.display = 'none';
+            }
+          });
+          
+          // Show group if it has matching options, hide otherwise
+          group.style.display = hasMatchingOption ? '' : 'none';
+        }
+      });
+    });
+  }
+  
+  // Function to update attribute action link text (Select all / Clear)
+  function updateAttributeActionLink(attrId) {
+    const actionBtn = document.querySelector('#filters-sidebar [data-attribute-action="' + attrId + '"]');
+    if (!actionBtn) return;
+    
+    const actionTextSpan = actionBtn.querySelector('.action-text');
+    const attrName = actionBtn.getAttribute('data-attr-name');
+    // Only count checkboxes in the desktop sidebar (not mobile drawer)
+    const checkedCount = document.querySelectorAll('#filters-sidebar input[name="' + attrName + '"]:checked').length;
+    
+    if (checkedCount > 0) {
+      actionTextSpan.textContent = 'Clear (' + checkedCount + ')';
+    } else {
+      actionTextSpan.textContent = 'Select all';
+    }
+  }
+
+  // Initial update of attribute action links and setup listeners
+  document.querySelectorAll('[data-attribute-action]').forEach(function(btn) {
+    const attrId = btn.getAttribute('data-attribute-action');
+    const attrName = btn.getAttribute('data-attr-name');
+    
+    // Initial update based on actual checked state from server
+    updateAttributeActionLink(attrId);
+    
+    // Handle click on the action link
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Only target checkboxes in the desktop sidebar
+      const checkboxes = document.querySelectorAll('#filters-sidebar input[name="' + attrName + '"]');
+      const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+      
+      if (checkedCount > 0) {
+        // Clear all
+        checkboxes.forEach(function(cb) {
+          cb.checked = false;
+        });
+      } else {
+        // Select all
+        checkboxes.forEach(function(cb) {
+          cb.checked = true;
+        });
+      }
+      updateAttributeActionLink(attrId);
+      applyFiltersWithHtmx();
+    });
+  });
+  
+  // Listen for changes in checkboxes - use event delegation to handle dynamic content
+  document.getElementById('accordion-flush').addEventListener('change', function(e) {
+    if (e.target.matches('input[name^="attr_"]')) {
+      const attrName = e.target.name;
+      const attrId = attrName.replace('attr_', '');
+      updateAttributeActionLink(attrId);
+      applyFiltersWithHtmx();
+    }
+  });
+  
+  // Auto-apply filters on price input change (with debounce)
+  const priceMin = document.getElementById('price_min');
+  const priceMax = document.getElementById('price_max');
+  if (priceMin) {
+    priceMin.addEventListener('input', debouncedApplyFilters);
+  }
+  if (priceMax) {
+    priceMax.addEventListener('input', debouncedApplyFilters);
+  }
+
+  // Handle click on option rows (entire row clickable) - use event delegation
+  document.getElementById('accordion-flush').addEventListener('click', function(e) {
+    const optionItem = e.target.closest('.option-item');
+    if (!optionItem) return;
+    
+    // If the click was directly on the checkbox or label, let browser handle it
+    if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'label') {
+      return;
+    }
+    
+    const checkbox = optionItem.querySelector('input[type="checkbox"]');
+    if (checkbox) {
+      checkbox.checked = !checkbox.checked;
+      // Trigger change event so other listeners run
+      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  
+  // Show More / Less toggle functionality
+  document.querySelectorAll('.show-more-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const attrId = btn.getAttribute('data-attr-id');
+      const container = document.querySelector('.options-container[data-attr-id="' + attrId + '"]');
+      const extraOptions = container.querySelectorAll('.extra-option');
+      const isExpanded = btn.getAttribute('data-expanded') === 'true';
+      const iconSpan = btn.querySelector('.icon');
+      const textSpan = btn.querySelector('.text');
+      const total = parseInt(btn.getAttribute('data-total'));
+      const hiddenCount = total - 5;
+      
+      if (isExpanded) {
+        // Collapse
+        extraOptions.forEach(function(opt) {
+          opt.classList.add('hidden');
+        });
+        btn.setAttribute('data-expanded', 'false');
+        iconSpan.textContent = '+';
+        textSpan.textContent = 'More (' + hiddenCount + ')';
+      } else {
+        // Expand
+        extraOptions.forEach(function(opt) {
+          opt.classList.remove('hidden');
+        });
+        btn.setAttribute('data-expanded', 'true');
+        iconSpan.textContent = '—';
+        textSpan.textContent = 'Less';
+      }
+    });
+  });
+  
+  // Custom accordion toggle for filter accordions
+  const accordionButtons = document.querySelectorAll('[data-accordion-target]');
+  accordionButtons.forEach(function(button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      const targetId = button.getAttribute('data-accordion-target');
+      const target = document.querySelector(targetId);
+      const icon = button.querySelector('[data-accordion-icon]');
+      
+      if (target) {
+        const isHidden = target.classList.contains('hidden');
+        if (isHidden) {
+          target.classList.remove('hidden');
+          button.setAttribute('aria-expanded', 'true');
+          if (icon) icon.classList.add('rotate-180');
+        } else {
+          target.classList.add('hidden');
+          button.setAttribute('aria-expanded', 'false');
+          if (icon) icon.classList.remove('rotate-180');
+        }
+      }
+    });
+  });
+
+});
+</script>
+{% endif %}
+

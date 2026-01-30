@@ -12,6 +12,22 @@
   display: none !important;
 }
 
+/* Global checkbox styles - subtle square corners instead of circles */
+input[type="checkbox"] {
+  border-radius: 2px !important;
+}
+
+input[type="checkbox"]:checked {
+  border-radius: 2px !important;
+}
+
+/* Global smooth transitions for interactive elements */
+a, button, input, select, textarea {
+  transition-property: color, background-color, border-color, opacity, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-in-out;
+}
+
 html {
   scrollbar-gutter: stable;
 }

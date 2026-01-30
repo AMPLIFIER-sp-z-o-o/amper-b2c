@@ -1,9 +1,10 @@
+{% load i18n %}
 {% if draft_preview_enabled %}
   <div class="sticky top-0 z-100 min-h-9 border-b border-amber-300/40 bg-slate-900 text-amber-100 shadow-sm">
     <div class="mx-auto max-w-7xl px-4">
       <div class="flex flex-col gap-1 py-2 text-center text-xs font-medium leading-5 sm:flex-row sm:items-center sm:justify-center sm:gap-3 sm:text-sm">
-        <span>Podgląd wersji roboczej (draft).</span>
-        <span class="text-white/90">Zmiany wprowadzone po wygenerowaniu tego linku nie będą widoczne w tym podglądzie.</span>
+        <span>{% translate "Draft preview mode." %}</span>
+        <span class="text-white/90">{% translate "Changes made after this link was generated will not be visible in this preview." %}</span>
       </div>
     </div>
   </div>

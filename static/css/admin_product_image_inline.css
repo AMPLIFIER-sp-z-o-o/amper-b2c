@@ -1,0 +1,194 @@
+/* ProductImageInline vertical alignment */
+.tab-product-images table tbody tr.form-row td {
+    vertical-align: middle !important;
+}
+
+.tab-product-images table tbody tr.form-row th {
+    vertical-align: middle !important;
+}
+
+/* Ensure the preview column content is vertically centered */
+.tab-product-images .field-image_preview .readonly {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    min-height: 64px;
+}
+
+.tab-product-images .product-image-preview {
+    margin: 0 !important; /* Remove negative margins that break alignment */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Align form elements vertically within cells */
+.tab-product-images .field-image > div,
+.tab-product-images .field-alt_text > div,
+.tab-product-images .field-sort_order > div {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 64px;
+}
+
+/* Fix for Unfold's file input container - ensure proper vertical centering */
+.tab-product-images td.field-image .flex {
+    align-items: center !important;
+}
+
+/* Reduce padding on cells for tighter layout */
+.tab-product-images table tbody tr.form-row td {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+}
+
+/* Hide inline object label like "Test Product 1 (0)" */
+.tab-product-images td.original > p,
+.tab-product-images td.original .inline-label,
+.tab-product-images td.original .inline_label,
+.tab-product-images td.original a,
+.tab-product-images .field-image_preview .inline-label,
+.tab-product-images .field-image_preview .inline_label,
+.tab-product-images .inline-related .inline-label,
+.tab-product-images .inline-related .inline_label {
+    display: none !important;
+}
+
+
+/* Use a single image+name box in the Image column */
+.tab-product-images th.column-image_preview,
+.tab-product-images td.field-image_preview {
+    display: none !important;
+}
+
+/* Hide custom preview columns in other inlines using the same style */
+.tab-product-images th.column-image_preview_inline,
+.tab-product-images td.field-image_preview_inline {
+    display: none !important;
+}
+
+/* Hide Unfold's secondary thumbnail inside the file input (keep preview column only) */
+.tab-product-images td.field-image [class*="h-[38px]"][class*="w-[38px]"] {
+    display: none !important;
+}
+
+.tab-product-images td.field-image a[style*="background-image"] {
+    display: none !important;
+}
+
+/* Make file input box align visually with the preview column */
+.tab-product-images td.field-image .bg-white.border {
+    min-height: 64px;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+}
+
+.tab-product-images td.field-image .flex.flex-row {
+    width: 100% !important;
+}
+
+.tab-product-images td.field-image .bg-white.border label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.tab-product-images td.field-image .product-image-inline-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 2px solid #f3f4f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    flex: 0 0 auto;
+    margin-left: 8px;
+    transition: none !important;
+}
+
+.tab-product-images td.field-image .product-image-inline-chip img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    transition: none !important;
+}
+
+.tab-product-images td.field-image .product-image-inline-chip:hover,
+.tab-product-images td.field-image .product-image-inline-chip img:hover {
+    transform: none !important;
+}
+
+.tab-product-images td.field-image .product-image-inline-chip.is-empty {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+}
+
+/* ========================================================================== */
+/* Single image fields styled like ProductImageInline */
+/* ========================================================================== */
+
+.product-image-upload {
+    min-height: 64px;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 1 1 auto !important;
+    align-items: center !important;
+}
+
+.product-image-upload .flex.flex-row {
+    width: 100% !important;
+}
+
+.product-image-upload label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Hide Unfold's built-in thumbnail inside the file input */
+.product-image-upload [class*="h-[38px]"][class*="w-[38px]"] {
+    display: none !important;
+}
+
+.product-image-upload a[style*="background-image"] {
+    display: none !important;
+}
+
+.product-image-upload .product-image-inline-chip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 2px solid #f3f4f6;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    flex: 0 0 auto;
+    margin-left: 8px;
+    transition: none !important;
+}
+
+.product-image-upload .product-image-inline-chip img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 6px;
+    transition: none !important;
+}
+
+.product-image-upload .product-image-inline-chip:hover,
+.product-image-upload .product-image-inline-chip img:hover {
+    transform: none !important;
+}
+
+.product-image-upload .product-image-inline-chip.is-empty {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+}

@@ -1,0 +1,38 @@
+{% load i18n %}
+{% comment %}
+  Product Tile Attributes Component
+  Displays up to 4 product attributes on product tiles (slider, grid, list views).
+  The attributes are sorted by tile_display_order, then alphabetically.
+  Only attributes with show_on_tile=True are displayed.
+{% endcomment %}
+
+{% with attrs=product.tile_display_attributes %}
+{% if attrs %}
+<div id="product-attributes-{{ product.id }}" class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
+  {% for attr in attrs %}
+  <div class="product-tile-attribute group/attr flex cursor-pointer items-baseline py-0.5 transition-all min-w-0">
+    <div class="relative inline-flex items-baseline gap-1.5 min-w-0 max-w-full">
+      <span class="shrink-0 text-sm font-normal text-gray-500 dark:text-gray-400">
+        {{ attr.attribute_name }}:
+      </span>
+      <span class="min-w-0 truncate text-sm font-bold text-gray-900 dark:text-white"
+            {% if attr.is_truncated %}
+            title="{{ attr.full_value }}"
+            data-tooltip-target="tooltip-attr-{{ product.id }}-{{ forloop.counter }}"
+            {% endif %}>{{ attr.display_value }}</span>
+
+      {# Continuous solid underline (label + value width) #}
+      <div class="absolute -bottom-0.5 left-0 h-0.5 w-full bg-primary-500/90 opacity-0 group-hover/attr:opacity-100 transition-opacity rounded-full"></div>
+    </div>
+    
+    {% if attr.is_truncated %}
+    <div id="tooltip-attr-{{ product.id }}-{{ forloop.counter }}" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+      {{ attr.full_value }}
+      <div class="tooltip-arrow" data-popper-arrow></div>
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}

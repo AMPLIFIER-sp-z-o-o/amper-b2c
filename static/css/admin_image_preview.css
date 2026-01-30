@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Admin Image Preview - Reusable styles for image field previews
+   ========================================================================== */
+
+/* Container for image preview + upload field combination */
+.admin-image-preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+/* Image preview thumbnail */
+.admin-image-preview {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.admin-image-preview img {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    border-radius: 8px;
+    background: #f9fafb;
+    border: 2px solid #f3f4f6;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-image-preview img:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Empty state placeholder */
+.admin-image-preview-empty {
+    width: 120px;
+    height: 120px;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 8px;
+    border: 2px dashed #d1d5db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+}
+
+.dark .admin-image-preview-empty {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Small preview (for list views and inlines) */
+.admin-image-preview-sm img,
+.admin-image-preview-sm .admin-image-preview-empty {
+    width: 64px;
+    height: 64px;
+}
+
+/* Inline preview - compact horizontal layout */
+.admin-image-preview-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-image-preview-inline img {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+}

@@ -1,0 +1,46 @@
+{% load i18n %}
+{# Top Controls - Sorting, Pagination, View Toggle #}
+{% include "web/components/product_list_controls.html" with position="top" %}
+
+<!-- Products Container -->
+{% if products %}
+<!-- View modes: list (horizontal cards, desktop default) / grid (tiles, mobile default) -->
+<div id="products-grid" 
+     class="products-container"
+     data-view-mode="{{ view_mode }}"
+     data-current-view="{{ view_mode }}">
+  
+  {# List View - Desktop default #}
+  <div class="view-list {% if view_mode == 'grid' %}hidden{% endif %} flex flex-col gap-3">
+    {% for product in products %}
+      {% include "web/components/product_list_card.html" with product=product %}
+    {% endfor %}
+  </div>
+  
+  {# Grid View - Mobile default #}
+  <div class="view-grid {% if view_mode == 'list' %}hidden{% endif %} grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-2 xl:grid-cols-4">
+    {% for product in products %}
+      {% include "web/components/homepage_product_card.html" with product=product %}
+    {% endfor %}
+  </div>
+</div>
+
+{# Bottom Controls - Pagination only #}
+{% include "web/components/product_list_controls.html" with position="bottom" %}
+
+{% else %}
+<!-- Empty State -->
+<div class="flex flex-col items-center justify-center py-16 text-center">
+  <svg class="mb-4 h-16 w-16 text-gray-400 dark:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z" />
+  </svg>
+  <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{% translate "No products found" %}</h3>
+  <p class="mb-4 text-gray-500 dark:text-gray-400">{% translate "Try adjusting your filters or search query." %}</p>
+  <a href="{% url 'web:product_list' %}" class="inline-flex items-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+    <svg class="-ms-1 me-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"/>
+    </svg>
+    {% translate "Clear filters" %}
+  </a>
+</div>
+{% endif %}

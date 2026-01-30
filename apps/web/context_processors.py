@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from apps.catalog.models import Category
+from apps.catalog.models import Category, Product, ProductStatus
 from apps.web.models import BottomBar, CustomCSS, Footer, Navbar, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
@@ -13,31 +13,74 @@ def _safe_call(callback, default=None):
         return default
 
 
+def _category_has_products(category, category_ids_with_products):
+    """
+    Recursively check if a category or any of its descendants has active products.
+    Uses a pre-computed set of category IDs with products for efficiency.
+    """
+    if category.id in category_ids_with_products:
+        return True
+    # Check children recursively (use prefetched children if available)
+    for child in category.children.all():
+        if _category_has_products(child, category_ids_with_products):
+            return True
+    return False
+
+
+def _filter_categories_with_products(categories):
+    """
+    Filter a list of categories to only include those with products
+    (either directly or in their subcategories).
+    """
+    if not categories:
+        return []
+    
+    # Get all category IDs that have at least one active product
+    category_ids_with_products = set(
+        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+        .values_list('category_id', flat=True)
+        .distinct()
+    )
+    
+    # Filter categories that have products (directly or in children)
+    return [
+        cat for cat in categories
+        if _category_has_products(cat, category_ids_with_products)
+    ]
+
+
 def project_meta(request):
     # Build project metadata from SiteSettings
     project_data = {
-        "NAME": "",
-        "URL": "",
-        "DESCRIPTION": "",
-        "IMAGE": None,
-        "KEYWORDS": "",
+        "NAME": settings.PROJECT_METADATA.get("NAME", ""),
+        "URL": settings.PROJECT_METADATA.get("URL", ""),
+        "DESCRIPTION": settings.PROJECT_METADATA.get("DESCRIPTION", ""),
+        "IMAGE": settings.PROJECT_METADATA.get("IMAGE", None),
+        "KEYWORDS": settings.PROJECT_METADATA.get("KEYWORDS", ""),
     }
 
     site_currency = "PLN"  # default
     site_settings_obj = _safe_call(SiteSettings.get_settings)
     if site_settings_obj:
-        project_data["NAME"] = site_settings_obj.store_name or ""
-        project_data["URL"] = site_settings_obj.site_url or ""
-        project_data["DESCRIPTION"] = site_settings_obj.description or ""
-        project_data["KEYWORDS"] = site_settings_obj.keywords or ""
+        if site_settings_obj.store_name:
+            project_data["NAME"] = site_settings_obj.store_name
+        if site_settings_obj.site_url:
+            project_data["URL"] = site_settings_obj.site_url
+        if site_settings_obj.description:
+            project_data["DESCRIPTION"] = site_settings_obj.description
+        if site_settings_obj.keywords:
+            project_data["KEYWORDS"] = site_settings_obj.keywords
         site_currency = site_settings_obj.currency or "PLN"
         if site_settings_obj.default_image:
             project_data["IMAGE"] = site_settings_obj.default_image.url
 
     # Build title from name and description
-    name = project_data["NAME"]
-    description = project_data["DESCRIPTION"]
-    project_data["TITLE"] = f"{name} | {description}" if name and description else name
+    name = str(project_data["NAME"])
+    description = str(project_data["DESCRIPTION"])
+    if name and description:
+        project_data["TITLE"] = f"{name} | {description}"
+    else:
+        project_data["TITLE"] = name or description
 
     theme_cookie = request.COOKIES.get("theme", "")
 
@@ -183,8 +226,9 @@ def navigation_categories(request):
     navbar_mode = navbar.mode if navbar else Navbar.NavbarMode.STANDARD
 
     # Always get parent categories for "All categories" drawer and fallback
+    # Filter out categories that have no products (directly or in children)
     parent_categories = _safe_call(
-        lambda: list(
+        lambda: _filter_categories_with_products(list(
             Category.objects.filter(parent__isnull=True)
             .prefetch_related(
                 "children",
@@ -193,7 +237,7 @@ def navigation_categories(request):
                 "children__children__children__children",
             )
             .order_by("name")
-        ),
+        )),
         default=[],
     )
 

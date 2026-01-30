@@ -1,6 +1,483 @@
 {% load static %}
 {% if banners %}
-<section id="hero-banner" class="hero-banner-section bg-white dark:bg-gray-900">
+{% with first_banner=banners.0 %}
+{% if first_banner.banner_type == 'content' %}
+{# Content Banner Carousel - Flowbite style with text overlay #}
+<section id="hero-banner-{{ first_banner.id|default:'draft' }}" class="hero-banner-section section-hero-banner bg-gray-900 antialiased w-full overflow-hidden">
+    <div class="mx-auto banner-carousel-container">
+        <div id="content-carousel" class="swiper content-banner-swiper relative w-full h-screen">
+            <div class="swiper-wrapper">
+                {% for banner in banners %}
+                <div id="hero-banner-slide-{{ banner.id|default:'draft' }}" class="swiper-slide hero-banner-slide hero-banner-slide-{{ banner.id|default:'draft' }} relative overflow-hidden">
+                    {# Background image #}
+                    <picture class="absolute inset-0 w-full h-full">
+                        {% if banner.mobile_image %}
+                        <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                        {% endif %}
+                        <img 
+                            src="{{ banner.image.url }}" 
+                            alt="{{ banner.name }}"
+                            class="w-full h-full object-cover object-{{ banner.image_alignment }}"
+                            loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                        />
+                    </picture>
+                    
+                    {# Dark overlay #}
+                    <div class="absolute inset-0 bg-black pointer-events-none" style="opacity: {{ banner.overlay_opacity|default:50 }}%;"></div>
+                    
+                    {# Text content - use relative positioning to stay within slide bounds #}
+                    <div class="hero-banner-content relative z-10 h-full flex items-center 
+                        {% if banner.text_alignment == 'left' %}
+                        justify-start pl-20 lg:pl-40
+                        {% elif banner.text_alignment == 'right' %}
+                        justify-end pr-20 lg:pr-40
+                        {% else %}
+                        justify-center
+                        {% endif %}
+                    ">
+                        <div class="max-w-4xl px-4
+                            {% if banner.text_alignment == 'center' %}text-center{% endif %}
+                        ">
+                            {# Badge with label and text #}
+                            {% if banner.badge_label or banner.badge_text %}
+                            <a href="{% if banner.primary_button_url %}{{ banner.primary_button_url }}{% else %}#{% endif %}" class="mb-5 inline-flex items-center justify-between rounded-full bg-white/10 px-1 py-1 pr-4 text-sm text-white hover:bg-white/20" role="alert">
+                                {% if banner.badge_label %}
+                                <span class="mr-3 rounded-xl bg-white/30 px-4 py-1 text-xs font-medium">{{ banner.badge_label }}</span>
+                                {% endif %}
+                                {% if banner.badge_text %}
+                                <span class="mr-1 text-sm font-medium">{{ banner.badge_text }}</span>
+                                {% endif %}
+                                <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+                                </svg>
+                            </a>
+                            {% endif %}
+                            
+                            {# Title #}
+                            {% if banner.title %}
+                            <h2 class="mb-3 text-3xl font-bold leading-tight tracking-tight text-white lg:text-5xl">{{ banner.title }}</h2>
+                            {% endif %}
+                            
+                            {# Subtitle / Description #}
+                            {% if banner.subtitle %}
+                            <p class="mb-5 text-gray-200">{{ banner.subtitle }}</p>
+                            {% endif %}
+                            
+                            {# Buttons #}
+                            <div class="hero-banner-actions flex items-center flex-wrap gap-3
+                                {% if banner.text_alignment == 'center' %}justify-center{% endif %}
+                            ">
+                                {% if banner.primary_button_text %}
+                                <a href="{{ banner.primary_button_url|default:'#' }}" 
+                                   class="inline-flex items-center rounded-lg bg-primary-700 px-5 py-3 text-base font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300"
+                                   {% if banner.primary_button_open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                                    {% if banner.primary_button_icon == 'location' %}
+                                    <svg class="me-2 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.8 13.938h-.011a7 7 0 1 0-11.464.144h-.016l.14.171c.1.127.2.251.3.371L12 21l5.13-6.248c.194-.209.374-.429.54-.659l.13-.155Z" />
+                                    </svg>
+                                    {% elif banner.primary_button_icon == 'arrow-right' %}
+                                    <svg class="me-2 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+                                    </svg>
+                                    {% endif %}
+                                    {{ banner.primary_button_text }}
+                                </a>
+                                {% endif %}
+                                
+                                {% if banner.secondary_button_text %}
+                                <a href="{{ banner.secondary_button_url|default:'#' }}" 
+                                   class="inline-flex items-center rounded-lg bg-white/40 px-5 py-3 text-base font-medium text-white hover:bg-white/50 focus:outline-none focus:ring-4 focus:ring-gray-300"
+                                   {% if banner.secondary_button_open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                                    {% if banner.secondary_button_icon == 'play' %}
+                                    <svg class="me-1 h-6 w-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                                        <path fill-rule="evenodd" d="M8.6 5.2A1 1 0 0 0 7 6v12a1 1 0 0 0 1.6.8l8-6a1 1 0 0 0 0-1.6l-8-6Z" clip-rule="evenodd" />
+                                    </svg>
+                                    {% endif %}
+                                    {{ banner.secondary_button_text }}
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if banners|length > 1 %}
+            {# Pagination dots #}
+            <div class="swiper-pagination content-pagination absolute z-30 flex justify-center space-x-3 rtl:space-x-reverse" style="left: 0; right: 0; bottom: 1.25rem; width: auto;"></div>
+            
+            {# Full-height clickable navigation areas #}
+            <div class="banner-nav-prev"></div>
+            <div class="banner-nav-next"></div>
+
+            {# Navigation arrows #}
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const swiperEl = document.querySelector('.content-banner-swiper');
+    if (!swiperEl) return;
+    
+    let swiperInstance = null;
+
+    // Dynamic height calculation to fit visible viewport area exactly
+    function updateBannerHeight() {
+        const scrollTop = window.scrollY || document.documentElement.scrollTop;
+        const rect = swiperEl.getBoundingClientRect();
+        const documentTop = rect.top + scrollTop;
+        
+        // Calculate remaining height in the viewport
+        let availableHeight = window.innerHeight - documentTop;
+        
+        // Ensure reasonable limits
+        const minHeight = window.innerWidth < 768 ? 300 : 450;
+        let finalHeight = Math.max(availableHeight, minHeight);
+        
+        swiperEl.style.height = finalHeight + 'px';
+        
+        if (swiperInstance) {
+            swiperInstance.update();
+        }
+    }
+
+    // Run on load and resize
+    updateBannerHeight();
+    window.addEventListener('resize', updateBannerHeight);
+    
+    // Extra check for layout shifts
+    setTimeout(updateBannerHeight, 200);
+
+    const totalBanners = {{ banners|length }};
+    
+    const swiper = new Swiper('.content-banner-swiper', {
+        loop: totalBanners > 1,
+        autoplay: {
+            delay: 7000,
+            disableOnInteraction: false,
+        },
+        pagination: {
+            el: '.content-pagination',
+            clickable: true,
+            renderBullet: function(index, className) {
+                return '<button type="button" class="' + className + ' h-3 w-3 rounded-full" aria-label="Slide ' + (index + 1) + '"></button>';
+            },
+        },
+        navigation: {
+            nextEl: '.swiper-button-next',
+            prevEl: '.swiper-button-prev',
+        },
+        effect: 'slide',
+        speed: 600,
+        slidesPerView: 1,
+        spaceBetween: 0,
+    });
+
+    swiperInstance = swiper;
+    
+    // Full-height navigation areas (desktop)
+    const navPrev = document.querySelector('.content-banner-swiper .banner-nav-prev');
+    const navNext = document.querySelector('.content-banner-swiper .banner-nav-next');
+    if (navPrev) navPrev.addEventListener('click', () => swiper.slidePrev());
+    if (navNext) navNext.addEventListener('click', () => swiper.slideNext());
+
+    // Mobile navigation buttons
+    const contentMobilePrev = document.querySelector('.content-banner-swiper .banner-mobile-prev');
+    const contentMobileNext = document.querySelector('.content-banner-swiper .banner-mobile-next');
+    if (contentMobilePrev) contentMobilePrev.addEventListener('click', () => swiper.slidePrev());
+    if (contentMobileNext) contentMobileNext.addEventListener('click', () => swiper.slideNext());
+    
+    // Update mobile pagination dots
+    function updateMobilePagination() {
+        const container = document.querySelector('.content-banner-swiper .banner-mobile-pagination');
+        if (!container || !swiper || typeof swiper.realIndex === 'undefined') return;
+        
+        try {
+            const activeIndex = swiper.realIndex;
+            
+            let dotsHtml = '';
+            for (let i = 0; i < totalBanners; i++) {
+                const isActive = i === activeIndex;
+                dotsHtml += '<span class="mobile-dot ' + (isActive ? 'active' : '') + '"></span>';
+            }
+            container.innerHTML = dotsHtml;
+        } catch(e) {
+            // Silent catch
+        }
+    }
+    
+    if (totalBanners > 1) {
+        updateMobilePagination();
+        swiper.on('slideChange', updateMobilePagination);
+    }
+});
+</script>
+
+<style>
+/* Content Banner Carousel Styles - Full Hero Banner */
+.content-banner-swiper {
+    width: 100%;
+    /* Flexible height calculated by JS, fallback to 80vh */
+    height: 80vh;
+    height: 80dvh;
+    min-height: 400px;
+    position: relative;
+    overflow: hidden;
+}
+
+.content-banner-swiper .swiper-wrapper {
+    height: 100%;
+}
+
+@media (max-width: 768px) {
+    .content-banner-swiper,
+    .content-banner-swiper .swiper-wrapper {
+        height: 60vh;
+        height: 60dvh;
+        min-height: 300px;
+    }
+}
+
+.content-banner-swiper .swiper-slide {
+    height: 100% !important;
+    overflow: hidden !important;
+    position: relative !important;
+}
+
+/* Ensure image covers full slide */
+.content-banner-swiper .swiper-slide picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.content-banner-swiper .swiper-slide picture img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Helper classes for conditional positioning */
+.object-top {
+    object-position: top center !important;
+}
+
+.object-center {
+    object-position: center !important;
+}
+
+.object-bottom {
+    object-position: bottom center !important;
+}
+
+
+/* Pagination styling */
+.content-banner-swiper .swiper-pagination-bullet {
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 1;
+    width: 12px;
+    height: 12px;
+}
+
+.content-banner-swiper .swiper-pagination-bullet-active {
+    background: white;
+}
+
+/* Mobile navigation bar */
+.banner-mobile-nav {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: #000;
+}
+.banner-mobile-prev,
+.banner-mobile-next {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+.banner-mobile-prev:hover,
+.banner-mobile-next:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+.banner-mobile-prev:active,
+.banner-mobile-next:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.9);
+}
+
+/* Mobile pagination dots */
+.banner-mobile-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.mobile-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.mobile-dot.active {
+    background: #ff6b00;
+    transform: scale(1.3);
+    box-shadow: 0 0 8px rgba(255, 107, 0, 0.5);
+}
+
+/* Hide desktop navigation on mobile/tablet, show mobile nav */
+@media (max-width: 1024px) {
+    .banner-mobile-nav {
+        display: none;
+    }
+}
+
+/* Desktop: hide mobile nav */
+@media (min-width: 1025px) {
+    .banner-mobile-nav {
+        display: none !important;
+    }
+}
+
+/* Full-height clickable navigation areas (desktop only) */
+.content-banner-swiper .banner-nav-prev,
+.content-banner-swiper .banner-nav-next {
+    position: absolute;
+    top: 0;
+    width: 80px;
+    height: 100%;
+    z-index: 10;
+    cursor: pointer;
+    display: none;
+}
+.content-banner-swiper .banner-nav-prev { left: 0; }
+.content-banner-swiper .banner-nav-next { right: 0; }
+
+@media (min-width: 1025px) {
+    .content-banner-swiper .banner-nav-prev,
+    .content-banner-swiper .banner-nav-next {
+        display: block;
+    }
+}
+
+.content-banner-swiper .banner-nav-prev:hover ~ .swiper-button-prev,
+.content-banner-swiper .banner-nav-next:hover ~ .swiper-button-next {
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Arrow button styling - Content Banner specific override to ensure standard style applies here too */
+.content-banner-swiper .swiper-button-prev,
+.content-banner-swiper .swiper-button-next {
+    width: 44px;
+    height: 44px;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 0;
+    color: #ffffff !important;
+    --swiper-navigation-color: #ffffff;
+    --swiper-theme-color: #ffffff;
+    opacity: 1;
+    visibility: visible;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    border: 1px solid transparent;
+    overflow: hidden;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-top: 0;
+}
+
+.content-banner-swiper .swiper-button-prev {
+    left: 20px;
+    right: auto;
+}
+.content-banner-swiper .swiper-button-next {
+    right: 20px;
+    left: auto;
+}
+
+/* On desktop, start hidden and show on hover */
+@media (min-width: 1025px) {
+    .content-banner-swiper .swiper-button-prev,
+    .content-banner-swiper .swiper-button-next {
+        opacity: 0;
+        visibility: hidden;
+    }
+    .content-banner-swiper:hover .swiper-button-prev,
+    .content-banner-swiper:hover .swiper-button-next {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+.content-banner-swiper .swiper-button-prev:hover,
+.content-banner-swiper .swiper-button-next:hover {
+    background-color: rgba(0, 0, 0, 0.6);
+    border-color: rgba(255, 255, 255, 0.3);
+    /* No scale transform to keep it stationary */
+}
+
+/* Click effect (ripple) */
+.content-banner-swiper .swiper-button-prev::before,
+.content-banner-swiper .swiper-button-next::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.content-banner-swiper .swiper-button-prev:active::before,
+.content-banner-swiper .swiper-button-next:active::before {
+    width: 100px;
+    height: 100px;
+    opacity: 0.5;
+    transition: 0s;
+}
+
+.content-banner-swiper .swiper-button-prev::after,
+.content-banner-swiper .swiper-button-next::after {
+    display: flex !important; /* Force display after being hidden earlier */
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    z-index: 2;
+    transition: none; /* No movement transition */
+}
+
+/* Removed translateX on hover to keep arrow stationary */
+</style>
+
+{% else %}
+{# Simple Banner Carousel - Original style (image only) #}
+<section id="hero-banner-{{ first_banner.id|default:'draft' }}" class="hero-banner-section section-hero-banner bg-gray-900 dark:bg-gray-900">
     <div class="mx-auto banner-carousel-container">
         <div class="swiper banner-swiper relative">
             <div class="swiper-wrapper">
@@ -15,7 +492,7 @@
                             <img 
                                 src="{{ banner.image.url }}" 
                                 alt="{{ banner.name }}"
-                                class="banner-img"
+                                class="banner-img object-{{ banner.image_alignment }}"
                                 loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                             />
                         </picture>
@@ -29,7 +506,7 @@
                             <img 
                                 src="{{ banner.image.url }}" 
                                 alt="{{ banner.name }}"
-                                class="banner-img"
+                                class="banner-img object-{{ banner.image_alignment }}"
                                 loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                             />
                         </picture>
@@ -40,28 +517,13 @@
             </div>
             
             {% if banners|length > 1 %}
-            <div class="banner-nav-prev desktop-only"></div>
-            <div class="banner-nav-next desktop-only"></div>
+            <div class="banner-nav-prev"></div>
+            <div class="banner-nav-next"></div>
             
-            <div class="swiper-button-prev desktop-only"></div>
-            <div class="swiper-button-next desktop-only"></div>
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
             
             <div class="swiper-pagination"></div>
-            
-            <!-- Mobile navigation arrows below banner -->
-            <div class="banner-mobile-nav">
-                <button type="button" class="banner-mobile-prev" aria-label="Previous">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                </button>
-                <div class="banner-mobile-pagination"></div>
-                <button type="button" class="banner-mobile-next" aria-label="Next">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <polyline points="9 6 15 12 9 18"></polyline>
-                    </svg>
-                </button>
-            </div>
             {% endif %}
         </div>
     </div>
@@ -117,7 +579,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let dotsHtml = '';
         for (let i = 0; i < totalBanners; i++) {
             const isActive = i === activeIndex;
-            dotsHtml += `<span class="mobile-dot ${isActive ? 'active' : ''}"></span>`;
+            dotsHtml += '<span class="mobile-dot ' + (isActive ? 'active' : '') + '"></span>';
         }
         container.innerHTML = dotsHtml;
     }
@@ -159,7 +621,7 @@ document.addEventListener('DOMContentLoaded', function() {
     display: block;
     width: 100%;
     height: auto;
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
 }
 
@@ -220,7 +682,7 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: rgba(0, 0, 0, 0.5);
 }
 
-/* Arrow button styling (desktop) */
+/* Arrow button styling (desktop) - STANDARD BANNER ONLY */
 .banner-swiper .swiper-button-prev,
 .banner-swiper .swiper-button-next {
     width: 44px;
@@ -234,6 +696,14 @@ document.addEventListener('DOMContentLoaded', function() {
     border: 1px solid transparent;
     overflow: hidden;
     position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+}
+.banner-swiper .swiper-button-prev {
+    left: 20px;
+}
+.banner-swiper .swiper-button-next {
+    right: 20px;
 }
 .banner-swiper:hover .swiper-button-prev,
 .banner-swiper:hover .swiper-button-next {
@@ -244,7 +714,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .banner-swiper .swiper-button-next:hover {
     background-color: rgba(0, 0, 0, 0.6);
     border-color: rgba(255, 255, 255, 0.3);
-    transform: scale(1.05);
+    /* Removed transform: scale(1.05) */
 }
 
 /* Click effect (ripple) */
@@ -278,10 +748,9 @@ document.addEventListener('DOMContentLoaded', function() {
     color: white;
     position: relative;
     z-index: 2;
-    transition: transform 0.2s ease;
+    /* Removed transition: transform 0.2s ease */
 }
-.banner-swiper .swiper-button-prev:hover::after { transform: translateX(-2px); }
-.banner-swiper .swiper-button-next:hover::after { transform: translateX(2px); }
+/* Removed translateX on hover to keep arrows stationary */
 
 /* Desktop pagination (on image) */
 .banner-swiper .swiper-pagination {
@@ -355,19 +824,6 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 0 8px rgba(255, 107, 0, 0.5);
 }
 
-/* Hide desktop elements on mobile/tablet, show mobile nav */
-@media (max-width: 1024px) {
-    .desktop-only {
-        display: none !important;
-    }
-    .banner-swiper .swiper-pagination {
-        display: none !important;
-    }
-    .banner-mobile-nav {
-        display: flex;
-    }
-}
-
 /* Desktop: hide mobile nav */
 @media (min-width: 1025px) {
     .banner-mobile-nav {
@@ -375,4 +831,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 }
 </style>
+{% endif %}
+{% endwith %}
 {% endif %}

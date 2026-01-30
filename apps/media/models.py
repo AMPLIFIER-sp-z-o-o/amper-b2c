@@ -193,33 +193,22 @@ class MediaFile(BaseModel):
     def get_full_url(self, expires_in=3600):
         """
         Generate full URL for the file based on storage settings.
-        For S3, generates a presigned URL that expires in expires_in seconds.
-        Uses cached S3 client for performance.
+        For S3, returns a direct public URL (non-expiring).
         """
         if not self.file:
             return None
 
-        from apps.media.storage import _get_cached_s3_client
+        from apps.media.storage import _build_s3_key, _get_cached_s3_client
 
         # Try cached S3 client first for performance
         s3_cache = _get_cached_s3_client()
         if s3_cache:
             file_path = str(self.file)
-            try:
-                presigned_url = s3_cache["client"].generate_presigned_url(
-                    "get_object",
-                    Params={
-                        "Bucket": s3_cache["bucket"],
-                        "Key": file_path,
-                        "ResponseContentDisposition": "inline",
-                    },
-                    ExpiresIn=expires_in,
-                )
-                return s3_cache["settings"].get_cdn_url(presigned_url)
-            except Exception:
-                # Fallback to direct S3 URL if presigning fails
-                settings = s3_cache["settings"]
-                return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{file_path}"
+            key = _build_s3_key(file_path, s3_cache["settings"])
+            settings = s3_cache["settings"]
+            if settings.cdn_enabled and settings.cdn_domain:
+                return settings.get_cdn_url(key)
+            return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
 
         # Local storage - use Django's default URL
         return self.file.url if self.file else None
@@ -227,35 +216,21 @@ class MediaFile(BaseModel):
     def get_download_url(self, expires_in=3600):
         """
         Generate a download URL for the file.
-        For S3, generates a presigned URL with Content-Disposition=attachment.
-        Uses cached S3 client for performance.
+        For S3, returns a direct public URL (non-expiring).
         """
         if not self.file:
             return None
 
-        from apps.media.storage import _get_cached_s3_client
+        from apps.media.storage import _build_s3_key, _get_cached_s3_client
 
         s3_cache = _get_cached_s3_client()
         if s3_cache:
             file_path = str(self.file)
-            filename = (self.filename or "").replace('"', "")
-            if not filename:
-                filename = file_path.split("/")[-1]
-
-            try:
-                presigned_url = s3_cache["client"].generate_presigned_url(
-                    "get_object",
-                    Params={
-                        "Bucket": s3_cache["bucket"],
-                        "Key": file_path,
-                        "ResponseContentDisposition": f'attachment; filename="{filename}"',
-                        "ResponseContentType": self.mime_type or "application/octet-stream",
-                    },
-                    ExpiresIn=expires_in,
-                )
-                return presigned_url
-            except Exception:
-                return self.file.url
+            key = _build_s3_key(file_path, s3_cache["settings"])
+            settings = s3_cache["settings"]
+            if settings.cdn_enabled and settings.cdn_domain:
+                return settings.get_cdn_url(key)
+            return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
 
         return self.file.url
 
@@ -380,9 +355,7 @@ class MediaStorageSettings(BaseModel):
 
             from storages.backends.s3boto3 import S3Boto3Storage
 
-            # Always use signed URLs for private S3 buckets
-            # CDN only works with public-read buckets which is not our case
-            # AWS_QUERYSTRING_AUTH=True by default
+            # Use public URLs (no expiry). Requires public-read objects or CDN.
             storage_options = {
                 "access_key": self.aws_access_key_id,
                 "secret_key": self.aws_secret_access_key,
@@ -390,12 +363,8 @@ class MediaStorageSettings(BaseModel):
                 "region_name": self.aws_region,
                 "location": self.aws_location,
                 "file_overwrite": False,
-                "querystring_auth": True,  # Always use signed URLs
-                "signature_version": "s3v4",
-                "object_parameters": {
-                    "ContentDisposition": "inline",
-                },
-                # Don't set custom_domain - let S3 generate presigned URLs directly
+                "querystring_auth": False,
+                "default_acl": None,  # Bucket policy handles access, not per-object ACLs
             }
 
             return S3Boto3Storage(**storage_options)

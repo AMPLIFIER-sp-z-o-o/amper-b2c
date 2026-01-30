@@ -23,6 +23,8 @@ _dist/
 .direnv
 .envrc
 # compiled static files are built in dev/deploy
-static/css/
-static/js/
+static/css/admin-tailwind-css.css
+static/css/site-tailwind-css.css
+static/js/*-bundle.js
+static/js/*.js.map
 static/.vite/

@@ -4,22 +4,9 @@ Selects storage backend based on MediaStorageSettings configuration.
 """
 
 import logging
-import mimetypes
 
 from django.conf import settings
 
-# Register additional MIME types that Python doesn't recognize by default
-# This ensures S3 presigned URLs get the correct ResponseContentType
-ADDITIONAL_IMAGE_MIMETYPES = {
-    ".webp": "image/webp",
-    ".avif": "image/avif",
-    ".heic": "image/heic",
-    ".heif": "image/heif",
-    ".jxl": "image/jxl",
-    ".apng": "image/apng",
-}
-for ext, mime_type in ADDITIONAL_IMAGE_MIMETYPES.items():
-    mimetypes.add_type(mime_type, ext)
 from django.core.files.storage import FileSystemStorage
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -57,6 +44,13 @@ def _get_cached_s3_client():
     if media_settings.provider_type != "s3":
         return None
 
+    if not (
+        media_settings.aws_access_key_id
+        and media_settings.aws_secret_access_key
+        and media_settings.aws_bucket_name
+    ):
+        return None
+
     session = boto3.Session(
         aws_access_key_id=media_settings.aws_access_key_id,
         aws_secret_access_key=media_settings.aws_secret_access_key,
@@ -81,6 +75,18 @@ def _get_cached_s3_client():
     }
 
     return _s3_client_cache[cache_key]
+
+
+def _build_s3_key(name, settings):
+    """Build the full S3 key including aws_location prefix when configured."""
+    if not name:
+        return name
+    location = (settings.aws_location or "").strip("/")
+    if not location:
+        return name
+    if name.startswith(f"{location}/"):
+        return name
+    return f"{location}/{name}"
 
 
 def get_active_storage():
@@ -166,39 +172,16 @@ class DynamicMediaStorage(FileSystemStorage):
     def url(self, name, inline=True):
         """
         Get URL for the file.
-        For files in PUBLIC_PATHS (like storefront/), returns a Django proxy URL
-        to avoid CORS/ORB issues with SVG files from S3.
-        For other S3 files, generates a presigned URL with response-content-disposition.
-        Uses cached S3 client for performance.
+        For S3, returns a direct public URL (non-expiring).
         """
-        from django.urls import reverse
-        
-        # Files in public paths are served through Django proxy to avoid CORS issues
-        PUBLIC_PATHS = ["storefront/", "seeds/"]
-        if any(name.startswith(prefix) for prefix in PUBLIC_PATHS):
-            return reverse("media:view_public_file", kwargs={"path": name})
-        
         try:
             s3_cache = _get_cached_s3_client()
             if s3_cache:
-                # Use cached S3 client for fast presigned URL generation
-                params = {
-                    "Bucket": s3_cache["bucket"],
-                    "Key": name,
-                }
-                if inline:
-                    params["ResponseContentDisposition"] = "inline"
-                    content_type, _ = mimetypes.guess_type(name)
-                    if content_type:
-                        params["ResponseContentType"] = content_type
-
-                presigned_url = s3_cache["client"].generate_presigned_url(
-                    "get_object",
-                    Params=params,
-                    ExpiresIn=3600,
-                )
-
-                return s3_cache["settings"].get_cdn_url(presigned_url)
+                settings = s3_cache["settings"]
+                key = _build_s3_key(name, settings)
+                if settings.cdn_enabled and settings.cdn_domain:
+                    return settings.get_cdn_url(key)
+                return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
 
             # For local storage, use default URL generation
             storage = self._get_storage()

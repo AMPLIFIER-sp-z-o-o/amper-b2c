@@ -280,6 +280,7 @@ def _build_inline_items(
     form_data: dict[str, Any],
     existing_items: list[models.Model],
     allow_missing_existing: bool,
+    temp_files: dict[str, Any] | None = None,
 ) -> list[models.Model]:
     total_forms_key = f"{inline_prefix}-TOTAL_FORMS"
     total_forms = int(form_data.get(total_forms_key, 0))
@@ -290,6 +291,7 @@ def _build_inline_items(
     existing_map = {str(item.pk): item for item in existing_items if item.pk}
     fields_by_name = {field.name: field for field in inline_model_class._meta.fields}
     skip_field_types = (models.AutoField, models.ForeignKey, models.ManyToManyField)
+    temp_files = temp_files or {}
 
     result_items: list[models.Model] = []
 
@@ -310,11 +312,25 @@ def _build_inline_items(
 
         changed = False
         for field_name, field in fields_by_name.items():
-            form_key = f"{prefix}-{field_name}"
-            if form_key not in form_data:
+            if isinstance(field, models.FileField):
+                temp_key = f"{prefix}-{field_name}"
+                if temp_key in temp_files:
+                    info = temp_files.get(temp_key)
+                    temp_path = info.get("path") if isinstance(info, dict) else info
+                    current_name = getattr(getattr(instance, field_name, None), "name", None)
+                    if temp_path and current_name != temp_path:
+                        setattr(instance, field_name, temp_path)
+                        changed = True
+                    elif temp_path is None and current_name:
+                        setattr(instance, field_name, None)
+                        changed = True
                 continue
 
             if isinstance(field, skip_field_types):
+                continue
+
+            form_key = f"{prefix}-{field_name}"
+            if form_key not in form_data:
                 continue
 
             raw_value = form_data[form_key]
@@ -340,6 +356,7 @@ def _apply_inline_draft_to_list(
     inline_prefix: str,
     form_data: dict[str, Any],
     existing_items: list[models.Model],
+    temp_files: dict[str, Any] | None = None,
 ) -> list[models.Model]:
     """
     Apply draft changes to a list of inline items.
@@ -351,6 +368,7 @@ def _apply_inline_draft_to_list(
         form_data=form_data,
         existing_items=existing_items,
         allow_missing_existing=True,
+        temp_files=temp_files,
     )
 
 
@@ -379,7 +397,7 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
 
         result: dict[str, dict[str, Any]] = {}
         payload = _normalize_payload(draft.payload)
-        form_data, _ = _get_payload_sections(payload)
+        form_data, temp_files = _get_payload_sections(payload)
 
         if not draft.content_type_id:
             processed_inlines[draft_id] = result
@@ -399,6 +417,7 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
                 result[prefix] = {
                     "model": inline_model,
                     "form_data": form_data,
+                    "temp_files": temp_files,
                 }
 
         processed_inlines[draft_id] = result
@@ -410,6 +429,46 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
             return obj
         visited.add(obj_id)
 
+        def _apply_inline_items(items_list: list[models.Model]) -> list[models.Model] | None:
+            if not items_list or not isinstance(items_list[0], models.Model):
+                return None
+
+            inline_model = type(items_list[0])
+
+            # Find ForeignKey fields that point to models with drafts
+            for field in inline_model._meta.fields:
+                if not isinstance(field, models.ForeignKey):
+                    continue
+
+                parent_model = field.related_model
+                parent_ct = ContentType.objects.get_for_model(parent_model)
+
+                # Check all items for their parent
+                for item in items_list:
+                    parent_id = getattr(item, field.attname, None)
+                    if not parent_id:
+                        continue
+
+                    draft = drafts_map.get((parent_ct.pk, str(parent_id)))
+                    if not draft:
+                        continue
+
+                    # Found a draft for the parent! Get inline info
+                    inline_info = _get_processed_inlines_for_draft(draft)
+
+                    # Find the matching prefix for this inline model
+                    for prefix, info in inline_info.items():
+                        if info["model"] == inline_model:
+                            return _apply_inline_draft_to_list(
+                                inline_model,
+                                prefix,
+                                info["form_data"],
+                                items_list,
+                                info.get("temp_files"),
+                            )
+
+            return None
+
         if isinstance(obj, models.Model):
             content_type = ContentType.objects.get_for_model(obj, for_concrete_model=False)
             draft = drafts_map.get((content_type.pk, str(obj.pk)))
@@ -417,10 +476,23 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
                 payload = _normalize_payload(draft.payload)
                 form_data, temp_files = _get_payload_sections(payload)
                 apply_draft_to_instance(obj, form_data, temp_files)
+            prefetched_cache = getattr(obj, "_prefetched_objects_cache", None)
+            if isinstance(prefetched_cache, dict) and prefetched_cache:
+                for cache_key, cached_value in list(prefetched_cache.items()):
+                    updated_value = _apply(cached_value)
+                    if updated_value is not cached_value:
+                        prefetched_cache[cache_key] = updated_value
             return obj
 
         if isinstance(obj, models.QuerySet):
-            for item in obj:
+            items_list = list(obj)
+            modified_items = _apply_inline_items(items_list)
+            if modified_items is not None:
+                obj._result_cache = modified_items
+                obj._prefetch_done = True
+                return obj
+
+            for item in items_list:
                 _apply(item)
             return obj
 
@@ -430,49 +502,14 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
             return obj
 
         if isinstance(obj, (list, tuple, set)):
-            # Check if this is a list of model instances that might be inlines
             items_list = list(obj)
-            if items_list and isinstance(items_list[0], models.Model):
-                # Try to find if these items are inlines of a parent with a draft
-                first_item = items_list[0]
-                inline_model = type(first_item)
-
-                # Find ForeignKey fields that point to models with drafts
-                for field in inline_model._meta.fields:
-                    if not isinstance(field, models.ForeignKey):
-                        continue
-
-                    parent_model = field.related_model
-                    parent_ct = ContentType.objects.get_for_model(parent_model)
-
-                    # Check all items for their parent
-                    for item in items_list:
-                        parent_id = getattr(item, field.attname, None)
-                        if not parent_id:
-                            continue
-
-                        draft = drafts_map.get((parent_ct.pk, str(parent_id)))
-                        if not draft:
-                            continue
-
-                        # Found a draft for the parent! Get inline info
-                        inline_info = _get_processed_inlines_for_draft(draft)
-
-                        # Find the matching prefix for this inline model
-                        for prefix, info in inline_info.items():
-                            if info["model"] == inline_model:
-                                # Apply draft changes to the entire list
-                                modified_items = _apply_inline_draft_to_list(
-                                    inline_model,
-                                    prefix,
-                                    info["form_data"],
-                                    items_list,
-                                )
-                                if isinstance(obj, tuple):
-                                    return tuple(modified_items)
-                                if isinstance(obj, set):
-                                    return set(modified_items)
-                                return modified_items
+            modified_items = _apply_inline_items(items_list)
+            if modified_items is not None:
+                if isinstance(obj, tuple):
+                    return tuple(modified_items)
+                if isinstance(obj, set):
+                    return set(modified_items)
+                return modified_items
 
             # Default: process each item individually
             items = [_apply(item) for item in obj]
@@ -613,11 +650,12 @@ def apply_inline_drafts(
         return existing_items
 
     payload = _normalize_payload(draft.payload)
-    form_data, _ = _get_payload_sections(payload)
+    form_data, temp_files = _get_payload_sections(payload)
     return _build_inline_items(
         inline_model_class=inline_model_class,
         inline_prefix=inline_prefix,
         form_data=form_data,
         existing_items=existing_items,
         allow_missing_existing=False,
+        temp_files=temp_files,
     )

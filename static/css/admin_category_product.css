@@ -1,0 +1,28 @@
+/* Force all readonly boxes to fill their cell width */
+.field-name_display .readonly,
+.field-status .readonly,
+.field-price_display .readonly,
+.field-stock .readonly {
+    width: 100%;
+    display: block;
+}
+
+/* Ensure the flex container allows growth */
+.field-name_display .flex-row,
+.field-status .flex-row,
+.field-price_display .flex-row,
+.field-stock .flex-row {
+    width: 100%;
+}
+
+/* Give name column a minimum width so it doesn't get squashed */
+.field-name_display .readonly {
+    min-width: 300px;
+}
+
+/* Give other columns a reasonable minimum width */
+.field-status .readonly,
+.field-price_display .readonly,
+.field-stock .readonly {
+    min-width: 80px;
+}

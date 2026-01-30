@@ -449,9 +449,17 @@ class AttributeDefinitionAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     resource_class = AttributeDefinitionResource
     import_form_class = ImportForm
     export_form_class = ExportForm
-    list_display = ("display_name", "name")
+    list_display = ("display_name", "name", "show_on_tile", "tile_display_order")
+    list_editable = ["show_on_tile", "tile_display_order"]
     search_fields = ("display_name", "name")
-    ordering = ("display_name",)
+    ordering = ("tile_display_order", "display_name")
+    fieldsets = (
+        (None, {"fields": ("name", "display_name")}),
+        (_("Tile Display Settings"), {
+            "fields": ("show_on_tile", "tile_display_order"),
+            "description": _("Configure how this attribute appears on product tiles (cards) in slider, grid, and list views."),
+        }),
+    )
 
 
 class AttributeOptionResource(resources.ModelResource):

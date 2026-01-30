@@ -1,0 +1,128 @@
+{% load i18n %}
+{# Product list controls - sorting, view toggle, pagination info #}
+{# Usage: {% include "web/components/product_list_controls.html" with position="top" %} #}
+
+<div id="product-controls-{{ position|default:'top' }}" class="product-list-controls flex flex-col sm:flex-row items-center justify-between gap-4 py-4 {% if position == 'bottom' %}border-t border-gray-200 dark:border-gray-700 mt-8{% else %}border-b border-gray-200 dark:border-gray-700 mb-6{% endif %}">
+  
+  <div class="flex items-center gap-4 lg:gap-6 w-full sm:w-auto">
+    {% if position != 'bottom' %}
+      {# View Toggle - Only at top #}
+      <div class="flex items-center shrink-0">
+        <button type="button"
+           onclick="toggleViewMode('{% if view_mode == 'grid' %}list{% else %}grid{% endif %}')"
+           id="viewToggleBtn{{ position|default:'top'|title }}" 
+           data-tooltip-target="view-tooltip-{{ position|default:'top' }}"
+           class="flex h-11 w-11 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-primary-600 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors cursor-pointer"
+           aria-label="{% translate 'Change view' %}">
+          {% if view_mode == 'grid' %}
+            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M9 8h10M9 12h10M9 16h10M4.99 8H5m-.02 4h.01m0 4H5"/>
+            </svg>
+          {% else %}
+            <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.143 4H4.857A.857.857 0 0 0 4 4.857v4.286c0 .473.384.857.857.857h4.286A.857.857 0 0 0 10 9.143V4.857A.857.857 0 0 0 9.143 4Zm10 0h-4.286a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286A.857.857 0 0 0 20 9.143V4.857A.857.857 0 0 0 19.143 4Zm-10 10H4.857a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286a.857.857 0 0 0 .857-.857v-4.286A.857.857 0 0 0 9.143 14Zm10 0h-4.286a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286a.857.857 0 0 0 .857-.857v-4.286a.857.857 0 0 0-.857-.857Z"/>
+          {% endif %}
+        </button>
+        <div id="view-tooltip-{{ position|default:'top' }}" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+          {% if view_mode == 'grid' %}{% translate "Switch to list view" %}{% else %}{% translate "Switch to grid view" %}{% endif %}
+          <div class="tooltip-arrow" data-popper-arrow></div>
+        </div>
+      </div>
+    {% endif %}
+
+    {# Sort Dropdown - Common for top and bottom #}
+    <div class="relative w-full max-w-60 sm:w-60">
+      <label class="absolute -top-2 left-3 bg-white px-1 text-xs font-medium text-gray-500 dark:bg-gray-800 dark:text-gray-400 z-10">{% translate "Sorting" %}</label>
+      <button id="sortDropdownButton{{ position|default:'top'|title }}" 
+              data-dropdown-toggle="dropdownSort{{ position|default:'top'|title }}" 
+              type="button" 
+              class="inline-flex w-full items-center justify-between rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors cursor-pointer">
+        <span class="truncate">
+          {% for key, field, label in sort_options %}
+            {% if current_sort == key %}{{ label }}{% endif %}
+          {% endfor %}
+        </span>
+        <svg class="ml-2 h-4 w-4 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+        </svg>
+      </button>
+      <div id="dropdownSort{{ position|default:'top'|title }}" class="z-50 hidden w-64 divide-y divide-gray-100 rounded-lg bg-white shadow-lg dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+        <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="sortDropdownButton{{ position|default:'top'|title }}">
+          {% for key, field, label in sort_options %}
+          <li>
+            <a href="?{% if query_string %}{{ query_string }}&{% endif %}sort={{ key }}" 
+               class="flex items-center justify-between px-4 py-2.5 hover:bg-gray-100 dark:hover:bg-gray-600 {% if current_sort == key %}bg-gray-50 dark:bg-gray-600 font-semibold text-primary-600 dark:text-primary-400{% endif %}">
+              <span>{{ label }}</span>
+              {% if current_sort == key %}
+              <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"/>
+              </svg>
+              {% endif %}
+            </a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    {# Item range info - Common for top and bottom #}
+    <span class="hidden md:inline-block text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
+      {{ start_index }}-{{ end_index }} {% translate "of" %} {{ total_count }}
+    </span>
+  </div>
+
+  {# Full Pagination - Same for both #}
+  <nav class="flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-end" aria-label="{% translate 'Pagination' %}">
+    {# Previous button #}
+    {% if products.has_previous %}
+    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ products.previous_page_number }}" 
+       class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+       aria-label="{% translate 'Previous page' %}">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
+      </svg>
+    </a>
+    {% else %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m15 19-7-7 7-7"/>
+      </svg>
+    </span>
+    {% endif %}
+
+    {# Page numbers #}
+    {% for page_num in products.paginator.page_range %}
+      {% if page_num == products.number %}
+      <span class="flex h-9 min-w-9 items-center justify-center rounded-md border-2 border-primary-600 bg-white px-3 text-sm font-bold text-primary-600 dark:border-primary-500 dark:bg-gray-800 dark:text-primary-500 shadow-sm">
+        {{ page_num }}
+      </span>
+      {% elif page_num == 1 or page_num == products.paginator.num_pages or page_num >= products.number|add:'-1' and page_num <= products.number|add:'1' %}
+      <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_num }}" 
+         class="flex h-9 min-w-9 items-center justify-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors">
+        {{ page_num }}
+      </a>
+      {% elif page_num == products.number|add:'-2' or page_num == products.number|add:'2' %}
+      <span class="flex h-9 items-center justify-center px-1 text-sm text-gray-400 dark:text-gray-500">...</span>
+      {% endif %}
+    {% endfor %}
+
+    {# Next button #}
+    {% if products.has_next %}
+    <a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ products.next_page_number }}" 
+       class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
+       aria-label="{% translate 'Next page' %}">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
+      </svg>
+    </a>
+    {% else %}
+    <span class="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-gray-50 text-gray-300 cursor-not-allowed dark:border-gray-700 dark:bg-gray-800 dark:text-gray-600">
+      <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
+      </svg>
+    </span>
+    {% endif %}
+  </nav>
+</div>
+
+

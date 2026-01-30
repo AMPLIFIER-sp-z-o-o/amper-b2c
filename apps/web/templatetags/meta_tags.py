@@ -10,7 +10,9 @@ register = template.Library()
 @register.filter
 def get_title(project_meta, page_title=None):
     if page_title:
-        return "{} | {}".format(page_title, project_meta["NAME"])
+        if project_meta["NAME"]:
+            return "{} | {}".format(page_title, project_meta["NAME"])
+        return page_title
     else:
         return project_meta["TITLE"]
 

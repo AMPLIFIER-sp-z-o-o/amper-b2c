@@ -39,18 +39,18 @@
 
 ## Dev Workflows
 
-| Task                | Command                                              |
-| ------------------- | ---------------------------------------------------- |
-| Bootstrap project   | `make init`                                          |
-| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. [Do not use this command unless told to.] Do not use manage.py runserver. Use only make dev to start the server**  |
-| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'` |
-| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`  |
-| Format/lint         | `make ruff` (Ruff formatter + linter)                |
-| Reset database      | `make reset-db` (drop + recreate + migrate)          |
-| Update translations | `make translations`                                  |
-| Celery worker       | `make celery`                                        |
+| Task                | Command                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bootstrap project   | `make init`                                                                                                                                                                                 |
+| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. [Do not use this command unless told to.] Do not use manage.py runserver. Use only make dev to start the server** |
+| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'`                                                                                                                                        |
+| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`                                                                                                                                         |
+| Format/lint         | `make ruff` (Ruff formatter + linter)                                                                                                                                                       |
+| Reset database      | `make reset-db` (drop + recreate + migrate)                                                                                                                                                 |
+| Update translations | `make translations`                                                                                                                                                                         |
+| Celery worker       | `make celery`                                                                                                                                                                               |
 
-**Superuser credentials**: `admin@example.com` / `admin`
+**Superuser credentials**: `admin@example.com` / `admin` (always use these credentials during testing)
 
 ## Environment & Integrations
 
@@ -59,6 +59,73 @@
 - **Celery**: Redis broker; tasks auto-discovered; schedules in `SCHEDULED_TASKS` dict.
 - **Media storage**: Configurable local/S3 via `MediaStorageSettings` model – storage cache clears on save.
 - **Auth**: Custom `CustomUser` model; allauth adapters in [apps/users/adapter.py](../apps/users/adapter.py).
+
+## Media Storage & Seed Data
+
+### Storage Modes
+
+This project supports **two storage backends** configured via `MediaStorageSettings` in Django Admin:
+
+1. **S3 Storage** - files stored in AWS S3 bucket
+2. **Local Storage** - files stored in `media/` folder on the server
+
+### Git Rules for Media Files
+
+**NEVER commit media files to the repository** - the `media/` folder is in `.gitignore`.
+
+- When using **S3**: `media/` folder stays empty locally
+- When using **Local Storage**: files are saved to `media/` but are NOT committed to git
+- Each developer/environment manages their own media files
+
+### Seed Data Architecture
+
+`seed.py` contains **only database references** (paths like `product-images/xxx.jpg`), NOT actual files:
+
+```python
+# seed.py - only stores path references, not files
+{"id": 37, "product_id": 50, "image": "product-images/energizer-max-aaa-4-pack.jpg", ...}
+```
+
+**Important:** The `_upload_if_missing()` function checks if files exist but does NOT include source files in the repo. Media files must be:
+
+- Pre-uploaded to S3 (for S3 storage mode)
+- OR manually placed in `media/` folder (for local storage mode)
+
+### Storage Structure
+
+```
+# For S3 storage (bucket configured in MediaStorageSettings):
+s3://<your-bucket>/
+└── media/                    # MEDIA_URL prefix
+    ├── product-images/       # Product photos
+    ├── banners/              # Hero/content banners
+    └── section_banners/      # Homepage section banners
+
+# For Local storage:
+media/                        # Local folder (gitignored)
+├── product-images/
+├── banners/
+└── section_banners/
+```
+
+### Adding New Seed Images
+
+1. Upload image to storage:
+   - **S3**: Upload to `media/product-images/your-image.jpg` in your bucket
+   - **Local**: Place file at `media/product-images/your-image.jpg`
+2. Add database reference in `seed.py` PRODUCT_IMAGES_DATA:
+   ```python
+   {"id": X, "product_id": Y, "image": "product-images/your-image.jpg", ...}
+   ```
+3. Run `make reset-db-seed` - creates DB records pointing to files
+
+### Troubleshooting Images
+
+If images show wrong content after `make reset-db-seed`:
+
+- The file in storage contains wrong data
+- Seed only creates DB references - it doesn't manage file contents
+- Fix by replacing the file directly in S3 or local `media/` folder
 
 ## Context Processors
 
@@ -70,6 +137,8 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 
 ## Code Conventions
 
+- **Language**: All code (variables, classes, etc.) and UI strings MUST be in **English**.
+- **Translations**: UI strings must be translatable. Use `{% translate "..." %}` in templates and `_("...")` in Python code.
 - Models: Extend `BaseModel`, use `_("...")` for translatable strings, define `__str__` and `get_absolute_url()`.
 - Admin: Use Unfold components, readonly computed fields with `@admin.display(description=_(...))`.
 - Views: Add to app's `urls.py`, use `reverse("app:view_name")` for URL generation.
@@ -83,11 +152,15 @@ Always use **Polish locale (pl-PL)** for price formatting to display values corr
 
 ```javascript
 // Correct format
-new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(price)
+new Intl.NumberFormat("pl-PL", { style: "currency", currency: "PLN" }).format(
+  price,
+);
 // Result: "6,99 zł"
 
 // WRONG - do NOT use
-new Intl.NumberFormat('en-US', { style: 'currency', currency: 'PLN' }).format(price)
+new Intl.NumberFormat("en-US", { style: "currency", currency: "PLN" }).format(
+  price,
+);
 // Result: "PLN 6.99"
 ```
 
@@ -102,9 +175,13 @@ Every new component or page section MUST be designed to support the **Custom CSS
 - **Predictable Selectors**: Ensure that all sub-elements can be easily targeted via CSS nesting starting from the component's unique ID or class.
 
 Example pattern from `homepage_product_section.html`:
+
 ```html
-<section id="product-section-{{ section.id }}" class="homepage-section section-product-list ...">
-    <!-- Component content -->
+<section
+  id="product-section-{{ section.id }}"
+  class="homepage-section section-product-list ..."
+>
+  <!-- Component content -->
 </section>
 ```
 
@@ -113,6 +190,7 @@ Example pattern from `homepage_product_section.html`:
 ### When tests ARE required
 
 Tests should be created for changes that:
+
 - Modify **business logic** (e.g., calculations, validations, workflows)
 - Change **behavior of existing functions** or API endpoints
 - Add **new endpoints** or views
@@ -121,7 +199,8 @@ Tests should be created for changes that:
 
 ### When tests are NOT required
 
-Tests can be skipped for purely cosmetic/configuration changes:
+**Backend tests** can be skipped for purely cosmetic/configuration changes, however **browser verification is still mandatory** for any changes with visual impact:
+
 - **CSS style** changes (colors, margins, fonts)
 - Updates to **static text** or translations
 - **HTML template** modifications without logic (layout, CSS classes)
@@ -132,13 +211,15 @@ Tests can be skipped for purely cosmetic/configuration changes:
 
 - **Edge Case First**: Identify and write tests for all possible edge cases **before** or during the implementation.
 - **Backend Best Practices**:
-    - Always test **Permission & Authorization**: verify that unauthorized users receive 403 or redirect to login.
-    - Test **Data Integrity**: verify how the system handles empty values, invalid formats, and duplicate entries.
-    - For **HTMX views**, verify that the correct partial templates are rendered and required HTMX headers are present.
+  - Always test **Permission & Authorization**: verify that unauthorized users receive 403 or redirect to login.
+  - Test **Data Integrity**: verify how the system handles empty values, invalid formats, and duplicate entries.
+  - For **HTMX views**, verify that the correct partial templates are rendered and required HTMX headers are present.
 - **Browser Best Practices**:
-    - Test across different **viewport sizes** (Mobile vs Desktop).
-    - Verify **UI Feedback**: ensure loading states, error messages, and success notifications are visible and correct.
-    - Check accessibility and keyboard navigation for interactive elements.
+  - Test across different **viewport sizes** (Mobile vs Desktop).
+  - Verify **UI Feedback**: ensure loading states, error messages, and success notifications are visible and correct.
+  - Check accessibility and keyboard navigation for interactive elements.
+  - All new media uploaded during verification/tests MUST be uploaded to AWS S3.
+  - When adding new products for testing purposes, **reuse existing images** from the media storage instead of uploading new ones.
 
 ### Testing Tools
 
@@ -148,7 +229,7 @@ Tests can be skipped for purely cosmetic/configuration changes:
    - Include positive and negative test scenarios.
    - Run via `make test`.
 
-2. **Browser tests** (always required for UI changes):
+2. **Browser tests** (always required for **ALL** UI and visual changes):
    - Visual verification using **Chrome MCP** tool.
    - Test interactions (clicks, forms, HTMX behavior).
    - Cover edge cases (e.g., empty lists, loading states, validation errors, etc...).
@@ -156,18 +237,20 @@ Tests can be skipped for purely cosmetic/configuration changes:
 ### Acceptance Criteria
 
 A change is considered complete only when:
+
 - Backend tests pass (if applicable)
 - Browser verification confirms correct UI behavior
 
 ## Django Admin & Unfold Implementation
 
 ### Widget Selection for Dropdowns
+
 When working with Django Admin and `django-unfold`, prioritize user experience for selection fields:
 
 1.  **Use `autocomplete_fields`** for `ForeignKey` and `ManyToManyField` relationships when:
     - The related model has a large dataset (performance).
     - You need to search/filter the related objects efficiently.
-    - *Requirement:* The related model's `ModelAdmin` must have `search_fields` defined.
+    - _Requirement:_ The related model's `ModelAdmin` must have `search_fields` defined.
 
 2.  **Use `UnfoldAdminSelect2Widget`** (from `unfold.widgets`) for:
     - Standard `forms.ChoiceField` (enums, text choices).
@@ -175,6 +258,7 @@ When working with Django Admin and `django-unfold`, prioritize user experience f
     - Custom forms where you want consistent styling with the admin theme.
 
 **Example:**
+
 ```python
 from unfold.widgets import UnfoldAdminSelect2Widget
 
