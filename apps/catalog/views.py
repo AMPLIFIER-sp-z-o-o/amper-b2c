@@ -7,7 +7,7 @@ def product_detail(request, slug, id):
         id=id,
         slug=slug,
     )
-    attributes = product.tile_display_attributes
+    attributes = product.display_attributes
 
     return render(
         request,
