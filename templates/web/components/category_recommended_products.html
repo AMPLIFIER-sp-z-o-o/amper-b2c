@@ -1,0 +1,126 @@
+{% load i18n %}
+{% if recommended_products %}
+<div id="category-recommended-products-{{ current_category.id }}" class="category-recommended-products mb-4">
+  <div class="mb-2 flex items-center justify-between">
+    <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+      {% translate "Recommended in category" %}
+    </h3>
+  </div>
+
+  {# Product Slider Container #}
+  <div class="category-recommended-carousel relative">
+    <div 
+      class="swiper category-recommended-swiper"
+      data-category-id="{{ current_category.id }}"
+      data-product-count="{{ recommended_products|length }}"
+    >
+      <div class="swiper-wrapper">
+        {% for item in recommended_products %}
+        <div class="swiper-slide" style="height: auto;">
+          {% include "web/components/homepage_product_card.html" with product=item.product %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {# Navigation buttons positioned on the slider #}
+    {% if recommended_products|length >= 2 %}
+    <button 
+      type="button" 
+      class="category-recommended-prev absolute left-3 md:left-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
+      data-category-id="{{ current_category.id }}"
+      aria-label="{% translate 'Previous' %}"
+    >
+      <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+        <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+      </svg>
+    </button>
+    <button 
+      type="button" 
+      class="category-recommended-next absolute right-3 md:right-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
+      data-category-id="{{ current_category.id }}"
+      aria-label="{% translate 'Next' %}"
+    >
+      <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+        <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+      </svg>
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+(function() {
+  const initCategoryRecommendedSlider = () => {
+    const swiperContainer = document.querySelector('.category-recommended-swiper[data-category-id="{{ current_category.id }}"]');
+    if (!swiperContainer) return;
+    
+    // If swiper is already initialized on this element, don't do it again
+    if (swiperContainer.swiper) return;
+    
+    if (typeof Swiper === 'undefined') {
+      // Wait for Swiper to load
+      setTimeout(initCategoryRecommendedSlider, 100);
+      return;
+    }
+    
+    const productCount = parseInt(swiperContainer.dataset.productCount) || 0;
+    
+    const swiper = new Swiper(swiperContainer, {
+      slidesPerView: 1.5,
+      spaceBetween: 12,
+      loop: productCount > 4,
+      navigation: {
+        nextEl: '.category-recommended-next[data-category-id="{{ current_category.id }}"]',
+        prevEl: '.category-recommended-prev[data-category-id="{{ current_category.id }}"]',
+      },
+      breakpoints: {
+        480: {
+          slidesPerView: 2,
+          spaceBetween: 12,
+        },
+        640: {
+          slidesPerView: 2.5,
+          spaceBetween: 16,
+        },
+        768: {
+          slidesPerView: 3,
+          spaceBetween: 16,
+        },
+        1024: {
+          slidesPerView: 4,
+          spaceBetween: 16,
+        },
+      },
+    });
+    
+    // Format prices after initialization
+    if (typeof formatPrices === 'function') {
+      formatPrices(swiperContainer);
+    }
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCategoryRecommendedSlider);
+  } else {
+    initCategoryRecommendedSlider();
+  }
+})();
+</script>
+
+<style>
+/* Category Recommended Products - horizontal overflow only */
+.category-recommended-carousel {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.category-recommended-swiper {
+  overflow: visible;
+}
+
+.category-recommended-swiper .swiper-wrapper {
+  overflow: visible;
+}
+</style>
+{% endif %}

@@ -7,7 +7,7 @@ from django.utils.translation import gettext_lazy as _
 from unfold.admin import StackedInline, TabularInline
 from unfold.widgets import UnfoldAdminColorInputWidget, UnfoldAdminSelect2Widget
 
-from apps.utils.admin_mixins import BaseModelAdmin, HistoryModelAdmin, SingletonAdminMixin
+from apps.utils.admin_mixins import AutoReorderMixin, BaseModelAdmin, HistoryModelAdmin, SingletonAdminMixin
 from apps.utils.admin_utils import make_image_preview_html
 
 from .models import (
@@ -52,7 +52,7 @@ class TopBarForm(forms.ModelForm):
 
 
 @admin.register(TopBar)
-class TopBarAdmin(BaseModelAdmin):
+class TopBarAdmin(AutoReorderMixin, BaseModelAdmin):
     form = TopBarForm
     change_form_template = "admin/web/topbar/change_form.html"
     list_display = ("name", "content_type", "text", "is_active", "available_from", "available_to", "order")
@@ -60,6 +60,8 @@ class TopBarAdmin(BaseModelAdmin):
     search_fields = ("name", "text")
     ordering = ("order", "-created_at")
     list_editable = ("order", "is_active")
+    order_field = "order"
+    order_scope_field = None
 
     def has_add_permission(self, request):
         if TopBar.objects.exists():
@@ -415,12 +417,14 @@ class NavbarItemInline(TabularInline):
 
 
 @admin.register(NavbarItem)
-class NavbarItemAdmin(HistoryModelAdmin):
+class NavbarItemAdmin(AutoReorderMixin, HistoryModelAdmin):
     form = NavbarItemForm
     list_display = ("__str__", "item_type", "order", "is_active")
     list_filter = ("item_type", "is_active")
     list_editable = ("order", "is_active")
     ordering = ("order", "id")
+    order_field = "order"
+    order_scope_field = "navbar"
 
     fieldsets = (
         (

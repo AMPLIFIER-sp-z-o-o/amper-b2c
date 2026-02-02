@@ -10,7 +10,7 @@ from unfold.admin import TabularInline
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
 from unfold.decorators import display
 
-from apps.utils.admin_mixins import BaseModelAdmin, HistoryModelAdmin
+from apps.utils.admin_mixins import AutoReorderMixin, BaseModelAdmin, HistoryModelAdmin
 from apps.utils.admin_utils import make_image_preview_html, make_status_badge_html, make_status_text_html
 
 from .models import (
@@ -199,7 +199,7 @@ class BannerGroupAdmin(BaseModelAdmin):
 
 
 @admin.register(Banner)
-class BannerAdmin(ImportExportModelAdmin, BaseModelAdmin):
+class BannerAdmin(AutoReorderMixin, ImportExportModelAdmin, BaseModelAdmin):
     """Admin for Banner with conditional fieldsets based on banner_type.
     Hidden from sidebar - access through BannerGroup admin."""
 
@@ -223,6 +223,8 @@ class BannerAdmin(ImportExportModelAdmin, BaseModelAdmin):
     list_editable = ("is_active", "order")
     list_per_page = 50
     show_full_result_count = False
+    order_field = "order"
+    order_scope_field = "group"
 
     class Media:
         css = {
@@ -452,7 +454,7 @@ class HomepageSectionCategoryItemInline(TabularInline):
 
 
 @admin.register(HomepageSectionCategoryBox)
-class HomepageSectionCategoryBoxAdmin(BaseModelAdmin):
+class HomepageSectionCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
     """Admin for managing HomepageSectionCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -460,6 +462,8 @@ class HomepageSectionCategoryBoxAdmin(BaseModelAdmin):
     search_fields = ("title", "shop_link_text")
     ordering = ("section", "order", "id")
     inlines = [HomepageSectionCategoryItemInline]
+    order_field = "order"
+    order_scope_field = "section"
 
     class Media:
         css = {
@@ -561,7 +565,7 @@ class HomepageSectionForm(forms.ModelForm):
 
 
 @admin.register(HomepageSection)
-class HomepageSectionAdmin(BaseModelAdmin):
+class HomepageSectionAdmin(AutoReorderMixin, BaseModelAdmin):
     form = HomepageSectionForm
     change_form_template = "admin/homepage/homepagesection/change_form.html"
     list_display = (
@@ -580,6 +584,8 @@ class HomepageSectionAdmin(BaseModelAdmin):
     list_editable = ("order", "is_enabled")
     list_per_page = 50
     show_full_result_count = False
+    order_field = "order"
+    order_scope_field = None
 
     class Media:
         js = ("js/homepage_section_admin.js",)
@@ -732,7 +738,7 @@ class StorefrontCategoryItemInline(TabularInline):
 
 
 @admin.register(StorefrontCategoryBox)
-class StorefrontCategoryBoxAdmin(BaseModelAdmin):
+class StorefrontCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
     """Admin for managing StorefrontCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -740,6 +746,8 @@ class StorefrontCategoryBoxAdmin(BaseModelAdmin):
     search_fields = ("title", "shop_link_text")
     ordering = ("section", "order", "id")
     inlines = [StorefrontCategoryItemInline]
+    order_field = "order"
+    order_scope_field = "section"
 
     class Media:
         css = {

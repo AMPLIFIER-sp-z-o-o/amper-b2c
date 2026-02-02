@@ -13,6 +13,8 @@ from apps.catalog.models import (
     AttributeDefinition,
     AttributeOption,
     Category,
+    CategoryBanner,
+    CategoryRecommendedProduct,
     Product,
     ProductAttributeValue,
     ProductImage,
@@ -116,7 +118,7 @@ def home(request):
                             "product__attribute_values",
                             queryset=ProductAttributeValue.objects.select_related("option__attribute")
                             .filter(option__attribute__show_on_tile=True)
-                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
@@ -184,7 +186,7 @@ def home(request):
                             "product__attribute_values",
                             queryset=ProductAttributeValue.objects.select_related("option__attribute")
                             .filter(option__attribute__show_on_tile=True)
-                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
@@ -382,6 +384,7 @@ def search_results(request):
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
     selected_attributes_slugs = set()
+    applied_attribute_filter = False
     for key in request.GET.keys():
         if key.startswith("attr_"):
             try:
@@ -399,8 +402,26 @@ def search_results(request):
                     products = products.filter(
                         attribute_values__option_id__in=valid_option_ids
                     )
+                    applied_attribute_filter = True
             except (ValueError, TypeError):
                 pass
+
+    if applied_attribute_filter:
+        products = products.distinct()
+
+    # Price filtering
+    current_price_min = request.GET.get("price_min", "").strip()
+    current_price_max = request.GET.get("price_max", "").strip()
+    try:
+        if current_price_min:
+            products = products.filter(price__gte=Decimal(current_price_min))
+    except (InvalidOperation, ValueError):
+        current_price_min = ""
+    try:
+        if current_price_max:
+            products = products.filter(price__lte=Decimal(current_price_max))
+    except (InvalidOperation, ValueError):
+        current_price_max = ""
 
     # If a specific product ID is provided, prioritize it
     highlighted_product = None
@@ -432,7 +453,7 @@ def search_results(request):
             "attribute_values",
             queryset=ProductAttributeValue.objects.select_related("option__attribute")
             .filter(option__attribute__show_on_tile=True)
-            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
             to_attr="tile_attributes_prefetch",
         ),
     )
@@ -441,20 +462,6 @@ def search_results(request):
     total_count = products.count()
     if highlighted_product:
         total_count += 1
-
-    # Price filtering
-    current_price_min = request.GET.get("price_min", "").strip()
-    current_price_max = request.GET.get("price_max", "").strip()
-    try:
-        if current_price_min:
-            products = products.filter(price__gte=Decimal(current_price_min))
-    except (InvalidOperation, ValueError):
-        current_price_min = ""
-    try:
-        if current_price_max:
-            products = products.filter(price__lte=Decimal(current_price_max))
-    except (InvalidOperation, ValueError):
-        current_price_max = ""
 
     # Get per_page from request
     per_page_param = request.GET.get("per_page", "")
@@ -595,7 +602,7 @@ def search_results(request):
                     active_filters.append({
                         "type": f"attr_{attr_id}",
                         "value": slug_val,
-                        "label": f"{opt.attribute.display_name}: {opt.value}",
+                        "label": f"{opt.attribute.name}: {opt.value}",
                     })
 
     context = {
@@ -759,6 +766,11 @@ def product_list(request, category_id=None, category_slug=None):
         current_category = Category.objects.select_related('parent').filter(id=category_id).first()
         if not current_category:
             raise Http404("Category not found")
+        if category_slug and current_category.slug != category_slug:
+            redirect_url = current_category.get_absolute_url()
+            if request.GET:
+                redirect_url = f"{redirect_url}?{request.GET.urlencode()}"
+            return redirect(redirect_url, permanent=True)
 
     # Start with active products
     products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
@@ -810,6 +822,7 @@ def product_list(request, category_id=None, category_slug=None):
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
     selected_attributes_slugs = set()
+    applied_attribute_filter = False
     for key in request.GET.keys():
         if key.startswith("attr_"):
             try:
@@ -827,8 +840,12 @@ def product_list(request, category_id=None, category_slug=None):
                     products = products.filter(
                         attribute_values__option_id__in=valid_option_ids
                     )
+                    applied_attribute_filter = True
             except (ValueError, TypeError):
                 pass
+
+    if applied_attribute_filter:
+        products = products.distinct()
 
     # Sorting
     current_sort = request.GET.get("sort", SORT_OPTIONS[0][0])
@@ -848,7 +865,7 @@ def product_list(request, category_id=None, category_slug=None):
             "attribute_values",
             queryset=ProductAttributeValue.objects.select_related("option__attribute")
             .filter(option__attribute__show_on_tile=True)
-            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
             to_attr="tile_attributes_prefetch",
         ),
     )
@@ -922,7 +939,7 @@ def product_list(request, category_id=None, category_slug=None):
                 "options",
                 queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
             )
-        ).order_by("display_name")
+        ).order_by("name")
         
         for attr in attr_definitions:
             # Get all options for this attribute that exist in base category
@@ -1050,7 +1067,7 @@ def product_list(request, category_id=None, category_slug=None):
                     active_filters.append({
                         "type": f"attr_{attr_id}",
                         "value": slug_val,
-                        "label": f"{opt.attribute.display_name}: {opt.value}",
+                        "label": f"{opt.attribute.name}: {opt.value}",
                     })
 
     context = {
@@ -1081,6 +1098,37 @@ def product_list(request, category_id=None, category_slug=None):
         "parent_category_product_count": parent_category_product_count,
         "active_filters": active_filters,
     }
+
+    # Fetch category banners and recommended products (only on full page load, not HTMX)
+    if current_category:
+        # Get active banners for the category (only if show_banners is enabled)
+        if current_category.show_banners:
+            category_banners = CategoryBanner.objects.filter(
+                category=current_category,
+                is_active=True,
+            ).order_by("order", "-created_at")
+            context["category_banners"] = list(category_banners)
+
+        # Get recommended products for the category (only if show_recommended_products is enabled)
+        if current_category.show_recommended_products:
+            recommended_products = CategoryRecommendedProduct.objects.filter(
+                category=current_category,
+                product__status=ProductStatus.ACTIVE,
+                product__stock__gt=0,
+            ).select_related("product", "product__category").prefetch_related(
+                Prefetch(
+                    "product__images",
+                    queryset=ProductImage.objects.order_by("sort_order", "id"),
+                ),
+                Prefetch(
+                    "product__attribute_values",
+                    queryset=ProductAttributeValue.objects.select_related("option__attribute")
+                    .filter(option__attribute__show_on_tile=True)
+                    .order_by("option__attribute__tile_display_order", "option__attribute__name"),
+                    to_attr="tile_attributes_prefetch",
+                ),
+            ).order_by("order", "id")[:12]
+            context["recommended_products"] = list(recommended_products)
 
     # Return partial template for HTMX requests
     if request.headers.get("HX-Request"):

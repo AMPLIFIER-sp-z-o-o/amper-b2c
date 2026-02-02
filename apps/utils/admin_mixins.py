@@ -133,6 +133,75 @@ class HistoryModelAdmin(SimpleHistoryAdmin, ModelAdmin):
     """Unfold ModelAdmin with django-simple-history support."""
 
 
+class AutoReorderMixin:
+    """
+    Mixin that automatically shifts other items when order is changed.
+    
+    When an item's order is changed from X to Y, all items with order >= Y
+    are shifted by 1 to make room for the new position.
+    
+    Configuration:
+        order_field: Name of the order field (default: "order")
+        order_scope_field: Optional ForeignKey field to scope ordering (e.g., "section", "parent")
+    
+    Example:
+        class BannerAdmin(AutoReorderMixin, ModelAdmin):
+            order_field = "order"
+            order_scope_field = None  # Global ordering
+            
+        class BottomBarLinkAdmin(AutoReorderMixin, ModelAdmin):
+            order_field = "order"
+            order_scope_field = "bottom_bar"  # Scoped to bottom_bar FK
+    """
+    
+    order_field = "order"
+    order_scope_field = None  # Set to FK field name to scope ordering (e.g., "section")
+    
+    def save_model(self, request, obj, form, change):
+        order_field = self.order_field
+        old_order = None
+        
+        if change and order_field in form.changed_data:
+            # Get old value before save
+            try:
+                old_instance = self.model.objects.get(pk=obj.pk)
+                old_order = getattr(old_instance, order_field)
+            except self.model.DoesNotExist:
+                pass
+        
+        # Save the object first
+        super().save_model(request, obj, form, change)
+        
+        # Now reorder other items if order changed
+        new_order = getattr(obj, order_field)
+        if old_order is not None and old_order != new_order:
+            self._reorder_items(obj, old_order, new_order)
+    
+    def _reorder_items(self, obj, old_order, new_order):
+        """Shift other items to make room for new position."""
+        order_field = self.order_field
+        
+        # Build base queryset excluding current object
+        qs = self.model.objects.exclude(pk=obj.pk)
+        
+        # Apply scope filter if configured
+        if self.order_scope_field:
+            scope_value = getattr(obj, f"{self.order_scope_field}_id", None)
+            if scope_value:
+                qs = qs.filter(**{f"{self.order_scope_field}_id": scope_value})
+        
+        if new_order < old_order:
+            # Moving up: shift items between new and old position down
+            qs.filter(
+                **{f"{order_field}__gte": new_order, f"{order_field}__lt": old_order}
+            ).update(**{order_field: models.F(order_field) + 1})
+        else:
+            # Moving down: shift items between old and new position up
+            qs.filter(
+                **{f"{order_field}__gt": old_order, f"{order_field}__lte": new_order}
+            ).update(**{order_field: models.F(order_field) - 1})
+
+
 class BaseModelAdmin(HistoryModelAdmin):
     """
     Base ModelAdmin that auto-detects and handles wall-clock fields.

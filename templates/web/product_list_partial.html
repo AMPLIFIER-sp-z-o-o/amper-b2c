@@ -1,5 +1,22 @@
 {% load i18n %}
 
+{# Hidden data element for JavaScript to read the total count #}
+<div id="product-count-data" data-total-count="{{ total_count }}" class="hidden"></div>
+
+{# Category Banner Slider - Mobile only (desktop banner is in header) #}
+{% if products.number == 1 %}
+{% if category_banners %}
+  <div class="lg:hidden">
+    {% include "web/components/category_banner_slider.html" %}
+  </div>
+{% endif %}
+
+{# Recommended Products - Below banners, above product list #}
+{% if recommended_products %}
+  {% include "web/components/category_recommended_products.html" %}
+{% endif %}
+{% endif %}
+
 {# Active Filters Bar - Properly positioned for mobile and desktop #}
 {% if active_filters %}
 {# Mobile: normal flow with proper spacing. Desktop: absolute overlay #}

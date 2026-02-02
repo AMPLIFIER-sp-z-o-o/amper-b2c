@@ -58,6 +58,8 @@ class CustomUserAdmin(HistoryModelAdmin, UserAdmin, ImportExportModelAdmin):
     export_form_class = ExportForm
     list_display = ("username", "email", "first_name", "last_name", "is_staff", "date_joined")
     list_filter = ("is_staff", "is_superuser", "is_active", "groups", "date_joined")
+    list_per_page = 50
+    show_full_result_count = False
     search_fields = ("email", "first_name", "last_name")
     ordering = ("-date_joined",)
     autocomplete_fields = ("groups", "user_permissions")

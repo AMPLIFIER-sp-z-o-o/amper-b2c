@@ -1,0 +1,249 @@
+{% load i18n %}
+{% if category_banners %}
+{# Load Swiper library for category slider components #}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+
+<div id="category-banner-slider-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="category-banner-slider {% if not header_position %}mb-4{% endif %} overflow-hidden {% if header_position %}header-position{% endif %}">
+  <div class="relative">
+    {# Banner Carousel #}
+    <div class="relative rounded-xl overflow-hidden">
+      <div 
+        class="swiper category-banner-swiper overflow-hidden"
+        data-category-id="{{ current_category.id }}"
+        data-banner-count="{{ category_banners|length }}"
+      >
+        <div class="swiper-wrapper">
+          {% for banner in category_banners %}
+          <div class="swiper-slide">
+            {% if banner.url %}
+            <a href="{{ banner.url }}" class="block w-full h-full">
+            {% endif %}
+              <picture class="block w-full h-full">
+                {% if banner.mobile_image %}
+                <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
+                {% endif %}
+                <img 
+                  src="{{ banner.image.url }}" 
+                  alt="{{ banner.name }}"
+                  class="category-banner-img w-full h-full object-cover object-center"
+                  loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                />
+              </picture>
+            {% if banner.url %}
+            </a>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      {# Navigation buttons - only show if more than one banner #}
+      {% if category_banners|length > 1 %}
+      <button 
+        type="button" 
+        class="category-banner-prev absolute left-3 md:left-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
+        data-category-id="{{ current_category.id }}"
+        aria-label="{% translate 'Previous banner' %}"
+      >
+        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+        </svg>
+      </button>
+      <button 
+        type="button" 
+        class="category-banner-next absolute right-3 md:right-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
+        data-category-id="{{ current_category.id }}"
+        aria-label="{% translate 'Next banner' %}"
+      >
+        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+        </svg>
+      </button>
+      {% endif %}
+    </div>
+
+    {# Pagination tabs underneath the slider - only show if multiple banners and at least one has a tab_title #}
+    {% if category_banners|length > 1 %}
+    <div class="category-banner-pagination flex justify-center gap-2 relative z-20 pt-2 pb-1" data-category-id="{{ current_category.id }}">
+      {% for banner in category_banners %}
+      {% if banner.tab_title %}
+      <button 
+        type="button"
+        class="category-banner-tab group relative px-4 py-2 text-center text-base transition-all duration-200 whitespace-nowrap cursor-pointer rounded-lg border-t-2 hover:bg-gray-200 dark:hover:bg-gray-700
+               {% if forloop.first %}border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-500 font-semibold active{% else %}border-transparent text-gray-500 dark:text-gray-400 font-medium{% endif %}"
+        data-slide-index="{{ forloop.counter0 }}"
+        data-category-id="{{ current_category.id }}"
+        title="{{ banner.tab_title }}"
+      >
+        <span class="relative z-10">{{ banner.tab_title }}</span>
+      </button>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+/* Category Banner Slider Styles - Inside content area */
+.category-banner-slider {
+  max-width: 100%;
+  width: 100%;
+}
+
+.category-banner-slider .swiper {
+  /* Compact aspect ratio to fit banner + recommended products on screen */
+  aspect-ratio: 3.5 / 1;
+  max-height: 280px;
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Header position - compact for side-by-side layout */
+.category-banner-slider.header-position .swiper {
+  aspect-ratio: 2.8 / 1;
+  max-height: 280px;
+}
+
+.category-banner-slider.header-position .category-banner-tab {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+}
+
+.category-banner-slider .swiper-slide {
+  height: 100%;
+}
+
+.category-banner-slider .category-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  background-color: transparent;
+}
+
+.dark .category-banner-slider .category-banner-img {
+  background-color: transparent;
+}
+
+/* Active tab styling */
+.category-banner-slider .category-banner-tab.active {
+  color: rgb(37 99 235); /* primary-600 */
+  border-top-color: rgb(37 99 235); /* primary-600 */
+}
+
+.dark .category-banner-slider .category-banner-tab.active {
+  color: rgb(59 130 246); /* primary-500 */
+  border-top-color: rgb(59 130 246); /* primary-500 */
+}
+
+/* Hide pagination if no tabs have content */
+.category-banner-pagination:empty {
+  display: none;
+}
+
+/* Tablet responsive adjustments */
+@media (max-width: 1024px) {
+  .category-banner-slider .swiper {
+    aspect-ratio: 3 / 1;
+    max-height: 220px;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .category-banner-slider .swiper {
+    aspect-ratio: 2.5 / 1;
+    max-height: 180px;
+  }
+  
+  .category-banner-slider .category-banner-tab {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .category-banner-slider .category-banner-pagination {
+    gap: 0.25rem;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .category-banner-slider .swiper {
+    aspect-ratio: 2 / 1;
+    max-height: 150px;
+  }
+}
+</style>
+
+<script>
+(function() {
+  const initCategoryBannerSlider = () => {
+    const swiperContainer = document.querySelector('.category-banner-swiper[data-category-id="{{ current_category.id }}"]');
+    if (!swiperContainer) return;
+    
+    // If swiper is already initialized on this element, don't do it again
+    if (swiperContainer.swiper) return;
+    
+    if (typeof Swiper === 'undefined') {
+      // Wait for Swiper to load
+      setTimeout(initCategoryBannerSlider, 100);
+      return;
+    }
+    
+    // Define tabs FIRST so updateActiveTabs can use it
+    const tabs = document.querySelectorAll('.category-banner-tab[data-category-id="{{ current_category.id }}"]');
+    
+    function updateActiveTabs(activeIndex) {
+      tabs.forEach((tab, index) => {
+        if (index === activeIndex) {
+          tab.classList.add('active');
+          tab.classList.remove('text-gray-500', 'dark:text-gray-400', 'font-medium', 'border-transparent');
+          tab.classList.add('text-primary-600', 'dark:text-primary-500', 'font-semibold', 'border-primary-600', 'dark:border-primary-500');
+        } else {
+          tab.classList.remove('active', 'font-semibold', 'border-primary-600', 'dark:border-primary-500');
+          tab.classList.add('text-gray-500', 'dark:text-gray-400', 'font-medium', 'border-transparent');
+          tab.classList.remove('text-primary-600', 'dark:text-primary-500');
+        }
+      });
+    }
+    
+    const swiper = new Swiper(swiperContainer, {
+      slidesPerView: 1,
+      spaceBetween: 0,
+      loop: {{ category_banners|length }} > 1,
+      autoplay: {
+        delay: 5000,
+        disableOnInteraction: false,
+        pauseOnMouseEnter: true,
+      },
+      navigation: {
+        nextEl: '.category-banner-next[data-category-id="{{ current_category.id }}"]',
+        prevEl: '.category-banner-prev[data-category-id="{{ current_category.id }}"]',
+      },
+      on: {
+        slideChange: function() {
+          updateActiveTabs(this.realIndex);
+        }
+      }
+    });
+    
+    // Tab click handlers
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const slideIndex = parseInt(this.dataset.slideIndex);
+        swiper.slideToLoop(slideIndex);
+        updateActiveTabs(slideIndex);
+      });
+    });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCategoryBannerSlider);
+  } else {
+    initCategoryBannerSlider();
+  }
+})();
+</script>
+{% endif %}

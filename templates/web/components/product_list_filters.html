@@ -18,7 +18,7 @@
     <!-- Current Category Name -->
     <div class="mb-2">
       <span class="text-base font-bold text-gray-900 dark:text-white">{{ current_category.name }}</span>
-      {% if current_category_product_count %}<span class="text-sm text-gray-600 dark:text-gray-400 ml-1 font-medium">({{ current_category_product_count }})</span>{% endif %}
+      <span id="{% if is_mobile %}category-product-count-mobile{% else %}category-product-count{% endif %}" class="text-sm text-gray-600 dark:text-gray-400 ml-1 font-medium">({{ total_count }})</span>
     </div>
     
     <!-- Subcategories List -->
@@ -140,10 +140,10 @@
     <!-- Attribute Filters -->
     {% for attribute in available_attributes %}
     {% if attribute.filtered_options %}
-    <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0" data-filter-name="{{ attribute.display_name }}">
+    <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0" data-filter-name="{{ attribute.name }}">
       <h2 id="accordion-flush-heading-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}">
         <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer transition-colors" data-accordion-target="#accordion-flush-body-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}" aria-expanded="true" aria-controls="accordion-flush-body-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}">
-          <span class="text-base">{{ attribute.display_name }}</span>
+          <span class="text-base">{{ attribute.name }}</span>
           <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
           </svg>
@@ -232,6 +232,11 @@ function buildFilterQueryString() {
   if (searchInput && searchInput.value) {
     params.append('q', searchInput.value);
   }
+
+  const categoryValues = currentUrl.getAll('category');
+  categoryValues.forEach(function(value) {
+    params.append('category', value);
+  });
   
   // Collect all checked attribute checkboxes (from any active filter sidebar)
   const seen = new Set();
@@ -365,6 +370,41 @@ function hideProductsLoading() {
   }
 }
 
+// Update all product count displays
+function updateProductCounts() {
+  const countElement = document.getElementById('product-count-data');
+  if (!countElement) return;
+  
+  const count = countElement.getAttribute('data-total-count');
+  if (!count) return;
+  
+  const countNum = parseInt(count, 10);
+  
+  // Update mobile results count
+  const mobileCountSpan = document.getElementById('mobile-results-count');
+  if (mobileCountSpan) {
+    mobileCountSpan.textContent = count;
+  }
+  
+  // Update category product count in sidebar
+  const categoryCount = document.getElementById('category-product-count');
+  if (categoryCount) {
+    categoryCount.textContent = '(' + count + ')';
+  }
+  const categoryCountMobile = document.getElementById('category-product-count-mobile');
+  if (categoryCountMobile) {
+    categoryCountMobile.textContent = '(' + count + ')';
+  }
+  
+  // Update main header "X products found" text
+  const productsFoundText = document.getElementById('products-found-text');
+  if (productsFoundText) {
+    const singular = productsFoundText.getAttribute('data-singular') || 'product found';
+    const plural = productsFoundText.getAttribute('data-plural') || 'products found';
+    productsFoundText.textContent = count + ' ' + (countNum === 1 ? singular : plural);
+  }
+}
+
 // Apply filters using fetch API (no page reload, no scroll jump)
 function applyFiltersWithHtmx() {
   updateClearAllLinkState();
@@ -418,6 +458,8 @@ function applyFiltersWithHtmx() {
         initPaginationLinks();
         // Re-attach active filter chip listeners
         initActiveFilterChips();
+        // Update all product counts
+        updateProductCounts();
       })
       .catch(error => {
         console.error('Error fetching products:', error);
@@ -442,6 +484,9 @@ function navigateToPage(url, options = {}) {
       window.htmx.ajax('GET', url, {
         target: '#products-container',
         swap: 'innerHTML'
+      }).then(function() {
+        // Ensure counts are updated after HTMX swap
+        updateProductCounts();
       });
     } else {
       fetch(url, {
@@ -475,6 +520,8 @@ function navigateToPage(url, options = {}) {
         initPaginationLinks();
         // Re-attach active filter chip listeners
         initActiveFilterChips();
+        // Update all product counts
+        updateProductCounts();
       })
       .catch(error => {
         console.error('Error fetching products:', error);
@@ -548,10 +595,19 @@ function initActiveFilterChips() {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       const baseUrl = this.getAttribute('data-base-url') || window.location.pathname;
-      // Preserve search query if present
+      // Preserve search query and category if present
       const urlParams = new URLSearchParams(window.location.search);
       const searchQuery = urlParams.get('q');
-      const newUrl = searchQuery ? `${baseUrl}?q=${encodeURIComponent(searchQuery)}` : baseUrl;
+      const searchPath = '{% url "web:search_results" %}';
+      const searchCategory = baseUrl === searchPath ? urlParams.get('category') : '';
+      const newParams = new URLSearchParams();
+      if (searchQuery) {
+        newParams.set('q', searchQuery);
+      }
+      if (searchCategory) {
+        newParams.set('category', searchCategory);
+      }
+      const newUrl = newParams.toString() ? `${baseUrl}?${newParams.toString()}` : baseUrl;
       
       // Clear all filter inputs in desktop sidebar
       document.querySelectorAll('#filters-sidebar input[name^="attr_"]').forEach(function(cb) {
@@ -584,6 +640,50 @@ function debouncedApplyFilters() {
   priceDebounceTimer = setTimeout(applyFiltersWithHtmx, 800);
 }
 
+// Mobile results count preview - fetch count without applying filters
+let mobileCountDebounceTimer;
+function debouncedUpdateMobileResultsCount() {
+  clearTimeout(mobileCountDebounceTimer);
+  mobileCountDebounceTimer = setTimeout(updateMobileResultsCount, 300);
+}
+
+function updateMobileResultsCount() {
+  const mobileCountSpan = document.getElementById('mobile-results-count');
+  if (!mobileCountSpan) return;
+  
+  const queryString = buildFilterQueryString();
+  const baseUrl = window.location.pathname;
+  const requestUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  
+  // Show loading indicator on the button
+  const originalText = mobileCountSpan.textContent;
+  mobileCountSpan.textContent = '...';
+  
+  fetch(requestUrl, {
+    headers: {
+      'HX-Request': 'true'
+    }
+  })
+  .then(response => response.text())
+  .then(html => {
+    // Parse the response to extract the count from data attribute
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const countElement = doc.getElementById('product-count-data');
+    if (countElement) {
+      const count = countElement.getAttribute('data-total-count');
+      mobileCountSpan.textContent = count || '0';
+    } else {
+      // Fallback: try to count products or restore original
+      mobileCountSpan.textContent = originalText;
+    }
+  })
+  .catch(error => {
+    console.error('Error fetching product count:', error);
+    mobileCountSpan.textContent = originalText;
+  });
+}
+
 // Filter search functionality
 document.addEventListener('DOMContentLoaded', function() {
   // Expand all accordions by default (both desktop and mobile)
@@ -614,21 +714,27 @@ document.addEventListener('DOMContentLoaded', function() {
           group.style.display = '';
           // Show all options when filter name matches or empty query
           group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
-            checkbox.closest('.flex.items-center').style.display = '';
+            const optionRow = checkbox.closest('label');
+            if (optionRow) {
+              optionRow.style.display = '';
+            }
           });
         } else {
           // Search in option values
           let hasMatchingOption = false;
           group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
-            const optionRow = checkbox.closest('.flex.items-center');
-            const label = optionRow.querySelector('label');
-            const optionText = label ? label.textContent.toLowerCase() : '';
+            const optionRow = checkbox.closest('label');
+            const optionText = optionRow ? optionRow.textContent.toLowerCase() : '';
             
             if (optionText.includes(query)) {
-              optionRow.style.display = '';
+              if (optionRow) {
+                optionRow.style.display = '';
+              }
               hasMatchingOption = true;
             } else {
-              optionRow.style.display = 'none';
+              if (optionRow) {
+                optionRow.style.display = 'none';
+              }
             }
           });
           
@@ -810,7 +916,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         updateAttributeActionLink(attrId);
         updateClearAllLinkState();
-        // mobile does not auto-apply filters
+        // mobile does not auto-apply filters, but preview the count
+        debouncedUpdateMobileResultsCount();
       }
     });
   }
@@ -830,6 +937,7 @@ document.addEventListener('DOMContentLoaded', function() {
     priceMinMobile.addEventListener('input', function() {
       priceMin.value = priceMinMobile.value;
       updateClearAllLinkState();
+      debouncedUpdateMobileResultsCount();
     });
   }
   if (priceMax && priceMaxMobile) {
@@ -841,6 +949,7 @@ document.addEventListener('DOMContentLoaded', function() {
     priceMaxMobile.addEventListener('input', function() {
       priceMax.value = priceMaxMobile.value;
       updateClearAllLinkState();
+      debouncedUpdateMobileResultsCount();
     });
   }
 
@@ -946,6 +1055,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         initActiveFilterChips();
         updateClearAllLinkState();
+        
+        // Update all product counts
+        updateProductCounts();
       }
     });
     

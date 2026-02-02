@@ -39,16 +39,16 @@
 
 ## Dev Workflows
 
-| Task                | Command                                                                                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bootstrap project   | `make init`                                                                                                                                                                                 |
-| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. [Do not use this command unless told to.] Do not use manage.py runserver. Use only make dev to start the server** |
-| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'`                                                                                                                                        |
-| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`                                                                                                                                         |
-| Format/lint         | `make ruff` (Ruff formatter + linter)                                                                                                                                                       |
-| Reset database      | `make reset-db` (drop + recreate + migrate)                                                                                                                                                 |
-| Update translations | `make translations`                                                                                                                                                                         |
-| Celery worker       | `make celery`                                                                                                                                                                               |
+| Task                | Command                                                                                                                                                                                                                                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bootstrap project   | `make init`                                                                                                                                                                                                                                                                                                                                     |
+| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. If the server is already running, do NOT start it again. Do not use manage.py runserver. During browser tests, NEVER start the server automatically unless it is found to be not running AFTER the tests have already begun - only then use `make dev` to start it.** |
+| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'`                                                                                                                                                                                                                                                                                            |
+| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`                                                                                                                                                                                                                                                                                             |
+| Format/lint         | `make ruff` (Ruff formatter + linter)                                                                                                                                                                                                                                                                                                           |
+| Reset database      | `make reset-db` (drop + recreate + migrate)                                                                                                                                                                                                                                                                                                     |
+| Update translations | `make translations`                                                                                                                                                                                                                                                                                                                             |
+| Celery worker       | `make celery`                                                                                                                                                                                                                                                                                                                                   |
 
 **Superuser credentials**: `admin@example.com` / `admin` (always use these credentials during testing)
 
@@ -248,6 +248,17 @@ Example pattern from `homepage_product_section.html`:
 
 ## Change Validation & Testing
 
+### Bug-First Development Workflow
+
+When a bug is reported, **do not start by trying to fix it**. Instead:
+
+1. **Write a test first** that reproduces the bug
+2. Verify the test fails (proving the bug exists)
+3. Have subagents attempt to fix the bug
+4. Prove the fix with a passing test
+
+This ensures bugs are properly documented and prevents regressions.
+
 ### When tests ARE required
 
 Tests should be created for changes that:
@@ -291,6 +302,7 @@ Tests should be created for changes that:
    - Run via `make test`.
 
 2. **Browser tests** (always required for **ALL** UI and visual changes):
+   - **Environment**: Do NOT start the dev server (`make dev`) proactively. Only start it if the server is found to be not running AFTER startingbrowser verification.
    - Visual verification using **Chrome MCP** tool.
    - Test interactions (clicks, forms, HTMX behavior).
    - Cover edge cases (e.g., empty lists, loading states, validation errors, etc...).

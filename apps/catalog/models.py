@@ -31,6 +31,16 @@ class Category(BaseModel):
     image = models.ImageField(upload_to="category-images/", blank=True, null=True, storage=DynamicMediaStorage())
     sort_order = models.IntegerField(default=0, help_text=_("Sort order in navigation menu (lower numbers first)."))
     icon = models.CharField(max_length=50, blank=True, default="circle", help_text=_("Icon name for the menu."))
+    show_banners = models.BooleanField(
+        default=True,
+        verbose_name=_("Show banners"),
+        help_text=_("Display banner slider at the top of the category page."),
+    )
+    show_recommended_products = models.BooleanField(
+        default=True,
+        verbose_name=_("Show recommended products"),
+        help_text=_("Display 'Recommended in category' section on the category page."),
+    )
 
     class Meta:
         ordering = ["sort_order", "name"]
@@ -109,7 +119,7 @@ class Product(BaseModel):
         
         Returns up to 4 attributes sorted by:
         1. tile_display_order (lower first)
-        2. display_name (alphabetically) when order is the same
+        2. name (alphabetically) when order is the same
         
         Only attributes with show_on_tile=True are included.
         
@@ -139,7 +149,7 @@ class Product(BaseModel):
                 option__attribute__show_on_tile=True
             ).order_by(
                 "option__attribute__tile_display_order",
-                "option__attribute__display_name"
+                "option__attribute__name"
             )[:max_attrs]
         
         for av in attr_values:
@@ -148,7 +158,7 @@ class Product(BaseModel):
             display_value = full_value[:max_value_length] + "..." if is_truncated else full_value
             
             attrs.append({
-                "attribute_name": av.option.attribute.display_name,
+                "attribute_name": av.option.attribute.name,
                 "full_value": full_value,
                 "display_value": display_value,
                 "is_truncated": is_truncated,
@@ -183,8 +193,8 @@ class ProductImage(BaseModel):
 
 
 class AttributeDefinition(BaseModel):
-    name = models.CharField(max_length=100, unique=True)
-    display_name = models.CharField(max_length=150)
+    name = models.CharField(max_length=150, verbose_name=_("Name"))
+    slug = AutoSlugField(populate_from="name", unique=True, always_update=False)
     # Controls whether this attribute appears on product tiles (slider, grid, list views)
     show_on_tile = models.BooleanField(
         default=True,
@@ -199,10 +209,10 @@ class AttributeDefinition(BaseModel):
     )
 
     class Meta:
-        ordering = ["display_name"]
+        ordering = ["name"]
 
     def __str__(self) -> str:
-        return self.display_name
+        return self.name
 
     def save(self, *args, **kwargs):
         # Auto-assign display order for new attributes
@@ -226,7 +236,7 @@ class AttributeOption(BaseModel):
         ordering = ["attribute", "value"]
 
     def __str__(self) -> str:
-        return f"{self.attribute.display_name}: {self.value}"
+        return f"{self.attribute.name}: {self.value}"
 
     @property
     def slug(self) -> str:
@@ -259,3 +269,138 @@ class ProductAttributeValue(BaseModel):
 
     def __str__(self) -> str:
         return str(self.option)
+
+
+# =============================================================================
+# Category Banners & Recommended Products
+# =============================================================================
+
+
+def _get_category_banner_filename(instance, filename):
+    """Use random filename to prevent overwriting existing files & to fix caching issues."""
+    import uuid
+    return f"category_banners/{uuid.uuid4()}.{filename.split('.')[-1]}"
+
+
+class CategoryBanner(BaseModel):
+    """
+    Banner within a category page, displayed as a slider at the top.
+    Similar to x-kom.pl category banners.
+    """
+
+    category = models.ForeignKey(
+        Category,
+        related_name="banners",
+        on_delete=models.CASCADE,
+        verbose_name=_("Category"),
+    )
+    name = models.CharField(
+        max_length=255,
+        verbose_name=_("Name"),
+        help_text=_("Internal name for identification"),
+    )
+    tab_title = models.CharField(
+        max_length=100,
+        verbose_name=_("Tab Title"),
+        help_text=_("Optional title shown in navigation tabs below the banner. Leave empty to hide tabs."),
+        blank=True,
+        default="",
+    )
+    image = models.ImageField(
+        upload_to=_get_category_banner_filename,
+        storage=DynamicMediaStorage(),
+        verbose_name=_("Image"),
+        help_text=_("Desktop banner. Recommended: 1200x400px. Images scale responsively."),
+    )
+    mobile_image = models.ImageField(
+        upload_to=_get_category_banner_filename,
+        storage=DynamicMediaStorage(),
+        verbose_name=_("Mobile Image"),
+        help_text=_("Optional mobile banner. Recommended: 800x400px. Falls back to desktop image if not set."),
+        blank=True,
+        null=True,
+    )
+    url = models.CharField(
+        max_length=500,
+        verbose_name=_("Target URL"),
+        help_text=_("URL to redirect when the banner is clicked. Use '#' or relative/full URL."),
+        blank=True,
+        default="",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Active"),
+        help_text=_("Only active banners will be displayed"),
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Order"),
+        help_text=_("Display order (lower number = higher priority)"),
+    )
+
+    class Meta:
+        verbose_name = _("Category Banner")
+        verbose_name_plural = _("Category Banners")
+        ordering = ["category", "order", "-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.category.name} - {self.name}"
+
+    def save(self, *args, **kwargs):
+        # Auto-increment order for new banners if not explicitly set
+        if self._state.adding and self.order == 0:
+            max_order = CategoryBanner.objects.filter(category=self.category).aggregate(
+                max_order=models.Max("order")
+            )["max_order"]
+            if max_order is not None:
+                self.order = max_order + 1
+        super().save(*args, **kwargs)
+
+
+class CategoryRecommendedProduct(BaseModel):
+    """
+    Recommended product within a category page, displayed at the bottom.
+    Similar to "Polecane w kategorii" section on x-kom.pl.
+    """
+
+    category = models.ForeignKey(
+        Category,
+        related_name="recommended_products",
+        on_delete=models.CASCADE,
+        verbose_name=_("Category"),
+    )
+    product = models.ForeignKey(
+        Product,
+        related_name="category_recommendations",
+        on_delete=models.CASCADE,
+        verbose_name=_("Product"),
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_("Order"),
+        help_text=_("Display order (lower number = higher priority)"),
+    )
+
+    class Meta:
+        verbose_name = _("Recommended Product")
+        verbose_name_plural = _("Recommended Products")
+        ordering = ["category", "order", "id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["category", "product"],
+                name="uniq_category_recommended_product"
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.category.name} - {self.product.name}"
+
+    def save(self, *args, **kwargs):
+        # Auto-increment order for new items if not explicitly set
+        if self._state.adding and self.order == 0:
+            max_order = CategoryRecommendedProduct.objects.filter(category=self.category).aggregate(
+                max_order=models.Max("order")
+            )["max_order"]
+            if max_order is not None:
+                self.order = max_order + 1
+        super().save(*args, **kwargs)

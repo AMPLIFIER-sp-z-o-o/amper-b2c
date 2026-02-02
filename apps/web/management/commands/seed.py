@@ -35,6 +35,8 @@ from apps.catalog.models import (
     AttributeDefinition,
     AttributeOption,
     Category,
+    CategoryBanner,
+    CategoryRecommendedProduct,
     Product,
     ProductAttributeValue,
     ProductImage,
@@ -538,21 +540,21 @@ CATEGORIES_DATA = [
 ]
 
 ATTRIBUTE_DEFINITIONS_DATA = [
-    {"id": 44, "name": "brand", "display_name": "Brand", "show_on_tile": True, "tile_display_order": 1},
-    {"id": 45, "name": "battery_type", "display_name": "Battery Type", "show_on_tile": True, "tile_display_order": 2},
-    {"id": 46, "name": "pack_size", "display_name": "Pack Size", "show_on_tile": True, "tile_display_order": 3},
-    {"id": 47, "name": "product_line", "display_name": "Product Line", "show_on_tile": True, "tile_display_order": 4},
-    {"id": 48, "name": "voltage", "display_name": "Voltage", "show_on_tile": True, "tile_display_order": 5},
-    {"id": 49, "name": "wipe_type", "display_name": "Wipe Type", "show_on_tile": True, "tile_display_order": 6},
-    {"id": 50, "name": "scent", "display_name": "Scent", "show_on_tile": True, "tile_display_order": 7},
-    {"id": 51, "name": "weight", "display_name": "Weight", "show_on_tile": True, "tile_display_order": 8},
-    {"id": 52, "name": "product_type", "display_name": "Product Type", "show_on_tile": True, "tile_display_order": 9},
-    {"id": 53, "name": "wattage", "display_name": "Wattage", "show_on_tile": True, "tile_display_order": 10},
-    {"id": 54, "name": "lumens", "display_name": "Lumens", "show_on_tile": True, "tile_display_order": 11},
-    {"id": 55, "name": "socket_type", "display_name": "Socket Type", "show_on_tile": True, "tile_display_order": 12},
-    {"id": 56, "name": "character", "display_name": "Character", "show_on_tile": True, "tile_display_order": 13},
-    {"id": 57, "name": "age_range", "display_name": "Age Range", "show_on_tile": True, "tile_display_order": 14},
-    {"id": 58, "name": "volume", "display_name": "Volume", "show_on_tile": True, "tile_display_order": 15},
+    {"id": 44, "name": "Brand", "show_on_tile": True, "tile_display_order": 1},
+    {"id": 45, "name": "Battery Type", "show_on_tile": True, "tile_display_order": 2},
+    {"id": 46, "name": "Pack Size", "show_on_tile": True, "tile_display_order": 3},
+    {"id": 47, "name": "Product Line", "show_on_tile": True, "tile_display_order": 4},
+    {"id": 48, "name": "Voltage", "show_on_tile": True, "tile_display_order": 5},
+    {"id": 49, "name": "Wipe Type", "show_on_tile": True, "tile_display_order": 6},
+    {"id": 50, "name": "Scent", "show_on_tile": True, "tile_display_order": 7},
+    {"id": 51, "name": "Weight", "show_on_tile": True, "tile_display_order": 8},
+    {"id": 52, "name": "Product Type", "show_on_tile": True, "tile_display_order": 9},
+    {"id": 53, "name": "Wattage", "show_on_tile": True, "tile_display_order": 10},
+    {"id": 54, "name": "Lumens", "show_on_tile": True, "tile_display_order": 11},
+    {"id": 55, "name": "Socket Type", "show_on_tile": True, "tile_display_order": 12},
+    {"id": 56, "name": "Character", "show_on_tile": True, "tile_display_order": 13},
+    {"id": 57, "name": "Age Range", "show_on_tile": True, "tile_display_order": 14},
+    {"id": 58, "name": "Volume", "show_on_tile": True, "tile_display_order": 15},
 ]
 
 ATTRIBUTE_OPTIONS_DATA = [
@@ -2054,6 +2056,51 @@ HOMEPAGE_SECTION_BANNERS_DATA = [
     },
 ]
 
+# =============================================================================
+# Category Banners & Recommended Products
+# =============================================================================
+
+CATEGORY_BANNERS_DATA = [
+    # Alkaline Batteries category (id: 41) banners
+    {
+        "id": 1,
+        "category_id": 41,
+        "name": "Duracell Power",
+        "image": "section_banners/seeds/promo_sale.jpg",
+        "url": "/category/41/alkaline-batteries/",
+        "is_active": True,
+        "order": 1,
+    },
+    {
+        "id": 2,
+        "category_id": 41,
+        "name": "Energizer Max",
+        "image": "section_banners/seeds/promo_arrivals.jpg",
+        "url": "/category/41/alkaline-batteries/",
+        "is_active": True,
+        "order": 2,
+    },
+    {
+        "id": 3,
+        "category_id": 41,
+        "name": "Varta Longlife",
+        "image": "section_banners/seeds/promo_smarthome.jpg",
+        "url": "/category/41/alkaline-batteries/",
+        "is_active": True,
+        "order": 3,
+    },
+]
+
+CATEGORY_RECOMMENDED_PRODUCTS_DATA = [
+    # Alkaline Batteries category (id: 41) recommended products
+    {"id": 1, "category_id": 41, "product_id": 380, "order": 1},  # Duracell Coppertop AAA 8-Pack
+    {"id": 2, "category_id": 41, "product_id": 379, "order": 2},  # Duracell Coppertop AA 8-Pack
+    {"id": 3, "category_id": 41, "product_id": 378, "order": 3},  # Duracell Coppertop AAA 4-Pack
+    {"id": 4, "category_id": 41, "product_id": 377, "order": 4},  # Duracell Coppertop AA 4-Pack
+    {"id": 5, "category_id": 41, "product_id": 376, "order": 5},  # Energizer Max Power Seal AAA 20-Pack
+    {"id": 6, "category_id": 41, "product_id": 375, "order": 6},  # Energizer Max Power Seal AA 20-Pack
+]
+
 MEDIA_STORAGE_SETTINGS_DATA = {
     "provider_type": "s3",
     "aws_bucket_name": "amper-b2c-qa-eu",
@@ -2104,6 +2151,8 @@ class Command(BaseCommand):
                 self._seed_footer()
                 self._seed_bottombar()
                 self._seed_categories()
+                self._seed_category_banners()
+                self._seed_category_recommended_products()
                 self._seed_navbar()
                 self._seed_attributes()
                 self._seed_products()
@@ -2413,6 +2462,36 @@ class Command(BaseCommand):
                 Category.objects.filter(id=item["id"]).update(parent_id=item["parent_id"])
         self.stdout.write(f"  Category: {len(CATEGORIES_DATA)} records")
 
+    def _seed_category_banners(self):
+        """Seed CategoryBanner models."""
+        for item in CATEGORY_BANNERS_DATA:
+            obj, created = CategoryBanner.objects.update_or_create(
+                id=item["id"],
+                defaults={
+                    "category_id": item["category_id"],
+                    "name": item["name"],
+                    "image": item["image"],
+                    "url": item.get("url", ""),
+                    "is_active": item.get("is_active", True),
+                    "order": item.get("order", 0),
+                },
+            )
+            self._upload_if_missing(obj, "image", item["image"])
+        self.stdout.write(f"  CategoryBanner: {len(CATEGORY_BANNERS_DATA)} records")
+
+    def _seed_category_recommended_products(self):
+        """Seed CategoryRecommendedProduct models."""
+        for item in CATEGORY_RECOMMENDED_PRODUCTS_DATA:
+            CategoryRecommendedProduct.objects.update_or_create(
+                id=item["id"],
+                defaults={
+                    "category_id": item["category_id"],
+                    "product_id": item["product_id"],
+                    "order": item.get("order", 0),
+                },
+            )
+        self.stdout.write(f"  CategoryRecommendedProduct: {len(CATEGORY_RECOMMENDED_PRODUCTS_DATA)} records")
+
     def _seed_attributes(self):
         """Seed AttributeDefinition and AttributeOption models."""
         for item in ATTRIBUTE_DEFINITIONS_DATA:
@@ -2420,7 +2499,6 @@ class Command(BaseCommand):
                 id=item["id"],
                 defaults={
                     "name": item["name"],
-                    "display_name": item["display_name"],
                     "show_on_tile": item.get("show_on_tile", True),
                     "tile_display_order": item.get("tile_display_order", 0),
                 },
@@ -2747,6 +2825,8 @@ class Command(BaseCommand):
             "web_customcss",
             "web_sitesettings",
             "catalog_category",
+            "catalog_categorybanner",
+            "catalog_categoryrecommendedproduct",
             "catalog_product",
             "catalog_productimage",
             "catalog_attributedefinition",
