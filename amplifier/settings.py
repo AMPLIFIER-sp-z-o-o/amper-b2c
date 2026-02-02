@@ -109,7 +109,6 @@ PROJECT_APPS = [
     "apps.media.apps.MediaConfig",
     "apps.homepage.apps.HomepageConfig",
     "apps.support.apps.SupportConfig",
-    'apps.products.apps.ProductsConfig',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
