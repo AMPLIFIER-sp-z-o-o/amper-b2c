@@ -167,6 +167,43 @@ class Product(BaseModel):
             })
         
         return attrs
+    
+    @property
+    def display_attributes(self) -> list:
+        """
+        Get attributes for display on product details page.
+
+        Returns all attributes sorted by:
+        1. tile_display_order (lower first)
+        2. display_name (alphabetically) when order is the same
+
+        Returns a list of dicts with keys:
+        - attribute_name: The display name of the attribute
+        - full_value: The complete value
+        - display_value: Same as full_value (no truncation)
+        - is_truncated: Always False
+        """
+        attrs = []
+
+        attr_values = (
+            self.attribute_values
+            .select_related("option__attribute")
+            .order_by(
+                "option__attribute__tile_display_order",
+                "option__attribute__display_name"
+            )
+        )
+
+        for av in attr_values:
+            full_value = av.option.value
+
+            attrs.append({
+                "attribute_name": av.option.attribute.display_name,
+                "full_value": full_value,
+            })
+
+        return attrs
+
 
 
 class ProductImage(BaseModel):
