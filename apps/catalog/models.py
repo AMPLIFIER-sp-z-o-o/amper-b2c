@@ -175,13 +175,11 @@ class Product(BaseModel):
 
         Returns all attributes sorted by:
         1. tile_display_order (lower first)
-        2. display_name (alphabetically) when order is the same
+        2. name (alphabetically) when order is the same
 
         Returns a list of dicts with keys:
         - attribute_name: The display name of the attribute
         - full_value: The complete value
-        - display_value: Same as full_value (no truncation)
-        - is_truncated: Always False
         """
         attrs = []
 
@@ -190,7 +188,7 @@ class Product(BaseModel):
             .select_related("option__attribute")
             .order_by(
                 "option__attribute__tile_display_order",
-                "option__attribute__display_name"
+                "option__attribute__name"
             )
         )
 
@@ -198,7 +196,7 @@ class Product(BaseModel):
             full_value = av.option.value
 
             attrs.append({
-                "attribute_name": av.option.attribute.display_name,
+                "attribute_name": av.option.attribute.name,
                 "full_value": full_value,
             })
 
