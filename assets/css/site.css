@@ -167,3 +167,12 @@ html {
 .hover-bg-active {
   @apply hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors;
 }
+
+/* Utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}

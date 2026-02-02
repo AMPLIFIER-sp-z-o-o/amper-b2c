@@ -26,7 +26,7 @@
                     <div class="absolute inset-0 bg-black pointer-events-none" style="opacity: {{ banner.overlay_opacity|default:50 }}%;"></div>
                     
                     {# Text content - use relative positioning to stay within slide bounds #}
-                    <div class="hero-banner-content relative z-10 h-full flex items-center pb-9 px-16 md:px-0
+                    <div class="hero-banner-content relative z-10 h-full flex items-center pb-9 px-14 md:px-0
                         {% if banner.text_alignment == 'left' %}
                         justify-start md:pl-20 lg:pl-40
                         {% elif banner.text_alignment == 'right' %}
@@ -133,11 +133,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Dynamic height calculation to fit visible viewport area exactly
     function updateBannerHeight() {
         if (window.innerWidth < 768) {
-            // On mobile, use a fixed height or aspect ratio based height
+            // On mobile, use a larger fixed height to fit text content and avoid cropping
             // instead of trying to fit viewport which creates too much empty space
-            swiperEl.style.height = 'auto';
+            swiperEl.style.height = '580px';
             swiperEl.classList.remove('h-screen');
-            swiperEl.style.minHeight = '450px';
+            swiperEl.style.minHeight = '580px';
             return;
         }
         
@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
 @media (max-width: 768px) {
     .content-banner-swiper,
     .content-banner-swiper .swiper-wrapper {
-        height: 400px !important;
-        min-height: 400px !important;
+        height: 580px !important;
+        min-height: 580px !important;
     }
 }
 
@@ -459,6 +459,25 @@ document.addEventListener('DOMContentLoaded', function() {
     .content-banner-swiper:hover .swiper-button-next {
         opacity: 1;
         visibility: visible;
+    }
+}
+
+@media (max-width: 768px) {
+    .content-banner-swiper .swiper-button-prev,
+    .content-banner-swiper .swiper-button-next {
+        width: 32px;
+        height: 32px;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+    .content-banner-swiper .swiper-button-prev::after,
+    .content-banner-swiper .swiper-button-next::after {
+        font-size: 14px;
+    }
+    .content-banner-swiper .swiper-button-prev {
+        left: 8px;
+    }
+    .content-banner-swiper .swiper-button-next {
+        right: 8px;
     }
 }
 
