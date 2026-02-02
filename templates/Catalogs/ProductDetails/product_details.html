@@ -1,0 +1,398 @@
+{% extends "web/base.html" %}
+
+{% block body %}
+<section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
+  <div class="max-w-screen-xl mx-auto">
+    <div class="lg:flex justify-between">
+      <div class="px-4 lg:flex-1">
+        <div class="max-w-md lg:max-w-none mx-auto flex flex-col lg:flex-row justify-center mb-4">
+          <ul class="grid grid-cols-4 lg:block gap-4 order-2 lg:order-1 lg:space-y-4 mt-8 lg:mt-0" id="product-2-tab" data-tabs-toggle="#product-2-tab-content" data-tabs-active-classes="border-gray-200 dark:border-gray-700" data-tabs-inactive-classes="border-transparent hover:border-gray-200 dark:hover:dark:border-gray-700 dark:border-transparent" role="tablist">
+            {% for img in product.images.all %}
+              <li class="me-2" role="presentation">
+                <button
+                  class="h-20 w-20 overflow-hidden border-2 rounded-lg sm:h-20 sm:w-20 md:h-24 md:w-24 p-2 cursor-pointer mx-auto"
+                  id="product-2-image-{{ forloop.counter }}-tab"
+                  data-tabs-target="#product-2-image-{{ forloop.counter }}"
+                  type="button"
+                  role="tab"
+                  aria-controls="product-2-image-{{ forloop.counter }}"
+                  aria-selected="{% if forloop.first %}true{% else %}false{% endif %}">
+                  <img class="object-contain w-full h-full"
+                       src="{{ img.image.url }}"
+                       alt="{{ img.alt_text|default:product.name }}" />
+                </button>
+              </li>
+            {% empty %}
+              <li class="me-2" role="presentation">
+                <button class="h-20 w-20 overflow-hidden border-2 rounded-lg sm:h-20 sm:w-20 md:h-24 md:w-24 p-2 cursor-pointer mx-auto"
+                        id="product-2-image-1-tab"
+                        data-tabs-target="#product-2-image-1"
+                        type="button"
+                        role="tab"
+                        aria-controls="product-2-image-1"
+                        aria-selected="true">
+                  <div class="flex items-center justify-center h-full w-full text-xs text-gray-400">
+                    No photo
+                  </div>
+                </button>
+              </li>
+            {% endfor %}
+          </ul>
+
+          <div id="product-2-tab-content" class="order-1 lg:order-2 flex-1 min-w-0">
+            {% for img in product.images.all %}
+              <div class="{% if forloop.first %}block{% else %}hidden{% endif %}
+                        w-full h-full px-4 rounded-lg bg-white dark:bg-gray-900
+                        flex items-center justify-center aspect-square lg:aspect-4/3"
+                    id="product-2-image-{{ forloop.counter }}"
+                    role="tabpanel"
+                    aria-labelledby="product-2-image-{{ forloop.counter }}-tab"
+                    >
+                    <img
+                        src="{{ img.image.url }}"
+                        alt="{{ img.alt_text|default:product.name }}"
+                        class="max-w-full max-h-120 object-contain"
+                    />
+                </div>
+            {% empty %}
+              <div class="block px-4 rounded-lg bg-white dark:bg-gray-900"
+                   id="product-2-image-1"
+                   role="tabpanel"
+                   aria-labelledby="product-2-image-1-tab">
+                <div class="w-full mx-auto flex items-center justify-center h-64 text-gray-400">
+                  No photo
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="accordion-flush" data-accordion="collapse" data-active-classes="bg-white dark:bg-gray-900 text-gray-900 dark:text-white" data-inactive-classes="text-gray-500 dark:text-gray-400">
+          <h2 id="accordion-flush-heading-1">
+            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-1" aria-expanded="true" aria-controls="accordion-flush-body-1">
+              <span>Product Details</span>
+              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+              </svg>
+            </button>
+          </h2>
+          <div id="accordion-flush-body-1" class="hidden" aria-labelledby="accordion-flush-heading-1">
+            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
+              <p class="mb-2 text-gray-500 dark:text-gray-400">{{ product.description|default:"No description available."|safe }}</p>
+            </div>
+          </div>
+          <h2 id="accordion-flush-heading-2">
+            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-2" aria-expanded="false" aria-controls="accordion-flush-body-2">
+              <span>Specifications</span>
+              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+              </svg>
+            </button>
+          </h2>
+          <div id="accordion-flush-body-2" class="hidden" aria-labelledby="accordion-flush-heading-2">
+            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
+              <p class="mb-2 text-gray-500 dark:text-gray-400">Specifications include advanced processor capabilities, extensive storage options, and seamless connectivity. The product is designed to handle demanding tasks efficiently.</p>
+              <p class="text-gray-500 dark:text-gray-400">Additional features include high-resolution display, long-lasting battery life, and intuitive user interface for enhanced productivity.</p>
+            </div>
+          </div>
+          <h2 id="accordion-flush-heading-3">
+            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-3" aria-expanded="false" aria-controls="accordion-flush-body-3">
+              <span>Warranty</span>
+              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
+              </svg>
+            </button>
+          </h2>
+          <div id="accordion-flush-body-3" class="hidden" aria-labelledby="accordion-flush-heading-3">
+            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
+              <p class="mb-2 text-gray-500 dark:text-gray-400">The product comes with a comprehensive warranty that covers manufacturing defects and malfunctions. It provides peace of mind and assurance of product quality.</p>
+              <p class="mb-2 text-gray-500 dark:text-gray-400">Customers can enjoy reliable support and prompt assistance for any issues related to the product during the warranty period.</p>
+            </div>
+          </div>
+        </div>
+        
+      </div>
+
+      <div class="w-full mt-6 lg:max-w-lg lg:mt-0 shrink-0 px-4">
+        <div
+          class="p-4 border border-gray-200 rounded-lg sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
+        >
+          <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+            {{ product.name }}
+          </h1>
+
+          <div class="mt-4 sm:gap-4 sm:items-center sm:flex">
+            <span
+              class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300"
+            >
+              the last 2 products
+            </span>
+
+            <div class="flex items-center gap-2 mt-4 sm:mt-0">
+              <div class="flex items-center gap-1">
+                <svg
+                  class="w-4 h-4 text-yellow-300"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
+                  />
+                </svg>
+                <svg
+                  class="w-4 h-4 text-yellow-300"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
+                  />
+                </svg>
+                <svg
+                  class="w-4 h-4 text-yellow-300"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
+                  />
+                </svg>
+                <svg
+                  class="w-4 h-4 text-yellow-300"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
+                  />
+                </svg>
+                <svg
+                  class="w-4 h-4 text-yellow-300"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
+                  />
+                </svg>
+              </div>
+              <a
+                href="#"
+                class="text-sm font-medium leading-none text-gray-900 underline hover:no-underline dark:text-white"
+              >
+                345 Reviews
+              </a>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 mt-4">
+            <svg
+              class="w-5 h-5 text-primary-700 dark:text-primary-500"
+              aria-hidden="true"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
+              />
+              <path
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M17.8 13.938h-.011a7 7 0 1 0-11.464.144h-.016l.14.171c.1.127.2.251.3.371L12 21l5.13-6.248c.194-.209.374-.429.54-.659l.13-.155Z"
+              />
+            </svg>
+            <p
+              class="text-sm font-medium text-primary-700 dark:text-primary-500"
+            >
+              Deliver to Bonnie Green- Sacramento 23647
+            </p>
+          </div>
+
+          <div
+            class="gap-4 mt-4 md:mt-6 flex items-center justify-between"
+          >
+            <p
+              class="text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white"
+              data-price="{{ product.price }}" data-currency="{{ site_currency }}"
+            >
+              {product.price}
+            </p>
+
+            <form class="flex items-center gap-2 mt-0">
+              <div class="flex items-center gap-1">
+                <label
+                  for="quantity"
+                  class="text-sm font-medium text-gray-900 dark:text-white"
+                  >Quantity</label
+                >
+                <button
+                  data-tooltip-target="quantity-desc-3"
+                  data-tooltip-trigger="hover"
+                  class="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <svg
+                    class="w-4 h-4"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.408-5.5a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01ZM10 10a1 1 0 1 0 0 2h1v3h-1a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1v-4a1 1 0 0 0-1-1h-2Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
+                <div
+                  id="quantity-desc-3"
+                  role="tooltip"
+                  class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700"
+                >
+                Quantity: Number of units to purchase.
+                  <div class="tooltip-arrow" data-popper-arrow></div>
+                </div>
+              </div>
+              <select
+                id="quantity"
+                class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-16 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              >
+                <option selected>0</option>
+                <option value="1" selected>1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </form>
+          </div>
+
+          <div class="gap-4 mt-4 md:mt-6 sm:flex sm:items-center lg:flex-col">
+            <a
+              href="#"
+              title=""
+              class="flex items-center w-full justify-center py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
+              role="button"
+            >
+              <svg
+                class="w-5 h-5 -ms-2 me-2"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12.01 6.001C6.5 1 1 8 5.782 13.001L12.011 20l6.23-7C23 8 17.5 1 12.01 6.002Z"
+                />
+              </svg>
+              Add to favorites
+            </a>
+
+            <a
+              href="#"
+              title=""
+              class="text-white w-full mt-4 sm:mt-0 bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800 flex items-center justify-center"
+              role="button"
+            >
+              <svg
+                class="w-5 h-5 -ms-2 me-2"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
+                />
+              </svg>
+
+              Add to cart
+            </a>
+          </div>
+
+          <p class="mt-4 md:mt-6 text-sm font-normal text-gray-500 dark:text-gray-400">
+            Also available at competitive prices from
+            <a href="#" title="" class="font-medium underline text-primary-700 hover:no-underline dark:text-primary-500">authorized retailers</a>,
+            with optional Premium delivery for expedited shipping.
+          </p>
+
+          <div
+            class="pt-8 mt-8 space-y-6 border-t border-gray-200 dark:border-gray-700"
+          >
+            <div id="product-attributes-{{ product.id }}" class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
+              {% for attr in attributes %}
+              <div class="product-tile-attribute group/attr flex cursor-pointer items-baseline py-0.5 transition-all min-w-0">
+                <div class="relative inline-flex items-baseline gap-1.5 min-w-0 max-w-full">
+                  <span class="shrink-0 text-sm font-normal text-gray-500 dark:text-gray-400">
+                    {{ attr.attribute_name }}:
+                  </span>
+                  <span class="min-w-0 truncate text-sm font-bold text-gray-900 dark:text-white"
+                        {% if attr.is_truncated %}
+                        title="{{ attr.full_value }}"
+                        data-tooltip-target="tooltip-attr-{{ product.id }}-{{ forloop.counter }}"
+                        {% endif %}>{{ attr.display_value }}</span>
+
+                  {# Continuous solid underline (label + value width) #}
+                  <div class="absolute -bottom-0.5 left-0 h-0.5 w-full bg-primary-500/90 opacity-0 group-hover/attr:opacity-100 transition-opacity rounded-full"></div>
+                </div>
+                
+                {% if attr.is_truncated %}
+                <div id="tooltip-attr-{{ product.id }}-{{ forloop.counter }}" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
+                  {{ attr.full_value }}
+                  <div class="tooltip-arrow" data-popper-arrow></div>
+                </div>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </section>
+{% endblock %}
+

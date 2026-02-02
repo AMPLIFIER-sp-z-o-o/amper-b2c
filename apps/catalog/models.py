@@ -100,7 +100,7 @@ class Product(BaseModel):
         return self.name
 
     def get_absolute_url(self) -> str:
-        return reverse("web:home")
+        return reverse("catalog:product_detail", kwargs={"slug": self.slug, "id": self.id})
 
     @property
     def tile_display_attributes(self) -> list:
