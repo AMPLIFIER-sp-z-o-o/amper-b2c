@@ -120,19 +120,27 @@ class Product(BaseModel):
         - is_truncated: Boolean indicating if value was truncated
         - attribute_id: AttributeDefinition id for filter matching
         - option_slug: AttributeOption slug for filter matching
+        
+        Note: Uses prefetched 'tile_attributes_prefetch' if available to avoid N+1 queries.
         """
         max_attrs = 4
         max_value_length = 25
         attrs = []
-        # Get attribute values with related attribute definitions
-        attr_values = self.attribute_values.select_related(
-            "option__attribute"
-        ).filter(
-            option__attribute__show_on_tile=True
-        ).order_by(
-            "option__attribute__tile_display_order",
-            "option__attribute__display_name"
-        )[:max_attrs]
+        
+        # Check if data was prefetched (tile_attributes_prefetch)
+        if hasattr(self, '_prefetched_objects_cache') and 'tile_attributes_prefetch' in self._prefetched_objects_cache:
+            # Use prefetched data - already filtered and sorted
+            attr_values = list(self.tile_attributes_prefetch)[:max_attrs]
+        else:
+            # Fallback to database query (for non-optimized code paths)
+            attr_values = self.attribute_values.select_related(
+                "option__attribute"
+            ).filter(
+                option__attribute__show_on_tile=True
+            ).order_by(
+                "option__attribute__tile_display_order",
+                "option__attribute__display_name"
+            )[:max_attrs]
         
         for av in attr_values:
             full_value = av.option.value

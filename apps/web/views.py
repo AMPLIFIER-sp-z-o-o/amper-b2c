@@ -109,8 +109,17 @@ def home(request):
             Prefetch(
                 "section_products",
                 queryset=(
-                    HomepageSectionProduct.objects.select_related("product")
-                    .prefetch_related("product__images")
+                    HomepageSectionProduct.objects.select_related("product__category")
+                    .prefetch_related(
+                        "product__images",
+                        Prefetch(
+                            "product__attribute_values",
+                            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+                            .filter(option__attribute__show_on_tile=True)
+                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            to_attr="tile_attributes_prefetch",
+                        ),
+                    )
                     .filter(product__status=ProductStatus.ACTIVE, product__stock__gt=0)
                     .order_by("order", "id")
                 ),
@@ -168,8 +177,17 @@ def home(request):
             Prefetch(
                 "section_products",
                 queryset=(
-                    HomepageSectionProduct.objects.select_related("product")
-                    .prefetch_related("product__images")
+                    HomepageSectionProduct.objects.select_related("product__category")
+                    .prefetch_related(
+                        "product__images",
+                        Prefetch(
+                            "product__attribute_values",
+                            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+                            .filter(option__attribute__show_on_tile=True)
+                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            to_attr="tile_attributes_prefetch",
+                        ),
+                    )
                     .filter(product__status=ProductStatus.ACTIVE, product__stock__gt=0)
                     .order_by("order", "id")
                 ),
@@ -407,9 +425,16 @@ def search_results(request):
         current_sort = "relevance"
     products = products.order_by(*sort_field)
 
-    # Prefetch images for display
+    # Prefetch images and tile attributes for display (avoid N+1 queries)
     products = products.select_related("category").prefetch_related(
-        Prefetch("images", queryset=ProductImage.objects.order_by("sort_order"))
+        Prefetch("images", queryset=ProductImage.objects.order_by("sort_order")),
+        Prefetch(
+            "attribute_values",
+            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+            .filter(option__attribute__show_on_tile=True)
+            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            to_attr="tile_attributes_prefetch",
+        ),
     )
 
     # Get total count before pagination
@@ -631,6 +656,59 @@ def _get_descendant_category_ids(category):
     return ids
 
 
+def _get_descendant_category_ids_from_cache(category, category_children_map):
+    """
+    Get all descendant category IDs using pre-loaded children map.
+    Avoids N+1 queries by using the cached category hierarchy.
+    """
+    ids = [category.id]
+    children = category_children_map.get(category.id, [])
+    for child in children:
+        ids.extend(_get_descendant_category_ids_from_cache(child, category_children_map))
+    return ids
+
+
+def _build_category_children_map():
+    """
+    Build a map of parent_id -> list of child categories.
+    Loads all categories in a single query.
+    """
+    all_categories = list(Category.objects.only("id", "parent_id", "name", "slug").all())
+    children_map = {}
+    for cat in all_categories:
+        parent_id = cat.parent_id
+        if parent_id not in children_map:
+            children_map[parent_id] = []
+        children_map[parent_id].append(cat)
+    return children_map, {cat.id: cat for cat in all_categories}
+
+
+def _get_category_product_counts_batch(category_ids):
+    """
+    Get product counts for multiple categories in a single query.
+    Returns a dict of category_id -> product_count.
+    """
+    counts = (
+        Product.objects.filter(
+            status=ProductStatus.ACTIVE,
+            stock__gt=0,
+            category_id__in=category_ids
+        )
+        .values("category_id")
+        .annotate(count=Count("id"))
+    )
+    return {item["category_id"]: item["count"] for item in counts}
+
+
+def _get_category_total_product_count(category, category_children_map, product_counts_by_category):
+    """
+    Get total product count for a category including all descendants.
+    Uses pre-loaded data to avoid N+1 queries.
+    """
+    descendant_ids = _get_descendant_category_ids_from_cache(category, category_children_map)
+    return sum(product_counts_by_category.get(cid, 0) for cid in descendant_ids)
+
+
 def _get_category_product_count(category):
     """Get total product count for a category including all descendants."""
     category_ids = _get_descendant_category_ids(category)
@@ -763,9 +841,16 @@ def product_list(request, category_id=None, category_slug=None):
         current_sort = SORT_OPTIONS[0][0]
     products = products.order_by(*sort_field)
 
-    # Prefetch images for display
+    # Prefetch images and tile attributes for display (avoid N+1 queries)
     products = products.select_related("category").prefetch_related(
-        Prefetch("images", queryset=ProductImage.objects.order_by("sort_order"))
+        Prefetch("images", queryset=ProductImage.objects.order_by("sort_order")),
+        Prefetch(
+            "attribute_values",
+            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+            .filter(option__attribute__show_on_tile=True)
+            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            to_attr="tile_attributes_prefetch",
+        ),
     )
 
     # Get total count before pagination
@@ -879,21 +964,36 @@ def product_list(request, category_id=None, category_slug=None):
     # Build breadcrumb
     breadcrumb = _build_breadcrumb(current_category) if current_category else []
 
-    # Build subcategories navigation for sidebar
+    # Build subcategories navigation for sidebar with optimized batch loading
     subcategories_nav = []
-    if current_category and current_category.children.exists():
-        for child in current_category.children.all():
-            child.total_product_count = _get_category_product_count(child)
-            if child.total_product_count > 0:
-                subcategories_nav.append(child)
-    
-    # Get current category product count
     current_category_product_count = None
     parent_category_product_count = None
+    
     if current_category:
-        current_category_product_count = _get_category_product_count(current_category)
+        # Load all category data and product counts in batch (avoid N+1)
+        category_children_map, all_categories_by_id = _build_category_children_map()
+        
+        # Get all category IDs we need counts for
+        all_category_ids = list(all_categories_by_id.keys())
+        product_counts_by_category = _get_category_product_counts_batch(all_category_ids)
+        
+        # Build subcategories with product counts
+        children = category_children_map.get(current_category.id, [])
+        for child in children:
+            child.total_product_count = _get_category_total_product_count(
+                child, category_children_map, product_counts_by_category
+            )
+            if child.total_product_count > 0:
+                subcategories_nav.append(child)
+        
+        # Get current category product count using cached data
+        current_category_product_count = _get_category_total_product_count(
+            current_category, category_children_map, product_counts_by_category
+        )
         if current_category.parent:
-            parent_category_product_count = _get_category_product_count(current_category.parent)
+            parent_category_product_count = _get_category_total_product_count(
+                current_category.parent, category_children_map, product_counts_by_category
+            )
 
     # Determine page title
     if search_query:

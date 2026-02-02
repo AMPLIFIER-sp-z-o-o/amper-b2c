@@ -91,9 +91,13 @@
              class="w-full flex-1 z-10 flex flex-col">
           <!-- Default State -->
           <div class="preview-content flex flex-col items-center justify-center h-full w-full animate-fade-in p-6 text-center">
-               <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-400">
+               {% if item.category.image %}
+                <img src="{{ item.category.image.url }}" alt="{{ item.category.name }}" class="w-16 h-16 object-contain mb-4 mix-blend-multiply dark:mix-blend-normal">
+               {% else %}
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-400">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-               </div>
+                </div>
+               {% endif %}
                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ item.category.name }}</h3>
                <a href="{{ item.category.get_absolute_url }}" class="inline-flex items-center justify-center w-auto px-6 py-2.5 bg-primary-700 text-white hover:bg-primary-800 text-sm font-bold rounded-lg transition-colors duration-300 shadow-sm">
                   {% translate "Go to" %} {{ item.category.name }}
