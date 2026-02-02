@@ -10,8 +10,12 @@
 {% if attrs %}
 <div id="product-attributes-{{ product.id }}" class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
   {% for attr in attrs %}
-  <div class="product-tile-attribute group/attr flex cursor-pointer items-baseline py-0.5 transition-all min-w-0">
-    <div class="relative inline-flex items-baseline gap-1.5 min-w-0 max-w-full">
+  <div class="product-tile-attribute flex items-baseline py-0.5 transition-all min-w-0">
+        <div class="inline-flex items-baseline gap-1.5 cursor-pointer min-w-0 max-w-full border-b-2 border-transparent hover:border-primary-500/90 transition-colors"
+          data-attr-id="{{ attr.attribute_id }}"
+          data-option-slug="{{ attr.option_slug }}"
+          role="button"
+          tabindex="0">
       <span class="shrink-0 text-sm font-normal text-gray-500 dark:text-gray-400">
         {{ attr.attribute_name }}:
       </span>
@@ -20,9 +24,6 @@
             title="{{ attr.full_value }}"
             data-tooltip-target="tooltip-attr-{{ product.id }}-{{ forloop.counter }}"
             {% endif %}>{{ attr.display_value }}</span>
-
-      {# Continuous solid underline (label + value width) #}
-      <div class="absolute -bottom-0.5 left-0 h-0.5 w-full bg-primary-500/90 opacity-0 group-hover/attr:opacity-100 transition-opacity rounded-full"></div>
     </div>
     
     {% if attr.is_truncated %}

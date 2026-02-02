@@ -6,28 +6,28 @@
   <div class="mb-6">
     <!-- Parent Category Link -->
     {% if current_category.parent %}
-    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
       <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
       <span>{{ current_category.parent.name }}</span>
-      {% if parent_category_product_count %}<span class="text-gray-400">({{ parent_category_product_count }})</span>{% endif %}
+      {% if parent_category_product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ parent_category_product_count }})</span>{% endif %}
     </a>
     {% endif %}
     
     <!-- Current Category Name -->
     <div class="mb-2">
       <span class="text-base font-bold text-gray-900 dark:text-white">{{ current_category.name }}</span>
-      {% if current_category_product_count %}<span class="text-sm text-gray-400 dark:text-gray-500 ml-1">({{ current_category_product_count }})</span>{% endif %}
+      {% if current_category_product_count %}<span class="text-sm text-gray-600 dark:text-gray-400 ml-1 font-medium">({{ current_category_product_count }})</span>{% endif %}
     </div>
     
     <!-- Subcategories List -->
     <ul class="space-y-0.5 mt-1 {% if is_mobile %}-mx-3{% else %}-mx-4{% endif %}">
       {% for subcategory in subcategories_nav %}
       <li>
-        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}px-3{% else %}px-4{% endif %} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}ps-8 pe-3{% else %}ps-10 pe-4{% endif %} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
           {{ subcategory.name }}
-          {% if subcategory.total_product_count %}<span class="text-gray-400 dark:text-gray-500">({{ subcategory.total_product_count }})</span>{% endif %}
+          {% if subcategory.total_product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ subcategory.total_product_count }})</span>{% endif %}
         </a>
       </li>
       {% endfor %}
@@ -37,12 +37,12 @@
 
   <!-- Parent Category Navigation (when no subcategories) -->
   {% if current_category and current_category.parent and not subcategories_nav %}
-  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
     <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
     </svg>
     <span>{{ current_category.parent.name }}</span>
-    {% if current_category.parent.product_count %}<span class="text-gray-400">({{ current_category.parent.product_count }})</span>{% endif %}
+    {% if current_category.parent.product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ current_category.parent.product_count }})</span>{% endif %}
   </a>
   {% endif %}
 
@@ -50,15 +50,17 @@
   <!-- Hidden form for filter submission -->
   <form id="desktop-filter-form" action="" method="get" class="hidden">
     {% if search_query %}<input type="hidden" name="q" value="{{ search_query }}">{% endif %}
-    {% if current_sort and current_sort != 'newest' %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
+    {% if current_sort and current_sort != 'relevance' %}<input type="hidden" name="sort" value="{{ current_sort }}">{% endif %}
   </form>
 
   <!-- Filters Header with Clear Link -->
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-xl font-bold text-gray-900 dark:text-white">{% trans "Filters" %}</h2>
-    <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
+     <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
        id="clear-filters-link"
-       class="text-xs transition-all {% if selected_attributes or current_price_min or current_price_max %}text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
+       data-clear-all-filters
+       data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
+       class="inline-flex items-center rounded-lg px-3 py-2 text-xs transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 {% if selected_attributes or current_price_min or current_price_max %}text-gray-900 dark:text-white font-bold cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
       {% trans "Clear all" %}
     </a>
   </div>
@@ -71,12 +73,12 @@
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
         </svg>
       </div>
-      <input type="text" id="filter-search-input" class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="{% trans 'Search filters...' %}" />
+      <input type="text" id="filter-search-input" class="block w-full rounded-lg border-none bg-gray-100 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-150" placeholder="{% trans 'Search filters...' %}" />
     </div>
   </div>
   {% endif %}
 
-  <div id="accordion-flush">
+  <div id="{% if is_mobile %}accordion-flush-mobile{% else %}accordion-flush{% endif %}">
     
     <!-- Search Box (for mobile filter drawer) -->
     {% if is_mobile and search_query %}
@@ -88,48 +90,48 @@
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z" />
           </svg>
         </div>
-        <input type="search" name="q" id="mobile-search" value="{{ search_query }}" class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="{% trans 'Search products...' %}" />
+        <input type="search" name="q" id="mobile-search" value="{{ search_query }}" class="block w-full rounded-lg border-none bg-gray-100 px-4 py-2.5 ps-10 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-150" placeholder="{% trans 'Search products...' %}" />
       </div>
     </div>
     {% endif %}
 
     <!-- Price Filter -->
     <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800" data-filter-name="{% trans 'Price' %}">
-      <h2 id="accordion-flush-heading-price">
-        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer" data-accordion-target="#accordion-flush-body-price" aria-expanded="true" aria-controls="accordion-flush-body-price">
+      <h2 id="accordion-flush-heading-price{% if is_mobile %}-mobile{% endif %}">
+        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer" data-accordion-target="#accordion-flush-body-price{% if is_mobile %}-mobile{% endif %}" aria-expanded="true" aria-controls="accordion-flush-body-price{% if is_mobile %}-mobile{% endif %}">
           <span class="text-base">{% trans "Price" %}</span>
           <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
           </svg>
         </button>
       </h2>
-      <div id="accordion-flush-body-price" class="mt-4" aria-labelledby="accordion-flush-heading-price">
+      <div id="accordion-flush-body-price{% if is_mobile %}-mobile{% endif %}" class="mt-4" aria-labelledby="accordion-flush-heading-price{% if is_mobile %}-mobile{% endif %}">
         <div class="flex items-center gap-2">
           <!-- Min Price Input -->
-          <div class="flex-1 flex items-center border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 bg-white dark:bg-gray-700">
-            <span class="text-sm text-gray-400 dark:text-gray-500 mr-2">from</span>
+          <div class="flex-1 flex items-center justify-center border-none rounded-full px-4 py-2 bg-gray-100 dark:bg-gray-700 transition-all focus-within:bg-white focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:bg-gray-600 dark:focus-within:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)]">
             <input type="number" 
                    name="price_min" 
                    id="price_min{% if is_mobile %}_mobile{% endif %}" 
                    value="{{ current_price_min }}"
+                   placeholder="{% trans 'from' %}"
                    min="0"
                    step="0.01"
-                   class="flex-1 w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-2">zł</span>
+                   class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">zł</span>
           </div>
           <!-- Separator -->
           <span class="text-gray-400 dark:text-gray-500">—</span>
           <!-- Max Price Input -->
-          <div class="flex-1 flex items-center border border-gray-300 dark:border-gray-600 rounded-full px-4 py-2 bg-white dark:bg-gray-700">
-            <span class="text-sm text-gray-400 dark:text-gray-500 mr-2">to</span>
+          <div class="flex-1 flex items-center justify-center border-none rounded-full px-4 py-2 bg-gray-100 dark:bg-gray-700 transition-all focus-within:bg-white focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:bg-gray-600 dark:focus-within:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)]">
             <input type="number" 
                    name="price_max" 
                    id="price_max{% if is_mobile %}_mobile{% endif %}" 
                    value="{{ current_price_max }}"
+                   placeholder="{% trans 'to' %}"
                    min="0"
                    step="0.01"
-                   class="flex-1 w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-2">zł</span>
+                   class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">zł</span>
           </div>
         </div>
       </div>
@@ -139,47 +141,51 @@
     {% for attribute in available_attributes %}
     {% if attribute.filtered_options %}
     <div class="filter-group py-2 border-b border-gray-100 dark:border-gray-800 last:border-b-0" data-filter-name="{{ attribute.display_name }}">
-      <h2 id="accordion-flush-heading-attr-{{ attribute.id }}">
-        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer transition-colors" data-accordion-target="#accordion-flush-body-attr-{{ attribute.id }}" aria-expanded="true" aria-controls="accordion-flush-body-attr-{{ attribute.id }}">
+      <h2 id="accordion-flush-heading-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}">
+        <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 hover:text-primary-700 dark:text-white dark:hover:text-primary-500 rtl:text-right cursor-pointer transition-colors" data-accordion-target="#accordion-flush-body-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}" aria-expanded="true" aria-controls="accordion-flush-body-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}">
           <span class="text-base">{{ attribute.display_name }}</span>
           <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
           </svg>
         </button>
       </h2>
-      <div id="accordion-flush-body-attr-{{ attribute.id }}" class="mt-0" aria-labelledby="accordion-flush-heading-attr-{{ attribute.id }}">
+      <div id="accordion-flush-body-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}" class="mt-0" aria-labelledby="accordion-flush-heading-attr-{{ attribute.id }}{% if is_mobile %}-mobile{% endif %}">
         <!-- Select All / Clear Link -->
         <button type="button" 
                 data-attribute-action="{{ attribute.id }}"
                 data-attr-name="attr_{{ attribute.id }}"
-                class="text-sm text-gray-600 dark:text-gray-400 transition-colors cursor-pointer mt-1 mb-1 font-medium rounded-lg px-3 py-1.5 w-full text-left hover:bg-gray-100 dark:hover:bg-gray-800">
+                data-select-all-text="{% trans "Select all" %}"
+                data-clear-text="{% trans "Clear" %}"
+                class="text-sm text-gray-600 dark:text-gray-400 transition-colors cursor-pointer mt-1 mb-1 font-medium py-1.5 w-full text-left hover:text-primary-700 dark:hover:text-primary-500 hover:underline decoration-primary-700/30 underline-offset-4">
           <span class="action-text">{% trans "Select all" %}</span>
         </button>
         <!-- Options Container -->
         <div class="options-container space-y-0.5" data-attr-id="{{ attribute.id }}" data-collapsed="true">
           {% for option in attribute.filtered_options %}
-          <div class="flex items-center py-1.5 {% if is_mobile %}-mx-3 px-3{% else %}-mx-4 px-4{% endif %} hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer transition-colors option-item group {% if forloop.counter > 5 %}hidden extra-option{% endif %}">
+          <label for="attr-{{ attribute.id }}-{{ option.id }}{% if is_mobile %}-mobile{% endif %}" class="flex items-center py-1.5 {% if is_mobile %}-mx-3 px-3{% else %}-mx-4 px-4{% endif %} hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer transition-colors option-item group {% if forloop.counter > 5 %}hidden extra-option{% endif %}">
             <input id="attr-{{ attribute.id }}-{{ option.id }}{% if is_mobile %}-mobile{% endif %}" 
                    name="attr_{{ attribute.id }}" 
                    value="{{ option.slug }}" 
                    data-option-id="{{ option.id }}"
                    type="checkbox" 
                    {% if option.id in selected_attributes %}checked{% endif %}
-                   class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-primary-600 focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600 cursor-pointer flex-shrink-0 transition-all group-hover:border-primary-500 ring-0" />
-            <label for="attr-{{ attribute.id }}-{{ option.id }}{% if is_mobile %}-mobile{% endif %}" class="ms-2 text-sm text-gray-900 dark:text-gray-300 cursor-pointer">
+                   class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-primary-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-0 cursor-pointer shrink-0 transition-all ring-0" />
+            <span class="flex-1 ms-2 text-sm text-gray-900 dark:text-gray-300">
               {{ option.value }}
-              {% if option.product_count %}<span class="text-gray-400 dark:text-gray-500">({{ option.product_count }})</span>{% endif %}
-            </label>
-          </div>
+              {% if option.product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ option.product_count }})</span>{% endif %}
+            </span>
+          </label>
           {% endfor %}
         </div>
         <!-- Show More / Less Toggle -->
         {% if attribute.filtered_options|length > 5 %}
         <button type="button" 
-                class="show-more-btn flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1 mb-1 cursor-pointer transition-colors rounded-lg px-3 py-1.5 w-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                class="show-more-btn flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mt-1 mb-1 cursor-pointer transition-colors rounded-lg px-3 py-1.5 w-full hover:bg-gray-200 dark:hover:bg-gray-700"
                 data-attr-id="{{ attribute.id }}"
                 data-total="{{ attribute.filtered_options|length }}"
-                data-expanded="false">
+                data-expanded="false"
+                data-more-text="{% trans "More" %}"
+                data-less-text="{% trans "Less" %}">
           <span class="icon transition-transform">+</span>
           <span class="text font-medium">{% trans "More" %} ({{ attribute.filtered_options|length|add:"-5" }})</span>
         </button>
@@ -196,10 +202,30 @@
 </div>
 
 {% if not is_mobile %}
+{% else %}
+<script>
+// Mobile fallback if scripts are needed
+</script>
+{% endif %}
+
 <script>
 // Build query string from current filter state
 function buildFilterQueryString() {
   const params = new URLSearchParams();
+  
+  const currentUrl = new URLSearchParams(window.location.search);
+  
+  // Preserve per_page from current URL
+  const perPage = currentUrl.get('per_page');
+  if (perPage) {
+    params.append('per_page', perPage);
+  }
+
+  // Preserve sort from current URL if not default
+  const currentSort = currentUrl.get('sort');
+  if (currentSort && currentSort !== 'relevance') {
+    params.append('sort', currentSort);
+  }
   
   // Add search query if present
   const searchInput = document.querySelector('input[name="q"]');
@@ -207,20 +233,19 @@ function buildFilterQueryString() {
     params.append('q', searchInput.value);
   }
   
-  // Add sort if not default
-  const sortInput = document.querySelector('input[name="sort"]');
-  if (sortInput && sortInput.value && sortInput.value !== 'newest') {
-    params.append('sort', sortInput.value);
-  }
-  
-  // Collect all checked attribute checkboxes (only from desktop sidebar)
-  document.querySelectorAll('#filters-sidebar input[name^="attr_"]:checked').forEach(function(checkbox) {
-    params.append(checkbox.name, checkbox.value);
+  // Collect all checked attribute checkboxes (from any active filter sidebar)
+  const seen = new Set();
+  document.querySelectorAll('.filters-sidebar input[name^="attr_"]:checked').forEach(function(checkbox) {
+    const key = checkbox.name + '=' + checkbox.value;
+    if (!seen.has(key)) {
+      params.append(checkbox.name, checkbox.value);
+      seen.add(key);
+    }
   });
   
   // Add price filters
-  const priceMin = document.getElementById('price_min');
-  const priceMax = document.getElementById('price_max');
+  const priceMin = document.getElementById('price_min') || document.getElementById('price_min_mobile');
+  const priceMax = document.getElementById('price_max') || document.getElementById('price_max_mobile');
   if (priceMin && priceMin.value) {
     params.append('price_min', priceMin.value);
   }
@@ -231,46 +256,118 @@ function buildFilterQueryString() {
   return params.toString();
 }
 
+// Update Clear all link state immediately on filter changes
+function updateClearAllLinkState() {
+  const clearLink = document.getElementById('clear-filters-link');
+  if (!clearLink) return;
+
+  const hasSelectedAttributes = document.querySelectorAll('.filters-sidebar input[name^="attr_"]:checked').length > 0;
+  const priceMin = document.getElementById('price_min') || document.getElementById('price_min_mobile');
+  const priceMax = document.getElementById('price_max') || document.getElementById('price_max_mobile');
+  const hasPrice = (priceMin && priceMin.value) || (priceMax && priceMax.value);
+  const isActive = hasSelectedAttributes || hasPrice;
+
+  clearLink.classList.toggle('pointer-events-none', !isActive);
+  clearLink.classList.toggle('cursor-default', !isActive);
+  clearLink.classList.toggle('text-gray-400', !isActive);
+  clearLink.classList.toggle('dark:text-gray-500', !isActive);
+  clearLink.classList.toggle('font-bold', isActive);
+  clearLink.classList.toggle('cursor-pointer', isActive);
+  clearLink.classList.toggle('text-gray-900', isActive);
+  clearLink.classList.toggle('dark:text-white', isActive);
+  clearLink.setAttribute('aria-disabled', String(!isActive));
+}
+
+// Scroll to the top of the page smoothly
+function scrollToListTopIfNeeded() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // Show loading overlay on products container
-function showProductsLoading() {
+function showProductsLoading(options = {}) {
+  const { scrollToTop = false } = options;
   const productsContainer = document.getElementById('products-container');
   if (!productsContainer) return;
-  
-  // Create loading overlay if it doesn't exist
+
+  // Create overlay (covers the products container with semi-transparent background)
   let overlay = document.getElementById('products-loading-overlay');
   if (!overlay) {
     overlay = document.createElement('div');
     overlay.id = 'products-loading-overlay';
-    overlay.className = 'absolute inset-0 bg-white/80 dark:bg-gray-900/80 flex items-center justify-center z-10 transition-opacity duration-200';
-    overlay.innerHTML = `
-      <div class="flex flex-col items-center gap-3">
-        <div role="status">
-          <svg aria-hidden="true" class="w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
-            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
-          </svg>
-          <span class="sr-only">Loading...</span>
-        </div>
+    overlay.className = 'absolute inset-0 bg-white/50 dark:bg-gray-900/50 z-50 transition-opacity duration-200';
+  }
+
+  // Create fixed spinner (always visible on screen)
+  let spinner = document.getElementById('products-loading-spinner');
+  if (!spinner) {
+    spinner = document.createElement('div');
+    spinner.id = 'products-loading-spinner';
+    spinner.className = 'fixed z-[60] -translate-x-1/2 -translate-y-1/2 pointer-events-none';
+    spinner.innerHTML = `
+      <div role="status">
+        <svg aria-hidden="true" class="w-12 h-12 text-gray-200 animate-spin dark:text-gray-600 fill-gray-900 dark:fill-white" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+          <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+        </svg>
+        <span class="sr-only">Loading...</span>
       </div>
     `;
   }
-  
-  // Make container relative for overlay positioning
+
   productsContainer.style.position = 'relative';
-  productsContainer.style.minHeight = '200px';
+  productsContainer.style.minHeight = '300px';
   productsContainer.appendChild(overlay);
+  document.body.appendChild(spinner);
+
+  // Position spinner centered on visible portion of products container
+  const updateSpinnerPosition = () => {
+    const rect = productsContainer.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const spinnerSize = 48; // w-12 = 48px
+    
+    // Horizontal: center of products container
+    const containerCenterX = rect.left + rect.width / 2;
+    spinner.style.left = `${containerCenterX}px`;
+    
+    // Vertical: center of visible portion of products container
+    const visibleTop = Math.max(rect.top, 0);
+    const visibleBottom = Math.min(rect.bottom, viewportHeight);
+    const visibleHeight = visibleBottom - visibleTop;
+    
+    if (visibleHeight >= spinnerSize) {
+      // Enough visible space - center in the visible portion
+      const visibleCenterY = (visibleTop + visibleBottom) / 2;
+      spinner.style.top = `${visibleCenterY}px`;
+    } else {
+      // Not enough visible space - center in viewport
+      spinner.style.top = `${viewportHeight / 2}px`;
+    }
+  };
+
+  requestAnimationFrame(updateSpinnerPosition);
+
+  // Scroll to top after showing the loader if requested
+  if (scrollToTop) {
+    scrollToListTopIfNeeded();
+  }
 }
 
-// Hide loading overlay
+// Hide loading overlay and spinner
 function hideProductsLoading() {
   const overlay = document.getElementById('products-loading-overlay');
   if (overlay) {
     overlay.remove();
   }
+  const spinner = document.getElementById('products-loading-spinner');
+  if (spinner) {
+    spinner.remove();
+  }
 }
 
 // Apply filters using fetch API (no page reload, no scroll jump)
 function applyFiltersWithHtmx() {
+  updateClearAllLinkState();
   const queryString = buildFilterQueryString();
   const baseUrl = window.location.pathname;
   const newUrl = queryString ? `${baseUrl}?${queryString}` : baseUrl;
@@ -281,34 +378,203 @@ function applyFiltersWithHtmx() {
   // Show loading indicator
   showProductsLoading();
   
-  // Use fetch API to get and update only the products container
+  // Use HTMX (preferred) or fetch API to get and update only the products container
   const productsContainer = document.getElementById('products-container');
   if (productsContainer) {
-    fetch(newUrl, {
-      headers: {
-        'HX-Request': 'true'
-      }
-    })
-    .then(response => response.text())
-    .then(html => {
-      productsContainer.innerHTML = html;
-      // Re-trigger price formatting
-      document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
-        const price = parseFloat(el.dataset.price);
-        const currency = el.dataset.currency || 'PLN';
-        if (!isNaN(price)) {
-          el.textContent = new Intl.NumberFormat('pl-PL', {
-            style: 'currency',
-            currency: currency
-          }).format(price);
-        }
+    if (window.htmx && typeof window.htmx.ajax === 'function') {
+      window.htmx.ajax('GET', newUrl, {
+        target: '#products-container',
+        swap: 'innerHTML'
       });
-    })
-    .catch(error => {
-      console.error('Error fetching products:', error);
-      hideProductsLoading();
-    });
+    } else {
+      fetch(newUrl, {
+        headers: {
+          'HX-Request': 'true'
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        productsContainer.innerHTML = html;
+        hideProductsLoading();
+        // Re-trigger price formatting
+        document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
+          const price = parseFloat(el.dataset.price);
+          const currency = el.dataset.currency || 'PLN';
+          if (!isNaN(price)) {
+            el.textContent = new Intl.NumberFormat('pl-PL', {
+              style: 'currency',
+              currency: currency
+            }).format(price);
+          }
+        });
+        // Re-initialize Flowbite components
+        if (typeof initFlowbite === 'function') {
+          initFlowbite();
+        }
+        if (typeof handleResponsiveView === 'function') {
+          handleResponsiveView();
+        }
+        // Re-attach pagination listeners
+        initPaginationLinks();
+        // Re-attach active filter chip listeners
+        initActiveFilterChips();
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error);
+        hideProductsLoading();
+      });
+    }
   }
+}
+
+// Navigate to a page using AJAX with loader
+function navigateToPage(url, options = {}) {
+  // Update browser URL without reload
+  window.history.pushState({}, '', url);
+  
+  // Show loading indicator
+  showProductsLoading(options);
+  
+  // Use HTMX (preferred) or fetch API to get and update only the products container
+  const productsContainer = document.getElementById('products-container');
+  if (productsContainer) {
+    if (window.htmx && typeof window.htmx.ajax === 'function') {
+      window.htmx.ajax('GET', url, {
+        target: '#products-container',
+        swap: 'innerHTML'
+      });
+    } else {
+      fetch(url, {
+        headers: {
+          'HX-Request': 'true'
+        }
+      })
+      .then(response => response.text())
+      .then(html => {
+        productsContainer.innerHTML = html;
+        hideProductsLoading();
+        // Re-trigger price formatting
+        document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
+          const price = parseFloat(el.dataset.price);
+          const currency = el.dataset.currency || 'PLN';
+          if (!isNaN(price)) {
+            el.textContent = new Intl.NumberFormat('pl-PL', {
+              style: 'currency',
+              currency: currency
+            }).format(price);
+          }
+        });
+        // Re-initialize Flowbite components
+        if (typeof initFlowbite === 'function') {
+          initFlowbite();
+        }
+        if (typeof handleResponsiveView === 'function') {
+          handleResponsiveView();
+        }
+        // Re-attach pagination listeners
+        initPaginationLinks();
+        // Re-attach active filter chip listeners
+        initActiveFilterChips();
+      })
+      .catch(error => {
+        console.error('Error fetching products:', error);
+        hideProductsLoading();
+      });
+    }
+  }
+}
+
+// Initialize pagination link handlers
+function initPaginationLinks() {
+  if (window.htmx) return;
+  document.querySelectorAll('[data-pagination-link]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+      e.preventDefault();
+      navigateToPage(this.href, { scrollToTop: true, positionMode: 'first-item' });
+    });
+  });
+}
+
+// Initialize active filter chip click handlers
+function initActiveFilterChips() {
+  // Only initialize elements that haven't been initialized yet
+  document.querySelectorAll('[data-remove-filter]:not([data-filter-initialized])').forEach(function(chip) {
+    chip.setAttribute('data-filter-initialized', 'true');
+    chip.addEventListener('click', function(e) {
+      e.preventDefault();
+      const filterType = this.getAttribute('data-filter-type');
+      const filterValue = this.getAttribute('data-filter-value');
+      
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      if (filterType === 'price_min') {
+        urlParams.delete('price_min');
+        // Also update the price input
+        const priceMinInput = document.getElementById('price_min');
+        if (priceMinInput) priceMinInput.value = '';
+      } else if (filterType === 'price_max') {
+        urlParams.delete('price_max');
+        // Also update the price input  
+        const priceMaxInput = document.getElementById('price_max');
+        if (priceMaxInput) priceMaxInput.value = '';
+      } else if (filterType.startsWith('attr_')) {
+        // Remove specific attribute value
+        const currentValues = urlParams.getAll(filterType);
+        urlParams.delete(filterType);
+        currentValues.forEach(function(val) {
+          if (val !== filterValue) {
+            urlParams.append(filterType, val);
+          }
+        });
+        // Also uncheck the checkbox in all sidebars
+        document.querySelectorAll('.filters-sidebar input[name="' + filterType + '"][value="' + filterValue + '"]').forEach(function(checkbox) {
+          checkbox.checked = false;
+        });
+      }
+      
+      // Reset to page 1 when removing filter
+      urlParams.delete('page');
+      
+      const baseUrl = window.location.pathname;
+      const newUrl = urlParams.toString() ? `${baseUrl}?${urlParams.toString()}` : baseUrl;
+      updateClearAllLinkState();
+      navigateToPage(newUrl);
+    });
+  });
+  
+  // Clear all filters button - only initialize elements that haven't been initialized yet
+  document.querySelectorAll('[data-clear-all-filters]:not([data-filter-initialized])').forEach(function(btn) {
+    btn.setAttribute('data-filter-initialized', 'true');
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      const baseUrl = this.getAttribute('data-base-url') || window.location.pathname;
+      // Preserve search query if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const searchQuery = urlParams.get('q');
+      const newUrl = searchQuery ? `${baseUrl}?q=${encodeURIComponent(searchQuery)}` : baseUrl;
+      
+      // Clear all filter inputs in desktop sidebar
+      document.querySelectorAll('#filters-sidebar input[name^="attr_"]').forEach(function(cb) {
+        cb.checked = false;
+      });
+      // Clear all filter inputs in mobile drawer
+      document.querySelectorAll('#filters-sidebar-mobile input[name^="attr_"]').forEach(function(cb) {
+        cb.checked = false;
+      });
+      // Clear desktop price inputs
+      const priceMinInput = document.getElementById('price_min');
+      const priceMaxInput = document.getElementById('price_max');
+      if (priceMinInput) priceMinInput.value = '';
+      if (priceMaxInput) priceMaxInput.value = '';
+      // Clear mobile price inputs
+      const priceMinMobileInput = document.getElementById('price_min_mobile');
+      const priceMaxMobileInput = document.getElementById('price_max_mobile');
+      if (priceMinMobileInput) priceMinMobileInput.value = '';
+      if (priceMaxMobileInput) priceMaxMobileInput.value = '';
+      updateClearAllLinkState();
+      navigateToPage(newUrl);
+    });
+  });
 }
 
 // Debounce function for price inputs
@@ -320,8 +586,8 @@ function debouncedApplyFilters() {
 
 // Filter search functionality
 document.addEventListener('DOMContentLoaded', function() {
-  // Expand all accordions by default
-  document.querySelectorAll('#accordion-flush [data-accordion-target]').forEach(function(button) {
+  // Expand all accordions by default (both desktop and mobile)
+  document.querySelectorAll('#accordion-flush [data-accordion-target], #accordion-flush-mobile [data-accordion-target]').forEach(function(button) {
     const targetId = button.getAttribute('data-accordion-target');
     const target = document.querySelector(targetId);
     const icon = button.querySelector('[data-accordion-icon]');
@@ -375,20 +641,76 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Function to update attribute action link text (Select all / Clear)
   function updateAttributeActionLink(attrId) {
-    const actionBtn = document.querySelector('#filters-sidebar [data-attribute-action="' + attrId + '"]');
-    if (!actionBtn) return;
-    
-    const actionTextSpan = actionBtn.querySelector('.action-text');
-    const attrName = actionBtn.getAttribute('data-attr-name');
-    // Only count checkboxes in the desktop sidebar (not mobile drawer)
-    const checkedCount = document.querySelectorAll('#filters-sidebar input[name="' + attrName + '"]:checked').length;
-    
-    if (checkedCount > 0) {
-      actionTextSpan.textContent = 'Clear (' + checkedCount + ')';
+    // Update action buttons in all sidebars (desktop and mobile)
+    document.querySelectorAll('.filters-sidebar').forEach(function(sidebar) {
+      const actionBtn = sidebar.querySelector('[data-attribute-action="' + attrId + '"]');
+      if (!actionBtn) return;
+      
+      const actionTextSpan = actionBtn.querySelector('.action-text');
+      const attrName = actionBtn.getAttribute('data-attr-name');
+      const selectAllText = actionBtn.getAttribute('data-select-all-text') || 'Select all';
+      const clearText = actionBtn.getAttribute('data-clear-text') || 'Clear';
+      
+      // Count checkboxes only within this specific sidebar container
+      const checkedCount = sidebar.querySelectorAll('input[name="' + attrName + '"]:checked').length;
+      
+      if (checkedCount > 0) {
+        actionTextSpan.textContent = clearText + ' (' + checkedCount + ')';
+      } else {
+        actionTextSpan.textContent = selectAllText;
+      }
+    });
+  }
+
+  function toggleAttributeFromTile(attrId, optionSlug) {
+    const desktopSidebar = document.getElementById('filters-sidebar');
+    if (!desktopSidebar) return;
+
+    const attrName = 'attr_' + attrId;
+    const desktopCheckbox = desktopSidebar.querySelector('input[name="' + attrName + '"][value="' + optionSlug + '"]');
+    const mobileSidebar = document.getElementById('filters-sidebar-mobile');
+    const mobileCheckbox = mobileSidebar ? mobileSidebar.querySelector('input[name="' + attrName + '"][value="' + optionSlug + '"]') : null;
+    const targetCheckbox = desktopCheckbox || mobileCheckbox;
+    if (!targetCheckbox) return;
+
+    const newChecked = !targetCheckbox.checked;
+    if (desktopCheckbox) desktopCheckbox.checked = newChecked;
+    if (mobileCheckbox) mobileCheckbox.checked = newChecked;
+
+    if (desktopCheckbox) {
+      desktopCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
     } else {
-      actionTextSpan.textContent = 'Select all';
+      updateClearAllLinkState();
+      applyFiltersWithHtmx();
     }
   }
+
+  function handleTileAttributeActivation(target, event) {
+    const productsContainer = document.getElementById('products-container');
+    const desktopSidebar = document.getElementById('filters-sidebar');
+    if (!productsContainer || !desktopSidebar) return;
+
+    const attrId = target.getAttribute('data-attr-id');
+    const optionSlug = target.getAttribute('data-option-slug');
+    if (!attrId || !optionSlug) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+    toggleAttributeFromTile(attrId, optionSlug);
+  }
+
+  document.addEventListener('click', function(event) {
+    const target = event.target.closest('[data-attr-id][data-option-slug]');
+    if (!target) return;
+    handleTileAttributeActivation(target, event);
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target.closest('[data-attr-id][data-option-slug]');
+    if (!target) return;
+    handleTileAttributeActivation(target, event);
+  });
 
   // Initial update of attribute action links and setup listeners
   document.querySelectorAll('[data-attribute-action]').forEach(function(btn) {
@@ -402,73 +724,140 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      // Only target checkboxes in the desktop sidebar
-      const checkboxes = document.querySelectorAll('#filters-sidebar input[name="' + attrName + '"]');
+      
+      // Target checkboxes within the same sidebar as the clicked button
+      const sidebar = btn.closest('.filters-sidebar');
+      if (!sidebar) return;
+      
+      const checkboxes = sidebar.querySelectorAll('input[name="' + attrName + '"]');
       const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
       
       if (checkedCount > 0) {
-        // Clear all
+        // Clear all within this sidebar
         checkboxes.forEach(function(cb) {
           cb.checked = false;
         });
       } else {
-        // Select all
+        // Select all within this sidebar
         checkboxes.forEach(function(cb) {
           cb.checked = true;
         });
       }
+
+      // If this sidebar has a counterpart (e.g. mobile vs desktop), sync it
+      const isMobileSidebar = sidebar.id.includes('mobile');
+      const otherSidebarId = isMobileSidebar ? 'filters-sidebar' : 'filters-sidebar-mobile';
+      const otherSidebar = document.getElementById(otherSidebarId);
+      
+      if (otherSidebar) {
+        const otherCheckboxes = otherSidebar.querySelectorAll('input[name="' + attrName + '"]');
+        otherCheckboxes.forEach((cb, index) => {
+          if (checkboxes[index]) {
+            cb.checked = checkboxes[index].checked;
+          }
+        });
+        // Update labels for the other sidebar too
+        // (updateAttributeActionLink will handle both sidebars anyway)
+      }
+
       updateAttributeActionLink(attrId);
-      applyFiltersWithHtmx();
+      updateClearAllLinkState();
+
+      // Only auto-apply if we're in the desktop sidebar
+      if (!isMobileSidebar) {
+        applyFiltersWithHtmx();
+      }
     });
   });
   
   // Listen for changes in checkboxes - use event delegation to handle dynamic content
-  document.getElementById('accordion-flush').addEventListener('change', function(e) {
-    if (e.target.matches('input[name^="attr_"]')) {
-      const attrName = e.target.name;
-      const attrId = attrName.replace('attr_', '');
-      updateAttributeActionLink(attrId);
-      applyFiltersWithHtmx();
-    }
-  });
+  // Only auto-apply for desktop accordion - mobile uses "Show results" button
+  const desktopAccordion = document.getElementById('accordion-flush');
+  if (desktopAccordion) {
+    desktopAccordion.addEventListener('change', function(e) {
+      if (e.target.matches('input[name^="attr_"]')) {
+        const attrName = e.target.name;
+        const attrId = attrName.replace('attr_', '');
+        
+        // Sync with mobile if it exists
+        const mobileSidebar = document.getElementById('filters-sidebar-mobile');
+        if (mobileSidebar) {
+          const mobileCheckbox = mobileSidebar.querySelector('input[name="' + attrName + '"][value="' + e.target.value + '"]');
+          if (mobileCheckbox) mobileCheckbox.checked = e.target.checked;
+        }
+
+        updateAttributeActionLink(attrId);
+        updateClearAllLinkState();
+        applyFiltersWithHtmx();
+      }
+    });
+  }
   
-  // Auto-apply filters on price input change (with debounce)
+  // Also handle changes in mobile accordion (sync back to desktop but don't auto-apply)
+  const mobileAccordion = document.getElementById('accordion-flush-mobile');
+  if (mobileAccordion) {
+    mobileAccordion.addEventListener('change', function(e) {
+      if (e.target.matches('input[name^="attr_"]')) {
+        const attrName = e.target.name;
+        const attrId = attrName.replace('attr_', '');
+        
+        // Sync with desktop if it exists
+        const desktopSidebar = document.getElementById('filters-sidebar');
+        if (desktopSidebar) {
+          const desktopCheckbox = desktopSidebar.querySelector('input[name="' + attrName + '"][value="' + e.target.value + '"]');
+          if (desktopCheckbox) desktopCheckbox.checked = e.target.checked;
+        }
+
+        updateAttributeActionLink(attrId);
+        updateClearAllLinkState();
+        // mobile does not auto-apply filters
+      }
+    });
+  }
+  
+  // Auto-apply filters on price input change (with debounce) and sync mobile/desktop
   const priceMin = document.getElementById('price_min');
   const priceMax = document.getElementById('price_max');
-  if (priceMin) {
-    priceMin.addEventListener('input', debouncedApplyFilters);
+  const priceMinMobile = document.getElementById('price_min_mobile');
+  const priceMaxMobile = document.getElementById('price_max_mobile');
+
+  if (priceMin && priceMinMobile) {
+    priceMin.addEventListener('input', function() {
+      priceMinMobile.value = priceMin.value;
+      updateClearAllLinkState();
+      debouncedApplyFilters();
+    });
+    priceMinMobile.addEventListener('input', function() {
+      priceMin.value = priceMinMobile.value;
+      updateClearAllLinkState();
+    });
   }
-  if (priceMax) {
-    priceMax.addEventListener('input', debouncedApplyFilters);
+  if (priceMax && priceMaxMobile) {
+    priceMax.addEventListener('input', function() {
+      priceMaxMobile.value = priceMax.value;
+      updateClearAllLinkState();
+      debouncedApplyFilters();
+    });
+    priceMaxMobile.addEventListener('input', function() {
+      priceMax.value = priceMaxMobile.value;
+      updateClearAllLinkState();
+    });
   }
 
-  // Handle click on option rows (entire row clickable) - use event delegation
-  document.getElementById('accordion-flush').addEventListener('click', function(e) {
-    const optionItem = e.target.closest('.option-item');
-    if (!optionItem) return;
-    
-    // If the click was directly on the checkbox or label, let browser handle it
-    if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'label') {
-      return;
-    }
-    
-    const checkbox = optionItem.querySelector('input[type="checkbox"]');
-    if (checkbox) {
-      checkbox.checked = !checkbox.checked;
-      // Trigger change event so other listeners run
-      checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-  });
+  // Note: Click handling for option rows is now done via label elements wrapping checkboxes
   
   // Show More / Less toggle functionality
   document.querySelectorAll('.show-more-btn').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      const attrId = btn.getAttribute('data-attr-id');
-      const container = document.querySelector('.options-container[data-attr-id="' + attrId + '"]');
+      const group = btn.closest('.filter-group');
+      const container = group.querySelector('.options-container');
       const extraOptions = container.querySelectorAll('.extra-option');
       const isExpanded = btn.getAttribute('data-expanded') === 'true';
       const iconSpan = btn.querySelector('.icon');
       const textSpan = btn.querySelector('.text');
+      
+      const moreText = btn.getAttribute('data-more-text') || 'More';
+      const lessText = btn.getAttribute('data-less-text') || 'Less';
       const total = parseInt(btn.getAttribute('data-total'));
       const hiddenCount = total - 5;
       
@@ -479,7 +868,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         btn.setAttribute('data-expanded', 'false');
         iconSpan.textContent = '+';
-        textSpan.textContent = 'More (' + hiddenCount + ')';
+        textSpan.textContent = moreText + ' (' + hiddenCount + ')';
       } else {
         // Expand
         extraOptions.forEach(function(opt) {
@@ -487,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         btn.setAttribute('data-expanded', 'true');
         iconSpan.textContent = '—';
-        textSpan.textContent = 'Less';
+        textSpan.textContent = lessText;
       }
     });
   });
@@ -516,7 +905,57 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
+  // Initialize pagination link handlers
+  initPaginationLinks();
+  
+  // Initialize active filter chip handlers
+  initActiveFilterChips();
+
+  // Initialize Clear all state on first load
+  updateClearAllLinkState();
+
+  // HTMX hooks for loader + re-init
+  if (window.htmx) {
+    document.addEventListener('htmx:beforeRequest', function(e) {
+      const trigger = e.detail.elt;
+      if (!trigger) return;
+      const targetId = e.detail.target && e.detail.target.id;
+      
+      // Show loader for any request targeting products-container
+      if (targetId === 'products-container') {
+        if (trigger.matches('[data-pagination-link], [data-sort-link]')) {
+          scrollToListTopIfNeeded();
+          showProductsLoading({ scrollToTop: true, positionMode: 'visible-center' });
+        } else {
+          showProductsLoading({ scrollToTop: false, positionMode: 'visible-center' });
+        }
+      }
+    });
+
+    document.addEventListener('htmx:afterSwap', function(e) {
+      if (e.target && e.target.id === 'products-container') {
+        hideProductsLoading();
+        if (typeof initFlowbite === 'function') {
+          initFlowbite();
+        }
+        if (typeof initSortDropdownAnimation === 'function') {
+          initSortDropdownAnimation();
+        }
+        if (typeof handleResponsiveView === 'function') {
+          handleResponsiveView();
+        }
+        initActiveFilterChips();
+        updateClearAllLinkState();
+      }
+    });
+    
+    document.addEventListener('htmx:responseError', function(e) {
+      if (e.target && e.target.id === 'products-container') {
+        hideProductsLoading();
+      }
+    });
+  }
+
 });
 </script>
-{% endif %}
 

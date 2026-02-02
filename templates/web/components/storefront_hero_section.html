@@ -3,14 +3,14 @@
   <div class="mx-auto grid max-w-screen-xl px-4 xl:grid-cols-12 xl:gap-16 2xl:px-0">
     <!-- Left Side Content -->
     <div class="mx-auto content-center text-center xl:col-span-5 xl:justify-self-start xl:text-start">
-      <h1 class="mb-4 text-4xl font-extrabold leading-[1.1] tracking-tight text-gray-900 dark:text-white md:max-w-2xl md:text-5xl xl:text-6xl" style="font-family: system-ui, -apple-system, sans-serif;">{{ storefront_hero.title }}</h1>
+      <h1 class="mb-4 text-4xl font-extrabold leading-[1.1] tracking-tight text-gray-900 dark:text-white md:max-w-2xl md:text-5xl xl:text-6xl">{{ storefront_hero.title }}</h1>
       <p class="mb-4 max-w-2xl text-gray-500 dark:text-gray-400 md:text-lg xl:mb-8 xl:text-xl">{{ storefront_hero.subtitle }}</p>
       <div class="mb-6 flex items-center justify-center space-x-4 md:mb-0 xl:justify-start">
         {% if storefront_hero.primary_button_text %}
         <a href="{{ storefront_hero.primary_button_url|default:'#' }}" {% if storefront_hero.primary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="rounded-lg bg-primary-700 px-6 py-3.5 text-center font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{{ storefront_hero.primary_button_text }}</a>
         {% endif %}
         {% if storefront_hero.secondary_button_text %}
-        <a href="{{ storefront_hero.secondary_button_url|default:'#' }}" {% if storefront_hero.secondary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-6 py-3.5 text-base font-medium text-gray-900 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">
+        <a href="{{ storefront_hero.secondary_button_url|default:'#' }}" {% if storefront_hero.secondary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-6 py-3.5 text-base font-medium text-gray-900 hover:bg-gray-200 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">
           {{ storefront_hero.secondary_button_text }}
           <svg class="-me-1 ms-2 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />

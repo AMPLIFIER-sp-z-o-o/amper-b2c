@@ -45,7 +45,7 @@
       <!-- Left Column: Categories -->
       <div class="w-1/2 border-r border-gray-100 dark:border-gray-700 p-3 flex flex-col bg-white dark:bg-gray-800">
         <div class="mb-2 px-2">
-          <a href="{{ item.category.get_absolute_url }}" class="subcategory-item flex items-center gap-2 px-3 py-2 text-sm font-extrabold text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+          <a href="{{ item.category.get_absolute_url }}" class="subcategory-item flex items-center gap-2 px-3 py-2 text-sm font-extrabold text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
               data-preview-title="{{ item.category.name }}"
               data-preview-url="{{ item.category.get_absolute_url }}" 
               data-has-children="false"
@@ -60,7 +60,7 @@
               data-preview-url="{{ child.get_absolute_url }}" 
               data-has-children="{% if child.children.all %}true{% else %}false{% endif %}"
               data-parent-id="{{ item.category.id }}">
-            <a href="{{ child.get_absolute_url }}" class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 group-hover:bg-gray-100 dark:group-hover:bg-gray-700 rounded-lg transition-colors duration-200">
+            <a href="{{ child.get_absolute_url }}" class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 rounded-lg transition-colors duration-200">
               <span class="font-medium">{{ child.name }}</span>
               {% if child.children.all %}
               <svg class="w-4 h-4 text-gray-400 group-hover:text-primary-500 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">

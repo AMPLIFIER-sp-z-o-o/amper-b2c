@@ -22,8 +22,13 @@ input[type="checkbox"]:checked {
 }
 
 /* Global smooth transitions for interactive elements */
-a, button, input, select, textarea {
-  transition-property: color, background-color, border-color, opacity, box-shadow;
+a,
+button,
+input,
+select,
+textarea {
+  transition-property:
+    color, background-color, border-color, opacity, box-shadow;
   transition-duration: 150ms;
   transition-timing-function: ease-in-out;
 }
@@ -33,16 +38,8 @@ html {
 }
 
 @theme {
-  --font-sans:
-    "Montserrat", "Inter", "ui-sans-serif", "system-ui", "-apple-system",
-    "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
-    "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
-  --font-body:
-    "Montserrat", "Inter", "ui-sans-serif", "system-ui", "-apple-system",
-    "system-ui", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "Noto Sans",
-    "sans-serif", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
-    "Noto Color Emoji";
+  --font-sans: "Montserrat", "sans-serif";
+  --font-body: "Montserrat", "sans-serif";
   --font-mono:
     "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas",
     "Liberation Mono", "Courier New", "monospace";
@@ -130,4 +127,43 @@ html {
     padding: 1rem 2.5rem;
     font-size: 1rem;
   }
+}
+
+/* ===========================================
+   Global Animations
+   =========================================== */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+
+/* ===========================================
+   Global Hover Background Style
+   Standard hover background for interactive elements.
+   Use these classes for consistent hover states across the app.
+   =========================================== */
+
+/* 
+ * Standard hover background for elements on white/gray-50 backgrounds
+ * Light mode: gray-200, Dark mode: gray-700
+ */
+.hover-bg {
+  @apply hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors;
+}
+
+/* 
+ * Hover background for elements that already have a gray-200/gray-700 background
+ * Light mode: gray-300, Dark mode: gray-600
+ */
+.hover-bg-active {
+  @apply hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors;
 }

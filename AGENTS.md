@@ -146,6 +146,36 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 
 ## UI Components & Styling
 
+### Hover Background Standards
+
+All interactive elements (buttons, links, clickable icons) with hover backgrounds MUST use the **standardized hover style** for consistency across the application. This includes small utility icons like password toggles or search clear buttons.
+
+**Standard hover classes (for elements on white/gray-50 backgrounds):**
+
+```html
+hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors
+```
+
+**For elements that already have a gray-200/gray-700 background:**
+
+```html
+hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors
+```
+
+**CSS utility classes** are available in [assets/css/site.css](assets/css/site.css):
+
+- `.hover-bg` – Standard hover background with transitions
+- `.hover-bg-active` – For elements with existing gray backgrounds
+
+**NEVER use these combinations:**
+
+- ❌ `dark:hover:bg-gray-600` – inconsistent with the rest of the app (use gray-700)
+- ❌ `dark:hover:bg-gray-800` – too dark for interactive elements
+- ❌ `hover:bg-gray-50` – too subtle, use gray-200
+- ❌ `hover:bg-gray-100` – too subtle, use gray-200
+
+**Exception:** Overlay UI elements (e.g., slider navigation buttons on images) may use different hover patterns like `hover:bg-white dark:hover:bg-gray-800` for visual contrast.
+
 ### Price Formatting
 
 Always use **Polish locale (pl-PL)** for price formatting to display values correctly as "6,99 zł" instead of "PLN 6.99":
@@ -165,6 +195,37 @@ new Intl.NumberFormat("en-US", { style: "currency", currency: "PLN" }).format(
 ```
 
 In templates, use the `site_currency` context variable for dynamic currency support.
+
+### Input & Control Styling (Grayscale Standard)
+
+To maintain a clean, modern aesthetic, interactive form elements and controls (inputs, checkboxes, pagination, sorting) MUST follow the **grayscale "elevated" style** instead of using default primary (blue) borders or focus outlines:
+
+**1. Default State (Resting):**
+
+- Use `bg-gray-100` background and `border-none`.
+- For checkboxes/radios: `border-gray-300` or `dark:border-gray-600`.
+
+**2. Focus/Active State (Elevated):**
+
+- Background: `bg-white` (or `dark:bg-gray-700`).
+- Border/Ring: `ring-0` or `border-none` (hide the default primary ring).
+- Elevation: Apply a specific shadow for focus: `shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)]`.
+- For Dark Mode: `dark:focus:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]`.
+
+**3. Selection Indicators & Key Buttons:**
+
+- **Primary Background Background Rule**: Key action buttons (like Search in header or "Add to Cart") and active selection indicators (like checked checkboxes in sidebars) MUST use the **primary brand color** (`bg-primary-600`) to increase visibility and brand consistency.
+- Selected items in sorting or navigation (text-only) should be indicated by **font weight** (`font-bold` or `font-semibold`) and grayscale contrast (e.g., `text-gray-900`) rather than primary colors.
+- Pagination: The active page should use the "Elevated" focus style (`bg-white` + shadow) while other pages stay `bg-gray-100`.
+
+**Implementation Example (Input):**
+
+```html
+<input
+  type="text"
+  class="bg-gray-100 border-none focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all ..."
+/>
+```
 
 ### Custom CSS Compatibility
 

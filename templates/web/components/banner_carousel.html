@@ -26,16 +26,16 @@
                     <div class="absolute inset-0 bg-black pointer-events-none" style="opacity: {{ banner.overlay_opacity|default:50 }}%;"></div>
                     
                     {# Text content - use relative positioning to stay within slide bounds #}
-                    <div class="hero-banner-content relative z-10 h-full flex items-center 
+                    <div class="hero-banner-content relative z-10 h-full flex items-center pb-9 px-16 md:px-0
                         {% if banner.text_alignment == 'left' %}
-                        justify-start pl-20 lg:pl-40
+                        justify-start md:pl-20 lg:pl-40
                         {% elif banner.text_alignment == 'right' %}
-                        justify-end pr-20 lg:pr-40
+                        justify-end md:pr-20 lg:pr-40
                         {% else %}
                         justify-center
                         {% endif %}
                     ">
-                        <div class="max-w-4xl px-4
+                        <div class="max-w-4xl px-4 py-8
                             {% if banner.text_alignment == 'center' %}text-center{% endif %}
                         ">
                             {# Badge with label and text #}
@@ -106,7 +106,7 @@
             
             {% if banners|length > 1 %}
             {# Pagination dots #}
-            <div class="swiper-pagination content-pagination absolute z-30 flex justify-center space-x-3 rtl:space-x-reverse" style="left: 0; right: 0; bottom: 1.25rem; width: auto;"></div>
+            <div class="swiper-pagination content-pagination absolute z-30 flex justify-center rtl:space-x-reverse"></div>
             
             {# Full-height clickable navigation areas #}
             <div class="banner-nav-prev"></div>
@@ -132,6 +132,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Dynamic height calculation to fit visible viewport area exactly
     function updateBannerHeight() {
+        if (window.innerWidth < 768) {
+            // On mobile, use a fixed height or aspect ratio based height
+            // instead of trying to fit viewport which creates too much empty space
+            swiperEl.style.height = 'auto';
+            swiperEl.classList.remove('h-screen');
+            swiperEl.style.minHeight = '450px';
+            return;
+        }
+        
         const scrollTop = window.scrollY || document.documentElement.scrollTop;
         const rect = swiperEl.getBoundingClientRect();
         const documentTop = rect.top + scrollTop;
@@ -140,7 +149,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let availableHeight = window.innerHeight - documentTop;
         
         // Ensure reasonable limits
-        const minHeight = window.innerWidth < 768 ? 300 : 450;
+        const minHeight = 400;
         let finalHeight = Math.max(availableHeight, minHeight);
         
         swiperEl.style.height = finalHeight + 'px';
@@ -241,9 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
 @media (max-width: 768px) {
     .content-banner-swiper,
     .content-banner-swiper .swiper-wrapper {
-        height: 60vh;
-        height: 60dvh;
-        min-height: 300px;
+        height: 400px !important;
+        min-height: 400px !important;
     }
 }
 
@@ -281,15 +289,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 /* Pagination styling */
+.content-banner-swiper .swiper-pagination {
+    bottom: 24px !important;
+    left: 0;
+    right: 0;
+    width: 100%;
+    background: transparent;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: none;
+}
+
+@media (max-width: 768px) {
+    .content-banner-swiper .swiper-pagination {
+        bottom: 0 !important;
+        background: rgba(0, 0, 0, 0.4);
+        height: 36px;
+        backdrop-filter: blur(8px);
+    }
+}
+
 .content-banner-swiper .swiper-pagination-bullet {
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
     opacity: 1;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
+    margin: 0 5px !important;
+    transition: all 0.3s ease;
 }
 
 .content-banner-swiper .swiper-pagination-bullet-active {
     background: white;
+    transform: scale(1.2);
 }
 
 /* Mobile navigation bar */

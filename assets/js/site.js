@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Detect and sync browser timezone
   detectAndSyncTimezone();
+
+  // Initialize scroll to top button
+  initScrollToTop();
 });
 
 const CURRENCY_LOCALES = {
@@ -89,3 +92,40 @@ function formatPrices() {
 
 // Re-format prices after HTMX swaps (for dynamic content)
 document.addEventListener("htmx:afterSwap", formatPrices);
+
+/**
+ * Initialize scroll to top button behavior.
+ * Shows button after scrolling 300px and scrolls to top on click.
+ */
+function initScrollToTop() {
+  const scrollBtn = document.getElementById("scroll-to-top");
+  if (!scrollBtn) return;
+
+  window.addEventListener("scroll", () => {
+    if (window.scrollY > 300) {
+      scrollBtn.classList.remove("hidden");
+      // Use a small timeout to allow "hidden" removal to register for transitions
+      setTimeout(() => {
+        scrollBtn.classList.add("opacity-100");
+        scrollBtn.classList.remove("opacity-0");
+      }, 10);
+    } else {
+      scrollBtn.classList.add("opacity-0");
+      scrollBtn.classList.remove("opacity-100");
+      // Wait for transition before hiding
+      setTimeout(() => {
+        if (window.scrollY <= 300) {
+          scrollBtn.classList.add("hidden");
+        }
+      }, 300);
+    }
+  });
+
+  scrollBtn.addEventListener("click", () => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  });
+}
+

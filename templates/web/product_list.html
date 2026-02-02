@@ -3,8 +3,39 @@
 
 {% block hero_banner %}{% endblock %}
 
+{% block extra_head %}
+<style>
+  /* Breadcrumb dropdown transition and persistent active state */
+  .breadcrumb-item-container.is-open {
+    background-color: rgb(243 244 246); /* bg-gray-100 */
+    color: rgb(55 65 81); /* text-gray-700 */
+  }
+  
+  .dark .breadcrumb-item-container.is-open {
+    background-color: rgb(31 41 55); /* dark:bg-gray-800 */
+    color: rgb(156 163 175); /* dark:text-gray-400 */
+  }
+
+  /* Arrow rotation */
+  .breadcrumb-item-container.is-open .breadcrumb-arrow {
+    transform: rotate(180deg);
+  }
+
+  /* Hover bridge - keeps menu open when crossing the gap */
+  .breadcrumb-item-container.is-open::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 12px; /* mt-2 is 0.5rem = 8px, we add extra to be safe */
+    z-index: 40;
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<section id="product-list-page" class="bg-gray-50 py-8 antialiased dark:bg-gray-900 md:py-12">
+<section id="product-list-page" class="bg-gray-50 py-4 antialiased dark:bg-gray-900 md:py-6">
   <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
     <!-- Header with breadcrumb and controls -->
     <div class="mb-4 items-end justify-between sm:flex md:mb-8">
@@ -13,7 +44,7 @@
         <nav class="flex" aria-label="Breadcrumb">
           <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
             <li class="inline-flex items-center">
-              <a href="{% url 'web:home' %}" class="-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+              <a href="{% url 'web:home' %}" class="-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
                 <svg class="me-2.5 h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                   <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z" />
                 </svg>
@@ -27,20 +58,23 @@
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
                 </svg>
                 
-                <div class="relative">
-                  <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 px-3 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-700 dark:text-gray-400">
+                <div class="relative breadcrumb-item-container flex items-center rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                  <a href="{{ item.category.get_absolute_url }}" class="inline-flex items-center py-2 ps-3 pe-1 text-sm font-medium text-gray-700 dark:text-gray-400">
                     {{ item.category.name }}
-                    <svg class="w-2.5 h-2.5 ms-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                  </a>
+                  
+                  <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 ps-1 pe-3 text-sm font-medium text-gray-700 dark:text-gray-400">
+                    <svg class="w-2.5 h-2.5 breadcrumb-arrow transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
                       <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
                     </svg>
                   </button>
 
                   <!-- Dropdown menu -->
-                  <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700">
-                      <ul class="py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
+                  <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-60 dark:bg-gray-700 overflow-hidden animate-fade-in">
+                      <ul class="max-h-80 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
                         {% for sibling in item.siblings %}
                         <li>
-                          <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
+                          <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
                             {{ sibling.name }}
                           </a>
                         </li>
@@ -60,24 +94,6 @@
         </p>
         {% endif %}
       </div>
-      <div class="flex items-center space-x-4">
-        <!-- Mobile Filter Button -->
-        <button
-          data-drawer-target="drawer-mobile-filter"
-          data-drawer-show="drawer-mobile-filter"
-          aria-controls="drawer-mobile-filter"
-          type="button"
-          class="flex w-full items-center justify-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-100 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700 sm:w-auto lg:hidden"
-        >
-          <svg class="-ms-0.5 me-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M18.796 4H5.204a1 1 0 0 0-.753 1.659l5.302 6.058a1 1 0 0 1 .247.659v4.874a.5.5 0 0 0 .2.4l3 2.25a.5.5 0 0 0 .8-.4v-7.124a1 1 0 0 1 .247-.659l5.302-6.059c.566-.646.106-1.658-.753-1.658Z" />
-          </svg>
-          {% translate "Filters" %}
-          <svg class="-me-0.5 ms-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
-          </svg>
-        </button>
-      </div>
     </div>
 
     <div class="gap-6 lg:flex">
@@ -92,82 +108,133 @@
       </div>
     </div>
 
-    <!-- Mobile Filter Drawer -->
-    <form action="" method="get" id="drawer-mobile-filter" class="fixed left-0 top-0 z-60 h-screen w-full max-w-xs -translate-x-full flex flex-col bg-white transition-transform dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-label">
-      <!-- Header -->
-      <div class="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
-        <h5 id="drawer-label" class="inline-flex items-center text-base font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Filters" %}</h5>
-        <button type="button" data-drawer-dismiss="drawer-mobile-filter" aria-controls="drawer-mobile-filter" class="inline-flex items-center rounded-lg bg-transparent p-1.5 text-sm text-gray-400 hover:bg-gray-100 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white">
-          <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6" />
+    <!-- Mobile Filter Drawer - Full screen -->
+    <form action="" method="get" id="drawer-mobile-filter" class="fixed inset-0 z-60 flex flex-col bg-white transition-transform translate-x-full dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-label">
+      <!-- Header with back button -->
+      <div class="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+        <button type="button" data-drawer-dismiss="drawer-mobile-filter" aria-controls="drawer-mobile-filter" class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
           </svg>
-          <span class="sr-only">{% translate "Close menu" %}</span>
+          <span class="sr-only">{% translate "Back" %}</span>
         </button>
+        <h5 id="drawer-label" class="text-base font-semibold text-gray-900 dark:text-white">{% translate "Categories and filters" %}</h5>
       </div>
 
       <!-- Scrollable Content -->
-      <div class="flex-1 overflow-y-auto overflow-x-hidden p-3">
+      <div class="flex-1 overflow-y-auto overflow-x-hidden p-4">
         {% include "web/components/product_list_filters.html" with is_mobile=True %}
       </div>
       
       <!-- Sticky Footer Buttons -->
-      <div class="border-t border-gray-200 dark:border-gray-700 p-3 bg-white dark:bg-gray-800">
-        <div class="flex gap-2">
-          <button type="submit" class="flex-1 rounded-lg bg-primary-700 px-4 py-2.5 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-700 dark:hover:bg-primary-800 dark:focus:ring-primary-800">{% translate "Apply filters" %}</button>
-          <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% else %}{% url 'web:product_list' %}{% endif %}" class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-center text-sm font-medium text-gray-900 hover:bg-gray-100 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:focus:ring-gray-700">{% translate "Clear all" %}</a>
+      <div class="border-t border-gray-200 dark:border-gray-700 p-4 bg-white dark:bg-gray-800 safe-area-bottom">
+        <div class="flex gap-3">
+          <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
+             data-clear-all-filters
+             data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
+             class="shrink-0 px-4 py-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">{% translate "Clear filters" %}</a>
+          <button type="submit" class="flex-1 rounded-lg bg-primary-700 px-6 py-3 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{% translate "Show results" %} ({{ total_count }})</button>
         </div>
       </div>
     </form>
+
+    <!-- Mobile Sorting Drawer - Full screen -->
+    <div id="drawer-mobile-sorting" class="fixed inset-0 z-60 flex flex-col bg-white transition-transform translate-x-full dark:bg-gray-800" tabindex="-1" aria-labelledby="drawer-sorting-label">
+      <!-- Header with back button -->
+      <div class="flex items-center gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+        <button type="button" data-drawer-dismiss="drawer-mobile-sorting" aria-controls="drawer-mobile-sorting" class="inline-flex items-center justify-center rounded-lg p-1.5 text-gray-500 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+          <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+          </svg>
+          <span class="sr-only">{% translate "Back" %}</span>
+        </button>
+        <h5 id="drawer-sorting-label" class="text-base font-semibold text-gray-900 dark:text-white">{% translate "Sorting" %}</h5>
+      </div>
+
+      <!-- Sort Options -->
+      <div class="flex-1 overflow-y-auto p-4">
+        <div class="mb-6">
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Sort by" %}</p>
+          <div class="space-y-1">
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'relevance' %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_sort" value="relevance" {% if current_sort == 'relevance' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">{% translate "Most relevant" %}</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'price_asc' %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_sort" value="price_asc" {% if current_sort == 'price_asc' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">{% translate "Price: Low to High" %}</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'price_desc' %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_sort" value="price_desc" {% if current_sort == 'price_desc' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">{% translate "Price: High to Low" %}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Results per page" %}</p>
+          <div class="space-y-1">
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 30 or not per_page %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_per_page" value="30" {% if per_page == 30 or not per_page %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">30</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 60 %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_per_page" value="60" {% if per_page == 60 %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">60</span>
+            </label>
+            <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 90 %}bg-gray-100 dark:bg-gray-700{% endif %}">
+              <input type="radio" name="mobile_per_page" value="90" {% if per_page == 90 %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
+              <span class="text-sm text-gray-900 dark:text-white">90</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 {% endblock %}
 
 {% block page_js %}
 <script>
-// Toggle view mode without page reload (HTMX-like fetch)
+// Apply view mode to UI (show/hide list/grid and update buttons)
+function applyViewMode(view) {
+  const productsGrid = document.getElementById('products-grid');
+  if (!productsGrid) return;
+  
+  const viewList = productsGrid.querySelector('.view-list');
+  const viewGrid = productsGrid.querySelector('.view-grid');
+  
+  if (view === 'grid') {
+    if (viewList) viewList.classList.add('hidden');
+    if (viewGrid) viewGrid.classList.remove('hidden');
+  } else {
+    if (viewList) viewList.classList.remove('hidden');
+    if (viewGrid) viewGrid.classList.add('hidden');
+  }
+  
+  // Update all toggle buttons on the page
+  document.querySelectorAll('[data-view-toggle]').forEach(btn => {
+    const btnView = btn.getAttribute('data-view-toggle');
+    // Show buttons corresponding to the current view (they toggle to the OTHER view)
+    if (btnView === view) {
+      btn.classList.remove('hidden');
+    } else {
+      btn.classList.add('hidden');
+    }
+  });
+}
+
+// Toggle view mode without page reload
 function toggleViewMode(newView) {
-  const urlParams = new URLSearchParams(window.location.search);
-  urlParams.set('view', newView);
-  const baseUrl = window.location.pathname;
-  const newUrl = `${baseUrl}?${urlParams.toString()}`;
+  // Save to localStorage
+  localStorage.setItem('product_view_mode', newView);
   
-  // Update browser URL without reload
-  window.history.pushState({}, '', newUrl);
-  
-  // Show loading indicator
-  if (typeof showProductsLoading === 'function') {
-    showProductsLoading();
-  }
-  
-  // Fetch and update only products container
-  const productsContainer = document.getElementById('products-container');
-  if (productsContainer) {
-    fetch(newUrl, {
-      headers: {
-        'HX-Request': 'true'
-      }
-    })
-    .then(response => response.text())
-    .then(html => {
-      productsContainer.innerHTML = html;
-      // Re-trigger price formatting
-      formatPrices(productsContainer);
-      // Re-initialize Flowbite components
-      if (typeof initFlowbite === 'function') {
-        initFlowbite();
-      }
-      initBreadcrumbDropdowns();
-    })
-    .catch(error => {
-      console.error('Error fetching products:', error);
-      if (typeof hideProductsLoading === 'function') {
-        hideProductsLoading();
-      }
-    });
-  }
+  // Apply to UI
+  applyViewMode(newView);
 }
 
 // Format prices with Polish locale (global function for use by toggleViewMode)
+// formatPrices(container) definition remains same
 function formatPrices(container) {
   const selector = container ? container.querySelectorAll('[data-price]') : document.querySelectorAll('[data-price]');
   selector.forEach(function(el) {
@@ -182,12 +249,50 @@ function formatPrices(container) {
   });
 }
 
-function initBreadcrumbDropdowns() {
+// Handle responsive view mode - must be global for HTMX afterSwap to call it
+function handleResponsiveView() {
+  const productsGrid = document.getElementById('products-grid');
+  if (!productsGrid) return;
+  
+  const isMobile = window.innerWidth < 640;
+  const storedViewMode = localStorage.getItem('product_view_mode');
+  
+  // Choose view: stored > responsive default
+  let viewToApply = storedViewMode;
+  if (!viewToApply) {
+    viewToApply = isMobile ? 'grid' : 'list';
+  }
+  
+  applyViewMode(viewToApply);
+  updateMobileStickyOffset();
+}
+
+// Mobile sticky controls offset
+function updateMobileStickyOffset() {
+  const navbar = document.querySelector('.top-nav-standard');
+  const stickyControls = document.getElementById('mobile-sticky-controls');
+  
+  if (navbar && stickyControls && window.innerWidth < 1024) {
+    const navHeight = navbar.offsetHeight;
+    // Get the actual computed top of the navbar (in case of draft notice)
+    const navTop = parseInt(window.getComputedStyle(navbar).top) || 0;
+    stickyControls.style.top = (navHeight + navTop) + 'px';
+  } else if (stickyControls) {
+    stickyControls.style.top = '';
+  }
+}
+
+
+  function initBreadcrumbDropdowns() {
   const triggers = document.querySelectorAll('[data-breadcrumb-trigger]');
   if (!triggers.length) return;
 
   const HOVER_INTENT_DELAY = 150;
-  const CLOSE_DELAY = 200; // Small grace period to cross the gap between trigger and menu
+  const CLOSE_DELAY = 200;
+
+  // Check if device supports hover AND we are on desktop resolution
+  const isDesktop = () => window.innerWidth >= 1024;
+  const canHover = () => window.matchMedia('(hover: hover)').matches && isDesktop();
 
   triggers.forEach(trigger => {
     if (trigger.dataset.breadcrumbInit === 'true') return;
@@ -195,6 +300,8 @@ function initBreadcrumbDropdowns() {
     const menuId = trigger.getAttribute('data-breadcrumb-trigger');
     const menu = document.getElementById(menuId);
     if (!menu) return;
+
+    const container = trigger.closest('.breadcrumb-item-container');
 
     trigger.dataset.breadcrumbInit = 'true';
     menu.dataset.breadcrumbInit = 'true';
@@ -213,6 +320,7 @@ function initBreadcrumbDropdowns() {
     const openMenu = () => {
       if (isOpen) return;
       menu.classList.remove('hidden');
+      if (container) container.classList.add('is-open');
       trigger.setAttribute('aria-expanded', 'true');
       isOpen = true;
     };
@@ -220,32 +328,41 @@ function initBreadcrumbDropdowns() {
     const closeMenu = () => {
       if (!isOpen) return;
       menu.classList.add('hidden');
+      if (container) container.classList.remove('is-open');
       trigger.setAttribute('aria-expanded', 'false');
       isOpen = false;
     };
 
-    trigger.addEventListener('mouseenter', () => {
+    // Only add hover effects on desktop/hover-capable devices
+    // We add listeners but check canHover() inside them to support dynamic resizing
+    container.addEventListener('mouseenter', () => {
+      if (!canHover()) return;
       clearTimeouts();
       hoverTimeoutId = setTimeout(openMenu, HOVER_INTENT_DELAY);
     });
 
-    trigger.addEventListener('mouseleave', (e) => {
+    container.addEventListener('mouseleave', (e) => {
+      if (!canHover()) return;
       clearTimeouts();
       closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
     });
 
     menu.addEventListener('mouseenter', () => {
+      if (!canHover()) return;
       clearTimeouts();
       openMenu();
     });
 
     menu.addEventListener('mouseleave', (e) => {
+      if (!canHover()) return;
       clearTimeouts();
       closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
     });
 
+    // Toggle menu on trigger click (works for both mobile and desktop)
     trigger.addEventListener('click', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       clearTimeouts();
       if (isOpen) {
         closeMenu();
@@ -253,10 +370,122 @@ function initBreadcrumbDropdowns() {
         openMenu();
       }
     });
+
+    // Close on click outside
+    document.addEventListener('click', (e) => {
+      if (isOpen && !container.contains(e.target)) {
+        closeMenu();
+      }
+    });
+  });
+}
+
+function initSortDropdownAnimation() {
+  const triggers = document.querySelectorAll('[data-sort-dropdown-trigger]');
+  if (!triggers.length) return;
+
+  if (window.__sortDropdownInitialized) {
+    document.querySelectorAll('[data-sort-dropdown-trigger]').forEach(trigger => {
+      trigger.setAttribute('aria-expanded', 'false');
+    });
+    document.querySelectorAll('[data-sort-dropdown-menu]').forEach(menu => {
+      menu.dataset.sortClosing = 'false';
+      menu.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+      menu.classList.remove('opacity-100');
+    });
+    return;
+  }
+
+  window.__sortDropdownInitialized = true;
+
+  const closeMenu = (menu, trigger) => {
+    if (!menu || menu.classList.contains('hidden')) return;
+
+    menu.dataset.sortClosing = 'true';
+    menu.classList.remove('opacity-100');
+    menu.classList.add('opacity-0', 'pointer-events-none');
+    if (trigger) trigger.setAttribute('aria-expanded', 'false');
+
+    const onTransitionEnd = (event) => {
+      if (event.target !== menu) return;
+      if (menu.dataset.sortClosing !== 'true') {
+        menu.removeEventListener('transitionend', onTransitionEnd);
+        return;
+      }
+      menu.classList.add('hidden');
+      menu.removeEventListener('transitionend', onTransitionEnd);
+    };
+
+    menu.addEventListener('transitionend', onTransitionEnd);
+  };
+
+  const closeAllMenus = (exceptMenu = null) => {
+    document.querySelectorAll('[data-sort-dropdown-menu]').forEach(menu => {
+      if (exceptMenu && menu === exceptMenu) return;
+      const triggerId = menu.id;
+      const trigger = document.querySelector(`[data-sort-dropdown-trigger="${triggerId}"]`);
+      closeMenu(menu, trigger);
+    });
+  };
+
+  const openMenu = (menu, trigger) => {
+    if (!menu || !trigger || !menu.classList.contains('hidden')) return;
+
+    menu.dataset.sortClosing = 'false';
+    menu.classList.remove('hidden');
+    menu.classList.remove('pointer-events-none');
+    trigger.setAttribute('aria-expanded', 'true');
+
+    requestAnimationFrame(() => {
+      menu.classList.remove('opacity-0');
+      menu.classList.add('opacity-100');
+    });
+  };
+
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-sort-dropdown-trigger]');
+    if (trigger) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const menuId = trigger.getAttribute('data-sort-dropdown-trigger');
+      const menu = menuId ? document.getElementById(menuId) : null;
+      if (!menu) return;
+
+      if (menu.classList.contains('hidden')) {
+        closeAllMenus(menu);
+        openMenu(menu, trigger);
+      } else {
+        closeMenu(menu, trigger);
+      }
+      return;
+    }
+
+    const menu = event.target.closest('[data-sort-dropdown-menu]');
+    if (menu) {
+      const link = event.target.closest('[data-sort-link]');
+      if (link) {
+        const menuId = menu.id;
+        const linkedTrigger = menuId ? document.querySelector(`[data-sort-dropdown-trigger="${menuId}"]`) : null;
+        closeMenu(menu, linkedTrigger);
+      }
+      return;
+    }
+
+    closeAllMenus();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeAllMenus();
+    }
   });
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Mobile sticky controls initial state
+  setTimeout(updateMobileStickyOffset, 100);
+
   // Initial price formatting
   formatPrices();
   
@@ -270,44 +499,26 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Check if we should scroll to top (after page navigation)
+  const isPageReload = () => {
+    const navEntries = performance.getEntriesByType && performance.getEntriesByType('navigation');
+    if (navEntries && navEntries.length) {
+      return navEntries[0].type === 'reload';
+    }
+    if (performance && performance.navigation) {
+      return performance.navigation.type === 1;
+    }
+    return false;
+  };
+
   if (sessionStorage.getItem('scrollToTop') === 'true') {
     sessionStorage.removeItem('scrollToTop');
-    // Scroll to product list controls
-    const controls = document.getElementById('product-controls-top');
-    if (controls) {
-      controls.scrollIntoView({ behavior: 'instant', block: 'start' });
-    } else {
-      window.scrollTo({ top: 0, behavior: 'instant' });
+    if (!isPageReload()) {
+      // Scroll to the top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
   
-  // Handle responsive view mode - grid on mobile by default
-  function handleResponsiveView() {
-    const productsGrid = document.getElementById('products-grid');
-    if (!productsGrid) return;
-    
-    const isMobile = window.innerWidth < 640;
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlViewMode = urlParams.get('view');
-    
-    // If user hasn't explicitly set a view mode in URL, use responsive defaults
-    if (!urlViewMode) {
-      const viewList = productsGrid.querySelector('.view-list');
-      const viewGrid = productsGrid.querySelector('.view-grid');
-      
-      if (isMobile) {
-        // Mobile: Show grid by default
-        if (viewList) viewList.classList.add('hidden');
-        if (viewGrid) viewGrid.classList.remove('hidden');
-      } else {
-        // Desktop: Show list by default
-        if (viewList) viewList.classList.remove('hidden');
-        if (viewGrid) viewGrid.classList.add('hidden');
-      }
-    }
-  }
-  
-  // Apply responsive view immediately
+  // Apply responsive view immediately (function is defined globally above)
   handleResponsiveView();
   
   // Re-apply on resize (debounced)
@@ -322,6 +533,71 @@ document.addEventListener('DOMContentLoaded', function() {
     initFlowbite();
   }
   initBreadcrumbDropdowns();
+  initSortDropdownAnimation();
+  
+  // Mobile sorting drawer functionality
+  function initMobileSortingDrawer() {
+    const sortRadios = document.querySelectorAll('input[name="mobile_sort"]');
+    const perPageRadios = document.querySelectorAll('input[name="mobile_per_page"]');
+    
+    function applySortAndPerPage() {
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      // Get selected sort
+      const selectedSort = document.querySelector('input[name="mobile_sort"]:checked');
+      if (selectedSort) {
+        if (selectedSort.value !== 'relevance') {
+          urlParams.set('sort', selectedSort.value);
+        } else {
+          urlParams.delete('sort');
+        }
+      }
+      
+      // Get selected per_page
+      const selectedPerPage = document.querySelector('input[name="mobile_per_page"]:checked');
+      if (selectedPerPage) {
+        const perPage = selectedPerPage.value;
+        if (perPage !== '30') {
+          urlParams.set('per_page', perPage);
+        } else {
+          urlParams.delete('per_page');
+        }
+      }
+      
+      // Reset page to 1 when changing sort or per_page
+      urlParams.delete('page');
+      
+      // Navigate to new URL
+      const baseUrl = window.location.pathname;
+      const newUrl = urlParams.toString() ? `${baseUrl}?${urlParams.toString()}` : baseUrl;
+      if (typeof navigateToPage === 'function') {
+        navigateToPage(newUrl, { scrollToTop: true, positionMode: 'first-item' });
+      } else {
+        window.location.href = newUrl;
+      }
+    }
+    
+    // Apply on change
+    sortRadios.forEach(radio => {
+      radio.addEventListener('change', applySortAndPerPage);
+    });
+    
+    perPageRadios.forEach(radio => {
+      radio.addEventListener('change', applySortAndPerPage);
+    });
+    
+    // Initialize drawer with Flowbite
+    const sortingDrawer = document.getElementById('drawer-mobile-sorting');
+    if (sortingDrawer && typeof Drawer !== 'undefined') {
+      new Drawer(sortingDrawer, {
+        placement: 'right',
+        backdrop: true,
+        bodyScrolling: false,
+      });
+    }
+  }
+  
+  initMobileSortingDrawer();
 });
 </script>
 {% endblock %}

@@ -2330,10 +2330,10 @@ class Command(BaseCommand):
         navbar = Navbar.get_settings()
 
         # Create custom navbar items matching standard (alphabetical root categories)
-        # Seed first 8 categories as custom items example
+        # Seed first 10 categories as custom items example
         root_categories = list(
             Category.objects.filter(parent__isnull=True)
-            .order_by("name")[:8]
+            .order_by("name")[:10]
         )
 
         # Clear existing items for a clean mirror
@@ -2356,7 +2356,7 @@ class Command(BaseCommand):
                 )
             )
 
-        # Add separator at position 9
+        # Add separator at position 11
         navbar_items.append(
             NavbarItem(
                 navbar=navbar,
@@ -2367,12 +2367,12 @@ class Command(BaseCommand):
                 open_in_new_tab=False,
                 label_color="",
                 icon="",
-                order=9,
+                order=11,
                 is_active=True,
             )
         )
 
-        # Add "Promocje" custom link at position 10 with red color
+        # Add "Promocje" custom link at position 12 with red color
         navbar_items.append(
             NavbarItem(
                 navbar=navbar,
@@ -2383,7 +2383,7 @@ class Command(BaseCommand):
                 open_in_new_tab=True,
                 label_color="#dc2626",
                 icon="",
-                order=10,
+                order=12,
                 is_active=True,
             )
         )

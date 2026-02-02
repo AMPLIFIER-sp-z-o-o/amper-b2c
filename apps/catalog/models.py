@@ -118,6 +118,8 @@ class Product(BaseModel):
         - full_value: The complete value
         - display_value: The truncated value (with ... if truncated)
         - is_truncated: Boolean indicating if value was truncated
+        - attribute_id: AttributeDefinition id for filter matching
+        - option_slug: AttributeOption slug for filter matching
         """
         max_attrs = 4
         max_value_length = 25
@@ -142,6 +144,8 @@ class Product(BaseModel):
                 "full_value": full_value,
                 "display_value": display_value,
                 "is_truncated": is_truncated,
+                "attribute_id": av.option.attribute_id,
+                "option_slug": av.option.slug,
             })
         
         return attrs

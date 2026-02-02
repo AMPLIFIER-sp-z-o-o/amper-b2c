@@ -1,4 +1,40 @@
 {% load i18n %}
+
+{# Active Filters Bar - Properly positioned for mobile and desktop #}
+{% if active_filters %}
+{# Mobile: normal flow with proper spacing. Desktop: absolute overlay #}
+<div id="active-filters-bar" class="flex flex-wrap items-center gap-2 mb-3 lg:mb-0 lg:relative lg:h-0 lg:overflow-visible">
+  <div class="flex flex-wrap items-center gap-2 lg:absolute lg:left-0 lg:right-0 lg:top-0 lg:-translate-y-full lg:-mt-2 lg:z-10">
+    {% for filter in active_filters %}
+    <div class="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600">
+      <span>{{ filter.label }}</span>
+      <button type="button"
+              data-remove-filter
+              data-filter-type="{{ filter.type }}"
+              data-filter-value="{{ filter.value }}"
+              class="flex items-center justify-center w-6 h-6 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
+              title="{% translate 'Remove filter' %}">
+        <svg class="w-3.5 h-3.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+    {% endfor %}
+    
+    {# Clear all filters button #}
+    <button type="button"
+            data-clear-all-filters
+            data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:text-gray-200 dark:bg-gray-700 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer">
+      <span>{% translate "Clear filters" %}</span>
+      <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  </div>
+</div>
+{% endif %}
+
 {# Top Controls - Sorting, Pagination, View Toggle #}
 {% include "web/components/product_list_controls.html" with position="top" %}
 
@@ -6,7 +42,7 @@
 {% if products %}
 <!-- View modes: list (horizontal cards, desktop default) / grid (tiles, mobile default) -->
 <div id="products-grid" 
-     class="products-container"
+     class="products-container animate-fade-in"
      data-view-mode="{{ view_mode }}"
      data-current-view="{{ view_mode }}">
   
@@ -30,13 +66,13 @@
 
 {% else %}
 <!-- Empty State -->
-<div class="flex flex-col items-center justify-center py-16 text-center">
+<div class="flex flex-col items-center justify-center py-16 text-center animate-fade-in">
   <svg class="mb-4 h-16 w-16 text-gray-400 dark:text-gray-500" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 10V6a3 3 0 0 1 3-3v0a3 3 0 0 1 3 3v4m3-2 .917 11.923A1 1 0 0 1 17.92 21H6.08a1 1 0 0 1-.997-1.077L6 8h12Z" />
   </svg>
   <h3 class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{% translate "No products found" %}</h3>
   <p class="mb-4 text-gray-500 dark:text-gray-400">{% translate "Try adjusting your filters or search query." %}</p>
-  <a href="{% url 'web:product_list' %}" class="inline-flex items-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+  <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" class="inline-flex items-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
     <svg class="-ms-1 me-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12l4-4m-4 4 4 4"/>
     </svg>
