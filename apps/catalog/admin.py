@@ -437,23 +437,30 @@ class CategoryForm(forms.ModelForm):
 
 
 @admin.register(Category)
-class CategoryAdmin(AutoReorderMixin, HistoryModelAdmin, ImportExportModelAdmin):
+class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     form = CategoryForm
     resource_class = CategoryResource
     import_form_class = ImportForm
     export_form_class = ExportForm
-    list_display = ("name", "parent", "slug", "sort_order", "product_count", "banner_count", "recommended_count", "show_banners", "show_recommended_products")
-    list_editable = ["sort_order", "show_banners", "show_recommended_products"]
+    list_display = (
+        "name",
+        "parent",
+        "slug",
+        "product_count",
+        "banner_count",
+        "recommended_count",
+        "show_banners",
+        "show_recommended_products",
+    )
+    list_editable = ["show_banners", "show_recommended_products"]
     list_select_related = ["parent"]
     list_per_page = 50
     show_full_result_count = False
     search_fields = ("name", "slug")
-    ordering = ("sort_order", "name")
+    ordering = ("name",)
     autocomplete_fields = ["parent"]
     inlines = [CategoryBannerInline, CategoryRecommendedProductInline, CategoryProductInline]
     readonly_fields = ["image_preview", "product_count_detail"]
-    order_field = "sort_order"
-    order_scope_field = None
 
     class Media:
         css = {
@@ -487,22 +494,35 @@ class CategoryAdmin(AutoReorderMixin, HistoryModelAdmin, ImportExportModelAdmin)
         from django.db.models.functions import Coalesce
 
         # Use Subquery instead of Count with distinct=True to avoid cartesian products
-        product_count_subquery = Product.objects.filter(
-            category=OuterRef("pk")
-        ).values("category").annotate(cnt=models.Count("id")).values("cnt")
+        product_count_subquery = (
+            Product.objects.filter(category=OuterRef("pk"))
+            .values("category")
+            .annotate(cnt=models.Count("id"))
+            .values("cnt")
+        )
 
-        banner_count_subquery = CategoryBanner.objects.filter(
-            category=OuterRef("pk")
-        ).values("category").annotate(cnt=models.Count("id")).values("cnt")
+        banner_count_subquery = (
+            CategoryBanner.objects.filter(category=OuterRef("pk"))
+            .values("category")
+            .annotate(cnt=models.Count("id"))
+            .values("cnt")
+        )
 
-        recommended_count_subquery = CategoryRecommendedProduct.objects.filter(
-            category=OuterRef("pk")
-        ).values("category").annotate(cnt=models.Count("id")).values("cnt")
+        recommended_count_subquery = (
+            CategoryRecommendedProduct.objects.filter(category=OuterRef("pk"))
+            .values("category")
+            .annotate(cnt=models.Count("id"))
+            .values("cnt")
+        )
 
-        return super().get_queryset(request).annotate(
-            _product_count=Coalesce(Subquery(product_count_subquery), 0),
-            _banner_count=Coalesce(Subquery(banner_count_subquery), 0),
-            _recommended_count=Coalesce(Subquery(recommended_count_subquery), 0),
+        return (
+            super()
+            .get_queryset(request)
+            .annotate(
+                _product_count=Coalesce(Subquery(product_count_subquery), 0),
+                _banner_count=Coalesce(Subquery(banner_count_subquery), 0),
+                _recommended_count=Coalesce(Subquery(recommended_count_subquery), 0),
+            )
         )
 
     def banner_count(self, obj):
@@ -578,10 +598,15 @@ class AttributeDefinitionAdmin(AutoReorderMixin, HistoryModelAdmin, ImportExport
     order_scope_field = None
     fieldsets = (
         (None, {"fields": ("name", "slug")}),
-        (_("Tile Display Settings"), {
-            "fields": ("show_on_tile", "tile_display_order"),
-            "description": _("Configure how this attribute appears on product tiles (cards) in slider, grid, and list views."),
-        }),
+        (
+            _("Tile Display Settings"),
+            {
+                "fields": ("show_on_tile", "tile_display_order"),
+                "description": _(
+                    "Configure how this attribute appears on product tiles (cards) in slider, grid, and list views."
+                ),
+            },
+        ),
     )
 
 
@@ -695,9 +720,7 @@ class CategoryRecommendedProductAdmin(AutoReorderMixin, HistoryModelAdmin):
             "all": ["css/admin_product_image_inline.css"],
         }
 
-    fieldsets = (
-        (None, {"fields": ("category", "product", "order")}),
-    )
+    fieldsets = ((None, {"fields": ("category", "product", "order")}),)
 
     def get_queryset(self, request):
         """Prefetch product images to avoid N+1 queries."""

@@ -1,5 +1,7 @@
 from django.shortcuts import get_object_or_404, render
+
 from .models import Product
+
 
 def product_detail(request, slug, id):
     product = get_object_or_404(
@@ -12,6 +14,5 @@ def product_detail(request, slug, id):
     return render(
         request,
         "Catalogs/ProductDetails/product_details.html",
-        {"product": product,
-         "attributes": attributes},
+        {"product": product, "attributes": attributes},
     )

@@ -324,16 +324,21 @@ function showProductsLoading(options = {}) {
   productsContainer.appendChild(overlay);
   document.body.appendChild(spinner);
 
+  // Scroll to top first if requested (so spinner position calculation uses correct viewport)
+  if (scrollToTop) {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // Position spinner centered on visible portion of products container
   const updateSpinnerPosition = () => {
     const rect = productsContainer.getBoundingClientRect();
     const viewportHeight = window.innerHeight;
-    const viewportWidth = window.innerWidth;
     const spinnerSize = 48; // w-12 = 48px
     
-    // Horizontal: center of products container
+    // Horizontal: center of products container, clamped to viewport
     const containerCenterX = rect.left + rect.width / 2;
-    spinner.style.left = `${containerCenterX}px`;
+    const clampedX = Math.max(spinnerSize / 2, Math.min(containerCenterX, window.innerWidth - spinnerSize / 2));
+    spinner.style.left = `${clampedX}px`;
     
     // Vertical: center of visible portion of products container
     const visibleTop = Math.max(rect.top, 0);
@@ -345,16 +350,24 @@ function showProductsLoading(options = {}) {
       const visibleCenterY = (visibleTop + visibleBottom) / 2;
       spinner.style.top = `${visibleCenterY}px`;
     } else {
-      // Not enough visible space - center in viewport
-      spinner.style.top = `${viewportHeight / 2}px`;
+      // Not enough visible space - center in viewport (but in upper half for better UX)
+      spinner.style.top = `${viewportHeight / 3}px`;
     }
   };
 
-  requestAnimationFrame(updateSpinnerPosition);
-
-  // Scroll to top after showing the loader if requested
+  // When scrolling to top, wait a bit for scroll to start before positioning
   if (scrollToTop) {
-    scrollToListTopIfNeeded();
+    setTimeout(updateSpinnerPosition, 50);
+    // Also update position as scroll progresses
+    const scrollHandler = () => {
+      updateSpinnerPosition();
+      if (window.scrollY <= 10) {
+        window.removeEventListener('scroll', scrollHandler);
+      }
+    };
+    window.addEventListener('scroll', scrollHandler, { passive: true });
+  } else {
+    requestAnimationFrame(updateSpinnerPosition);
   }
 }
 
@@ -406,7 +419,8 @@ function updateProductCounts() {
 }
 
 // Apply filters using fetch API (no page reload, no scroll jump)
-function applyFiltersWithHtmx() {
+function applyFiltersWithHtmx(options = {}) {
+  const { scrollToTop = false } = options;
   updateClearAllLinkState();
   const queryString = buildFilterQueryString();
   const baseUrl = window.location.pathname;
@@ -416,7 +430,7 @@ function applyFiltersWithHtmx() {
   window.history.pushState({}, '', newUrl);
   
   // Show loading indicator
-  showProductsLoading();
+  showProductsLoading({ scrollToTop });
   
   // Use HTMX (preferred) or fetch API to get and update only the products container
   const productsContainer = document.getElementById('products-container');
@@ -453,6 +467,10 @@ function applyFiltersWithHtmx() {
         }
         if (typeof handleResponsiveView === 'function') {
           handleResponsiveView();
+        }
+        // Reinitialize category recommended products Swiper
+        if (typeof window.initCategoryRecommendedSlider === 'function') {
+          window.initCategoryRecommendedSlider();
         }
         // Re-attach pagination listeners
         initPaginationLinks();
@@ -515,6 +533,10 @@ function navigateToPage(url, options = {}) {
         }
         if (typeof handleResponsiveView === 'function') {
           handleResponsiveView();
+        }
+        // Reinitialize category recommended products Swiper
+        if (typeof window.initCategoryRecommendedSlider === 'function') {
+          window.initCategoryRecommendedSlider();
         }
         // Re-attach pagination listeners
         initPaginationLinks();
@@ -783,12 +805,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (desktopCheckbox) desktopCheckbox.checked = newChecked;
     if (mobileCheckbox) mobileCheckbox.checked = newChecked;
 
-    if (desktopCheckbox) {
-      desktopCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      updateClearAllLinkState();
-      applyFiltersWithHtmx();
-    }
+    // Update attribute action link and apply filters with scroll to top
+    // (clicking on product tile attributes should scroll to top of page)
+    updateAttributeActionLink(attrId);
+    updateClearAllLinkState();
+    applyFiltersWithHtmx({ scrollToTop: true });
   }
 
   function handleTileAttributeActivation(target, event) {
@@ -1052,6 +1073,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (typeof handleResponsiveView === 'function') {
           handleResponsiveView();
+        }
+        // Reinitialize category recommended products Swiper after HTMX swap
+        if (typeof window.initCategoryRecommendedSlider === 'function') {
+          window.initCategoryRecommendedSlider();
         }
         initActiveFilterChips();
         updateClearAllLinkState();

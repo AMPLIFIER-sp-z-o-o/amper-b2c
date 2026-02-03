@@ -146,6 +146,87 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 
 ## UI Components & Styling
 
+### Swiper/Slider Components (HTMX-Compatible Pattern)
+
+This project uses [Swiper.js](https://swiperjs.com/) for carousels and sliders. To ensure sliders work correctly with **HTMX partial page updates**, follow these rules:
+
+#### Architecture
+
+1. **Swiper assets are loaded globally** in [templates/web/base.html](templates/web/base.html) — do NOT load Swiper CSS/JS in component templates.
+
+2. **Initialization functions live in [assets/js/site.js](assets/js/site.js)** — NOT as inline `<script>` tags in templates. Inline scripts don't execute after HTMX swaps.
+
+3. **Use data attributes** to pass template variables to JS:
+
+   ```html
+   <div
+     class="swiper my-slider"
+     data-category-id="{{ category.id }}"
+     data-item-count="{{ items|length }}"
+   ></div>
+   ```
+
+4. **Register HTMX afterSwap handlers** in site.js to reinitialize sliders after partial updates:
+   ```javascript
+   document.addEventListener("htmx:afterSwap", (event) => {
+     if (event.target.id === "products-container") {
+       initMySlider();
+     }
+   });
+   ```
+
+#### Available Slider Initializers
+
+| Function                          | Selector                       | Description                               |
+| --------------------------------- | ------------------------------ | ----------------------------------------- |
+| `initCategoryRecommendedSlider()` | `.category-recommended-swiper` | Product recommendations on category pages |
+| `initCategoryBannerSlider()`      | `.category-banner-swiper`      | Category page banner carousels            |
+
+#### Adding a New Slider Component
+
+1. **Template**: Create markup with Swiper classes and data-attributes (no inline scripts)
+2. **site.js**: Add initialization function that reads data-attributes
+3. **site.js**: Call function in `DOMContentLoaded` handler
+4. **site.js**: Add `htmx:afterSwap` handler if the slider appears in HTMX-swapped content
+5. **Export**: Add `window.myInitFunction = myInitFunction;` for debugging
+
+#### ❌ Anti-Patterns (NEVER do this)
+
+```html
+<!-- DON'T: Load Swiper in component templates -->
+<link rel="stylesheet" href="...swiper-bundle.min.css" />
+<script src="...swiper-bundle.min.js"></script>
+
+<!-- DON'T: Use inline scripts with template variables -->
+<script>
+  const count = {{ items|length }};  // Won't execute after HTMX swap!
+  new Swiper('.my-slider', { loop: count > 1 });
+</script>
+```
+
+#### ✅ Correct Pattern
+
+```html
+<!-- Template: Only markup + data attributes -->
+<div class="swiper my-slider" data-item-count="{{ items|length }}">
+  <div class="swiper-wrapper">...</div>
+</div>
+{# Initialization handled by site.js initMySlider() #}
+```
+
+```javascript
+// site.js: Read data attributes, handle HTMX
+function initMySlider() {
+  document.querySelectorAll(".my-slider").forEach((el) => {
+    if (el.swiper) return; // Already initialized
+    const count = parseInt(el.dataset.itemCount, 10) || 0;
+    new Swiper(el, { loop: count > 1 });
+  });
+}
+window.initMySlider = initMySlider;
+document.addEventListener("htmx:afterSwap", initMySlider);
+```
+
 ### Hover Background Standards
 
 All interactive elements (buttons, links, clickable icons) with hover backgrounds MUST use the **standardized hover style** for consistency across the application. This includes small utility icons like password toggles or search clear buttons.

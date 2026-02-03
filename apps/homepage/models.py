@@ -44,7 +44,9 @@ class BannerGroup(BaseModel):
     is_active = models.BooleanField(
         default=False,
         verbose_name=_("Active"),
-        help_text=_("Only one banner group can be active at a time. Active group's banners are displayed on the homepage."),
+        help_text=_(
+            "Only one banner group can be active at a time. Active group's banners are displayed on the homepage."
+        ),
     )
     available_from = models.DateTimeField(
         null=True,
@@ -98,8 +100,7 @@ class BannerGroup(BaseModel):
         """Ensure both banner group instances exist."""
         for banner_type, _ in BannerType.choices:
             cls.objects.get_or_create(
-                banner_type=banner_type,
-                defaults={"is_active": banner_type == BannerType.CONTENT}
+                banner_type=banner_type, defaults={"is_active": banner_type == BannerType.CONTENT}
             )
 
 
@@ -167,7 +168,9 @@ class Banner(BaseModel):
         choices=BannerType.choices,
         default=BannerType.SIMPLE,
         verbose_name=_("Banner type"),
-        help_text=_("Standard banner: image only with optional link. Full hero banner: full-screen image with text overlay, badge, and buttons."),
+        help_text=_(
+            "Standard banner: image only with optional link. Full hero banner: full-screen image with text overlay, badge, and buttons."
+        ),
     )
     name = models.CharField(
         max_length=255,
@@ -347,9 +350,9 @@ class Banner(BaseModel):
                 self.group = group
 
         if self._state.adding and self.order == 0:
-            max_order = Banner.objects.filter(banner_type=self.banner_type).aggregate(
-                max_order=models.Max("order")
-            )["max_order"]
+            max_order = Banner.objects.filter(banner_type=self.banner_type).aggregate(max_order=models.Max("order"))[
+                "max_order"
+            ]
             if max_order is not None:
                 self.order = max_order + 1
         super().save(*args, **kwargs)
@@ -371,14 +374,15 @@ class Banner(BaseModel):
             return cls.objects.none()
 
         now = wall_clock_utc_now()
-        return cls.objects.filter(
-            is_active=True,
-            banner_type=settings.active_banner_type,
-        ).filter(
-            models.Q(available_from__isnull=True) | models.Q(available_from__lte=now)
-        ).filter(
-            models.Q(available_to__isnull=True) | models.Q(available_to__gte=now)
-        ).order_by("order", "-created_at")
+        return (
+            cls.objects.filter(
+                is_active=True,
+                banner_type=settings.active_banner_type,
+            )
+            .filter(models.Q(available_from__isnull=True) | models.Q(available_from__lte=now))
+            .filter(models.Q(available_to__isnull=True) | models.Q(available_to__gte=now))
+            .order_by("order", "-created_at")
+        )
 
     @classmethod
     def get_active_banners_with_existing_media(cls):
@@ -1017,5 +1021,3 @@ class StorefrontCategoryItem(BaseModel):
             if max_order is not None:
                 self.order = max_order + 1
         super().save(*args, **kwargs)
-
-

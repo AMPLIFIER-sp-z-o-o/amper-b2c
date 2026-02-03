@@ -350,7 +350,6 @@ class BottomBarAdmin(SingletonAdminMixin, HistoryModelAdmin):
 # ============================================================================
 
 
-
 class NavbarItemForm(forms.ModelForm):
     label_color = forms.CharField(
         widget=UnfoldAdminColorInputWidget,
@@ -367,7 +366,7 @@ class NavbarItemForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # Get item_type from form data (handles inline prefix) or instance
         item_type = None
         if self.data:
@@ -377,7 +376,7 @@ class NavbarItemForm(forms.ModelForm):
                 item_type = self.data.get(f"{prefix}-item_type")
             else:
                 item_type = self.data.get("item_type")
-        
+
         if not item_type:
             item_type = (
                 self.initial.get("item_type")
@@ -403,16 +402,16 @@ class NavbarItemInline(TabularInline):
     extra = 0
     fields = ("order", "item_type", "category", "label", "url", "label_color", "open_in_new_tab", "is_active")
     ordering = ("order", "id")
-    
+
     # Don't show add/change/delete buttons for related objects
     def get_formset(self, request, obj=None, **kwargs):
         formset = super().get_formset(request, obj, **kwargs)
         # Disable related widget wrapper buttons for category field
-        if 'category' in formset.form.base_fields:
-            formset.form.base_fields['category'].widget.can_add_related = False
-            formset.form.base_fields['category'].widget.can_change_related = False
-            formset.form.base_fields['category'].widget.can_delete_related = False
-            formset.form.base_fields['category'].widget.can_view_related = False
+        if "category" in formset.form.base_fields:
+            formset.form.base_fields["category"].widget.can_add_related = False
+            formset.form.base_fields["category"].widget.can_change_related = False
+            formset.form.base_fields["category"].widget.can_delete_related = False
+            formset.form.base_fields["category"].widget.can_view_related = False
         return formset
 
 

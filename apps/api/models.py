@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
-from simple_history.models import HistoricalRecords
 from rest_framework_api_key.models import AbstractAPIKey
+from simple_history.models import HistoricalRecords
 
 
 class UserAPIKey(AbstractAPIKey):

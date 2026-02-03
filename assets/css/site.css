@@ -176,3 +176,15 @@ html {
 .scrollbar-hide::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
 }
+
+/* Product Slider - allow bottom shadow to be visible while hiding horizontal overflow */
+.product-slider-carousel {
+  overflow-x: clip;
+  overflow-y: visible;
+  margin-bottom: -16px;
+  padding-bottom: 16px;
+}
+
+.product-slider-swiper {
+  overflow: visible !important;
+}

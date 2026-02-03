@@ -1,9 +1,5 @@
 {% load i18n %}
 {% if category_banners %}
-{# Load Swiper library for category slider components #}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
 <div id="category-banner-slider-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="category-banner-slider {% if not header_position %}mb-4{% endif %} overflow-hidden {% if header_position %}header-position{% endif %}">
   <div class="relative">
     {# Banner Carousel #}
@@ -46,8 +42,8 @@
         data-category-id="{{ current_category.id }}"
         aria-label="{% translate 'Previous banner' %}"
       >
-        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-          <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+        <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
         </svg>
       </button>
       <button 
@@ -56,8 +52,8 @@
         data-category-id="{{ current_category.id }}"
         aria-label="{% translate 'Next banner' %}"
       >
-        <svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-          <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" />
+        <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
         </svg>
       </button>
       {% endif %}
@@ -177,73 +173,5 @@
 }
 </style>
 
-<script>
-(function() {
-  const initCategoryBannerSlider = () => {
-    const swiperContainer = document.querySelector('.category-banner-swiper[data-category-id="{{ current_category.id }}"]');
-    if (!swiperContainer) return;
-    
-    // If swiper is already initialized on this element, don't do it again
-    if (swiperContainer.swiper) return;
-    
-    if (typeof Swiper === 'undefined') {
-      // Wait for Swiper to load
-      setTimeout(initCategoryBannerSlider, 100);
-      return;
-    }
-    
-    // Define tabs FIRST so updateActiveTabs can use it
-    const tabs = document.querySelectorAll('.category-banner-tab[data-category-id="{{ current_category.id }}"]');
-    
-    function updateActiveTabs(activeIndex) {
-      tabs.forEach((tab, index) => {
-        if (index === activeIndex) {
-          tab.classList.add('active');
-          tab.classList.remove('text-gray-500', 'dark:text-gray-400', 'font-medium', 'border-transparent');
-          tab.classList.add('text-primary-600', 'dark:text-primary-500', 'font-semibold', 'border-primary-600', 'dark:border-primary-500');
-        } else {
-          tab.classList.remove('active', 'font-semibold', 'border-primary-600', 'dark:border-primary-500');
-          tab.classList.add('text-gray-500', 'dark:text-gray-400', 'font-medium', 'border-transparent');
-          tab.classList.remove('text-primary-600', 'dark:text-primary-500');
-        }
-      });
-    }
-    
-    const swiper = new Swiper(swiperContainer, {
-      slidesPerView: 1,
-      spaceBetween: 0,
-      loop: {{ category_banners|length }} > 1,
-      autoplay: {
-        delay: 5000,
-        disableOnInteraction: false,
-        pauseOnMouseEnter: true,
-      },
-      navigation: {
-        nextEl: '.category-banner-next[data-category-id="{{ current_category.id }}"]',
-        prevEl: '.category-banner-prev[data-category-id="{{ current_category.id }}"]',
-      },
-      on: {
-        slideChange: function() {
-          updateActiveTabs(this.realIndex);
-        }
-      }
-    });
-    
-    // Tab click handlers
-    tabs.forEach(tab => {
-      tab.addEventListener('click', function() {
-        const slideIndex = parseInt(this.dataset.slideIndex);
-        swiper.slideToLoop(slideIndex);
-        updateActiveTabs(slideIndex);
-      });
-    });
-  };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initCategoryBannerSlider);
-  } else {
-    initCategoryBannerSlider();
-  }
-})();
-</script>
+{# Initialization handled by site.js initCategoryBannerSlider() #}
 {% endif %}

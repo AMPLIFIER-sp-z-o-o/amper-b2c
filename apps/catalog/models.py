@@ -29,7 +29,6 @@ class Category(BaseModel):
         on_delete=models.SET_NULL,
     )
     image = models.ImageField(upload_to="category-images/", blank=True, null=True, storage=DynamicMediaStorage())
-    sort_order = models.IntegerField(default=0, help_text=_("Sort order in navigation menu (lower numbers first)."))
     icon = models.CharField(max_length=50, blank=True, default="circle", help_text=_("Icon name for the menu."))
     show_banners = models.BooleanField(
         default=True,
@@ -43,7 +42,7 @@ class Category(BaseModel):
     )
 
     class Meta:
-        ordering = ["sort_order", "name"]
+        ordering = ["name"]
         verbose_name_plural = "Categories"
 
     def __str__(self) -> str:
@@ -116,13 +115,13 @@ class Product(BaseModel):
     def tile_display_attributes(self) -> list:
         """
         Get attributes for display on product tiles (slider, grid, list views).
-        
+
         Returns up to 4 attributes sorted by:
         1. tile_display_order (lower first)
         2. name (alphabetically) when order is the same
-        
+
         Only attributes with show_on_tile=True are included.
-        
+
         Returns a list of dicts with keys:
         - attribute_name: The display name of the attribute
         - full_value: The complete value
@@ -130,44 +129,43 @@ class Product(BaseModel):
         - is_truncated: Boolean indicating if value was truncated
         - attribute_id: AttributeDefinition id for filter matching
         - option_slug: AttributeOption slug for filter matching
-        
+
         Note: Uses prefetched 'tile_attributes_prefetch' if available to avoid N+1 queries.
         """
         max_attrs = 4
         max_value_length = 25
         attrs = []
-        
+
         # Check if data was prefetched (tile_attributes_prefetch)
-        if hasattr(self, '_prefetched_objects_cache') and 'tile_attributes_prefetch' in self._prefetched_objects_cache:
+        if hasattr(self, "_prefetched_objects_cache") and "tile_attributes_prefetch" in self._prefetched_objects_cache:
             # Use prefetched data - already filtered and sorted
             attr_values = list(self.tile_attributes_prefetch)[:max_attrs]
         else:
             # Fallback to database query (for non-optimized code paths)
-            attr_values = self.attribute_values.select_related(
-                "option__attribute"
-            ).filter(
-                option__attribute__show_on_tile=True
-            ).order_by(
-                "option__attribute__tile_display_order",
-                "option__attribute__name"
-            )[:max_attrs]
-        
+            attr_values = (
+                self.attribute_values.select_related("option__attribute")
+                .filter(option__attribute__show_on_tile=True)
+                .order_by("option__attribute__tile_display_order", "option__attribute__name")[:max_attrs]
+            )
+
         for av in attr_values:
             full_value = av.option.value
             is_truncated = len(full_value) > max_value_length
             display_value = full_value[:max_value_length] + "..." if is_truncated else full_value
-            
-            attrs.append({
-                "attribute_name": av.option.attribute.name,
-                "full_value": full_value,
-                "display_value": display_value,
-                "is_truncated": is_truncated,
-                "attribute_id": av.option.attribute_id,
-                "option_slug": av.option.slug,
-            })
-        
+
+            attrs.append(
+                {
+                    "attribute_name": av.option.attribute.name,
+                    "full_value": full_value,
+                    "display_value": display_value,
+                    "is_truncated": is_truncated,
+                    "attribute_id": av.option.attribute_id,
+                    "option_slug": av.option.slug,
+                }
+            )
+
         return attrs
-    
+
     @property
     def display_attributes(self) -> list:
         """
@@ -183,25 +181,21 @@ class Product(BaseModel):
         """
         attrs = []
 
-        attr_values = (
-            self.attribute_values
-            .select_related("option__attribute")
-            .order_by(
-                "option__attribute__tile_display_order",
-                "option__attribute__name"
-            )
+        attr_values = self.attribute_values.select_related("option__attribute").order_by(
+            "option__attribute__tile_display_order", "option__attribute__name"
         )
 
         for av in attr_values:
             full_value = av.option.value
 
-            attrs.append({
-                "attribute_name": av.option.attribute.name,
-                "full_value": full_value,
-            })
+            attrs.append(
+                {
+                    "attribute_name": av.option.attribute.name,
+                    "full_value": full_value,
+                }
+            )
 
         return attrs
-
 
 
 class ProductImage(BaseModel):
@@ -252,9 +246,7 @@ class AttributeDefinition(BaseModel):
     def save(self, *args, **kwargs):
         # Auto-assign display order for new attributes
         if self._state.adding and self.tile_display_order == 0:
-            max_order = AttributeDefinition.objects.aggregate(
-                max_order=models.Max("tile_display_order")
-            )["max_order"]
+            max_order = AttributeDefinition.objects.aggregate(max_order=models.Max("tile_display_order"))["max_order"]
             if max_order is not None:
                 self.tile_display_order = max_order + 1
         super().save(*args, **kwargs)
@@ -314,6 +306,7 @@ class ProductAttributeValue(BaseModel):
 def _get_category_banner_filename(instance, filename):
     """Use random filename to prevent overwriting existing files & to fix caching issues."""
     import uuid
+
     return f"category_banners/{uuid.uuid4()}.{filename.split('.')[-1]}"
 
 
@@ -384,9 +377,9 @@ class CategoryBanner(BaseModel):
     def save(self, *args, **kwargs):
         # Auto-increment order for new banners if not explicitly set
         if self._state.adding and self.order == 0:
-            max_order = CategoryBanner.objects.filter(category=self.category).aggregate(
-                max_order=models.Max("order")
-            )["max_order"]
+            max_order = CategoryBanner.objects.filter(category=self.category).aggregate(max_order=models.Max("order"))[
+                "max_order"
+            ]
             if max_order is not None:
                 self.order = max_order + 1
         super().save(*args, **kwargs)
@@ -421,10 +414,7 @@ class CategoryRecommendedProduct(BaseModel):
         verbose_name_plural = _("Recommended Products")
         ordering = ["category", "order", "id"]
         constraints = [
-            models.UniqueConstraint(
-                fields=["category", "product"],
-                name="uniq_category_recommended_product"
-            ),
+            models.UniqueConstraint(fields=["category", "product"], name="uniq_category_recommended_product"),
         ]
 
     def __str__(self) -> str:

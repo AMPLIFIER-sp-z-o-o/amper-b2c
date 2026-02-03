@@ -3,8 +3,9 @@ from django.contrib.auth.admin import GroupAdmin, UserAdmin
 from django.contrib.auth.models import Group, Permission
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
-from apps.utils.admin_mixins import HistoryModelAdmin
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
+
+from apps.utils.admin_mixins import HistoryModelAdmin
 
 from .models import CustomUser
 

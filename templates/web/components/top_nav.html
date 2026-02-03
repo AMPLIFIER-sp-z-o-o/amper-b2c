@@ -2061,6 +2061,8 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (drawerQuick && rowWrapper && navbarMain) {
     let isHidden = null;
+    let lastScrollY = 0;
+    let scrollDirection = 'down'; // 'up' or 'down'
 
     // We don't need a spacer for sticky positioning as it stays in flow
     // Remove spacer if it exists (cleanup from previous version)
@@ -2090,8 +2092,20 @@ document.addEventListener('DOMContentLoaded', function() {
        const currentScrollY = Math.max(0, window.scrollY);
        const rowHeight = rowWrapper.offsetHeight;
        
-       // Hide only after scrolling past the element's height (but not when drawer is open)
-       const shouldHide = currentScrollY > rowHeight && !isDrawerOpen;
+       // Detect scroll direction
+       if (currentScrollY > lastScrollY) {
+          scrollDirection = 'down';
+       } else if (currentScrollY < lastScrollY) {
+          scrollDirection = 'up';
+       }
+       lastScrollY = currentScrollY;
+       
+       // Show categories row when:
+       // 1. Near the top (scrollY <= rowHeight)
+       // 2. Scrolling UP (to fill the gap between header and content)
+       // 3. Drawer is open
+       // Hide only when scrolling DOWN and past the category bar height
+       const shouldHide = scrollDirection === 'down' && currentScrollY > rowHeight && !isDrawerOpen;
 
        if (shouldHide !== isHidden) {
           isHidden = shouldHide;

@@ -33,7 +33,6 @@ Usage:
 
 from django.contrib import admin, messages
 from django.db import models
-from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from simple_history.admin import SimpleHistoryAdmin
 from unfold.admin import ModelAdmin
@@ -49,16 +48,14 @@ class SingletonAdminMixin:
     2. Simplify breadcrumbs by hiding the instance level if it's a singleton.
     """
 
-    def message_user(
-        self, request, message, level=messages.SUCCESS, extra_tags="", fail_silently=False
-    ):
+    def message_user(self, request, message, level=messages.SUCCESS, extra_tags="", fail_silently=False):
         """
         Intervene in message creation to remove quoted object names for singletons.
         Changes 'The Navigation bar "Navigation bar" was changed' to 'Navigation bar was changed'.
         """
         # Convert to string to check content
         msg_str = str(message)
-        
+
         # Matches common patterns in English and Polish
         patterns = [
             "was changed successfully",
@@ -66,11 +63,9 @@ class SingletonAdminMixin:
             "was added successfully",
             "został pomyślnie dodany",
         ]
-        
+
         if any(p in msg_str for p in patterns):
-            message = _("%(name)s was changed successfully.") % {
-                "name": self.model._meta.verbose_name
-            }
+            message = _("%(name)s was changed successfully.") % {"name": self.model._meta.verbose_name}
         return super().message_user(request, message, level, extra_tags, fail_silently)
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
@@ -78,7 +73,7 @@ class SingletonAdminMixin:
         # Unfold uses 'title' for the page heading and 'obj' for the breadcrumb part.
         # By setting obj to None or empty in context, we might influence Unfold.
         # However, extra_context usually merges.
-        
+
         # This fixes the main title heading in Unfold
         extra_context["title"] = self.model._meta.verbose_name
         return super().change_view(request, object_id, form_url, extra_context=extra_context)
@@ -136,31 +131,31 @@ class HistoryModelAdmin(SimpleHistoryAdmin, ModelAdmin):
 class AutoReorderMixin:
     """
     Mixin that automatically shifts other items when order is changed.
-    
+
     When an item's order is changed from X to Y, all items with order >= Y
     are shifted by 1 to make room for the new position.
-    
+
     Configuration:
         order_field: Name of the order field (default: "order")
         order_scope_field: Optional ForeignKey field to scope ordering (e.g., "section", "parent")
-    
+
     Example:
         class BannerAdmin(AutoReorderMixin, ModelAdmin):
             order_field = "order"
             order_scope_field = None  # Global ordering
-            
+
         class BottomBarLinkAdmin(AutoReorderMixin, ModelAdmin):
             order_field = "order"
             order_scope_field = "bottom_bar"  # Scoped to bottom_bar FK
     """
-    
+
     order_field = "order"
     order_scope_field = None  # Set to FK field name to scope ordering (e.g., "section")
-    
+
     def save_model(self, request, obj, form, change):
         order_field = self.order_field
         old_order = None
-        
+
         if change and order_field in form.changed_data:
             # Get old value before save
             try:
@@ -168,38 +163,38 @@ class AutoReorderMixin:
                 old_order = getattr(old_instance, order_field)
             except self.model.DoesNotExist:
                 pass
-        
+
         # Save the object first
         super().save_model(request, obj, form, change)
-        
+
         # Now reorder other items if order changed
         new_order = getattr(obj, order_field)
         if old_order is not None and old_order != new_order:
             self._reorder_items(obj, old_order, new_order)
-    
+
     def _reorder_items(self, obj, old_order, new_order):
         """Shift other items to make room for new position."""
         order_field = self.order_field
-        
+
         # Build base queryset excluding current object
         qs = self.model.objects.exclude(pk=obj.pk)
-        
+
         # Apply scope filter if configured
         if self.order_scope_field:
             scope_value = getattr(obj, f"{self.order_scope_field}_id", None)
             if scope_value:
                 qs = qs.filter(**{f"{self.order_scope_field}_id": scope_value})
-        
+
         if new_order < old_order:
             # Moving up: shift items between new and old position down
-            qs.filter(
-                **{f"{order_field}__gte": new_order, f"{order_field}__lt": old_order}
-            ).update(**{order_field: models.F(order_field) + 1})
+            qs.filter(**{f"{order_field}__gte": new_order, f"{order_field}__lt": old_order}).update(
+                **{order_field: models.F(order_field) + 1}
+            )
         else:
             # Moving down: shift items between old and new position up
-            qs.filter(
-                **{f"{order_field}__gt": old_order, f"{order_field}__lte": new_order}
-            ).update(**{order_field: models.F(order_field) - 1})
+            qs.filter(**{f"{order_field}__gt": old_order, f"{order_field}__lte": new_order}).update(
+                **{order_field: models.F(order_field) - 1}
+            )
 
 
 class BaseModelAdmin(HistoryModelAdmin):

@@ -440,7 +440,7 @@ class BottomBarLink(BaseModel):
 class Navbar(SingletonModel):
     """
     Singleton model for navigation bar configuration.
-    Allows switching between default (auto-generated from categories) 
+    Allows switching between default (auto-generated from categories)
     and custom (user-defined items) navigation.
     """
 
