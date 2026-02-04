@@ -34,13 +34,14 @@
 {% endif %}
 {% endblock meta %}
 {% include 'web/components/favicon.html' %}
+    <link rel="stylesheet" href="{% vite_asset_url 'assets/css/site.css' %}">
+    <link rel="stylesheet" href="{% vite_asset_url 'assets/css/admin.css' %}">
     {# Swiper library - loaded globally for all slider components #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     {# HTMX library - for partial page updates #}
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     {% vite_hmr_client %}
-    {% vite_asset 'assets/css/site.css' %}
     {% vite_asset 'assets/js/site.js' %}
     {% if site_settings and site_settings.custom_css_active and site_settings.custom_css %}
     <style id="custom-css">
