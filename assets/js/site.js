@@ -1,6 +1,6 @@
 document.addEventListener("DOMContentLoaded", function () {
   // Format prices using browser locale with Intl.NumberFormat
-  formatPrices();
+  window.formatPrices();
 
   // Detect and sync browser timezone
   detectAndSyncTimezone();
@@ -62,33 +62,25 @@ function detectAndSyncTimezone() {
  * Usage in templates:
  *   <span data-price="12.99" data-currency="PLN">12.99</span>
  */
-function formatPrices() {
-  if (typeof Intl === "undefined" || !Intl.NumberFormat) {
-    return; // Keep server-rendered fallback
-  }
+window.formatPrices = function () {
+  if (typeof Intl === "undefined" || !Intl.NumberFormat) return;
 
-  const priceElements = document.querySelectorAll("[data-price]");
-
-  priceElements.forEach((el) => {
+  document.querySelectorAll("[data-price]").forEach((el) => {
     const value = parseFloat(el.dataset.price);
     const currency = el.dataset.currency || "PLN";
-    const locale = CURRENCY_LOCALES[currency] || "pl-PL";
+    const locale = CURRENCY_LOCALES?.[currency] || "pl-PL";
 
     if (isNaN(value)) return;
 
-    try {
-      el.textContent = new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(value);
-    } catch (e) {
-      // Keep server-rendered fallback on error
-      console.warn("Price formatting error:", e);
-    }
+    el.textContent = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      currencyDisplay: "symbol", // 👈 gwarantuje „zł”
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(value);
   });
-}
+};
 
 // Re-format prices after HTMX swaps (for dynamic content)
 document.addEventListener("htmx:afterSwap", formatPrices);
@@ -128,4 +120,3 @@ function initScrollToTop() {
     });
   });
 }
-
