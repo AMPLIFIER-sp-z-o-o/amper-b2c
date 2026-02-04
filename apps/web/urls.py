@@ -11,6 +11,7 @@ urlpatterns = [
     path("search/", views.search_results, name="search_results"),
     path("api/search-suggestions/", views.search_suggestions, name="search_suggestions"),
     path("preview/<str:token>/", views.preview_draft, name="preview_draft"),
+    path("dynamic-page/<slug:slug>/<int:pk>/", views.dynamic_page_detail, name="dynamic_page_detail"),
     path("terms/", TemplateView.as_view(template_name="terms.html"), name="terms"),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain"), name="robots.txt"),
     # these views are just for testing error pages

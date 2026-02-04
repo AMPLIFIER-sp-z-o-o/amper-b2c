@@ -73,6 +73,51 @@
   }
 })();
 
+// Auto-fill DynamicPage slug from name while typing
+(function () {
+  function slugify(value, maxLength) {
+    if (typeof window.URLify === "function") {
+      return window.URLify(value || "", maxLength, true);
+    }
+    return (value || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/[\s_-]+/g, "-")
+      .slice(0, maxLength);
+  }
+
+  function initDynamicPageSlugAutofill() {
+    if (!window.location.pathname.startsWith("/admin/web/dynamicpage/")) return;
+
+    const nameInput = document.querySelector("#id_name");
+    const slugInput = document.querySelector("#id_slug");
+    if (!nameInput || !slugInput) return;
+
+    const maxLength = parseInt(slugInput.getAttribute("maxlength"), 10) || 50;
+    const initialSlug = slugInput.value || "";
+    const initialName = nameInput.value || "";
+    let manualSlug =
+      initialSlug && initialSlug !== slugify(initialName, maxLength);
+
+    slugInput.addEventListener("input", () => {
+      if (slugInput.value) manualSlug = true;
+    });
+
+    nameInput.addEventListener("input", () => {
+      if (manualSlug) return;
+      slugInput.value = slugify(nameInput.value, maxLength);
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", initDynamicPageSlugAutofill);
+  document.addEventListener("htmx:afterSwap", initDynamicPageSlugAutofill);
+
+  if (document.readyState !== "loading") {
+    initDynamicPageSlugAutofill();
+  }
+})();
+
 // Timezone detection and sync for admin
 (function () {
   function detectAndSyncTimezone() {
@@ -1086,6 +1131,47 @@ window.closeFullscreen = closeFullscreen;
   }
 })();
 
+// Ensure submit buttons outside forms still submit reliably.
+(function () {
+  function bindExternalSubmitButtons() {
+    const buttons = document.querySelectorAll('button[type="submit"][form]');
+
+    buttons.forEach((btn) => {
+      if (btn.dataset.externalSubmitBound) return;
+      btn.dataset.externalSubmitBound = "true";
+
+      btn.addEventListener("click", (event) => {
+        const formId = btn.getAttribute("form");
+        if (!formId) return;
+        const form = document.getElementById(formId);
+        if (!form) return;
+        if (btn.closest("form") === form) return;
+
+        // Some browsers fail to submit when the button is outside the form.
+        event.preventDefault();
+        if (typeof form.requestSubmit === "function") {
+          form.requestSubmit(btn);
+          return;
+        }
+
+        const hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = btn.name || "_save";
+        hidden.value = btn.value || "";
+        form.appendChild(hidden);
+        form.submit();
+      });
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", bindExternalSubmitButtons);
+  document.addEventListener("htmx:afterSwap", bindExternalSubmitButtons);
+
+  if (document.readyState !== "loading") {
+    bindExternalSubmitButtons();
+  }
+})();
+
 // CKEditor Deferred Upload System
 // Intercepts CKEditor image uploads to store as base64 temporarily,
 // then uploads them on form submission
@@ -1934,5 +2020,3 @@ window.closeFullscreen = closeFullscreen;
     initChangelistToggles();
   }
 })();
-
-

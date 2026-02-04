@@ -34,7 +34,14 @@
       };
 
       if (contentType) {
-        contentType.addEventListener("change", applyVisibility);
+        // Use jQuery change event - Unfold's Select2 only fires jQuery events, not native DOM events
+        const $ = window.django && window.django.jQuery;
+        if ($) {
+          $(contentType).on('change', applyVisibility);
+        } else {
+          // Fallback to native event if jQuery not available
+          contentType.addEventListener("change", applyVisibility);
+        }
 
         // Use a retry mechanism to wait for Monaco container to exist
         let attempts = 0;

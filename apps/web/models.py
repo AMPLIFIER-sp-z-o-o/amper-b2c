@@ -1,6 +1,9 @@
+from autoslug import AutoSlugField
 from colorfield.fields import ColorField
 from django.db import models
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
+from django_ckeditor_5.fields import CKEditor5Field
 
 from apps.utils.datetime_utils import is_within_wall_clock_range, wall_clock_utc_now
 from apps.utils.models import BaseModel, SingletonModel
@@ -214,6 +217,64 @@ class SiteSettings(SingletonModel):
         return self.CURRENCY_SYMBOLS.get(self.currency, self.currency)
 
 
+class DynamicPage(BaseModel):
+    """CMS-managed dynamic page."""
+
+    name = models.CharField(
+        max_length=200,
+        verbose_name=_("Name"),
+        help_text=_("Internal name for identification"),
+    )
+    slug = AutoSlugField(
+        populate_from="name",
+        unique=True,
+        always_update=False,
+        editable=True,
+    )
+    meta_title = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        verbose_name=_("Meta title"),
+    )
+    meta_description = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Meta description"),
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name=_("Visible"),
+        help_text=_("Controls page visibility."),
+    )
+    exclude_from_sitemap = models.BooleanField(
+        default=False,
+        verbose_name=_("Exclude from sitemap"),
+    )
+    seo_noindex = models.BooleanField(
+        default=False,
+        verbose_name=_("SEO noindex"),
+        help_text=_("Adds a noindex directive to search engines."),
+    )
+    content = CKEditor5Field(
+        blank=True,
+        default="",
+        verbose_name=_("Content"),
+        config_name="extends",
+    )
+
+    class Meta:
+        verbose_name = _("Dynamic page")
+        verbose_name_plural = _("Dynamic pages")
+        ordering = ["-updated_at", "-created_at"]
+
+    def __str__(self) -> str:
+        return self.name
+
+    def get_absolute_url(self) -> str:
+        return reverse("web:dynamic_page_detail", kwargs={"slug": self.slug, "pk": self.pk})
+
+
 class Footer(SingletonModel):
     """
     Singleton model for customizable footer configuration.
@@ -301,18 +362,40 @@ class FooterSection(BaseModel):
 class FooterSectionLink(BaseModel):
     """A link within a footer section."""
 
+    class LinkType(models.TextChoices):
+        CUSTOM_URL = "custom_url", _("Custom URL")
+        DYNAMIC_PAGE = "dynamic_page", _("Dynamic page")
+
     section = models.ForeignKey(
         FooterSection,
         on_delete=models.CASCADE,
         related_name="links",
         verbose_name=_("Section"),
     )
+    link_type = models.CharField(
+        max_length=30,
+        choices=LinkType.choices,
+        default=LinkType.CUSTOM_URL,
+        verbose_name=_("Link type"),
+    )
+    dynamic_page = models.ForeignKey(
+        "web.DynamicPage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="footer_links",
+        verbose_name=_("Dynamic page"),
+    )
     label = models.CharField(
         max_length=120,
+        blank=True,
+        default="",
         verbose_name=_("Label"),
     )
     url = models.CharField(
         max_length=500,
+        blank=True,
+        default="",
         verbose_name=_("URL"),
     )
     order = models.PositiveIntegerField(
@@ -326,7 +409,17 @@ class FooterSectionLink(BaseModel):
         ordering = ["order", "id"]
 
     def __str__(self) -> str:
+        return self.label or (self.dynamic_page.name if self.dynamic_page else self.url)
+
+    def get_label(self) -> str:
+        if self.link_type == self.LinkType.DYNAMIC_PAGE and self.dynamic_page:
+            return self.label or self.dynamic_page.name
         return self.label
+
+    def get_url(self) -> str:
+        if self.link_type == self.LinkType.DYNAMIC_PAGE and self.dynamic_page:
+            return self.dynamic_page.get_absolute_url()
+        return self.url
 
 
 class FooterSocialMedia(BaseModel):
@@ -478,6 +571,7 @@ class NavbarItem(BaseModel):
     class ItemType(models.TextChoices):
         CATEGORY = "category", _("Category")
         CUSTOM_LINK = "custom_link", _("Custom link")
+        DYNAMIC_PAGE = "dynamic_page", _("Dynamic page")
         SEPARATOR = "separator", _("Separator")
 
     navbar = models.ForeignKey(
@@ -517,6 +611,16 @@ class NavbarItem(BaseModel):
         default="",
         verbose_name=_("URL"),
         help_text=_("URL for custom links. Can be relative (/page) or absolute (https://...)."),
+    )
+    # For dynamic page type
+    dynamic_page = models.ForeignKey(
+        "web.DynamicPage",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="navbar_items",
+        verbose_name=_("Dynamic page"),
+        help_text=_("Select a dynamic page to display."),
     )
     open_in_new_tab = models.BooleanField(
         default=False,
@@ -559,6 +663,8 @@ class NavbarItem(BaseModel):
             return f"{self.category.name}"
         elif self.item_type == self.ItemType.CUSTOM_LINK:
             return self.label or self.url
+        elif self.item_type == self.ItemType.DYNAMIC_PAGE and self.dynamic_page:
+            return self.label or self.dynamic_page.name
         elif self.item_type == self.ItemType.SEPARATOR:
             return "--- Separator ---"
         return f"Item {self.pk}"
@@ -567,12 +673,16 @@ class NavbarItem(BaseModel):
         """Return the label to display in navigation."""
         if self.item_type == self.ItemType.CATEGORY and self.category:
             return self.label or self.category.name
+        if self.item_type == self.ItemType.DYNAMIC_PAGE and self.dynamic_page:
+            return self.label or self.dynamic_page.name
         return self.label
 
     def get_url(self) -> str:
         """Return the URL for this item."""
         if self.item_type == self.ItemType.CATEGORY and self.category:
             return self.category.get_absolute_url()
+        if self.item_type == self.ItemType.DYNAMIC_PAGE and self.dynamic_page:
+            return self.dynamic_page.get_absolute_url()
         return self.url
 
     def get_children(self):

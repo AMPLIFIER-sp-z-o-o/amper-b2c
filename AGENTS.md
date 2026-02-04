@@ -36,6 +36,9 @@
   - `apply_drafts_to_context(context, drafts_map)` – applies drafts to template context
   - `get_new_draft_instance(request, model_class)` – creates unsaved instance with draft data
 - **Custom preview routes**: Add before slug routes if model has custom preview needs.
+- **New forms/modules**: Ensure draft preview is supported for new (unsaved) records; templates should receive model-specific context keys (e.g., `page`, `section`, `banner`) so previews render correctly.
+- **Existing records**: Ensure draft preview applies to saved objects too (not just new records), so edited content renders on the live detail templates.
+- **Inline lists in preview**: When draft changes affect inline items, avoid filtering by `is_active` before applying drafts. Apply drafts first, then filter and set `_draft_inline_applied` on remaining items so `apply_drafts_to_context` does not rebuild and reintroduce filtered items.
 
 ## Dev Workflows
 

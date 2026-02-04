@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.db import models
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -14,6 +15,7 @@ from .models import (
     BottomBar,
     BottomBarLink,
     CustomCSS,
+    DynamicPage,
     Footer,
     FooterSection,
     FooterSectionLink,
@@ -217,15 +219,57 @@ class FooterForm(forms.ModelForm):
             self.fields["custom_html"].required = is_custom
 
 
+class FooterSectionLinkForm(forms.ModelForm):
+    class Meta:
+        model = FooterSectionLink
+        fields = "__all__"
+        widgets = {
+            "link_type": UnfoldAdminSelect2Widget,
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        link_type = None
+        if self.data:
+            prefix = self.prefix
+            if prefix:
+                link_type = self.data.get(f"{prefix}-link_type")
+            else:
+                link_type = self.data.get("link_type")
+
+        if not link_type:
+            link_type = (
+                self.initial.get("link_type")
+                or (self.instance.link_type if self.instance.pk else None)
+                or FooterSectionLink.LinkType.CUSTOM_URL
+            )
+
+        if "link_type" in self.fields:
+            self.fields["link_type"].choices = [
+                choice
+                for choice in self.fields["link_type"].choices
+                if choice[0] == FooterSectionLink.LinkType.CUSTOM_URL
+            ]
+
+        self.fields.pop("dynamic_page", None)
+
+        if "label" in self.fields:
+            self.fields["label"].required = True
+        if "url" in self.fields:
+            self.fields["url"].required = True
+
+
 class FooterSectionLinkInline(TabularInline):
     model = FooterSectionLink
+    form = FooterSectionLinkForm
     extra = 1
-    fields = ("label", "url", "order")
+    fields = ("link_type", "label", "url", "order")
     ordering = ("order", "id")
 
 
 @admin.register(FooterSectionLink)
 class FooterSectionLinkAdmin(HistoryModelAdmin):
+    form = FooterSectionLinkForm
     has_module_permission = lambda self, r: False
 
 
@@ -384,6 +428,18 @@ class NavbarItemForm(forms.ModelForm):
                 or NavbarItem.ItemType.CATEGORY
             )
 
+        if "item_type" in self.fields:
+            allowed = {
+                NavbarItem.ItemType.CATEGORY,
+                NavbarItem.ItemType.CUSTOM_LINK,
+                NavbarItem.ItemType.SEPARATOR,
+            }
+            self.fields["item_type"].choices = [
+                choice for choice in self.fields["item_type"].choices if choice[0] in allowed
+            ]
+
+        self.fields.pop("dynamic_page", None)
+
         is_category = item_type == NavbarItem.ItemType.CATEGORY
         is_custom_link = item_type == NavbarItem.ItemType.CUSTOM_LINK
 
@@ -400,7 +456,16 @@ class NavbarItemInline(TabularInline):
     model = NavbarItem
     form = NavbarItemForm
     extra = 0
-    fields = ("order", "item_type", "category", "label", "url", "label_color", "open_in_new_tab", "is_active")
+    fields = (
+        "order",
+        "item_type",
+        "category",
+        "label",
+        "url",
+        "label_color",
+        "open_in_new_tab",
+        "is_active",
+    )
     ordering = ("order", "id")
 
     # Don't show add/change/delete buttons for related objects
@@ -429,7 +494,14 @@ class NavbarItemAdmin(AutoReorderMixin, HistoryModelAdmin):
         (
             _("Item Configuration"),
             {
-                "fields": ("navbar", "item_type", "category", "label", "url", "open_in_new_tab"),
+                "fields": (
+                    "navbar",
+                    "item_type",
+                    "category",
+                    "label",
+                    "url",
+                    "open_in_new_tab",
+                ),
                 "description": _("Configure the navigation item type and target."),
             },
         ),
@@ -457,6 +529,9 @@ class NavbarForm(forms.ModelForm):
     class Meta:
         model = Navbar
         fields = "__all__"
+        widgets = {
+            "mode": UnfoldAdminSelect2Widget,
+        }
 
 
 @admin.register(Navbar)
@@ -487,3 +562,72 @@ class NavbarAdmin(SingletonAdminMixin, HistoryModelAdmin):
     def changelist_view(self, request, extra_context=None):
         settings_obj = Navbar.get_settings()
         return redirect(reverse("admin:web_navbar_change", args=[settings_obj.pk]))
+
+
+# ============================================================================
+# Dynamic Pages Admin
+# ============================================================================
+
+
+@admin.register(DynamicPage)
+class DynamicPageAdmin(HistoryModelAdmin):
+    class UsageFilter(admin.SimpleListFilter):
+        title = _("Usage")
+        parameter_name = "usage"
+
+        def lookups(self, request, model_admin):
+            return (
+                ("navbar", _("Used in navbar")),
+                ("footer", _("Used in footer")),
+                ("any", _("Used in navbar or footer")),
+                ("none", _("Not used")),
+            )
+
+        def queryset(self, request, queryset):
+            value = self.value()
+            if value == "navbar":
+                return queryset.filter(navbar_items__isnull=False).distinct()
+            if value == "footer":
+                return queryset.filter(footer_links__isnull=False).distinct()
+            if value == "any":
+                return queryset.filter(
+                    Q(navbar_items__isnull=False) | Q(footer_links__isnull=False)
+                ).distinct()
+            if value == "none":
+                return queryset.filter(
+                    navbar_items__isnull=True,
+                    footer_links__isnull=True,
+                ).distinct()
+            return queryset
+
+    list_display = ("name", "created_at", "updated_at", "url_path", "is_active")
+    list_filter = (UsageFilter, "is_active", "exclude_from_sitemap", "seo_noindex")
+    search_fields = ("name", "slug", "meta_title")
+    ordering = ("-updated_at", "-created_at")
+    list_editable = ("is_active",)
+    prepopulated_fields = {"slug": ("name",)}
+
+    fieldsets = (
+        (
+            None,
+            {
+                "fields": ("name", "slug", "content"),
+            },
+        ),
+        (
+            _("SEO"),
+            {
+                "fields": ("meta_title", "meta_description", "exclude_from_sitemap", "seo_noindex"),
+            },
+        ),
+        (
+            _("Visibility"),
+            {
+                "fields": ("is_active",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("URL path"))
+    def url_path(self, obj):
+        return obj.get_absolute_url() if obj else ""

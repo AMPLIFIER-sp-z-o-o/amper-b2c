@@ -316,6 +316,25 @@ select,
   cursor: pointer !important;
 }
 
+/* Readonly and disabled controls should communicate they are not interactive */
+.readonly,
+.readonly *,
+input[disabled],
+select[disabled],
+textarea[disabled],
+button[disabled],
+.unfold-input[disabled],
+.unfold-select[disabled] {
+  cursor: not-allowed !important;
+}
+
+/* Preserve pointer for interactive elements inside readonly displays */
+.readonly a,
+.readonly button,
+.readonly [role="button"] {
+  cursor: pointer !important;
+}
+
 /* ==========================================================================
    Hide timezone difference note in admin date/time fields
    Admins always work in server timezone, message is unnecessary

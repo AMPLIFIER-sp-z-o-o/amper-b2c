@@ -588,17 +588,17 @@ body.nav-scroll-locked {
               <input
                 type="text"
                 id="navbar-search"
-                class="block w-full py-2 md:py-4 text-base md:text-sm text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-10 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
+                class="block w-full py-2 md:py-4 text-base md:text-sm text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-14 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
                 placeholder="{% translate "Search products..." %}"
                 autocomplete="off"
               />
-              <div id="search-loading" class="hidden absolute right-8 top-1/2 -translate-y-1/2">
+              <div id="search-loading" class="hidden absolute right-11 top-1/2 -translate-y-1/2">
                 <svg class="animate-spin h-5 w-5 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                   <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <button type="button" id="search-clear" class="hidden absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer">
+              <button type="button" id="search-clear" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -691,6 +691,13 @@ body.nav-scroll-locked {
                 <a href="{{ item.url }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %} class="flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200" {% if item.label_color %}style="color: {{ item.label_color }};"{% endif %}>
                   {% if item.icon %}<span class="mr-3">{{ item.icon }}</span>{% endif %}
                   {{ item.label }}
+                </a>
+              </li>
+              {% elif item.item_type == 'dynamic_page' and item.dynamic_page %}
+              <li>
+                <a href="{{ item.get_url }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %} class="flex items-center px-3 py-2.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200" {% if item.label_color %}style="color: {{ item.label_color }};"{% endif %}>
+                  {% if item.icon %}<span class="mr-3">{{ item.icon }}</span>{% endif %}
+                  {{ item.get_display_label }}
                 </a>
               </li>
               {% elif item.item_type == 'category' and item.category %}
@@ -799,8 +806,8 @@ body.nav-scroll-locked {
   <div class="hidden md:block relative w-full z-50" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
     {# Categories Navigation Bar #}
     <div class="py-3 w-full bg-white dark:bg-gray-800 shadow-md" id="categories-nav-wrapper">
-    <div id="categories-nav-container" class="px-4 relative {% if navbar_mode == 'custom' %}w-full{% else %}mx-auto 2xl:px-0 max-w-7xl{% endif %}">
-      <div class="flex gap-0 items-center overflow-hidden {% if navbar_mode == 'custom' %}justify-center{% endif %}" id="categories-nav" data-navbar-mode="{{ navbar_mode }}" data-total-categories="{% if navbar_mode == 'custom' %}{{ custom_navbar_items|length }}{% else %}{{ nav_categories|slice:':10'|length }}{% endif %}">
+    <div id="categories-nav-container" class="px-4 relative mx-auto 2xl:px-0 max-w-7xl">
+      <div class="flex gap-0 items-center overflow-hidden" id="categories-nav" data-navbar-mode="{{ navbar_mode }}" data-total-categories="{% if navbar_mode == 'custom' %}{{ custom_navbar_items|length }}{% else %}{{ nav_categories|slice:':10'|length }}{% endif %}">
         {# More Categories Drawer Trigger - Fixed at the beginning #}
         <div id="moreCategoriesWrapper" class="shrink-0 flex items-center px-1 border-r border-gray-200 dark:border-gray-700 mr-1 h-full">
           <button id="moreCategoriesButton" type="button" data-drawer-target="categoriesDrawer" data-drawer-show="categoriesDrawer" aria-controls="categoriesDrawer" class="nav-category-btn inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
@@ -1651,6 +1658,16 @@ document.addEventListener('DOMContentLoaded', function() {
   triggers.forEach(trigger => {
     trigger.addEventListener('mouseenter', () => {
       if (window.innerWidth >= 768) {
+        const targetId = trigger.dataset.dropdownTarget;
+        const dropdown = targetId ? document.getElementById(targetId) : null;
+        if (!dropdown) {
+          if (activeDropdown) {
+            closeAllDropdowns();
+            hideBackdrop();
+          }
+          return;
+        }
+
         // During page load grace period, only allow hover if trigger is marked as ready
         // (meaning mouse has left it at least once before)
         if (pageLoadGracePeriod && !triggersReady.has(trigger)) {
@@ -1675,6 +1692,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // On click, valid for touch devices too
     trigger.addEventListener('click', (e) => {
         const targetId = trigger.dataset.dropdownTarget;
+        const dropdown = targetId ? document.getElementById(targetId) : null;
+        if (!dropdown) {
+          if (activeDropdown) {
+            closeAllDropdowns();
+            hideBackdrop();
+          }
+          return;
+        }
         
         // Mobile cart click behavior: let it navigate
         if (targetId === 'cartDropdown' && window.innerWidth < 768) {
@@ -1865,10 +1890,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // ===========================
-  // CATEGORIES FIT-TO-WIDTH (standard mode only)
+  // CATEGORIES FIT-TO-WIDTH (applies to both standard and custom modes)
   // ===========================
-  if (navCategoriesContainer && navCategoriesContainer.dataset.navbarMode !== 'custom') {
+  if (navCategoriesContainer) {
     const navItems = Array.from(navCategoriesContainer.querySelectorAll('.nav-priority-item'));
+    const navContainer = document.getElementById('categories-nav-container');
+    const navbarMode = navCategoriesContainer.dataset.navbarMode;
     let resizeRaf = null;
 
     function resetItems() {
@@ -1878,17 +1905,61 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
 
+    function resetCustomModeStyles() {
+      // Reset to default max-w-7xl layout
+      if (navContainer) {
+        navContainer.classList.remove('w-full');
+        navContainer.classList.add('max-w-7xl');
+      }
+      navCategoriesContainer.classList.remove('justify-center');
+    }
+
+    function applyExpandedCustomMode() {
+      // Expand to full width and center
+      if (navContainer) {
+        navContainer.classList.remove('max-w-7xl');
+        navContainer.classList.add('w-full');
+      }
+      navCategoriesContainer.classList.add('justify-center');
+    }
+
     function updateFit() {
       if (!navItems.length) return;
       resetItems();
+      
+      // For custom mode: first check if items fit in default max-w-7xl
+      if (navbarMode === 'custom') {
+        resetCustomModeStyles();
+      }
+      
       if (!navCategoriesContainer.clientWidth) return;
 
-      let idx = navItems.length - 1;
-      while (idx >= 0 && navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth) {
-        const item = navItems[idx];
-        item.style.display = 'none';
-        item.classList.add('is-hidden-by-width');
-        idx -= 1;
+      // Check if items overflow
+      const overflows = navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth;
+      
+      // For custom mode: if overflows, try expanding to full width first
+      if (navbarMode === 'custom' && overflows) {
+        applyExpandedCustomMode();
+        
+        // Re-check after expanding - if still overflows, hide items from right
+        if (navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth) {
+          let idx = navItems.length - 1;
+          while (idx >= 0 && navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth) {
+            const item = navItems[idx];
+            item.style.display = 'none';
+            item.classList.add('is-hidden-by-width');
+            idx -= 1;
+          }
+        }
+      } else if (overflows) {
+        // Standard mode: just hide items from right
+        let idx = navItems.length - 1;
+        while (idx >= 0 && navCategoriesContainer.scrollWidth > navCategoriesContainer.clientWidth) {
+          const item = navItems[idx];
+          item.style.display = 'none';
+          item.classList.add('is-hidden-by-width');
+          idx -= 1;
+        }
       }
     }
 
@@ -2061,8 +2132,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
   if (drawerQuick && rowWrapper && navbarMain) {
     let isHidden = null;
-    let lastScrollY = 0;
-    let scrollDirection = 'down'; // 'up' or 'down'
 
     // We don't need a spacer for sticky positioning as it stays in flow
     // Remove spacer if it exists (cleanup from previous version)
@@ -2092,20 +2161,9 @@ document.addEventListener('DOMContentLoaded', function() {
        const currentScrollY = Math.max(0, window.scrollY);
        const rowHeight = rowWrapper.offsetHeight;
        
-       // Detect scroll direction
-       if (currentScrollY > lastScrollY) {
-          scrollDirection = 'down';
-       } else if (currentScrollY < lastScrollY) {
-          scrollDirection = 'up';
-       }
-       lastScrollY = currentScrollY;
-       
-       // Show categories row when:
-       // 1. Near the top (scrollY <= rowHeight)
-       // 2. Scrolling UP (to fill the gap between header and content)
-       // 3. Drawer is open
-       // Hide only when scrolling DOWN and past the category bar height
-       const shouldHide = scrollDirection === 'down' && currentScrollY > rowHeight && !isDrawerOpen;
+       // Show categories row ONLY when at the very top of the page
+       // or when the drawer is open
+       const shouldHide = currentScrollY > rowHeight && !isDrawerOpen;
 
        if (shouldHide !== isHidden) {
           isHidden = shouldHide;

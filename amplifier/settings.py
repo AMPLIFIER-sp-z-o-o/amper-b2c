@@ -231,6 +231,10 @@ UNFOLD = {
                         "link": reverse_lazy("admin:web_sitesettings_changelist"),
                     },
                     {
+                        "title": gettext_lazy("Dynamic pages"),
+                        "link": reverse_lazy("admin:web_dynamicpage_changelist"),
+                    },
+                    {
                         "title": gettext_lazy("Custom CSS"),
                         "link": reverse_lazy("admin:web_customcss_changelist"),
                     },

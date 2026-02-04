@@ -31,7 +31,11 @@
                     <ul class="space-y-3">
                       {% for link in section.links.all %}
                         <li>
-                          <a href="{{ link.url }}" class="text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link.label }}</a>
+                          {% with link_url=link.get_url link_label=link.get_label %}
+                            {% if link_url %}
+                              <a href="{{ link_url }}" class="text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link_label }}</a>
+                            {% endif %}
+                          {% endwith %}
                         </li>
                       {% endfor %}
                     </ul>

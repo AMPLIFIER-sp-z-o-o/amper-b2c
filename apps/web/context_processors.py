@@ -1,7 +1,8 @@
 from django.conf import settings
+from django.db.models import Prefetch, Q
 
 from apps.catalog.models import Category, Product, ProductStatus
-from apps.web.models import BottomBar, CustomCSS, Footer, Navbar, SiteSettings, TopBar
+from apps.web.models import BottomBar, CustomCSS, Footer, FooterSectionLink, Navbar, NavbarItem, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
 
@@ -165,8 +166,30 @@ def footer_context(request):
         )
 
         if should_fetch_sections:
-            footer_sections = list(footer.sections.prefetch_related("links").order_by("order", "id"))
-            footer_social_media = list(footer.social_media.filter(is_active=True).order_by("order", "id"))
+            links_queryset = FooterSectionLink.objects.select_related("dynamic_page").order_by("order", "id")
+            if not draft_preview_enabled:
+                links_queryset = links_queryset.filter(
+                    Q(link_type=FooterSectionLink.LinkType.CUSTOM_URL) | Q(dynamic_page__is_active=True)
+                )
+
+            footer_sections = list(
+                footer.sections.prefetch_related(Prefetch("links", queryset=links_queryset)).order_by("order", "id")
+            )
+            social_media_query = footer.social_media.order_by("order", "id")
+            if not draft_preview_enabled:
+                social_media_query = social_media_query.filter(is_active=True)
+            footer_social_media = list(social_media_query)
+
+            if draft_preview_enabled and footer_social_media:
+                from apps.support.draft_utils import apply_drafts_to_context
+
+                draft_changes_map = getattr(request, "draft_changes_map", {})
+                footer_social_media = apply_drafts_to_context(footer_social_media, draft_changes_map)
+                if not isinstance(footer_social_media, list):
+                    footer_social_media = list(footer_social_media)
+                footer_social_media = [item for item in footer_social_media if item.is_active]
+                for item in footer_social_media:
+                    item._draft_inline_applied = True
 
     return {
         "footer": footer,
@@ -246,9 +269,8 @@ def navigation_categories(request):
     if navbar_mode == Navbar.NavbarMode.CUSTOM and navbar:
 
         def _get_items():
-            items = list(
-                navbar.items.filter(is_active=True)
-                .select_related("category")
+            items_query = (
+                navbar.items.select_related("category", "dynamic_page")
                 .prefetch_related(
                     "category__children",
                     "category__children__children",
@@ -256,15 +278,23 @@ def navigation_categories(request):
                 )
                 .order_by("order", "id")
             )
-            # If draft enabled, apply drafts to the list of items
+            if not draft_preview_enabled:
+                items_query = items_query.filter(is_active=True).filter(
+                    Q(item_type=NavbarItem.ItemType.DYNAMIC_PAGE, dynamic_page__is_active=True)
+                    | ~Q(item_type=NavbarItem.ItemType.DYNAMIC_PAGE)
+                )
+            items = list(items_query)
+            # If draft enabled, apply drafts before filtering by is_active.
             if draft_preview_enabled and items:
                 from apps.support.draft_utils import apply_drafts_to_context
 
                 draft_changes_map = getattr(request, "draft_changes_map", {})
-                if draft_changes_map:
-                    # This handles inline items effectively if logical parent linkage exists,
-                    # but here we might need direct application if items themselves are modified
-                    apply_drafts_to_context(items, draft_changes_map)
+                items = apply_drafts_to_context(items, draft_changes_map)
+                if not isinstance(items, list):
+                    items = list(items)
+                items = [item for item in items if item.is_active]
+                for item in items:
+                    item._draft_inline_applied = True
             return items
 
         custom_navbar_items = _safe_call(_get_items, default=[])

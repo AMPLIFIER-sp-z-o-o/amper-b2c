@@ -23,10 +23,11 @@ from django.views.generic import RedirectView
 from django.views.i18n import JavaScriptCatalog
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
-from apps.web.sitemaps import StaticViewSitemap
+from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
 sitemaps = {
     "static": StaticViewSitemap(),
+    "dynamic_pages": DynamicPageSitemap(),
 }
 
 urlpatterns = [

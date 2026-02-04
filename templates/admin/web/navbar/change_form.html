@@ -199,7 +199,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // INITIALIZE
   // ========================================
   if (modeSelect) {
-    modeSelect.addEventListener("change", applyModeVisibility);
+    // Use jQuery change event - Unfold's Select2 only fires jQuery events, not native DOM events
+    const $ = window.django && window.django.jQuery;
+    if ($) {
+      $(modeSelect).on('change', applyModeVisibility);
+    } else {
+      // Fallback to native event if jQuery not available
+      modeSelect.addEventListener("change", applyModeVisibility);
+    }
     applyModeVisibility();
   }
 

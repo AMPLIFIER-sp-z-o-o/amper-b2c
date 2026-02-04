@@ -433,6 +433,9 @@ def apply_drafts_to_context(context: Any, drafts_map: dict[tuple[int, str], Draf
             if not items_list or not isinstance(items_list[0], models.Model):
                 return None
 
+            if all(getattr(item, "_draft_inline_applied", False) for item in items_list):
+                return None
+
             inline_model = type(items_list[0])
 
             # Find ForeignKey fields that point to models with drafts

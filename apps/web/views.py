@@ -5,7 +5,7 @@ from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db.models import Count, Max, Min, Prefetch, Q
 from django.db.models.functions import Coalesce
 from django.http import Http404, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.translation import gettext_lazy as _
 from health_check.views import MainView
 
@@ -29,6 +29,7 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
+from apps.web.models import DynamicPage
 from apps.support.draft_utils import (
     apply_draft_to_existing_instance,
     apply_draft_to_instance,
@@ -56,6 +57,28 @@ def product_list(request, category_id=None, category_slug=None):
         {
             "products": products,
             "category": category,
+        },
+    )
+
+
+def dynamic_page_detail(request, slug: str, pk: int):
+    page = get_object_or_404(DynamicPage, pk=pk)
+    apply_draft_to_existing_instance(request, page)
+
+    if slug != page.slug:
+        return redirect(page.get_absolute_url(), permanent=True)
+
+    if not page.is_active and not getattr(request, "draft_preview_enabled", False):
+        raise Http404("Page not found")
+
+    return render(
+        request,
+        "web/dynamicpage_detail.html",
+        {
+            "page": page,
+            "page_title": page.meta_title or page.name,
+            "page_description": page.meta_description,
+            "page_canonical_url": page.get_absolute_url(),
         },
     )
 

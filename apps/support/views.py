@@ -316,6 +316,19 @@ def generic_draft_preview(request, app_label: str, model_name: str):
         },
     }
 
+    # Add model-specific context variable (e.g., "dynamicpage" -> "page")
+    # This matches what detail templates typically expect
+    model_lower = model_class._meta.model_name
+    context[model_lower] = instance
+
+    # Common pattern: templates often use abbreviated names (e.g., "page" for "dynamicpage")
+    if model_lower.endswith("page"):
+        context["page"] = instance
+    elif model_lower.endswith("section"):
+        context["section"] = instance
+    elif model_lower.endswith("banner"):
+        context["banner"] = instance
+
     # Try to find a detail template for this model
     template_candidates = [
         f"web/{model_class._meta.model_name}s/detail.html",

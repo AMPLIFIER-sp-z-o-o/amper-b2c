@@ -26,33 +26,38 @@
           if (row) row.style.display = "none";
         });
         
-        // Show/hide inline sections (for standard mode)
+        // Show/hide inline sections based on mode
+        // Standard mode: show inlines for sections configuration
+        // Custom mode: hide inlines, show Monaco editors
         inlines.forEach(inline => {
           inline.style.display = isCustom ? "none" : "";
         });
       };
 
       if (contentType) {
-        contentType.addEventListener("change", applyVisibility);
-        
-        // Apply visibility after Monaco initializes (it dispatches this event)
-        // and also check periodically until Monaco is ready
+        // Use jQuery change event - Unfold's Select2 only fires jQuery events, not native DOM events
+        const $ = window.django && window.django.jQuery;
+        if ($) {
+          $(contentType).on('change', applyVisibility);
+        } else {
+          // Fallback to native event if jQuery not available
+          contentType.addEventListener("change", applyVisibility);
+        }
+
+        // Use a retry mechanism to wait for Monaco container to exist
         let attempts = 0;
-        const maxAttempts = 30; // 3 seconds max
-        
+        const maxAttempts = 50; // 5 seconds max
         const checkAndApply = () => {
-          applyVisibility();
-          attempts++;
-          // Keep checking until Monaco container exists or max attempts
           const editorsContainer = document.getElementById("monaco-editors-container");
-          if (!editorsContainer && attempts < maxAttempts) {
+          if (editorsContainer || attempts >= maxAttempts) {
+            applyVisibility();
+          } else {
+            attempts++;
             setTimeout(checkAndApply, 100);
           }
         };
-        
-        // Initial check
         checkAndApply();
-        
+
         // Also listen for Monaco's ready event
         document.addEventListener("draft:resyncBaseline", applyVisibility);
       }
