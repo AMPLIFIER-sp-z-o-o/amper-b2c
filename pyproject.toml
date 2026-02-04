@@ -82,6 +82,7 @@ dependencies = [
     "django-import-export>=4.4.0",
     "django-simple-history",
     "django-colorfield>=0.14.0",
+    "gevent>=25.9.1",
 ]
 
 [dependency-groups]
