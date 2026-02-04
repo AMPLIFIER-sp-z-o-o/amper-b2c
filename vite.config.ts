@@ -19,7 +19,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         'site-tailwind-css': path.resolve(__dirname, './assets/css/site.css'),
-        'site-js': path.resolve(__dirname, './assets/js/site.js'),
+        site: path.resolve(__dirname, './assets/js/site.js'),
       },
       output: {
         // Output JS bundles to js/ directory with -bundle suffix
@@ -33,7 +33,7 @@ export default defineConfig({
             let baseName = path.basename(assetInfo.name, '.css');
             const hashPattern = /\.[0-9a-fA-F]{8}$/;
             baseName = baseName.replace(hashPattern, '');
-            return `css/${baseName}.css`;
+            return `css/${baseName}-[hash].css`;
           }
           // Default for other assets (fonts, images, etc.)
           return `assets/[name]-[hash][extname]`;
