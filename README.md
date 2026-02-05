@@ -1,6 +1,55 @@
-# AMPLFIER sp. z o.o.
 
-AMPER-B2C is a top-notch, next-gen B2C e-commerce solution.
+## 🏢 About
+
+**AMPER-B2C** is a top-notch, next-gen B2C e-commerce solution.
+
+**AMPER B2C** is developed and maintained by **AMPLIFIER sp. z o.o.**, a software company specializing in B2B/B2C e-commerce platforms, mobile applications (SFA/FSM), and enterprise integrations.
+
+This project is part of the **AMPER ecosystem** used in real production environments by manufacturers, distributors, and retail networks.
+
+## 🌐 Live Demo
+
+You can see AMPER B2C in action on our public demo environment.
+
+> Demo URL: **https://amper-b2c.ampliapps.com/**  
+> Login: **admin@example.com**  
+> Password: **admin**
+
+The demo presents typical B2C storefront features, admin panel, customer flows, and integrations used in real deployments.
+
+## 🤝 Support & Cooperation
+
+This is an **actively maintained** project.
+
+We offer:
+
+- Production deployments
+- Custom development
+- ERP / WMS / PIM integrations
+- Performance tuning
+- Mobile app integrations
+- DevOps & hosting support
+
+If you plan to use AMPER B2C commercially, go ahead - it's under MiT license. You can do it independently, **or** we are ready to help.
+
+## 📬 Contact
+
+- 🌍 https://ampliapps.com  
+- 📧 support@ampliapps.com
+
+## 🚀 Project Status
+
+- Production-ready
+- Actively developed
+- Used by real customers
+- Backed by a professional engineering team
+- Long-term supported
+
+## ❤️ Contributing
+
+Issues, ideas, and pull requests are welcome.
+
+For larger changes, please open an issue first to align with the roadmap.
 
 ## Default Credentials
 
