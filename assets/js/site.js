@@ -1,6 +1,8 @@
+import "../css/site.css";
+
 document.addEventListener("DOMContentLoaded", function () {
   // Format prices using browser locale with Intl.NumberFormat
-  window.formatPrices();
+  formatPrices();
 
   // Detect and sync browser timezone
   detectAndSyncTimezone();
@@ -66,25 +68,33 @@ function detectAndSyncTimezone() {
  * Usage in templates:
  *   <span data-price="12.99" data-currency="PLN">12.99</span>
  */
-window.formatPrices = function () {
-  if (typeof Intl === "undefined" || !Intl.NumberFormat) return;
+function formatPrices() {
+  if (typeof Intl === "undefined" || !Intl.NumberFormat) {
+    return; // Keep server-rendered fallback
+  }
 
-  document.querySelectorAll("[data-price]").forEach((el) => {
+  const priceElements = document.querySelectorAll("[data-price]");
+
+  priceElements.forEach((el) => {
     const value = parseFloat(el.dataset.price);
     const currency = el.dataset.currency || "PLN";
-    const locale = CURRENCY_LOCALES?.[currency] || "pl-PL";
+    const locale = CURRENCY_LOCALES[currency] || "pl-PL";
 
     if (isNaN(value)) return;
 
-    el.textContent = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-      currencyDisplay: "symbol", // 👈 gwarantuje „zł”
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value);
+    try {
+      el.textContent = new Intl.NumberFormat(locale, {
+        style: "currency",
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(value);
+    } catch (e) {
+      // Keep server-rendered fallback on error
+      console.warn("Price formatting error:", e);
+    }
   });
-};
+}
 
 function initCategoryRecommendedSlider() {
   const swiperContainers = document.querySelectorAll(

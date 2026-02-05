@@ -407,7 +407,7 @@ if USE_HEADLESS_URLS:
     }
 
 # needed for cross-origin CSRF
-CSRF_TRUSTED_ORIGINS = [FRONTEND_ADDRESS]
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[FRONTEND_ADDRESS])
 CSRF_COOKIE_DOMAIN = env("CSRF_COOKIE_DOMAIN", default=None)
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = (*default_headers, "x-password-reset-key", "x-email-verification-key")

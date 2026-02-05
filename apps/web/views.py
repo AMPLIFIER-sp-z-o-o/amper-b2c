@@ -576,7 +576,7 @@ def search_results(request):
                     "options", queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
                 )
             )
-            .order_by("display_name")
+            .order_by("name")
         )
 
         for attr in attr_definitions:

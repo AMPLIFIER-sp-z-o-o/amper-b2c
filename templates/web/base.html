@@ -40,7 +40,6 @@
     {# HTMX library - for partial page updates #}
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
     {% vite_hmr_client %}
-    {% vite_asset 'assets/css/site.css' %}
     {% vite_asset 'assets/js/site.js' %}
     {% if site_settings and site_settings.custom_css_active and site_settings.custom_css %}
     <style id="custom-css">
@@ -70,9 +69,6 @@
   data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
   style="opacity: 0;"
 >
-<form id="csrf-form" style="display:none">
-  {% csrf_token %}
-</form>
 <script>
   (function() {
     // Prevent FOUC - show body after styles are likely loaded
@@ -123,11 +119,4 @@
 {% block page_js %}
 {% endblock page_js %}
     <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
-    <script>
-      window.ADD_TO_CART_URL = "{% url 'cart:add_to_cart' %}";
-      window.REMOVE_FROM_CART_URL = "{% url 'cart:remove_from_cart' %}";
-    </script>
-
-    <script src="{% static 'js/cart.js' %}" defer></script>
 </html>
-
