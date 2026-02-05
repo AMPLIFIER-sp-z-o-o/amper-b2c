@@ -30,7 +30,7 @@ We offer:
 - Mobile app integrations
 - DevOps & hosting support
 
-If you plan to use AMPER B2C commercially, go ahead - it's under MiT license. You can do it independently, **or** we are ready to help.
+If you plan to use AMPER B2C commercially, go ahead - it's under MIT license. You can do it independently, **or** we are ready to help.
 
 ## 📬 Contact
 
