@@ -71,6 +71,20 @@
   animation: fadeIn 0.15s ease-out;
 }
 
+#cartDropdown,
+#accountDropdown {
+  box-shadow: 0 -8px 18px -14px rgba(0, 0, 0, 0.35),
+    0 18px 36px -18px rgba(0, 0, 0, 0.45),
+    0 10px 20px -10px rgba(0, 0, 0, 0.25);
+}
+
+.dark #cartDropdown,
+.dark #accountDropdown {
+  box-shadow: 0 -10px 22px -16px rgba(0, 0, 0, 0.65),
+    0 20px 40px -18px rgba(0, 0, 0, 0.7),
+    0 12px 22px -12px rgba(0, 0, 0, 0.55);
+}
+
 .category-dropdown:not(#cartDropdown):not(#accountDropdown) {
   position: fixed !important;
 }
@@ -146,6 +160,11 @@
   position: relative;
   padding-bottom: 4px; /* Tiny bit of extra space for hover */
   margin-bottom: -4px;
+}
+
+#categories-row-wrapper.is-dimmed {
+  z-index: 30 !important;
+  pointer-events: none;
 }
 
 /* Mobile responsiveness */
@@ -357,7 +376,7 @@ body.nav-scroll-locked {
 
 
             {# Cart Dropdown #}
-            <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-2 w-80 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
+            <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-80 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
               <div class="p-4 bg-gray-50 dark:bg-gray-800">
                 <dl class="flex items-center gap-2">
                   <dt class="font-bold text-gray-900 dark:text-white">{% translate "Your shopping cart" %}</dt>
@@ -504,7 +523,7 @@ body.nav-scroll-locked {
               </svg>
             </button>
 
-            <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-2 w-60 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50">
+            <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-60 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
               <ul class="p-2 text-start text-sm font-medium text-gray-900 dark:text-white">
                 <li>
                   <a href="{% url 'users:user_profile' %}" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-700 transition-colors duration-200">
@@ -523,7 +542,7 @@ body.nav-scroll-locked {
                   </a>
                 </li>
                 <li>
-                  <a href="#" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-700 transition-colors duration-200">
+                  <a href="{% url 'favourites:favourites_page' %}" title="" class="group flex items-center gap-2 rounded-md px-3 py-2 text-gray-900 hover:bg-gray-200 dark:text-white dark:hover:bg-gray-700 transition-colors duration-200">
                     <svg class="h-4 w-4 text-gray-500 group-hover:text-gray-900 dark:text-gray-400 dark:group-hover:text-white transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6C6.5 1 1 8 5.8 13l6.2 7 6.2-7C23 8 17.5 1 12 6Z"></path>
                     </svg>
@@ -1134,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Header - "Wyszukiwania" (Searches)
       html += `
-        <div class="px-4 py-2 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+        <div class="sticky top-0 z-10 px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Searches" %}</span>
         </div>
       `;
@@ -1144,7 +1163,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const categoryInfo = item.category_name ? ` {% translate "in" %} <span class="font-semibold">${escapeHtml(item.category_name)}</span>` : '';
         html += `
           <div data-suggestion-item data-product-id="${item.id}" data-query="${escapeHtml(item.text)}" 
-               class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200">
+               class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200 relative z-0">
             <svg class="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
             </svg>
@@ -1160,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', function() {
           ? `{% url 'web:search_results' %}?q=${encodeURIComponent(query)}&category=${encodeURIComponent(categorySlug)}`
           : `{% url 'web:search_results' %}?q=${encodeURIComponent(query)}`;
         html += `
-          <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+          <div class="sticky bottom-0 z-10 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
             <a href="${seeAllUrl}" class="text-sm font-medium text-primary-700 dark:text-primary-500 hover:underline transition-colors duration-200">
               {% translate "See all" %} ${total_count} {% translate "results" %} →
             </a>
@@ -1320,6 +1339,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // Triggers are the buttons in the top bar
   const triggers = document.querySelectorAll('.nav-category-trigger');
   const navCategoriesContainer = document.getElementById('categories-nav');
+  const categoriesRowWrapper = document.getElementById('categories-row-wrapper');
+
+  function setCategoriesRowDimmed(shouldDim) {
+    if (!categoriesRowWrapper) return;
+    categoriesRowWrapper.classList.toggle('is-dimmed', shouldDim);
+  }
   
   function showBackdrop() {
     if (!backdrop) return;
@@ -1435,6 +1460,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     activeDropdown = null;
     lastPreviewedItem = null;
+    setCategoriesRowDimmed(false);
 
     // Unlock body scroll if mobile menu is also hidden
     const mobileMenu = document.getElementById('ecommerce-navbar-menu');
@@ -1462,6 +1488,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (targetId === 'cartDropdown' && window.innerWidth < 768) {
       return;
     }
+
+    setCategoriesRowDimmed(targetId === 'cartDropdown' || targetId === 'accountDropdown');
 
     const dropdown = document.getElementById(targetId);
 

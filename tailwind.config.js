@@ -3,6 +3,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        gray: {
+          400: "#737373", // default 400 is #a3a3a3
+          500: "#525252", // default 500 is #737373
+        },
         primary: {
           50: "#eff6ff",
           100: "#dbeafe",

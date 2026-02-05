@@ -110,11 +110,13 @@ PROJECT_APPS = [
     "apps.homepage.apps.HomepageConfig",
     "apps.support.apps.SupportConfig",
     "apps.cart.apps.CartConfig",
+    "apps.favourites.apps.FavouritesConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 UNFOLD = {
+    "THEME": "light",
     "SITE_TITLE": "AMPER B2C Admin",
     "SITE_HEADER": "AMPER B2C",
     "STYLES": [

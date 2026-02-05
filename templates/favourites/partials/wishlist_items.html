@@ -1,0 +1,104 @@
+{% load i18n %}
+
+{% if items %}
+{# View Toggle Controls #}
+<div class="flex items-center justify-between gap-4 mb-4">
+  {# View Toggle Button - reuses same component as category page #}
+  {% include "web/components/view_toggle.html" with toggle_id='favourites' toggle_function='toggleFavouritesViewMode' current_view='list' %}
+  
+  {# Item Count #}
+  <span class="text-sm text-gray-500 dark:text-gray-400">
+    {{ items|length }} {% translate "items" %}
+  </span>
+</div>
+
+{# Products Container - List and Grid Views #}
+<div id="favourites-products-grid" class="favourites-products-container animate-fade-in" data-view-mode="list">
+  {# List View - Default #}
+  <div class="view-list flex flex-col gap-3">
+    {% for item in items %}
+      {% include "web/components/product_list_card.html" with product=item.product %}
+    {% endfor %}
+  </div>
+  
+  {# Grid View #}
+  <div class="view-grid hidden grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-2 xl:grid-cols-4">
+    {% for item in items %}
+      {% include "web/components/homepage_product_card.html" with product=item.product %}
+    {% endfor %}
+  </div>
+</div>
+
+<script>
+// Favourites View Mode Functions
+function applyFavouritesViewMode(view) {
+  const container = document.getElementById('favourites-products-grid');
+  if (!container) return;
+  
+  container.dataset.viewMode = view;
+  
+  const listView = container.querySelector('.view-list');
+  const gridView = container.querySelector('.view-grid');
+  
+  if (view === 'list') {
+    listView?.classList.remove('hidden');
+    gridView?.classList.add('hidden');
+  } else {
+    listView?.classList.add('hidden');
+    gridView?.classList.remove('hidden');
+  }
+  
+  // Update toggle buttons using data-toggle-id attribute (same as category page)
+  const btnToList = document.querySelector('[data-toggle-id="favourites"][data-view-toggle="grid"]');
+  const btnToGrid = document.querySelector('[data-toggle-id="favourites"][data-view-toggle="list"]');
+  
+  if (view === 'list') {
+    btnToList?.classList.add('hidden');
+    btnToList?.classList.remove('flex');
+    btnToGrid?.classList.remove('hidden');
+    btnToGrid?.classList.add('flex');
+  } else {
+    btnToList?.classList.remove('hidden');
+    btnToList?.classList.add('flex');
+    btnToGrid?.classList.add('hidden');
+    btnToGrid?.classList.remove('flex');
+  }
+  
+  // Format prices after view change
+  if (typeof formatPrices === 'function') formatPrices();
+}
+
+function toggleFavouritesViewMode(newView) {
+  localStorage.setItem('favourites_view_mode', newView);
+  applyFavouritesViewMode(newView);
+}
+
+// Initialize view mode on load
+(function() {
+  const storedViewMode = localStorage.getItem('favourites_view_mode') || 'list';
+  applyFavouritesViewMode(storedViewMode);
+})();
+
+// Format prices
+if (typeof formatPrices === 'function') formatPrices();
+</script>
+{% else %}
+{# Empty State #}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+  <div class="max-w-sm mx-auto">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700">
+      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+      </svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{% translate "This list is empty" %}</h3>
+    <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Start adding products to fill this list." %}</p>
+    <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      {% translate "Browse Products" %}
+    </a>
+  </div>
+</div>
+{% endif %}

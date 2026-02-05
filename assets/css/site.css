@@ -168,6 +168,27 @@ html {
   @apply hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors;
 }
 
+/* ===========================================
+   Typography Utility Classes
+   =========================================== */
+
+/* 
+ * Subtitle text style for descriptive text appearing under headings.
+ * More visible than muted helper text (gray-500/400).
+ * Use for: page subtitles, section descriptions, summary info under titles.
+ */
+.text-subtitle {
+  @apply text-sm font-medium text-gray-600 dark:text-gray-300;
+}
+
+/*
+ * Muted text style for secondary/helper information.
+ * Use for: pagination info, empty states, footer text, form hints.
+ */
+.text-muted {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
 /* Utilities */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */

@@ -1,10 +1,27 @@
 {% if messages %}
-  {% for message in messages %}
-    {% if "admin" not in message.tags %}
-      <div class="notification flex w-full justify-between alert {% if message.tags %}alert-{{ message.level_tag }}{% endif %} shadow-md rounded-none! {{ message.extra_tags }} mb-1" >
-        <div>{{ message }}</div>
-        <button class="delete"><i class="fa fa-times"></i></button>
-      </div>
-    {% endif %}
-  {% endfor %}
+  {# Render messages as toasts using JavaScript #}
+  <script>
+    (function() {
+      function showMessages() {
+        if (typeof window.showToast === 'function') {
+          {% for message in messages %}
+            {% if "admin" not in message.tags %}
+              window.showToast(`{{ message|safe }}`, "{% if message.level_tag == 'error' %}error{% else %}success{% endif %}");
+            {% endif %}
+          {% endfor %}
+        } else {
+          // Retry if showToast not yet loaded
+          setTimeout(showMessages, 50);
+        }
+      }
+      // Wait for page to be fully visible before showing toasts
+      if (document.readyState === 'complete') {
+        setTimeout(showMessages, 100);
+      } else {
+        window.addEventListener('load', function() {
+          setTimeout(showMessages, 100);
+        });
+      }
+    })();
+  </script>
 {% endif %}

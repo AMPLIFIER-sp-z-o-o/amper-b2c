@@ -1,0 +1,1 @@
+{% load i18n %}{% load account %}{% user_display user as name %}{% blocktranslate %}Successfully signed in as <strong>{{ name }}</strong>.{% endblocktranslate %}

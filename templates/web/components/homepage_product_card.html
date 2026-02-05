@@ -1,7 +1,23 @@
 {% load i18n %}
-<div class="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 sm:p-4 cursor-pointer">
+<div class="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 sm:p-4 cursor-pointer" data-product-card="{{ product.id }}" title="{{ product.name }}">
   {# Stretched link - makes entire card clickable #}
-  <a href="{{ product.get_absolute_url }}" class="absolute inset-0 z-0" aria-hidden="true"></a>
+  <a href="{{ product.get_absolute_url }}" class="absolute inset-0 z-0" aria-hidden="true" title="{{ product.name }}"></a>
+  
+  {# Favourite Button #}
+  <button 
+    type="button"
+    class="favourite-btn absolute top-2 right-2 z-10 p-2 rounded-full bg-white/90 dark:bg-gray-800/90 opacity-0 group-hover:opacity-100 [&.is-favourited]:opacity-100 transition-all duration-200 hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer"
+    data-product-id="{{ product.id }}"
+    title="{% translate 'Add to Favourites' %}"
+  >
+    <svg class="favourite-icon w-5 h-5 text-gray-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+    </svg>
+    <svg class="favourite-icon-filled w-5 h-5 text-rose-500 hidden" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+  </button>
+  
   <div class="block">
     <div class="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-700">
       {% with product.images.all|first as product_image %}
@@ -19,11 +35,9 @@
     </div>
   </div>
   
-  <div class="mt-3 flex flex-1 flex-col min-w-0">
-    <div class="group/title block">
-      <div class="line-clamp-2 min-h-10 text-sm font-semibold leading-tight tracking-tight text-gray-900 dark:text-white sm:min-h-12 sm:text-base">
-        {{ product.name }}
-      </div>
+  <div class="mt-3 flex flex-1 flex-col min-w-0 pr-10 sm:pr-12">
+    <div class="line-clamp-2 text-sm font-semibold leading-tight tracking-tight text-gray-900 dark:text-white sm:text-base" title="{{ product.name }}">
+      {{ product.name }}
     </div>
     
     {# Product Attributes - show up to 4 #}

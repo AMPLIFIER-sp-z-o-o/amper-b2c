@@ -1,0 +1,28 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+
+{% block body %}
+<div id="wishlist-detail-{{ wishlist.id }}" class="min-h-screen bg-linear-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 wishlist-detail-page">
+  <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div>
+        <a href="{% url 'favourites:favourites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          {% translate "Back to Favourites" %}
+        </a>
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-2 tracking-tight">{{ wishlist.name }}</h1>
+        <p class="text-subtitle mt-1">{{ wishlist.product_count }} {% translate "products" %} · <span data-price="{{ wishlist.total_value }}" data-currency="{{ site_currency }}">{{ wishlist.total_value }}</span> {% translate "total" %}</p>
+        {% if wishlist.description %}
+        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">{{ wishlist.description }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <section class="wishlist-detail-content">
+      {% include "favourites/partials/wishlist_items.html" with wishlist=wishlist items=items wishlists=wishlists %}
+    </section>
+  </div>
+</div>
+{% endblock body %}

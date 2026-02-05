@@ -142,6 +142,7 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 
 - **Language**: All code (variables, classes, etc.) and UI strings MUST be in **English**.
 - **Translations**: UI strings must be translatable. Use `{% translate "..." %}` in templates and `_("...")` in Python code.
+- **Toast emphasis**: For toast/notification text that includes product names, only the product name should be emphasized (wrap the product name with `<strong>`). Do not bold action words like “Added” or “Removed”. Use safe HTML (e.g., `format_html`) so product names are escaped.
 - Models: Extend `BaseModel`, use `_("...")` for translatable strings, define `__str__` and `get_absolute_url()`.
 - Admin: Use Unfold components, readonly computed fields with `@admin.display(description=_(...))`.
 - Views: Add to app's `urls.py`, use `reverse("app:view_name")` for URL generation.
@@ -230,6 +231,44 @@ window.initMySlider = initMySlider;
 document.addEventListener("htmx:afterSwap", initMySlider);
 ```
 
+### Text Hierarchy & Subtitle Styling
+
+This project uses a **two-tier text hierarchy** for secondary text. This is a strict rule to ensure proper readability and visual weight across the entire application.
+
+#### Rule 1: Subtitle Text (`.text-subtitle`)
+
+**Purpose**: For descriptive text that provides immediate context for a heading or title. This text must have high readability and good contrast.
+
+- **Style**: `text-sm font-medium text-gray-600 dark:text-gray-300`
+- **When to use**: Page descriptions directly under titles, summary info (e.g., "10 products · 200,00 zł total"), category descriptions.
+- **Markup**: `<p class="text-subtitle mt-1">Manage your lists</p>`
+
+#### Rule 2: Muted Text (`.text-muted`)
+
+**Purpose**: For supplemental or helper information that is less critical for the user's primary flow.
+
+- **Style**: `text-sm text-gray-500 dark:text-gray-400`
+- **When to use**: Pagination info ("1-10 of 50"), empty state messages, form field hints, footer copyright, timestamps.
+- **Markup**: `<span class="text-muted">Page 1 of 5</span>`
+
+#### ❌ Anti-Patterns
+
+- **DON'T** use `.text-muted` (gray-500) for main page subtitles; it lacks the visual weight required for good hierarchy.
+- **DON'T** use manual Tailwind color classes (`text-gray-400`, etc.) for these elements—always use the semantic utility classes.
+
+#### ✅ Example Hierarchy
+
+```html
+<h1 class="text-2xl font-bold">Favourites</h1>
+<p class="text-subtitle mt-1">Manage your shopping lists and saved items</p>
+
+<!-- Inside a list -->
+<div class="mt-4">
+  <h2 class="text-lg font-semibold">Summer Collection</h2>
+  <span class="text-subtitle">12 products · 450,00 zł</span>
+</div>
+```
+
 ### Hover Background Standards
 
 All interactive elements (buttons, links, clickable icons) with hover backgrounds MUST use the **standardized hover style** for consistency across the application. This includes small utility icons like password toggles or search clear buttons.
@@ -250,6 +289,8 @@ hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors
 
 - `.hover-bg` – Standard hover background with transitions
 - `.hover-bg-active` – For elements with existing gray backgrounds
+
+**Enforcement:** When adding hover backgrounds, prefer `.hover-bg`/`.hover-bg-active`; if you must use inline Tailwind classes, use `hover:bg-gray-200` (never `hover:bg-gray-100`).
 
 **NEVER use these combinations:**
 
@@ -278,7 +319,43 @@ new Intl.NumberFormat("en-US", { style: "currency", currency: "PLN" }).format(
 // Result: "PLN 6.99"
 ```
 
-In templates, use the `site_currency` context variable for dynamic currency support.
+### Toast Notifications
+
+This project uses a unified toast notification system for both backend-driven messages (Django `messages` framework) and frontend-driven actions.
+
+#### Architecture
+
+1.  **Global Function**: `window.showToast(message, type)` is defined in `assets/js/site.js`.
+2.  **Types**: Supported types are `'success'` (default) and `'error'`.
+3.  **Django Integration**: [templates/web/components/messages.html](templates/web/components/messages.html) automatically converts Django backend messages into toasts. It waits for the page to be fully visible and for the JS to load before triggering them to ensure smooth animations.
+
+#### Usage (Backend)
+
+Use the standard Django messages framework:
+
+```python
+from django.contrib import messages
+from django.utils.translation import gettext_lazy as _
+
+messages.success(request, _("Successfully performed action."))
+messages.error(request, _("An error occurred."))
+```
+
+#### Usage (Frontend)
+
+Call the global function:
+
+```javascript
+window.showToast("Item added to cart", "success");
+window.showToast("Failed to update preferences", "error");
+```
+
+#### Best Practices
+
+- **Timing**: Toasts are rendered with a small delay after page load for server-side messages to prevent them from flashing during the initial paint.
+- **Translations**: Always ensure toast messages are translatable using `_()` in Python or `{% translate %}` / `{% blocktranslate %}` in templates.
+- **Dismissal**: Toasts automatically dismiss after 5 seconds, but users can close them manually.
+  In templates, use the `site_currency` context variable for dynamic currency support.
 
 ### Input & Control Styling (Grayscale Standard)
 

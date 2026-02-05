@@ -60,39 +60,7 @@
   <div class="flex items-center gap-4 lg:gap-6 w-full sm:w-auto">
     {% if position != 'bottom' %}
       {# View Toggle - Only at top #}
-      <div class="flex items-center shrink-0">
-        <button type="button"
-           data-view-toggle="grid"
-           onclick="toggleViewMode('list')"
-           data-tooltip-target="view-tooltip-list-{{ position|default:'top' }}"
-           data-tooltip-placement="top"
-           class="{% if view_mode != 'grid' %}hidden{% endif %} flex h-11 w-11 items-center justify-center rounded-md border-none bg-gray-100 text-gray-500 hover:bg-gray-200 focus:outline-none focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:focus:bg-gray-600 transition-all cursor-pointer"
-           aria-label="{% translate 'Switch to list view' %}">
-          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-width="2" d="M9 8h10M9 12h10M9 16h10M4.99 8H5m-.02 4h.01m0 4H5"/>
-          </svg>
-        </button>
-        <div id="view-tooltip-list-{{ position|default:'top' }}" role="tooltip" class="absolute z-50 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
-          {% translate "Switch to list view" %}
-          <div class="tooltip-arrow" data-popper-arrow></div>
-        </div>
-
-        <button type="button"
-           data-view-toggle="list"
-           onclick="toggleViewMode('grid')"
-           data-tooltip-target="view-tooltip-grid-{{ position|default:'top' }}"
-           data-tooltip-placement="top"
-           class="{% if view_mode == 'grid' %}hidden{% endif %} flex h-11 w-11 items-center justify-center rounded-md border-none bg-gray-100 text-gray-500 hover:bg-gray-200 focus:outline-none focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600 dark:focus:bg-gray-600 transition-all cursor-pointer"
-           aria-label="{% translate 'Switch to grid view' %}">
-          <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.143 4H4.857A.857.857 0 0 0 4 4.857v4.286c0 .473.384.857.857.857h4.286A.857.857 0 0 0 10 9.143V4.857A.857.857 0 0 0 9.143 4Zm10 0h-4.286a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286A.857.857 0 0 0 20 9.143V4.857A.857.857 0 0 0 19.143 4Zm-10 10H4.857a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286a.857.857 0 0 0 .857-.857v-4.286A.857.857 0 0 0 9.143 14Zm10 0h-4.286a.857.857 0 0 0-.857.857v4.286c0 .473.384.857.857.857h4.286a.857.857 0 0 0 .857-.857v-4.286a.857.857 0 0 0-.857-.857Z"/>
-          </svg>
-        </button>
-        <div id="view-tooltip-grid-{{ position|default:'top' }}" role="tooltip" class="absolute z-50 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">
-          {% translate "Switch to grid view" %}
-          <div class="tooltip-arrow" data-popper-arrow></div>
-        </div>
-      </div>
+      {% include "web/components/view_toggle.html" with toggle_id=position|default:'top' toggle_function='toggleViewMode' current_view=view_mode %}
     {% endif %}
 
     {# Sort Dropdown - Common for top and bottom #}
