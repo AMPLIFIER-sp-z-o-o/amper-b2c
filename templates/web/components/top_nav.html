@@ -484,7 +484,7 @@ body.nav-scroll-locked {
                   <span>{% translate "Total" %}</span>
                   <span>92,94 zł</span>
                 </div>
-                <a href="#" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-colors duration-300" role="button">
+                <a href="{% url 'cart:cart_page' %}" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-colors duration-300" role="button">
                   {% translate "See your cart" %}
                 </a>
               </div>
