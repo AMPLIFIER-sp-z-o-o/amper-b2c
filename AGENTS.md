@@ -39,16 +39,16 @@
 
 ## Dev Workflows
 
-| Task                | Command                                                                                                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Bootstrap project   | `make init`                                                                                                                                                                                 |
-| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. [Do not use this command unless told to.] Do not use manage.py runserver. Use only make dev to start the server** |
-| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'`                                                                                                                                        |
-| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`                                                                                                                                         |
-| Format/lint         | `make ruff` (Ruff formatter + linter)                                                                                                                                                       |
-| Reset database      | `make reset-db` (drop + recreate + migrate)                                                                                                                                                 |
-| Update translations | `make translations`                                                                                                                                                                         |
-| Celery worker       | `make celery`                                                                                                                                                                               |
+| Task                | Command                                                                                                                                                                                                                                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bootstrap project   | `make init`                                                                                                                                                                                                                                                                                                                                     |
+| Run dev servers     | `make dev` (Django + Vite) - **ONLY use this command to start the server. If the server is already running, do NOT start it again. Do not use manage.py runserver. During browser tests, NEVER start the server automatically unless it is found to be not running AFTER the tests have already begun - only then use `make dev` to start it.** |
+| Django commands     | `uv run manage.py <cmd>` or `make manage ARGS='...'`                                                                                                                                                                                                                                                                                            |
+| Run tests           | `make test` or `make test ARGS='apps.web.tests...'`                                                                                                                                                                                                                                                                                             |
+| Format/lint         | `make ruff` (Ruff formatter + linter)                                                                                                                                                                                                                                                                                                           |
+| Reset database      | `make reset-db` (drop + recreate + migrate)                                                                                                                                                                                                                                                                                                     |
+| Update translations | `make translations`                                                                                                                                                                                                                                                                                                                             |
+| Celery worker       | `make celery`                                                                                                                                                                                                                                                                                                                                   |
 
 **Superuser credentials**: `admin@example.com` / `admin` (always use these credentials during testing)
 
@@ -145,6 +145,87 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 - Templates: Extend `web/base.html`, use Flowbite components, include HTMX attributes for interactivity.
 
 ## UI Components & Styling
+
+### Swiper/Slider Components (HTMX-Compatible Pattern)
+
+This project uses [Swiper.js](https://swiperjs.com/) for carousels and sliders. To ensure sliders work correctly with **HTMX partial page updates**, follow these rules:
+
+#### Architecture
+
+1. **Swiper assets are loaded globally** in [templates/web/base.html](templates/web/base.html) — do NOT load Swiper CSS/JS in component templates.
+
+2. **Initialization functions live in [assets/js/site.js](assets/js/site.js)** — NOT as inline `<script>` tags in templates. Inline scripts don't execute after HTMX swaps.
+
+3. **Use data attributes** to pass template variables to JS:
+
+   ```html
+   <div
+     class="swiper my-slider"
+     data-category-id="{{ category.id }}"
+     data-item-count="{{ items|length }}"
+   ></div>
+   ```
+
+4. **Register HTMX afterSwap handlers** in site.js to reinitialize sliders after partial updates:
+   ```javascript
+   document.addEventListener("htmx:afterSwap", (event) => {
+     if (event.target.id === "products-container") {
+       initMySlider();
+     }
+   });
+   ```
+
+#### Available Slider Initializers
+
+| Function                          | Selector                       | Description                               |
+| --------------------------------- | ------------------------------ | ----------------------------------------- |
+| `initCategoryRecommendedSlider()` | `.category-recommended-swiper` | Product recommendations on category pages |
+| `initCategoryBannerSlider()`      | `.category-banner-swiper`      | Category page banner carousels            |
+
+#### Adding a New Slider Component
+
+1. **Template**: Create markup with Swiper classes and data-attributes (no inline scripts)
+2. **site.js**: Add initialization function that reads data-attributes
+3. **site.js**: Call function in `DOMContentLoaded` handler
+4. **site.js**: Add `htmx:afterSwap` handler if the slider appears in HTMX-swapped content
+5. **Export**: Add `window.myInitFunction = myInitFunction;` for debugging
+
+#### ❌ Anti-Patterns (NEVER do this)
+
+```html
+<!-- DON'T: Load Swiper in component templates -->
+<link rel="stylesheet" href="...swiper-bundle.min.css" />
+<script src="...swiper-bundle.min.js"></script>
+
+<!-- DON'T: Use inline scripts with template variables -->
+<script>
+  const count = {{ items|length }};  // Won't execute after HTMX swap!
+  new Swiper('.my-slider', { loop: count > 1 });
+</script>
+```
+
+#### ✅ Correct Pattern
+
+```html
+<!-- Template: Only markup + data attributes -->
+<div class="swiper my-slider" data-item-count="{{ items|length }}">
+  <div class="swiper-wrapper">...</div>
+</div>
+{# Initialization handled by site.js initMySlider() #}
+```
+
+```javascript
+// site.js: Read data attributes, handle HTMX
+function initMySlider() {
+  document.querySelectorAll(".my-slider").forEach((el) => {
+    if (el.swiper) return; // Already initialized
+    const count = parseInt(el.dataset.itemCount, 10) || 0;
+    new Swiper(el, { loop: count > 1 });
+  });
+}
+window.initMySlider = initMySlider;
+document.addEventListener("htmx:afterSwap", initMySlider);
+```
 
 ### Hover Background Standards
 
@@ -248,6 +329,17 @@ Example pattern from `homepage_product_section.html`:
 
 ## Change Validation & Testing
 
+### Bug-First Development Workflow
+
+When a bug is reported, **do not start by trying to fix it**. Instead:
+
+1. **Write a test first** that reproduces the bug
+2. Verify the test fails (proving the bug exists)
+3. Have subagents attempt to fix the bug
+4. Prove the fix with a passing test
+
+This ensures bugs are properly documented and prevents regressions.
+
 ### When tests ARE required
 
 Tests should be created for changes that:
@@ -291,6 +383,7 @@ Tests should be created for changes that:
    - Run via `make test`.
 
 2. **Browser tests** (always required for **ALL** UI and visual changes):
+   - **Environment**: Do NOT start the dev server (`make dev`) proactively. Only start it if the server is found to be not running AFTER startingbrowser verification.
    - Visual verification using **Chrome MCP** tool.
    - Test interactions (clicks, forms, HTMX behavior).
    - Cover edge cases (e.g., empty lists, loading states, validation errors, etc...).

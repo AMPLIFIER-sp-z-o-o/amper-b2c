@@ -554,6 +554,40 @@ def get_new_draft_instance(request: Any, model_class: type[models.Model]) -> mod
     return None
 
 
+def apply_draft_to_existing_instance(request: Any, instance: models.Model) -> bool:
+    """
+    Apply draft changes to an existing model instance.
+
+    Use this in views when you need to apply draft changes BEFORE accessing
+    model attributes that control conditional logic (e.g., boolean flags that
+    determine whether to load related data).
+
+    Args:
+        request: HttpRequest with draft_changes_map attribute
+        instance: The model instance to apply draft changes to
+
+    Returns:
+        True if draft was applied, False otherwise
+    """
+    if not instance or not instance.pk:
+        return False
+
+    draft_changes_map = getattr(request, "draft_changes_map", {})
+    if not draft_changes_map:
+        return False
+
+    content_type = ContentType.objects.get_for_model(instance, for_concrete_model=False)
+    key = (content_type.pk, str(instance.pk))
+
+    draft = draft_changes_map.get(key)
+    if not draft:
+        return False
+
+    payload = _normalize_payload(draft.payload)
+    form_data, temp_files = _get_payload_sections(payload)
+    return apply_draft_to_instance(instance, form_data, temp_files)
+
+
 def compute_draft_diff(draft: DraftChange) -> list[dict[str, Any]]:
     payload = _normalize_payload(draft.payload)
     form_data, temp_files = _get_payload_sections(payload)

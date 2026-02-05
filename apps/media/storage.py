@@ -6,7 +6,6 @@ Selects storage backend based on MediaStorageSettings configuration.
 import logging
 
 from django.conf import settings
-
 from django.core.files.storage import FileSystemStorage
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
@@ -45,9 +44,7 @@ def _get_cached_s3_client():
         return None
 
     if not (
-        media_settings.aws_access_key_id
-        and media_settings.aws_secret_access_key
-        and media_settings.aws_bucket_name
+        media_settings.aws_access_key_id and media_settings.aws_secret_access_key and media_settings.aws_bucket_name
     ):
         return None
 

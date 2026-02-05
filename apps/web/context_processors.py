@@ -34,19 +34,16 @@ def _filter_categories_with_products(categories):
     """
     if not categories:
         return []
-    
+
     # Get all category IDs that have at least one active product
     category_ids_with_products = set(
         Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
-        .values_list('category_id', flat=True)
+        .values_list("category_id", flat=True)
         .distinct()
     )
-    
+
     # Filter categories that have products (directly or in children)
-    return [
-        cat for cat in categories
-        if _category_has_products(cat, category_ids_with_products)
-    ]
+    return [cat for cat in categories if _category_has_products(cat, category_ids_with_products)]
 
 
 def project_meta(request):
@@ -219,6 +216,7 @@ def navigation_categories(request):
     draft_preview_enabled = getattr(request, "draft_preview_enabled", False)
     if draft_preview_enabled and navbar:
         from apps.support.draft_utils import apply_drafts_to_context
+
         draft_changes_map = getattr(request, "draft_changes_map", {})
         if draft_changes_map:
             apply_drafts_to_context(navbar, draft_changes_map)
@@ -228,22 +226,25 @@ def navigation_categories(request):
     # Always get parent categories for "All categories" drawer and fallback
     # Filter out categories that have no products (directly or in children)
     parent_categories = _safe_call(
-        lambda: _filter_categories_with_products(list(
-            Category.objects.filter(parent__isnull=True)
-            .prefetch_related(
-                "children",
-                "children__children",
-                "children__children__children",
-                "children__children__children__children",
+        lambda: _filter_categories_with_products(
+            list(
+                Category.objects.filter(parent__isnull=True)
+                .prefetch_related(
+                    "children",
+                    "children__children",
+                    "children__children__children",
+                    "children__children__children__children",
+                )
+                .order_by("name")
             )
-            .order_by("name")
-        )),
+        ),
         default=[],
     )
 
     # Custom navbar items (only if custom mode is active)
     custom_navbar_items = []
     if navbar_mode == Navbar.NavbarMode.CUSTOM and navbar:
+
         def _get_items():
             items = list(
                 navbar.items.filter(is_active=True)
@@ -257,12 +258,13 @@ def navigation_categories(request):
             )
             # If draft enabled, apply drafts to the list of items
             if draft_preview_enabled and items:
-                 from apps.support.draft_utils import apply_drafts_to_context
-                 draft_changes_map = getattr(request, "draft_changes_map", {})
-                 if draft_changes_map:
-                     # This handles inline items effectively if logical parent linkage exists,
-                     # but here we might need direct application if items themselves are modified
-                     apply_drafts_to_context(items, draft_changes_map)
+                from apps.support.draft_utils import apply_drafts_to_context
+
+                draft_changes_map = getattr(request, "draft_changes_map", {})
+                if draft_changes_map:
+                    # This handles inline items effectively if logical parent linkage exists,
+                    # but here we might need direct application if items themselves are modified
+                    apply_drafts_to_context(items, draft_changes_map)
             return items
 
         custom_navbar_items = _safe_call(_get_items, default=[])

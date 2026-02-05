@@ -1,10 +1,26 @@
 {% load i18n %}
 
-{# Active Filters Bar - Properly positioned for mobile and desktop #}
+{# Hidden data element for JavaScript to read the total count #}
+<div id="product-count-data" data-total-count="{{ total_count }}" class="hidden"></div>
+
+{# Category Banner Slider - Shown on page 1 when no filters/sorting applied #}
+{% if products.number == 1 and not has_filters_or_sorting %}
+{% if category_banners %}
+  <div class="mb-4">
+    {% include "web/components/category_banner_slider.html" %}
+  </div>
+{% endif %}
+
+{# Recommended Products - Below banners, above product list (only when no filters/sorting) #}
+{% if recommended_products %}
+  {% include "web/components/category_recommended_products.html" %}
+{% endif %}
+{% endif %}
+
+{# Active Filters Bar - Normal flow positioning #}
 {% if active_filters %}
-{# Mobile: normal flow with proper spacing. Desktop: absolute overlay #}
-<div id="active-filters-bar" class="flex flex-wrap items-center gap-2 mb-3 lg:mb-0 lg:relative lg:h-0 lg:overflow-visible">
-  <div class="flex flex-wrap items-center gap-2 lg:absolute lg:left-0 lg:right-0 lg:top-0 lg:-translate-y-full lg:-mt-2 lg:z-10">
+<div id="active-filters-bar" class="flex flex-wrap items-center gap-2 mb-3">
+  <div class="flex flex-wrap items-center gap-2">
     {% for filter in active_filters %}
     <div class="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600">
       <span>{{ filter.label }}</span>

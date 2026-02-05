@@ -1,0 +1,95 @@
+{% load i18n %}
+{% if recommended_products %}
+<div id="category-recommended-products-{{ current_category.id }}" class="category-recommended-products mb-4">
+  <div class="mb-4 flex items-center justify-between">
+    <h3 class="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
+      {% translate "Recommended in category" %}
+    </h3>
+
+    {% if recommended_products|length >= 2 %}
+    <div class="flex items-center gap-2">
+      <button 
+        type="button" 
+        class="category-recommended-prev flex h-9 w-9 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/95 disabled:hover:shadow-md disabled:active:scale-100 dark:disabled:hover:bg-gray-800/95"
+        data-category-id="{{ current_category.id }}"
+        aria-label="{% translate 'Previous' %}"
+      >
+        <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m15 19-7-7 7-7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
+        </svg>
+      </button>
+      <button 
+        type="button" 
+        class="category-recommended-next flex h-9 w-9 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/95 disabled:hover:shadow-md disabled:active:scale-100 dark:disabled:hover:bg-gray-800/95"
+        data-category-id="{{ current_category.id }}"
+        aria-label="{% translate 'Next' %}"
+      >
+        <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+          <path d="m9 5 7 7-7 7" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" />
+        </svg>
+      </button>
+    </div>
+    {% endif %}
+  </div>
+
+  {# Product Slider Container #}
+  <div class="category-recommended-carousel relative">
+    <div 
+      class="swiper category-recommended-swiper"
+      data-category-id="{{ current_category.id }}"
+      data-product-count="{{ recommended_products|length }}"
+    >
+      <div class="swiper-wrapper">
+        {% for item in recommended_products %}
+        <div class="swiper-slide">
+          {% include "web/components/homepage_product_card.html" with product=item.product %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* Category Recommended Products - horizontal overflow only */
+.category-recommended-products {
+  position: relative;
+  z-index: 1;
+}
+
+.category-recommended-carousel {
+  overflow-x: clip;
+  overflow-y: visible;
+}
+
+.category-recommended-swiper {
+  overflow: visible;
+}
+
+.category-recommended-swiper .swiper-wrapper {
+  overflow: visible;
+  align-items: stretch !important;
+}
+
+.category-recommended-swiper .swiper-slide {
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column;
+}
+
+.category-recommended-swiper .swiper-slide > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Disabled navigation buttons */
+.swiper-button-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+</style>
+{% endif %}

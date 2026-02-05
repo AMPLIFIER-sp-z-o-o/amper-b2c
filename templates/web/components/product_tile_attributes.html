@@ -8,14 +8,13 @@
 
 {% with attrs=product.tile_display_attributes %}
 {% if attrs %}
-<div id="product-attributes-{{ product.id }}" class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
+<div id="product-attributes-{{ product.id }}" class="product-tile-attributes relative z-10 mt-1.5 flex flex-col space-y-0.5">
   {% for attr in attrs %}
   <div class="product-tile-attribute flex items-baseline py-0.5 transition-all min-w-0">
-        <div class="inline-flex items-baseline gap-1.5 cursor-pointer min-w-0 max-w-full border-b-2 border-transparent hover:border-primary-500/90 transition-colors"
-          data-attr-id="{{ attr.attribute_id }}"
-          data-option-slug="{{ attr.option_slug }}"
-          role="button"
-          tabindex="0">
+    <a class="inline-flex items-baseline gap-1.5 cursor-pointer min-w-0 max-w-full border-b-2 border-transparent hover:border-primary-500/90 transition-colors"
+       href="{{ product.category.get_absolute_url }}?attr_{{ attr.attribute_id }}={{ attr.option_slug|urlencode }}"
+       data-attr-id="{{ attr.attribute_id }}"
+       data-option-slug="{{ attr.option_slug }}">
       <span class="shrink-0 text-sm font-normal text-gray-500 dark:text-gray-400">
         {{ attr.attribute_name }}:
       </span>
@@ -24,7 +23,7 @@
             title="{{ attr.full_value }}"
             data-tooltip-target="tooltip-attr-{{ product.id }}-{{ forloop.counter }}"
             {% endif %}>{{ attr.display_value }}</span>
-    </div>
+    </a>
     
     {% if attr.is_truncated %}
     <div id="tooltip-attr-{{ product.id }}-{{ forloop.counter }}" role="tooltip" class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700">

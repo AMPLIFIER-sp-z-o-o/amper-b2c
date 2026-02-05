@@ -1,7 +1,3 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     // Homepage Products Swiper (mobile carousel for product list)
@@ -66,18 +62,27 @@
           `.product-slider-prev[data-section-id="${sectionId}"]`
         );
 
+        const updateButtonStates = (swiper) => {
+          if (prevButton) {
+            prevButton.disabled = swiper.isBeginning;
+          }
+          if (nextButton) {
+            nextButton.disabled = swiper.isEnd;
+          }
+        };
+
         const swiper = new Swiper(swiperEl, {
-          loop: productCount >= 2,
+          loop: false,
           autoplay: false,
           watchOverflow: true,
-          slidesPerView: 1.15,
+          slidesPerView: 1,
           slidesPerGroup: 1,
           spaceBetween: 12,
           speed: 400,
           allowTouchMove: true,
           breakpoints: {
             640: {
-              slidesPerView: 1.25,
+              slidesPerView: 1,
               slidesPerGroup: 1,
               spaceBetween: 16,
             },
@@ -96,6 +101,11 @@
               slidesPerGroup: 2,
               spaceBetween: 24,
             },
+          },
+          on: {
+            init: updateButtonStates,
+            slideChange: updateButtonStates,
+            resize: updateButtonStates,
           },
         });
 

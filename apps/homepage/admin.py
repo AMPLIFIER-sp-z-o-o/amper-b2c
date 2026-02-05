@@ -1,7 +1,5 @@
 from django import forms
 from django.contrib import admin
-from django.db import models
-from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from import_export import resources
@@ -10,7 +8,7 @@ from unfold.admin import TabularInline
 from unfold.contrib.import_export.forms import ExportForm, ImportForm
 from unfold.decorators import display
 
-from apps.utils.admin_mixins import BaseModelAdmin, HistoryModelAdmin
+from apps.utils.admin_mixins import AutoReorderMixin, BaseModelAdmin, HistoryModelAdmin
 from apps.utils.admin_utils import make_image_preview_html, make_status_badge_html, make_status_text_html
 
 from .models import (
@@ -81,7 +79,9 @@ class BannerSettingsAdmin(BaseModelAdmin):
             None,
             {
                 "fields": ("active_banner_type",),
-                "description": _("Select which type of banners to display on the homepage. Only banners of the selected type will be shown."),
+                "description": _(
+                    "Select which type of banners to display on the homepage. Only banners of the selected type will be shown."
+                ),
             },
         ),
         (
@@ -199,7 +199,7 @@ class BannerGroupAdmin(BaseModelAdmin):
 
 
 @admin.register(Banner)
-class BannerAdmin(ImportExportModelAdmin, BaseModelAdmin):
+class BannerAdmin(AutoReorderMixin, ImportExportModelAdmin, BaseModelAdmin):
     """Admin for Banner with conditional fieldsets based on banner_type.
     Hidden from sidebar - access through BannerGroup admin."""
 
@@ -223,6 +223,8 @@ class BannerAdmin(ImportExportModelAdmin, BaseModelAdmin):
     list_editable = ("is_active", "order")
     list_per_page = 50
     show_full_result_count = False
+    order_field = "order"
+    order_scope_field = "group"
 
     class Media:
         css = {
@@ -268,19 +270,36 @@ class BannerAdmin(ImportExportModelAdmin, BaseModelAdmin):
                 (
                     _("Content"),
                     {
-                        "fields": ("badge_label", "badge_text", "title", "subtitle", "text_alignment", "overlay_opacity"),
+                        "fields": (
+                            "badge_label",
+                            "badge_text",
+                            "title",
+                            "subtitle",
+                            "text_alignment",
+                            "overlay_opacity",
+                        ),
                     },
                 ),
                 (
                     _("Primary Button"),
                     {
-                        "fields": ("primary_button_text", "primary_button_url", "primary_button_icon", "primary_button_open_in_new_tab"),
+                        "fields": (
+                            "primary_button_text",
+                            "primary_button_url",
+                            "primary_button_icon",
+                            "primary_button_open_in_new_tab",
+                        ),
                     },
                 ),
                 (
                     _("Secondary Button"),
                     {
-                        "fields": ("secondary_button_text", "secondary_button_url", "secondary_button_icon", "secondary_button_open_in_new_tab"),
+                        "fields": (
+                            "secondary_button_text",
+                            "secondary_button_url",
+                            "secondary_button_icon",
+                            "secondary_button_open_in_new_tab",
+                        ),
                     },
                 ),
                 (
@@ -452,7 +471,7 @@ class HomepageSectionCategoryItemInline(TabularInline):
 
 
 @admin.register(HomepageSectionCategoryBox)
-class HomepageSectionCategoryBoxAdmin(BaseModelAdmin):
+class HomepageSectionCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
     """Admin for managing HomepageSectionCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -460,6 +479,8 @@ class HomepageSectionCategoryBoxAdmin(BaseModelAdmin):
     search_fields = ("title", "shop_link_text")
     ordering = ("section", "order", "id")
     inlines = [HomepageSectionCategoryItemInline]
+    order_field = "order"
+    order_scope_field = "section"
 
     class Media:
         css = {
@@ -491,7 +512,9 @@ class HomepageSectionCategoryBoxInline(TabularInline):
     verbose_name_plural = format_html(
         '{}<span style="margin-left: 10px; font-weight: normal; font-size: 12px; color: #64748b;">{}</span>',
         _("Category Boxes"),
-        _("Up to 2 category boxes. Each box can contain up to 4 items - edit items after saving. URL: use # or full https://..."),
+        _(
+            "Up to 2 category boxes. Each box can contain up to 4 items - edit items after saving. URL: use # or full https://..."
+        ),
     )
     show_change_link = True
 
@@ -561,7 +584,7 @@ class HomepageSectionForm(forms.ModelForm):
 
 
 @admin.register(HomepageSection)
-class HomepageSectionAdmin(BaseModelAdmin):
+class HomepageSectionAdmin(AutoReorderMixin, BaseModelAdmin):
     form = HomepageSectionForm
     change_form_template = "admin/homepage/homepagesection/change_form.html"
     list_display = (
@@ -580,6 +603,8 @@ class HomepageSectionAdmin(BaseModelAdmin):
     list_editable = ("order", "is_enabled")
     list_per_page = 50
     show_full_result_count = False
+    order_field = "order"
+    order_scope_field = None
 
     class Media:
         js = ("js/homepage_section_admin.js",)
@@ -602,9 +627,7 @@ class HomepageSectionAdmin(BaseModelAdmin):
 
     def get_inlines(self, request, obj=None):
         section_type = self._resolve_section_type(request, obj)
-        if section_type == HomepageSectionType.PRODUCT_LIST:
-            return [HomepageSectionProductInline]
-        elif section_type == HomepageSectionType.PRODUCT_SLIDER:
+        if section_type == HomepageSectionType.PRODUCT_LIST or section_type == HomepageSectionType.PRODUCT_SLIDER:
             return [HomepageSectionProductInline]
         elif section_type == HomepageSectionType.BANNER_SECTION:
             return [HomepageSectionBannerInline]
@@ -663,7 +686,9 @@ class HomepageSectionAdmin(BaseModelAdmin):
                             "secondary_button_url",
                             "secondary_button_open_in_new_tab",
                         ),
-                        "description": _("Call-to-action buttons. Use '#' for placeholder or full URL (e.g., https://example.com)."),
+                        "description": _(
+                            "Call-to-action buttons. Use '#' for placeholder or full URL (e.g., https://example.com)."
+                        ),
                     },
                 )
             )
@@ -732,7 +757,7 @@ class StorefrontCategoryItemInline(TabularInline):
 
 
 @admin.register(StorefrontCategoryBox)
-class StorefrontCategoryBoxAdmin(BaseModelAdmin):
+class StorefrontCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
     """Admin for managing StorefrontCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -740,6 +765,8 @@ class StorefrontCategoryBoxAdmin(BaseModelAdmin):
     search_fields = ("title", "shop_link_text")
     ordering = ("section", "order", "id")
     inlines = [StorefrontCategoryItemInline]
+    order_field = "order"
+    order_scope_field = "section"
 
     class Media:
         css = {
@@ -771,7 +798,9 @@ class StorefrontCategoryBoxInline(TabularInline):
     verbose_name_plural = format_html(
         '{}<span style="margin-left: 10px; font-weight: normal; font-size: 12px; color: #64748b;">{}</span>',
         _("Category Boxes"),
-        _("Up to 2 category boxes. Each box can contain up to 4 items - edit items after saving. URL: use # or full https://..."),
+        _(
+            "Up to 2 category boxes. Each box can contain up to 4 items - edit items after saving. URL: use # or full https://..."
+        ),
     )
     show_change_link = True
 
@@ -828,7 +857,9 @@ class StorefrontHeroSectionAdmin(BaseModelAdmin):
                     "secondary_button_url",
                     "secondary_button_open_in_new_tab",
                 ),
-                "description": _("Call-to-action buttons. Use '#' for placeholder or full URL (e.g., https://example.com)."),
+                "description": _(
+                    "Call-to-action buttons. Use '#' for placeholder or full URL (e.g., https://example.com)."
+                ),
             },
         ),
         (

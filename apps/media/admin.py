@@ -7,8 +7,9 @@ from django.apps import apps
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
-from apps.utils.admin_mixins import HistoryModelAdmin, SingletonAdminMixin
 from unfold.decorators import display
+
+from apps.utils.admin_mixins import HistoryModelAdmin, SingletonAdminMixin
 
 from .models import MediaFile, MediaStorageSettings
 

@@ -13,6 +13,8 @@ from apps.catalog.models import (
     AttributeDefinition,
     AttributeOption,
     Category,
+    CategoryBanner,
+    CategoryRecommendedProduct,
     Product,
     ProductAttributeValue,
     ProductImage,
@@ -27,15 +29,17 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
-from apps.support.draft_utils import apply_draft_to_instance, get_draft_session_by_token
+from apps.support.draft_utils import (
+    apply_draft_to_existing_instance,
+    apply_draft_to_instance,
+    get_draft_session_by_token,
+)
 
 
 def product_list(request, category_id=None, category_slug=None):
     """Product list page."""
     products = (
-        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
-        .prefetch_related("images")
-        .order_by("name")
+        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0).prefetch_related("images").order_by("name")
     )
 
     category = None
@@ -116,7 +120,7 @@ def home(request):
                             "product__attribute_values",
                             queryset=ProductAttributeValue.objects.select_related("option__attribute")
                             .filter(option__attribute__show_on_tile=True)
-                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
@@ -184,7 +188,7 @@ def home(request):
                             "product__attribute_values",
                             queryset=ProductAttributeValue.objects.select_related("option__attribute")
                             .filter(option__attribute__show_on_tile=True)
-                            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+                            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
@@ -212,7 +216,13 @@ def home(request):
         if draft_custom_sections:
             custom_sections = list(custom_sections) + draft_custom_sections
 
-    all_sections = list(product_sections) + list(banner_sections) + list(custom_sections) + list(storefront_hero_sections) + list(product_slider_sections)
+    all_sections = (
+        list(product_sections)
+        + list(banner_sections)
+        + list(custom_sections)
+        + list(storefront_hero_sections)
+        + list(product_slider_sections)
+    )
     all_sections.sort(key=lambda x: (x.order, -x.created_at.timestamp() if x.created_at else 0))
 
     # Prepare filtered banners for banner sections (only those with images)
@@ -276,15 +286,17 @@ def search_suggestions(request):
             category = Category.objects.get(id=int(category_id))
             # Get all descendant category IDs (including the category itself)
             descendant_ids = [category.id]
-            descendants = category.get_descendants() if hasattr(category, 'get_descendants') else []
+            descendants = category.get_descendants() if hasattr(category, "get_descendants") else []
             # Fallback: manually get children recursively
             if not descendants:
+
                 def get_all_children(cat):
                     children = list(cat.children.all())
                     all_children = children[:]
                     for child in children:
                         all_children.extend(get_all_children(child))
                     return all_children
+
                 descendants = get_all_children(category)
             descendant_ids.extend([d.id for d in descendants])
             products = products.filter(category_id__in=descendant_ids)
@@ -292,11 +304,7 @@ def search_suggestions(request):
             pass
 
     # Search products by name
-    products = (
-        products.filter(Q(name__icontains=query))
-        .select_related("category")
-        .order_by("name")[:8]
-    )
+    products = products.filter(Q(name__icontains=query)).select_related("category").order_by("name")[:8]
 
     # Get total count for "See all results" link
     total_products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
@@ -304,12 +312,14 @@ def search_suggestions(request):
         try:
             category = Category.objects.get(id=int(category_id))
             descendant_ids = [category.id]
+
             def get_all_children(cat):
                 children = list(cat.children.all())
                 all_children = children[:]
                 for child in children:
                     all_children.extend(get_all_children(child))
                 return all_children
+
             descendants = get_all_children(category)
             descendant_ids.extend([d.id for d in descendants])
             total_products = total_products.filter(category_id__in=descendant_ids)
@@ -345,7 +355,7 @@ def search_results(request):
     search_query = request.GET.get("q", "").strip()
     highlight_product_id = request.GET.get("product_id", "").strip()
     category_slug = request.GET.get("category", "").strip()
-    
+
     if not search_query:
         return redirect("web:home")
 
@@ -359,12 +369,14 @@ def search_results(request):
             search_category = Category.objects.get(slug=category_slug)
             # Get all descendant category IDs (including the category itself)
             descendant_ids = [search_category.id]
+
             def get_all_children(cat):
                 children = list(cat.children.all())
                 all_children = children[:]
                 for child in children:
                     all_children.extend(get_all_children(child))
                 return all_children
+
             descendants = get_all_children(search_category)
             descendant_ids.extend([d.id for d in descendants])
             products = products.filter(category_id__in=descendant_ids)
@@ -372,9 +384,7 @@ def search_results(request):
             search_category = None
 
     # Apply search filter
-    products = products.filter(
-        Q(name__icontains=search_query) | Q(description__icontains=search_query)
-    )
+    products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
 
     # Store base products for attribute computation (before attribute filtering)
     base_search_products = products
@@ -382,6 +392,7 @@ def search_results(request):
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
     selected_attributes_slugs = set()
+    applied_attribute_filter = False
     for key in request.GET.keys():
         if key.startswith("attr_"):
             try:
@@ -396,11 +407,27 @@ def search_results(request):
                 if valid_option_ids:
                     selected_attributes.update(valid_option_ids)
                     # Filter products that have any of these attribute options
-                    products = products.filter(
-                        attribute_values__option_id__in=valid_option_ids
-                    )
+                    products = products.filter(attribute_values__option_id__in=valid_option_ids)
+                    applied_attribute_filter = True
             except (ValueError, TypeError):
                 pass
+
+    if applied_attribute_filter:
+        products = products.distinct()
+
+    # Price filtering
+    current_price_min = request.GET.get("price_min", "").strip()
+    current_price_max = request.GET.get("price_max", "").strip()
+    try:
+        if current_price_min:
+            products = products.filter(price__gte=Decimal(current_price_min))
+    except (InvalidOperation, ValueError):
+        current_price_min = ""
+    try:
+        if current_price_max:
+            products = products.filter(price__lte=Decimal(current_price_max))
+    except (InvalidOperation, ValueError):
+        current_price_max = ""
 
     # If a specific product ID is provided, prioritize it
     highlighted_product = None
@@ -432,7 +459,7 @@ def search_results(request):
             "attribute_values",
             queryset=ProductAttributeValue.objects.select_related("option__attribute")
             .filter(option__attribute__show_on_tile=True)
-            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
             to_attr="tile_attributes_prefetch",
         ),
     )
@@ -441,20 +468,6 @@ def search_results(request):
     total_count = products.count()
     if highlighted_product:
         total_count += 1
-
-    # Price filtering
-    current_price_min = request.GET.get("price_min", "").strip()
-    current_price_max = request.GET.get("price_max", "").strip()
-    try:
-        if current_price_min:
-            products = products.filter(price__gte=Decimal(current_price_min))
-    except (InvalidOperation, ValueError):
-        current_price_min = ""
-    try:
-        if current_price_max:
-            products = products.filter(price__lte=Decimal(current_price_max))
-    except (InvalidOperation, ValueError):
-        current_price_max = ""
 
     # Get per_page from request
     per_page_param = request.GET.get("per_page", "")
@@ -508,7 +521,7 @@ def search_results(request):
     # Get available attributes for filtering based on search results
     # Use base_search_products (before attribute filtering) so options don't disappear
     base_product_ids = list(base_search_products.values_list("id", flat=True)[:1000])
-    
+
     # Get all attribute options that have products in the search results
     base_option_ids = (
         ProductAttributeValue.objects.filter(product_id__in=base_product_ids)
@@ -518,7 +531,7 @@ def search_results(request):
     )
     base_option_id_to_count = {item["option_id"]: item["product_count"] for item in base_option_ids}
     base_option_ids_set = set(base_option_id_to_count.keys())
-    
+
     # Also get counts for currently filtered products
     product_ids_for_attributes = list(products.values_list("id", flat=True)[:1000])
     filtered_option_counts = (
@@ -528,19 +541,21 @@ def search_results(request):
         .filter(product_count__gt=0)
     )
     filtered_option_id_to_count = {item["option_id"]: item["product_count"] for item in filtered_option_counts}
-    
+
     # Get attribute definitions that have relevant options
     available_attributes = []
     if base_option_ids_set:
-        attr_definitions = AttributeDefinition.objects.filter(
-            options__id__in=base_option_ids_set
-        ).distinct().prefetch_related(
-            Prefetch(
-                "options",
-                queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
+        attr_definitions = (
+            AttributeDefinition.objects.filter(options__id__in=base_option_ids_set)
+            .distinct()
+            .prefetch_related(
+                Prefetch(
+                    "options", queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
+                )
             )
-        ).order_by("display_name")
-        
+            .order_by("display_name")
+        )
+
         for attr in attr_definitions:
             options_with_products = list(attr.options.all())
             if options_with_products:
@@ -551,21 +566,25 @@ def search_results(request):
 
     # Build active filters list for display chips
     active_filters = []
-    
+
     # Price filters
     if current_price_min:
-        active_filters.append({
-            "type": "price_min",
-            "value": current_price_min,
-            "label": _("Price: from %(price)s zł") % {"price": current_price_min},
-        })
+        active_filters.append(
+            {
+                "type": "price_min",
+                "value": current_price_min,
+                "label": _("Price: from %(price)s zł") % {"price": current_price_min},
+            }
+        )
     if current_price_max:
-        active_filters.append({
-            "type": "price_max", 
-            "value": current_price_max,
-            "label": _("Price: to %(price)s zł") % {"price": current_price_max},
-        })
-    
+        active_filters.append(
+            {
+                "type": "price_max",
+                "value": current_price_max,
+                "label": _("Price: to %(price)s zł") % {"price": current_price_max},
+            }
+        )
+
     # Attribute filters - create lookup for option values
     selected_option_ids = set()
     attr_slug_to_info = {}
@@ -580,23 +599,23 @@ def search_results(request):
                     if attr_id not in attr_slug_to_info:
                         attr_slug_to_info[attr_id] = []
                     attr_slug_to_info[attr_id].append((slug_val, option_id))
-    
+
     # Fetch option details for selected options
     if selected_option_ids:
-        options_with_attrs = AttributeOption.objects.filter(
-            id__in=selected_option_ids
-        ).select_related("attribute")
+        options_with_attrs = AttributeOption.objects.filter(id__in=selected_option_ids).select_related("attribute")
         option_lookup = {opt.id: opt for opt in options_with_attrs}
-        
+
         for attr_id, slug_option_pairs in attr_slug_to_info.items():
             for slug_val, option_id in slug_option_pairs:
                 opt = option_lookup.get(option_id)
                 if opt:
-                    active_filters.append({
-                        "type": f"attr_{attr_id}",
-                        "value": slug_val,
-                        "label": f"{opt.attribute.display_name}: {opt.value}",
-                    })
+                    active_filters.append(
+                        {
+                            "type": f"attr_{attr_id}",
+                            "value": slug_val,
+                            "label": f"{opt.attribute.name}: {opt.value}",
+                        }
+                    )
 
     context = {
         "products": products_page,
@@ -689,11 +708,7 @@ def _get_category_product_counts_batch(category_ids):
     Returns a dict of category_id -> product_count.
     """
     counts = (
-        Product.objects.filter(
-            status=ProductStatus.ACTIVE,
-            stock__gt=0,
-            category_id__in=category_ids
-        )
+        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0, category_id__in=category_ids)
         .values("category_id")
         .annotate(count=Count("id"))
     )
@@ -712,11 +727,7 @@ def _get_category_total_product_count(category, category_children_map, product_c
 def _get_category_product_count(category):
     """Get total product count for a category including all descendants."""
     category_ids = _get_descendant_category_ids(category)
-    return Product.objects.filter(
-        status=ProductStatus.ACTIVE,
-        stock__gt=0,
-        category_id__in=category_ids
-    ).count()
+    return Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0, category_id__in=category_ids).count()
 
 
 def _build_category_filter_tree(current_category=None):
@@ -741,10 +752,13 @@ def _build_breadcrumb(category):
     breadcrumb = []
     current = category
     while current:
-        breadcrumb.insert(0, {
-            "category": current,
-            "siblings": list(Category.objects.filter(parent=current.parent).only("id", "name", "slug"))
-        })
+        breadcrumb.insert(
+            0,
+            {
+                "category": current,
+                "siblings": list(Category.objects.filter(parent=current.parent).only("id", "name", "slug")),
+            },
+        )
         current = current.parent
     return breadcrumb
 
@@ -756,9 +770,18 @@ def product_list(request, category_id=None, category_slug=None):
     # Get current category from URL - use ID for faster lookup
     current_category = None
     if category_id:
-        current_category = Category.objects.select_related('parent').filter(id=category_id).first()
+        current_category = Category.objects.select_related("parent").filter(id=category_id).first()
         if not current_category:
             raise Http404("Category not found")
+        if category_slug and current_category.slug != category_slug:
+            redirect_url = current_category.get_absolute_url()
+            if request.GET:
+                redirect_url = f"{redirect_url}?{request.GET.urlencode()}"
+            return redirect(redirect_url, permanent=True)
+
+        # Apply draft changes to category early so boolean fields like show_banners
+        # are updated before we use them to decide what to load
+        apply_draft_to_existing_instance(request, current_category)
 
     # Start with active products
     products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
@@ -789,9 +812,7 @@ def product_list(request, category_id=None, category_slug=None):
     # Search filter
     search_query = request.GET.get("q", "").strip()
     if search_query:
-        products = products.filter(
-            Q(name__icontains=search_query) | Q(description__icontains=search_query)
-        )
+        products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
 
     # Price filtering
     current_price_min = request.GET.get("price_min", "").strip()
@@ -810,6 +831,7 @@ def product_list(request, category_id=None, category_slug=None):
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
     selected_attributes_slugs = set()
+    applied_attribute_filter = False
     for key in request.GET.keys():
         if key.startswith("attr_"):
             try:
@@ -824,11 +846,13 @@ def product_list(request, category_id=None, category_slug=None):
                 if valid_option_ids:
                     selected_attributes.update(valid_option_ids)
                     # Filter products that have any of these attribute options
-                    products = products.filter(
-                        attribute_values__option_id__in=valid_option_ids
-                    )
+                    products = products.filter(attribute_values__option_id__in=valid_option_ids)
+                    applied_attribute_filter = True
             except (ValueError, TypeError):
                 pass
+
+    if applied_attribute_filter:
+        products = products.distinct()
 
     # Sorting
     current_sort = request.GET.get("sort", SORT_OPTIONS[0][0])
@@ -848,7 +872,7 @@ def product_list(request, category_id=None, category_slug=None):
             "attribute_values",
             queryset=ProductAttributeValue.objects.select_related("option__attribute")
             .filter(option__attribute__show_on_tile=True)
-            .order_by("option__attribute__tile_display_order", "option__attribute__display_name"),
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
             to_attr="tile_attributes_prefetch",
         ),
     )
@@ -888,9 +912,9 @@ def product_list(request, category_id=None, category_slug=None):
     if current_category:
         category_ids = _get_descendant_category_ids(current_category)
         base_products = base_products.filter(category_id__in=category_ids)
-    
+
     base_product_ids = list(base_products.values_list("id", flat=True)[:1000])
-    
+
     # Get all attribute options that have products in the base category
     base_option_ids = (
         ProductAttributeValue.objects.filter(product_id__in=base_product_ids)
@@ -900,7 +924,7 @@ def product_list(request, category_id=None, category_slug=None):
     )
     base_option_id_to_count = {item["option_id"]: item["product_count"] for item in base_option_ids}
     base_option_ids_set = set(base_option_id_to_count.keys())
-    
+
     # Also get counts for currently filtered products (to show how many products match current filters)
     product_ids_for_attributes = list(products.values_list("id", flat=True)[:1000])
     filtered_option_counts = (
@@ -910,20 +934,22 @@ def product_list(request, category_id=None, category_slug=None):
         .filter(product_count__gt=0)
     )
     filtered_option_id_to_count = {item["option_id"]: item["product_count"] for item in filtered_option_counts}
-    
+
     # Get attribute definitions that have relevant options
     available_attributes = []
     if base_option_ids_set:
         # Get all attribute definitions that have at least one option with products in base category
-        attr_definitions = AttributeDefinition.objects.filter(
-            options__id__in=base_option_ids_set
-        ).distinct().prefetch_related(
-            Prefetch(
-                "options",
-                queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
+        attr_definitions = (
+            AttributeDefinition.objects.filter(options__id__in=base_option_ids_set)
+            .distinct()
+            .prefetch_related(
+                Prefetch(
+                    "options", queryset=AttributeOption.objects.filter(id__in=base_option_ids_set).order_by("value")
+                )
             )
-        ).order_by("display_name")
-        
+            .order_by("name")
+        )
+
         for attr in attr_definitions:
             # Get all options for this attribute that exist in base category
             options_with_products = list(attr.options.all())
@@ -938,9 +964,7 @@ def product_list(request, category_id=None, category_slug=None):
     filter_categories = _build_category_filter_tree(current_category)
 
     # Get selected category IDs from query params
-    selected_category_ids = [
-        str(c) for c in request.GET.getlist("category") if c.isdigit()
-    ]
+    selected_category_ids = [str(c) for c in request.GET.getlist("category") if c.isdigit()]
 
     # Build query strings for pagination and sorting (removing view as it's now in localStorage)
     query_params = request.GET.copy()
@@ -954,8 +978,7 @@ def product_list(request, category_id=None, category_slug=None):
     query_string_without_sort = query_params_without_sort.urlencode()
 
     # Get view mode (list or grid) - default to list, overridden by localStorage in JS
-    view_mode = "list" 
-
+    view_mode = "list"
 
     # Calculate pagination info for display (e.g., "1-30 z 144")
     start_index = (products_page.number - 1) * per_page + 1
@@ -968,15 +991,15 @@ def product_list(request, category_id=None, category_slug=None):
     subcategories_nav = []
     current_category_product_count = None
     parent_category_product_count = None
-    
+
     if current_category:
         # Load all category data and product counts in batch (avoid N+1)
         category_children_map, all_categories_by_id = _build_category_children_map()
-        
+
         # Get all category IDs we need counts for
         all_category_ids = list(all_categories_by_id.keys())
         product_counts_by_category = _get_category_product_counts_batch(all_category_ids)
-        
+
         # Build subcategories with product counts
         children = category_children_map.get(current_category.id, [])
         for child in children:
@@ -985,7 +1008,7 @@ def product_list(request, category_id=None, category_slug=None):
             )
             if child.total_product_count > 0:
                 subcategories_nav.append(child)
-        
+
         # Get current category product count using cached data
         current_category_product_count = _get_category_total_product_count(
             current_category, category_children_map, product_counts_by_category
@@ -1005,21 +1028,25 @@ def product_list(request, category_id=None, category_slug=None):
 
     # Build active filters list for display chips
     active_filters = []
-    
+
     # Price filters
     if current_price_min:
-        active_filters.append({
-            "type": "price_min",
-            "value": current_price_min,
-            "label": _("Price: from %(price)s zł") % {"price": current_price_min},
-        })
+        active_filters.append(
+            {
+                "type": "price_min",
+                "value": current_price_min,
+                "label": _("Price: from %(price)s zł") % {"price": current_price_min},
+            }
+        )
     if current_price_max:
-        active_filters.append({
-            "type": "price_max", 
-            "value": current_price_max,
-            "label": _("Price: to %(price)s zł") % {"price": current_price_max},
-        })
-    
+        active_filters.append(
+            {
+                "type": "price_max",
+                "value": current_price_max,
+                "label": _("Price: to %(price)s zł") % {"price": current_price_max},
+            }
+        )
+
     # Attribute filters - create lookup for option values
     selected_option_ids = set()
     attr_slug_to_info = {}  # Maps attr_id -> list of (slug, option_id)
@@ -1034,24 +1061,24 @@ def product_list(request, category_id=None, category_slug=None):
                     if attr_id not in attr_slug_to_info:
                         attr_slug_to_info[attr_id] = []
                     attr_slug_to_info[attr_id].append((slug_val, option_id))
-    
+
     # Fetch option details for selected options
     if selected_option_ids:
-        options_with_attrs = AttributeOption.objects.filter(
-            id__in=selected_option_ids
-        ).select_related("attribute")
+        options_with_attrs = AttributeOption.objects.filter(id__in=selected_option_ids).select_related("attribute")
         option_lookup = {opt.id: opt for opt in options_with_attrs}
-        
+
         # Build active filter entries for each selected attribute option
         for attr_id, slug_option_pairs in attr_slug_to_info.items():
             for slug_val, option_id in slug_option_pairs:
                 opt = option_lookup.get(option_id)
                 if opt:
-                    active_filters.append({
-                        "type": f"attr_{attr_id}",
-                        "value": slug_val,
-                        "label": f"{opt.attribute.display_name}: {opt.value}",
-                    })
+                    active_filters.append(
+                        {
+                            "type": f"attr_{attr_id}",
+                            "value": slug_val,
+                            "label": f"{opt.attribute.name}: {opt.value}",
+                        }
+                    )
 
     context = {
         "products": products_page,
@@ -1081,6 +1108,47 @@ def product_list(request, category_id=None, category_slug=None):
         "parent_category_product_count": parent_category_product_count,
         "active_filters": active_filters,
     }
+
+    # Check if filters or non-default sorting are applied
+    # When filters/sorting are active, banners and recommended products should be hidden
+    has_filters_or_sorting = bool(active_filters) or current_sort != SORT_OPTIONS[0][0]
+    context["has_filters_or_sorting"] = has_filters_or_sorting
+
+    # Fetch category banners and recommended products (only when no filters/sorting applied)
+    if current_category and not has_filters_or_sorting:
+        # Get active banners for the category (only if show_banners is enabled)
+        if current_category.show_banners:
+            category_banners = CategoryBanner.objects.filter(
+                category=current_category,
+                is_active=True,
+            ).order_by("order", "-created_at")
+            context["category_banners"] = list(category_banners)
+
+        # Get recommended products for the category (only if show_recommended_products is enabled)
+        if current_category.show_recommended_products:
+            recommended_products = (
+                CategoryRecommendedProduct.objects.filter(
+                    category=current_category,
+                    product__status=ProductStatus.ACTIVE,
+                    product__stock__gt=0,
+                )
+                .select_related("product", "product__category")
+                .prefetch_related(
+                    Prefetch(
+                        "product__images",
+                        queryset=ProductImage.objects.order_by("sort_order", "id"),
+                    ),
+                    Prefetch(
+                        "product__attribute_values",
+                        queryset=ProductAttributeValue.objects.select_related("option__attribute")
+                        .filter(option__attribute__show_on_tile=True)
+                        .order_by("option__attribute__tile_display_order", "option__attribute__name"),
+                        to_attr="tile_attributes_prefetch",
+                    ),
+                )
+                .order_by("order", "id")[:12]
+            )
+            context["recommended_products"] = list(recommended_products)
 
     # Return partial template for HTMX requests
     if request.headers.get("HX-Request"):

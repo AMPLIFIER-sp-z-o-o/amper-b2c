@@ -35,76 +35,80 @@
 {% endblock %}
 
 {% block body %}
-<section id="product-list-page" class="bg-gray-50 py-4 antialiased dark:bg-gray-900 md:py-6">
+<section id="product-list-page" class="bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
-    <!-- Header with breadcrumb and controls -->
-    <div class="mb-4 items-end justify-between sm:flex md:mb-8">
-      <div class="mb-4 sm:mb-0 text-center md:text-left">
-        <!-- Breadcrumb -->
-        <nav class="flex justify-center md:justify-start" aria-label="Breadcrumb">
-          <ol class="inline-flex items-center justify-center md:justify-start space-x-1 md:space-x-2 rtl:space-x-reverse flex-wrap gap-y-1">
-            <li class="inline-flex items-center">
-              <a href="{% url 'web:home' %}" class="md:-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                <svg class="me-2.5 h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z" />
-                </svg>
-                {% translate "Home" %}
+    <!-- Breadcrumb (full width, at top) -->
+    <nav class="flex justify-center md:justify-start mb-2" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center justify-center md:justify-start space-x-1 md:space-x-2 rtl:space-x-reverse flex-wrap gap-y-1">
+        <li class="inline-flex items-center">
+          <a href="{% url 'web:home' %}" class="md:-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <svg class="me-2.5 h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+              <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z" />
+            </svg>
+            {% translate "Home" %}
+          </a>
+        </li>
+        {% for item in breadcrumb %}
+        <li class="inline-flex items-center" {% if forloop.last %}aria-current="page"{% endif %}>
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+            </svg>
+            
+            <div class="relative breadcrumb-item-container flex items-center rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <a href="{{ item.category.get_absolute_url }}" class="inline-flex items-center py-2 ps-3 pe-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                {{ item.category.name }}
               </a>
-            </li>
-            {% for item in breadcrumb %}
-            <li class="inline-flex items-center" {% if forloop.last %}aria-current="page"{% endif %}>
-              <div class="flex items-center">
-                <svg class="h-5 w-5 text-gray-400 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+              
+              <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 ps-1 pe-3 text-sm font-medium text-gray-700 dark:text-gray-400">
+                <svg class="w-2.5 h-2.5 breadcrumb-arrow transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
                 </svg>
-                
-                <div class="relative breadcrumb-item-container flex items-center rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                  <a href="{{ item.category.get_absolute_url }}" class="inline-flex items-center py-2 ps-3 pe-1 text-sm font-medium text-gray-700 dark:text-gray-400">
-                    {{ item.category.name }}
-                  </a>
-                  
-                  <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 ps-1 pe-3 text-sm font-medium text-gray-700 dark:text-gray-400">
-                    <svg class="w-2.5 h-2.5 breadcrumb-arrow transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
-                    </svg>
-                  </button>
+              </button>
 
-                  <!-- Dropdown menu -->
-                  <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-60 dark:bg-gray-700 overflow-hidden animate-fade-in">
-                      <ul class="max-h-80 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
-                        {% for sibling in item.siblings %}
-                        <li>
-                          <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
-                            {{ sibling.name }}
-                          </a>
-                        </li>
-                        {% endfor %}
-                      </ul>
-                  </div>
-                </div>
+              <!-- Dropdown menu -->
+              <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-60 dark:bg-gray-700 overflow-hidden animate-fade-in">
+                  <ul class="max-h-80 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
+                    {% for sibling in item.siblings %}
+                    <li>
+                      <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
+                        {{ sibling.name }}
+                      </a>
+                    </li>
+                    {% endfor %}
+                  </ul>
               </div>
-            </li>
-            {% endfor %}
-          </ol>
-        </nav>
-        <h2 class="mt-3 text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">{{ page_title }}</h2>
-        {% if total_count %}
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          {% blocktrans count counter=total_count %}{{ counter }} product found{% plural %}{{ counter }} products found{% endblocktrans %}
-        </p>
-        {% endif %}
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ol>
+    </nav>
+
+    <!-- Main content area with sidebar -->
+    <div class="gap-6 lg:flex lg:items-start">
+      <!-- Left Column: Title + Sidebar -->
+      <div class="lg:shrink-0 lg:w-80">
+        <!-- Title and count -->
+        <div class="mb-4 text-center md:text-left">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">{{ page_title }}</h2>
+          <p id="products-found-text" class="mt-1 text-sm text-gray-500 dark:text-gray-400" data-singular="{% translate "product found" %}" data-plural="{% translate "products found" %}">
+            {% blocktrans count counter=total_count %}{{ counter }} product found{% plural %}{{ counter }} products found{% endblocktrans %}
+          </p>
+        </div>
+        
+        <!-- Desktop Sidebar -->
+        <aside id="sidebar" class="hidden w-full overflow-hidden border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:block lg:rounded-lg">
+          {% include "web/components/product_list_filters.html" %}
+        </aside>
       </div>
-    </div>
 
-    <div class="gap-6 lg:flex">
-      <!-- Desktop Sidebar -->
-      <aside id="sidebar" class="hidden h-full w-80 shrink-0 overflow-hidden border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 lg:block lg:rounded-lg">
-        {% include "web/components/product_list_filters.html" %}
-      </aside>
-
-      <!-- Products Grid -->
-      <div class="w-full" id="products-container">
-        {% include "web/product_list_partial.html" %}
+      <!-- Right Column: Banner + Products -->
+      <div class="w-full min-w-0">
+        <!-- Products Grid (includes desktop banner on page 1) -->
+        <div id="products-container">
+          {% include "web/product_list_partial.html" %}
+        </div>
       </div>
     </div>
 
@@ -133,7 +137,7 @@
              data-clear-all-filters
              data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
              class="shrink-0 px-4 py-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">{% translate "Clear filters" %}</a>
-          <button type="submit" class="flex-1 rounded-lg bg-primary-700 px-6 py-3 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{% translate "Show results" %} ({{ total_count }})</button>
+          <button type="submit" id="mobile-show-results-btn" class="flex-1 rounded-lg bg-primary-700 px-6 py-3 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{% translate "Show results" %} (<span id="mobile-results-count">{{ total_count }}</span>)</button>
         </div>
       </div>
     </form>
@@ -157,16 +161,16 @@
           <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Sort by" %}</p>
           <div class="space-y-1">
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'relevance' %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_sort" value="relevance" {% if current_sort == 'relevance' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">{% translate "Most relevant" %}</span>
+              <input type="radio" name="mobile_sort" value="relevance" {% if current_sort == 'relevance' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if current_sort == 'relevance' %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">{% translate "Most relevant" %}</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'price_asc' %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_sort" value="price_asc" {% if current_sort == 'price_asc' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">{% translate "Price: Low to High" %}</span>
+              <input type="radio" name="mobile_sort" value="price_asc" {% if current_sort == 'price_asc' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if current_sort == 'price_asc' %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">{% translate "Price: Low to High" %}</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'price_desc' %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_sort" value="price_desc" {% if current_sort == 'price_desc' %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">{% translate "Price: High to Low" %}</span>
+              <input type="radio" name="mobile_sort" value="price_desc" {% if current_sort == 'price_desc' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if current_sort == 'price_desc' %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">{% translate "Price: High to Low" %}</span>
             </label>
           </div>
         </div>
@@ -175,16 +179,16 @@
           <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Results per page" %}</p>
           <div class="space-y-1">
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 30 or not per_page %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_per_page" value="30" {% if per_page == 30 or not per_page %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">30</span>
+              <input type="radio" name="mobile_per_page" value="30" {% if per_page == 30 or not per_page %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if per_page == 30 or not per_page %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">30</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 60 %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_per_page" value="60" {% if per_page == 60 %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">60</span>
+              <input type="radio" name="mobile_per_page" value="60" {% if per_page == 60 %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if per_page == 60 %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">60</span>
             </label>
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 90 %}bg-gray-100 dark:bg-gray-700{% endif %}">
-              <input type="radio" name="mobile_per_page" value="90" {% if per_page == 90 %}checked{% endif %} class="h-4 w-4 text-gray-900 border-gray-300 focus:ring-gray-900 dark:text-white dark:border-gray-600 dark:focus:ring-gray-600 transition-colors">
-              <span class="text-sm text-gray-900 dark:text-white">90</span>
+              <input type="radio" name="mobile_per_page" value="90" {% if per_page == 90 %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
+              <span class="text-sm {% if per_page == 90 %}text-primary-600 dark:text-primary-400 font-bold{% else %}text-gray-900 dark:text-white{% endif %}">90</span>
             </label>
           </div>
         </div>
@@ -192,6 +196,7 @@
     </div>
   </div>
 </section>
+
 {% endblock %}
 
 {% block page_js %}

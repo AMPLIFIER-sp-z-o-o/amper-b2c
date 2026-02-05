@@ -1,5 +1,6 @@
 from django.contrib import admin
 from rest_framework_api_key.admin import APIKeyModelAdmin
+
 from apps.utils.admin_mixins import HistoryModelAdmin
 
 from .models import UserAPIKey

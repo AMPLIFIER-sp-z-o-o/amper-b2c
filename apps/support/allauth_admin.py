@@ -18,8 +18,8 @@ from django.utils.translation import gettext_lazy as _
 from unfold import widgets as unfold_widgets
 from unfold.admin import StackedInline
 
-from apps.utils.admin_mixins import HistoryModelAdmin
 from apps.users.models import SocialAppSettings
+from apps.utils.admin_mixins import HistoryModelAdmin
 
 
 class SocialAppSettingsInline(StackedInline):
