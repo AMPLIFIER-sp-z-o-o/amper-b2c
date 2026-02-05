@@ -1,25 +1,23 @@
-import { defineConfig } from 'vite';
-import path from 'path';
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import path from "path";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
-  plugins: [
-      tailwindcss()
-  ],
+  plugins: [tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './assets/js'),
+      "@": path.resolve(__dirname, "./assets/js"),
     },
   },
-  base: '/static/', // Should match Django's STATIC_URL
+  base: "/static/", // Should match Django's STATIC_URL
   build: {
     manifest: true, // The manifest.json file is needed for django-vite
-    outDir: path.resolve(__dirname, './static'), // Output directory for production build
+    outDir: path.resolve(__dirname, "./static"), // Output directory for production build
     emptyOutDir: false, // Preserve the outDir to not clobber Django's other files.
     rollupOptions: {
       input: {
-        'site-js': path.resolve(__dirname, './assets/js/site.js'),
-        'admin-js': path.resolve(__dirname, './assets/js/admin.js'),
+        "site-js": path.resolve(__dirname, "./assets/js/site.js"),
+        "admin-js": path.resolve(__dirname, "./assets/js/admin.js"),
       },
       output: {
         // Output JS bundles to js/ directory with -bundle suffix
@@ -28,11 +26,11 @@ export default defineConfig({
         chunkFileNames: `js/[name]-[hash].js`,
         // For CSS and other assets
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name && assetInfo.name.endsWith('.css')) {
+          if (assetInfo.name && assetInfo.name.endsWith(".css")) {
             // Try to name CSS files like css/[entry_name].css, removing potential hash
-            let baseName = path.basename(assetInfo.name, '.css');
+            let baseName = path.basename(assetInfo.name, ".css");
             const hashPattern = /\.[0-9a-fA-F]{8}$/;
-            baseName = baseName.replace(hashPattern, '');
+            baseName = baseName.replace(hashPattern, "");
             return `css/${baseName}.css`;
           }
           // Default for other assets (fonts, images, etc.)
