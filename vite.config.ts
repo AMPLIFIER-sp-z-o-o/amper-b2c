@@ -23,7 +23,7 @@ export default defineConfig({
       },
       output: {
         // Output JS bundles to js/ directory with -bundle suffix
-        entryFileNames: `js/[name]-bundle.js`,
+        entryFileNames: `js/[name]-bundle-[hash].js`,
         // For shared chunks, keep hash for cache busting
         chunkFileNames: `js/[name]-[hash].js`,
         // For CSS and other assets
