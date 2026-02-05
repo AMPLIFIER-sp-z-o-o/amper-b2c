@@ -1,0 +1,83 @@
+version: "3"
+
+services:
+  b2c:
+    image: ampliapps/amper-b2c:latest
+    restart: unless-stopped
+    expose:
+      - 80
+    env_file: b2c.env
+    command: gunicorn --bind 0.0.0.0:80 --workers 1 --threads 8 --timeout 0 amplifier.asgi:application -k uvicorn.workers.UvicornWorker
+    depends_on:
+      - redis
+    networks:
+      - amper-b2c
+      - default
+    container_name: amper-b2c-demo
+    volumes:
+      - ./static:/code/static_root
+    environment:
+      VIRTUAL_HOST: amper-b2c.ampliapps.com
+      LETSENCRYPT_HOST: amper-b2c.ampliapps.com
+      LETSENCRYPT_EMAIL: support@ampliapps.com
+
+  celery:
+    image: ampliapps/amper-b2c:latest
+    command: celery -A amplifier worker -l INFO --pool gevent --concurrency 20
+    restart: unless-stopped
+    env_file: b2c.env
+    depends_on:
+      - redis
+    networks:
+      - amper-b2c
+    container_name: amper-b2c-celery
+
+  celerybeat:
+    image: ampliapps/amper-b2c:latest
+    command: celery -A amplifier beat -l INFO
+    restart: unless-stopped
+    env_file: b2c.env
+    depends_on:
+      - redis
+    networks:
+      - amper-b2c
+    container_name: amper-b2c-celerybeat
+    
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    container_name: amper-b2c-redis
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "500mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    volumes:
+      - ./redis:/data
+    networks:
+      - amper-b2c
+
+  static:
+    image: nginx:latest
+    container_name: amper-b2c-static
+    expose:
+      - 80
+    restart: unless-stopped
+    volumes:
+      - ./static:/usr/share/nginx/html
+    environment:
+      VIRTUAL_HOST: amper-b2c-static.ampliapps.com
+      LETSENCRYPT_HOST: amper-b2c-static.ampliapps.com
+
+networks:
+  amper-b2c:
+    external:
+      name: amper-b2c
+  default:
+    external:
+      name: nginx-proxy    
