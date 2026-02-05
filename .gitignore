@@ -25,6 +25,8 @@ _dist/
 # compiled static files are built in dev/deploy
 static/css/admin-tailwind-css.css
 static/css/site-tailwind-css.css
+static/css/admin.css
+static/css/site.css
 static/js/*-bundle.js
 static/js/*.js.map
 static/.vite/

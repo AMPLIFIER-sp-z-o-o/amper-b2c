@@ -18,12 +18,12 @@ export default defineConfig({
     emptyOutDir: false, // Preserve the outDir to not clobber Django's other files.
     rollupOptions: {
       input: {
-        'site-tailwind-css': path.resolve(__dirname, './assets/css/site.css'),
-        site: path.resolve(__dirname, './assets/js/site.js'),
+        'site-js': path.resolve(__dirname, './assets/js/site.js'),
+        'admin-js': path.resolve(__dirname, './assets/js/admin.js'),
       },
       output: {
         // Output JS bundles to js/ directory with -bundle suffix
-        entryFileNames: `js/[name]-bundle-[hash].js`,
+        entryFileNames: `js/[name]-bundle.js`,
         // For shared chunks, keep hash for cache busting
         chunkFileNames: `js/[name]-[hash].js`,
         // For CSS and other assets
@@ -33,7 +33,7 @@ export default defineConfig({
             let baseName = path.basename(assetInfo.name, '.css');
             const hashPattern = /\.[0-9a-fA-F]{8}$/;
             baseName = baseName.replace(hashPattern, '');
-            return `css/${baseName}-[hash].css`;
+            return `css/${baseName}.css`;
           }
           // Default for other assets (fonts, images, etc.)
           return `assets/[name]-[hash][extname]`;
