@@ -169,6 +169,30 @@ html {
 }
 
 /* ===========================================
+   Button Pressed (Active) State
+   Provides visual feedback when buttons are clicked.
+   Use .btn-press for a subtle background shift on press.
+   =========================================== */
+
+.btn-press {
+  @apply active:bg-gray-300 dark:active:bg-gray-600 transition-colors;
+}
+
+/* ===========================================
+   Disabled Button Hover Fix
+   Buttons with disabled + cursor-not-allowed must NOT
+   change background or text color on hover.
+   =========================================== */
+
+button:disabled:hover,
+button[disabled]:hover,
+.disabled-no-hover:hover {
+  background-color: inherit !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+/* ===========================================
    Typography Utility Classes
    =========================================== */
 
@@ -187,6 +211,36 @@ html {
  */
 .text-muted {
   @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+/* ===========================================
+   Button Loading State
+   Shows a spinner and disables interaction while
+   an async operation (fetch/POST) is in progress.
+   Use via JS: btnLoading(btn) / btnReset(btn)
+   =========================================== */
+
+.btn-loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-spinner svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Utilities */

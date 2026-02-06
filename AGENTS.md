@@ -260,7 +260,7 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 
 ```html
 <h1 class="text-2xl font-bold">Favourites</h1>
-<p class="text-subtitle mt-1">Manage your shopping lists and saved items</p>
+<p class="text-subtitle mt-1">Manage your shopping lists and saved products</p>
 
 <!-- Inside a list -->
 <div class="mt-4">
@@ -300,6 +300,189 @@ hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors
 - ❌ `hover:bg-gray-100` – too subtle, use gray-200
 
 **Exception:** Overlay UI elements (e.g., slider navigation buttons on images) may use different hover patterns like `hover:bg-white dark:hover:bg-gray-800` for visual contrast.
+
+### Button Pressed (Active) States
+
+All interactive buttons that provide an action feedback (share, edit, settings-type buttons) MUST include a visible pressed/active state. This gives users tactile feedback that their click was registered.
+
+**CSS utility class** available in [assets/css/site.css](assets/css/site.css):
+
+- `.btn-press` – Applies `active:bg-gray-300 dark:active:bg-gray-600` with smooth transitions.
+
+**Usage:**
+
+```html
+<button class="btn-press bg-gray-100 hover:bg-gray-200 ...">Share list</button>
+```
+
+**When to use:** Secondary/tertiary action buttons (share, edit, sort toggles). Primary CTA buttons (e.g., "Add to cart") already use `active:scale-95` for press feedback and do NOT need `.btn-press`.
+
+### Disabled Button Hover Standards
+
+Disabled buttons with `cursor-not-allowed` MUST NOT change their background or text color on hover. This is enforced globally via CSS in [assets/css/site.css](assets/css/site.css).
+
+**For Tailwind-only buttons**, add these overrides alongside `disabled:opacity-40 disabled:cursor-not-allowed`:
+
+```html
+disabled:hover:bg-transparent disabled:hover:text-gray-500
+dark:disabled:hover:text-gray-400 dark:disabled:hover:bg-transparent
+```
+
+**Example:**
+
+```html
+<button
+  disabled
+  class="text-gray-500 hover:text-red-600 hover:bg-gray-200
+  disabled:opacity-40 disabled:cursor-not-allowed
+  disabled:hover:bg-transparent disabled:hover:text-gray-500"
+>
+  Remove
+</button>
+```
+
+### Async Button Loading States (Preventing Double-Clicks)
+
+Every button that triggers an asynchronous operation (fetch, POST, AJAX) **MUST** show a loading state while the request is in progress. This prevents users from clicking multiple times and creating duplicate requests or bugs.
+
+**Architecture:**
+
+1. **CSS classes** are defined in [assets/css/site.css](assets/css/site.css): `.btn-loading`, `.btn-spinner`
+2. **JS helpers** are defined in [assets/js/site.js](assets/js/site.js): `window.btnLoading(btn)`, `window.btnReset(btn)`
+3. **cart.js** uses these helpers via event delegation for all `.add-to-cart-btn` and `.remove-cart-line` buttons
+
+**How it works:**
+
+- `btnLoading(btn)` — Adds `.btn-loading` class (dims button, disables pointer-events), hides children with `visibility: hidden`, and inserts an absolutely-positioned spinner overlay. The button remains the same size.
+- `btnReset(btn)` — Removes `.btn-loading` class and spinner, restoring the button to normal.
+
+**Rules:**
+
+1. **Always guard against double-clicks**: Check `btn.classList.contains('btn-loading')` and `return` early if true.
+2. **Call `btnLoading(btn)` before the fetch/POST**: The user sees immediate feedback.
+3. **Call `btnReset(btn)` in the `finally` block** (or `.finally()` for promise chains): The button is restored whether the request succeeds or fails.
+4. **For standard form submissions** (non-AJAX, server redirect): Call `btnLoading` in the `submit` event handler. No `btnReset` needed since the page navigates away.
+5. **Do NOT use `cursor-not-allowed`** on loading buttons — the button should simply not respond to clicks (via `pointer-events: none`).
+6. **Do NOT use `disabled` attribute** for loading state — use the CSS-based approach instead.
+
+**Usage pattern (async/await):**
+
+```javascript
+btn.addEventListener('click', async (e) => {
+  if (btn.classList.contains('btn-loading')) return;
+  window.btnLoading(btn);
+  try {
+    const res = await fetch('/api/action/', { method: 'POST', ... });
+    const data = await res.json();
+    // handle response
+  } catch (e) {
+    // handle error
+  } finally {
+    window.btnReset(btn);
+  }
+});
+```
+
+**Usage pattern (event delegation with promises):**
+
+```javascript
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('.my-action-btn');
+  if (!btn || btn.classList.contains('btn-loading')) return;
+  window.btnLoading(btn);
+
+  fetch('/api/action/', { method: 'POST', ... })
+    .then(res => res.json())
+    .then(data => { /* handle */ })
+    .catch(console.error)
+    .finally(() => window.btnReset(btn));
+});
+```
+
+**Which buttons require this:**
+
+- All "Add to cart" buttons (`.add-to-cart-btn`) — handled by [static/js/cart.js](static/js/cart.js)
+- All "Remove from cart" buttons (`.remove-cart-line`) — handled by cart.js
+- All favourite/heart toggle buttons (`.favourite-btn`) — handled by [assets/js/site.js](assets/js/site.js)
+- All "Create List", "Save Changes", "Delete List" modal submit buttons
+- All bulk action buttons (bulk remove, copy to list, add to cart)
+- Any new button that triggers a network request
+
+### Dropdown & Menu Text Weight
+
+All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `font-medium` (`text-sm font-medium`) for their text. Never use the default `font-normal` weight for dropdown items — thin text reduces readability and looks inconsistent with the rest of the UI.
+
+**Example:**
+
+```html
+<button class="text-sm font-medium text-gray-700 dark:text-gray-300 ...">
+  Share list
+</button>
+```
+
+### Dropdown & Popover Open/Close Transitions
+
+All dropdowns, context menus, and popovers that appear on click MUST use CSS transitions for opening and closing. Never toggle `hidden` class directly — this causes an instant, jarring appearance. Instead, use opacity + scale transitions.
+
+**Pattern:** Use `opacity-0 scale-95 pointer-events-none` as the closed state and `opacity-100 scale-100` as the open state with `transition-all duration-150 ease-out`.
+
+**Closed state (default):**
+
+```html
+<div
+  class="... opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out"
+></div>
+```
+
+**Open state (toggled via JS):**
+
+```javascript
+// Open
+el.classList.remove("opacity-0", "scale-95", "pointer-events-none");
+el.classList.add("opacity-100", "scale-100");
+
+// Close
+el.classList.add("opacity-0", "scale-95", "pointer-events-none");
+el.classList.remove("opacity-100", "scale-100");
+```
+
+**NEVER do this:**
+
+```javascript
+// ❌ DON'T: Instant toggle without animation
+el.classList.toggle("hidden");
+```
+
+### Navbar Dropdown Backdrop & Z-Index Layering
+
+The navigation bar uses a **backdrop overlay** (`#nav-backdrop`) that dims the entire page when dropdowns (Cart, Account) or the categories drawer are open. To ensure all fixed/sticky elements on the page (e.g., sticky bottom bars) are properly dimmed:
+
+#### Z-Index Hierarchy (MUST follow)
+
+| Layer                        | Z-Index  | Purpose                                    |
+| ---------------------------- | -------- | ------------------------------------------ |
+| Sticky bottom bars           | `z-40`   | Fixed bars at page bottom (e.g., wishlist) |
+| **Nav backdrop**             | `z-45`   | Dims everything below the navbar           |
+| Nav / categories row         | `z-50`   | Main navigation bar                        |
+| Category dropdowns container | `z-50`   | Dropdown menus from navbar                 |
+| Categories drawer backdrop   | `z-[70]` | Drawer-specific backdrop (above nav)       |
+| Categories drawer            | `z-80`   | Slide-out drawer panel                     |
+
+**Rules:**
+
+- Any **fixed or sticky bar** added to the page (e.g., bottom action bars, floating buttons) MUST use `z-40` or lower so the nav backdrop (`z-45`) covers it when dropdowns are open.
+- **NEVER** set a fixed/sticky element to `z-45` or higher unless it is part of the navigation system itself.
+- When adding new fixed/sticky UI elements, verify they are dimmed by the backdrop by testing with Cart or Account dropdown open.
+
+#### Dropdown Transition Debouncing
+
+When the user moves their mouse between adjacent navbar triggers (e.g., from "My Cart" to "Account"), the dropdown system uses a **debounced close** (`scheduleCloseAllDropdowns`) with a 100ms grace period. This prevents:
+
+- Backdrop flickering on/off during transition
+- Categories row shadow (`is-dimmed`) flashing
+- Bottom bar dimming appearing and disappearing rapidly
+
+**When modifying dropdown hover logic**, always use `scheduleCloseAllDropdowns()` instead of directly calling `closeAllDropdowns()` + `hideBackdrop()` in `mouseleave` handlers. Call `cancelScheduledClose()` in `openDropdown()` and in `mouseenter` handlers on dropdown elements to prevent premature closing.
 
 ### Price Formatting
 
@@ -405,6 +588,83 @@ Example pattern from `homepage_product_section.html`:
 >
   <!-- Component content -->
 </section>
+```
+
+### Shared Product Card Components (MUST Reuse)
+
+When displaying products in **any** view (category pages, favourites, search results, new features), you **MUST** reuse the existing shared card components via `{% include %}`. **NEVER** duplicate or copy-paste product card HTML into a new template. This is a **strict architectural rule** — every product tile in the application is a single shared component imported wherever needed. If you need to display a product in a new page or section, **always `{% include %}` one of the components below**. Do NOT create a new card template.
+
+#### Available Card Components
+
+| Component           | Path                                                         | Purpose                                              |
+| ------------------- | ------------------------------------------------------------ | ---------------------------------------------------- |
+| **List card**       | `templates/web/components/product_list_card.html`            | Horizontal card for list/row views                   |
+| **Grid card**       | `templates/web/components/homepage_product_card.html`        | Vertical card for grid layouts                       |
+| **Slider card**     | `templates/web/components/homepage_product_slider_card.html` | Card for Swiper slider carousels                     |
+| **Tile attributes** | `templates/web/components/product_tile_attributes.html`      | Shared attribute pills (used inside card components) |
+
+#### Where Each Component Is Currently Used
+
+These are all **the same shared component** imported in multiple places — no duplication:
+
+- **List card** (`product_list_card.html`):
+  - Category page list view → `templates/web/product_list_partial.html`
+  - Favourites page → `templates/favourites/partials/wishlist_items.html`
+- **Grid card** (`homepage_product_card.html`):
+  - Category page grid view → `templates/web/product_list_partial.html`
+  - Homepage product sections → `templates/web/components/homepage_product_section.html`
+  - Category recommended products → `templates/web/components/category_recommended_products.html`
+- **Slider card** (`homepage_product_slider_card.html`):
+  - Homepage slider sections → `templates/web/components/homepage_product_slider_section.html`
+
+When adding a new page or feature that shows products, **pick from the table above and `{% include %}` it** — do not create any new card template.
+
+#### Context Variables
+
+All card components accept a `product` variable. Additional optional context:
+
+- **`is_favourited`** (bool) – Pre-fills the heart/favourite icon as active. Used on the favourites page where all displayed products are already favourited.
+
+#### Usage Examples
+
+```django-html
+{# Category page (list view) – standard usage #}
+{% include "web/components/product_list_card.html" with product=product %}
+
+{# Favourites page – pre-fill heart icon #}
+{% include "web/components/product_list_card.html" with product=item.product is_favourited=True %}
+
+{# Homepage grid #}
+{% include "web/components/homepage_product_card.html" with product=product %}
+```
+
+#### Adding New Context Variables
+
+If a new view needs slightly different card behavior (e.g., a "compare" button), **extend the existing component** with a new optional context variable instead of forking the template. Follow the `is_favourited` pattern:
+
+1. Add conditional logic inside the shared component that checks for the variable
+2. Default behavior when variable is absent must remain unchanged
+3. Pass the variable via `{% include ... with my_var=value %}`
+
+#### ❌ Anti-Pattern (NEVER do this)
+
+```django-html
+{# DON'T: Copy card HTML into your template #}
+<div class="product-card ...">
+  <img src="{{ product.primary_image }}">
+  <h3>{{ product.name }}</h3>
+  <!-- 80+ lines of duplicated card markup -->
+</div>
+
+{# DON'T: Create a new card template for a new page #}
+{# e.g., templates/my_new_feature/product_card.html — WRONG #}
+```
+
+#### ✅ Correct Pattern
+
+```django-html
+{# DO: Always include the shared component #}
+{% include "web/components/product_list_card.html" with product=product %}
 ```
 
 ## Change Validation & Testing

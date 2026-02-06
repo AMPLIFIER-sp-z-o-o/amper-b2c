@@ -294,7 +294,7 @@ body.nav-scroll-locked {
 </style>
 
 {# Backdrop overlay for dropdowns #}
-<div id="nav-backdrop" class="fixed inset-0 bg-black/40 z-40 transition-opacity duration-200 opacity-0 pointer-events-none" aria-hidden="true"></div>
+<div id="nav-backdrop" class="fixed inset-0 bg-black/40 z-45 transition-opacity duration-200 opacity-0 pointer-events-none" aria-hidden="true"></div>
 
 <nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-50 bg-white dark:bg-gray-800 antialiased relative transition-shadow duration-300">
   {# Top row: Logo, Search, Cart, Account #}
@@ -356,6 +356,17 @@ body.nav-scroll-locked {
               <span class="hidden sm:flex">CMS</span>
             </a>
             {% endif %}
+
+            {# Favourites Button — visible for all users (anonymous uses session) #}
+            <a
+              href="{% url 'favourites:favourites_page' %}"
+              class="inline-flex items-center rounded-lg justify-center p-2 md:p-2 hover:bg-gray-200 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white cursor-pointer transition-colors duration-300"
+            >
+              <svg class="w-6 h-6 md:w-5 md:h-5 lg:me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6C6.5 1 1 8 5.8 13l6.2 7 6.2-7C23 8 17.5 1 12 6Z"></path>
+              </svg>
+              <span class="hidden lg:block">{% translate "Favourites" %}</span>
+            </a>
 
             {# Cart Button #}
             <div class="relative nav-category-trigger" data-dropdown-target="cartDropdown">
@@ -1335,6 +1346,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let isScrollLocked = false;
   let initialBodyPaddingRight = '';
   let initialHtmlPaddingRight = '';
+  let dropdownCloseTimeout = null; // Debounce timer for closing dropdowns
   
   // Triggers are the buttons in the top bar
   const triggers = document.querySelectorAll('.nav-category-trigger');
@@ -1434,6 +1446,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function closeAllDropdowns() {
+    // Cancel any pending close timeout since we're actually closing now
+    if (dropdownCloseTimeout) {
+      clearTimeout(dropdownCloseTimeout);
+      dropdownCloseTimeout = null;
+    }
+
     document.querySelectorAll('.category-dropdown').forEach(el => {
       el.classList.add('hidden');
       el.classList.remove('is-connected');
@@ -1460,7 +1478,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     activeDropdown = null;
     lastPreviewedItem = null;
-    setCategoriesRowDimmed(false);
+    // Delay un-dimming categories row to stay in sync with backdrop fade-out (200ms transition).
+    // Without this delay, the row jumps from z-30 to z-50 instantly (above the still-fading backdrop),
+    // causing a staggered hide effect.
+    setTimeout(() => {
+      if (!activeDropdown) {
+        setCategoriesRowDimmed(false);
+      }
+    }, 200);
 
     // Unlock body scroll if mobile menu is also hidden
     const mobileMenu = document.getElementById('ecommerce-navbar-menu');
@@ -1468,6 +1493,28 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setScrollLocked(isMobileMenuOpen);
     window.removeEventListener('scroll', closeOnScroll);
+  }
+
+  // Debounced close: schedules closing after a short delay.
+  // If another dropdown opens before the delay expires, the close is cancelled.
+  // This prevents flickering of backdrop/shadow when moving between triggers.
+  function scheduleCloseAllDropdowns() {
+    if (dropdownCloseTimeout) {
+      clearTimeout(dropdownCloseTimeout);
+    }
+    dropdownCloseTimeout = setTimeout(() => {
+      dropdownCloseTimeout = null;
+      closeAllDropdowns();
+      hideBackdrop();
+    }, 100); // 100ms grace period for moving between triggers
+  }
+
+  // Cancel any scheduled close (called when opening a new dropdown)
+  function cancelScheduledClose() {
+    if (dropdownCloseTimeout) {
+      clearTimeout(dropdownCloseTimeout);
+      dropdownCloseTimeout = null;
+    }
   }
 
   function closeOnScroll() {
@@ -1478,6 +1525,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function openDropdown(trigger) {
+    // Cancel any pending close so we don't flicker backdrop/shadow
+    cancelScheduledClose();
+
     // Close drawer first to avoid overlapping
     hideDrawer();
 
@@ -1783,13 +1833,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      closeAllDropdowns();
-      hideBackdrop();
+      // Use debounced close to prevent flickering when mouse briefly passes
+      // through non-trigger space between navbar elements
+      scheduleCloseAllDropdowns();
     });
   });
 
   // Keep open when hovering the dropdown itself
   document.querySelectorAll('.category-dropdown').forEach(dropdown => {
+    // Cancel scheduled close when mouse enters a dropdown
+    dropdown.addEventListener('mouseenter', () => {
+      cancelScheduledClose();
+    });
+
     // When leaving the dropdown
     dropdown.addEventListener('mouseleave', (e) => {
       const destination = e.relatedTarget;
@@ -1806,8 +1862,8 @@ document.addEventListener('DOMContentLoaded', function() {
          return;
       }
       
-      closeAllDropdowns();
-      hideBackdrop();
+      // Use debounced close to prevent flickering
+      scheduleCloseAllDropdowns();
     });
   });
   
@@ -2063,7 +2119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (backdrop) {
       backdrop.style.top = '0';
       backdrop.style.height = '100%';
-      backdrop.classList.remove('z-40');
+      backdrop.classList.remove('z-45');
       backdrop.classList.add('z-[70]');
       showBackdrop();
     }
@@ -2081,7 +2137,7 @@ document.addEventListener('DOMContentLoaded', function() {
         backdrop.style.top = '';
         backdrop.style.height = '';
       backdrop.classList.remove('z-[70]');
-      backdrop.classList.add('z-40');
+      backdrop.classList.add('z-45');
     }
     // Restore nav + categories row positioning
     const navbarMain = document.querySelector('.top-nav-standard');
@@ -2174,7 +2230,7 @@ document.addEventListener('DOMContentLoaded', function() {
        // Position Row Wrapper Sticky
        rowWrapper.style.position = 'sticky';
        rowWrapper.style.top = `${navHeight}px`; // Stick exactly below the main nav
-       rowWrapper.style.zIndex = '40'; // Ensure it is below nav (50) but above content
+       rowWrapper.style.zIndex = '50'; // Same level as nav, above backdrop (z-45)
        
        // Reset width/left which might have been set by fixed logic
        rowWrapper.style.width = '100%';

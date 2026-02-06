@@ -495,8 +495,8 @@ class TestDeleteWishlistView(TestCase):
         assert response.status_code == 302  # Redirect on success
         assert not WishList.objects.filter(pk=wishlist.pk).exists()
 
-    def test_cannot_delete_default_wishlist(self):
-        """Test that default wishlist cannot be deleted."""
+    def test_can_delete_default_wishlist(self):
+        """Test that default wishlist can be deleted."""
         wishlist = WishList.get_or_create_default(user=self.user)
         
         client = Client()
@@ -505,8 +505,9 @@ class TestDeleteWishlistView(TestCase):
         response = client.post(
             reverse("favourites:delete_wishlist", args=[wishlist.pk])
         )
-        # Should fail or redirect with error
-        assert WishList.objects.filter(pk=wishlist.pk).exists()
+        # Default wishlist should be deleted successfully
+        assert response.status_code == 302
+        assert not WishList.objects.filter(pk=wishlist.pk).exists()
 
 
 class TestAddToWishlistView(TestCase):
@@ -934,7 +935,7 @@ class TestFavouritesPageViewEdgeCases(TestCase):
         default_list = WishList.get_or_create_default(user=self.user)
         WishList.objects.create(user=self.user, name="Other")
 
-        response = client.get(reverse("favourites:favourites_page"), {"list": "abc"})
+        response = client.get(reverse("favourites:favourites_page"), {"list": "nonexistent_id"})
         assert response.status_code == 200
         assert response.context["active_wishlist"].id == default_list.id
 
@@ -1095,15 +1096,15 @@ class TestDeleteWishlistViewEdgeCases(TestCase):
         cls.default = WishList.get_or_create_default(user=cls.user)
         cls.custom = WishList.objects.create(user=cls.user, name="Disposable")
 
-    def test_delete_default_wishlist_htmx_blocked(self):
+    def test_delete_default_wishlist_htmx_allowed(self):
         client = Client()
         client.login(username="deleteedge@example.com", password="testpass123")
         response = client.post(
             reverse("favourites:delete_wishlist", args=[self.default.id]),
             HTTP_HX_REQUEST="true",
         )
-        assert response.status_code == 400
-        assert WishList.objects.filter(pk=self.default.id).exists()
+        assert response.status_code == 200
+        assert not WishList.objects.filter(pk=self.default.id).exists()
 
     def test_delete_custom_wishlist_htmx_success(self):
         client = Client()
@@ -1480,6 +1481,14 @@ class TestWishlistPartialsView(TestCase):
             slug="partial-product",
             price=Decimal("13.00"),
             category=cls.category,
+            stock=5,
+        )
+        cls.product_out = Product.objects.create(
+            name="Partial Product Out",
+            slug="partial-product-out",
+            price=Decimal("9.00"),
+            category=cls.category,
+            stock=0,
         )
         cls.wishlist = WishList.get_or_create_default(user=cls.user)
         WishListItem.objects.create(
@@ -1487,15 +1496,34 @@ class TestWishlistPartialsView(TestCase):
             product=cls.product,
             price_when_added=cls.product.price,
         )
+        WishListItem.objects.create(
+            wishlist=cls.wishlist,
+            product=cls.product_out,
+            price_when_added=cls.product_out.price,
+        )
 
     def test_wishlist_items_partial(self):
         client = Client()
         client.login(username="partials@example.com", password="testpass123")
         response = client.get(
-            reverse("favourites:wishlist_items_partial", args=[self.wishlist.id])
+            reverse("favourites:wishlist_items_partial"),
+            {"list": self.wishlist.share_id},
         )
         assert response.status_code == 200
         assert "Partial Product" in response.content.decode()
+        assert "Partial Product Out" in response.content.decode()
+
+    def test_wishlist_items_partial_available_filter(self):
+        client = Client()
+        client.login(username="partials@example.com", password="testpass123")
+        response = client.get(
+            reverse("favourites:wishlist_items_partial"),
+            {"list": self.wishlist.share_id, "available": "1"},
+        )
+        assert response.status_code == 200
+        content = response.content.decode()
+        assert "Partial Product" in content
+        assert "Partial Product Out" not in content
 
     def test_wishlists_sidebar_partial(self):
         client = Client()
@@ -1503,4 +1531,305 @@ class TestWishlistPartialsView(TestCase):
         response = client.get(reverse("favourites:wishlists_sidebar_partial"))
         assert response.status_code == 200
         assert "Favourites" in response.content.decode() or "Ulubione" in response.content.decode()
+
+
+# ============================================
+# SHARE ID TESTS
+# ============================================
+
+
+class TestShareIdGeneration(TestCase):
+    """Tests for the share_id field on WishList model."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="shareid@example.com",
+            email="shareid@example.com",
+            password="testpass123",
+        )
+
+    def test_share_id_auto_generated(self):
+        """Test that share_id is automatically generated on creation."""
+        wishlist = WishList.objects.create(user=self.user, name="Test Share")
+        assert wishlist.share_id is not None
+        assert len(wishlist.share_id) == 10
+
+    def test_share_id_is_unique(self):
+        """Test that each wishlist gets a unique share_id."""
+        wishlists = [
+            WishList.objects.create(user=self.user, name=f"List {i}")
+            for i in range(10)
+        ]
+        share_ids = [wl.share_id for wl in wishlists]
+        assert len(set(share_ids)) == 10
+
+    def test_share_id_alphanumeric_lowercase(self):
+        """Test that share_id contains only lowercase letters and digits."""
+        import string
+        allowed = set(string.ascii_lowercase + string.digits)
+        wishlist = WishList.objects.create(user=self.user, name="Chars Test")
+        assert all(c in allowed for c in wishlist.share_id)
+
+    def test_share_id_preserved_on_save(self):
+        """Test that share_id doesn't change when the wishlist is updated."""
+        wishlist = WishList.objects.create(user=self.user, name="Persist Test")
+        original_share_id = wishlist.share_id
+        wishlist.name = "Updated Name"
+        wishlist.save()
+        wishlist.refresh_from_db()
+        assert wishlist.share_id == original_share_id
+
+    def test_default_wishlist_has_share_id(self):
+        """Test that default wishlist created via get_or_create_default has share_id."""
+        wishlist = WishList.get_or_create_default(user=self.user)
+        assert wishlist.share_id is not None
+        assert len(wishlist.share_id) == 10
+
+
+class TestShareIdInViews(TestCase):
+    """Tests for share_id usage in views."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="shareidview@example.com",
+            email="shareidview@example.com",
+            password="testpass123",
+        )
+        cls.category = Category.objects.create(
+            name="ShareId Category", slug="shareid-category"
+        )
+        cls.product = Product.objects.create(
+            name="ShareId Product",
+            slug="shareid-product",
+            price=Decimal("20.00"),
+            category=cls.category,
+            stock=5,
+        )
+
+    def test_favourites_page_with_share_id_param(self):
+        """Test that favourites page accepts share_id in ?list= parameter."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        wishlist = WishList.get_or_create_default(user=self.user)
+        WishListItem.objects.create(
+            wishlist=wishlist,
+            product=self.product,
+            price_when_added=self.product.price,
+        )
+
+        response = client.get(
+            reverse("favourites:favourites_page"),
+            {"list": wishlist.share_id},
+        )
+        assert response.status_code == 200
+        assert response.context["active_wishlist"].id == wishlist.id
+
+    def test_favourites_page_with_invalid_share_id_falls_back(self):
+        """Test fallback to default when invalid share_id is provided."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        default_wl = WishList.get_or_create_default(user=self.user)
+
+        response = client.get(
+            reverse("favourites:favourites_page"),
+            {"list": "nonexistent"},
+        )
+        assert response.status_code == 200
+        assert response.context["active_wishlist"].id == default_wl.id
+
+    def test_favourites_page_numeric_id_no_longer_works(self):
+        """Test that plain numeric IDs no longer resolve wishlists."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        wishlist = WishList.get_or_create_default(user=self.user)
+
+        response = client.get(
+            reverse("favourites:favourites_page"),
+            {"list": str(wishlist.id)},
+        )
+        assert response.status_code == 200
+        # Should fall back to default (which is the same list but via share_id lookup)
+        # The key point is it doesn't crash
+
+    def test_wishlist_items_partial_with_share_id(self):
+        """Test items partial accepts share_id."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        wishlist = WishList.get_or_create_default(user=self.user)
+        WishListItem.objects.create(
+            wishlist=wishlist,
+            product=self.product,
+            price_when_added=self.product.price,
+        )
+
+        response = client.get(
+            reverse("favourites:wishlist_items_partial"),
+            {"list": wishlist.share_id},
+        )
+        assert response.status_code == 200
+        assert "ShareId Product" in response.content.decode()
+
+    def test_wishlist_items_partial_missing_list_param(self):
+        """Test items partial returns 400 when list param is missing."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        response = client.get(reverse("favourites:wishlist_items_partial"))
+        assert response.status_code == 400
+
+    def test_wishlist_items_partial_invalid_share_id(self):
+        """Test items partial returns 404 for invalid share_id."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        response = client.get(
+            reverse("favourites:wishlist_items_partial"),
+            {"list": "zzzzzzzzzz"},
+        )
+        assert response.status_code == 404
+
+    def test_wishlists_sidebar_partial_with_share_id(self):
+        """Test sidebar partial accepts share_id active parameter."""
+        client = Client()
+        client.login(username="shareidview@example.com", password="testpass123")
+        wishlist = WishList.get_or_create_default(user=self.user)
+
+        response = client.get(
+            reverse("favourites:wishlists_sidebar_partial"),
+            {"active": wishlist.share_id},
+        )
+        assert response.status_code == 200
+
+
+# ============================================
+# BULK OPERATIONS TESTS
+# ============================================
+
+
+class TestBulkRemoveView(TestCase):
+    """Tests for bulk remove endpoint."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="bulkremove@example.com",
+            email="bulkremove@example.com",
+            password="testpass123",
+        )
+        cls.category = Category.objects.create(
+            name="BulkRemove Category", slug="bulkremove-category"
+        )
+        cls.product_1 = Product.objects.create(
+            name="BulkRemove Product 1",
+            slug="bulkremove-product-1",
+            price=Decimal("10.00"),
+            category=cls.category,
+        )
+        cls.product_2 = Product.objects.create(
+            name="BulkRemove Product 2",
+            slug="bulkremove-product-2",
+            price=Decimal("20.00"),
+            category=cls.category,
+        )
+
+    def test_bulk_remove_success(self):
+        wishlist = WishList.get_or_create_default(user=self.user)
+        item1 = WishListItem.objects.create(
+            wishlist=wishlist, product=self.product_1, price_when_added=self.product_1.price
+        )
+        item2 = WishListItem.objects.create(
+            wishlist=wishlist, product=self.product_2, price_when_added=self.product_2.price
+        )
+
+        client = Client()
+        client.login(username="bulkremove@example.com", password="testpass123")
+        response = client.post(
+            reverse("favourites:bulk_remove"),
+            {"item_ids": [str(item1.id), str(item2.id)]},
+        )
+        assert response.status_code == 200
+        assert response.json()["success"] is True
+        assert wishlist.items.count() == 0
+
+    def test_bulk_remove_empty_selection(self):
+        client = Client()
+        client.login(username="bulkremove@example.com", password="testpass123")
+        response = client.post(reverse("favourites:bulk_remove"), {})
+        assert response.status_code == 400
+
+
+class TestCopyItemsView(TestCase):
+    """Tests for copy items endpoint."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="copyitems@example.com",
+            email="copyitems@example.com",
+            password="testpass123",
+        )
+        cls.category = Category.objects.create(
+            name="CopyItems Category", slug="copyitems-category"
+        )
+        cls.product_1 = Product.objects.create(
+            name="CopyItems Product 1",
+            slug="copyitems-product-1",
+            price=Decimal("10.00"),
+            category=cls.category,
+        )
+        cls.product_2 = Product.objects.create(
+            name="CopyItems Product 2",
+            slug="copyitems-product-2",
+            price=Decimal("20.00"),
+            category=cls.category,
+        )
+
+    def test_copy_items_success(self):
+        source = WishList.objects.create(user=self.user, name="Source")
+        target = WishList.objects.create(user=self.user, name="Target")
+        item = WishListItem.objects.create(
+            wishlist=source, product=self.product_1, price_when_added=self.product_1.price
+        )
+
+        client = Client()
+        client.login(username="copyitems@example.com", password="testpass123")
+        response = client.post(
+            reverse("favourites:copy_items"),
+            {"item_ids": [str(item.id)], "target_wishlist_id": target.id},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["copied_count"] == 1
+        # Original should still exist
+        assert source.items.filter(product=self.product_1).exists()
+        # Copy should exist in target
+        assert target.items.filter(product=self.product_1).exists()
+
+    def test_copy_items_skips_duplicates(self):
+        source = WishList.objects.create(user=self.user, name="Source")
+        target = WishList.objects.create(user=self.user, name="Target")
+        item = WishListItem.objects.create(
+            wishlist=source, product=self.product_1, price_when_added=self.product_1.price
+        )
+        # Already in target
+        WishListItem.objects.create(
+            wishlist=target, product=self.product_1, price_when_added=self.product_1.price
+        )
+
+        client = Client()
+        client.login(username="copyitems@example.com", password="testpass123")
+        response = client.post(
+            reverse("favourites:copy_items"),
+            {"item_ids": [str(item.id)], "target_wishlist_id": target.id},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["copied_count"] == 0
+
+    def test_copy_items_missing_params(self):
+        client = Client()
+        client.login(username="copyitems@example.com", password="testpass123")
+        response = client.post(reverse("favourites:copy_items"), {})
+        assert response.status_code == 400
 

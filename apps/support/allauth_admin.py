@@ -128,6 +128,10 @@ class CustomSocialAccountAdmin(HistoryModelAdmin):
     search_fields = ["user__email", "user__username", "uid", "provider"]
     readonly_fields = ("provider", "uid", "extra_data")
 
+    def has_add_permission(self, request):
+        """Disable manual creation of social accounts."""
+        return False
+
     def get_search_fields(self, request):
         base_fields = get_adapter().get_user_search_fields()
         return list(map(lambda a: "user__" + a, base_fields))

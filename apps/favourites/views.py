@@ -2,15 +2,17 @@ import json
 from decimal import Decimal
 
 from django.contrib import messages
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError
-from django.db.models import Count, Prefetch
+from django.db.models import Count, Prefetch, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.catalog.models import Product, ProductImage
+from apps.catalog.models import Product, ProductAttributeValue, ProductImage
 
 from .models import WishList, WishListItem
 
@@ -51,51 +53,137 @@ def _get_product_wishlist_status(request: HttpRequest, product_ids: list[int]) -
     return status
 
 
+def _get_sorted_items(items_qs, sort_param: str):
+    """Apply sorting to wishlist items queryset."""
+    if sort_param == "oldest":
+        return items_qs.order_by("created_at")
+    # Default: recently added (newest first)
+    return items_qs.order_by("-created_at")
+
+
+def _filter_wishlist_items(items_qs, request: HttpRequest):
+    """Apply search, sort, and availability filters to wishlist items."""
+    search_query = request.GET.get("q", "").strip()
+    sort_param = request.GET.get("sort", "recent")
+    available_param = request.GET.get("available")
+    # Default to OFF (show all items) unless explicitly turned on
+    available_only = available_param == "1" if available_param is not None else False
+
+    if search_query:
+        items_qs = items_qs.filter(
+            Q(product__name__icontains=search_query)
+        )
+
+    if available_only:
+        items_qs = items_qs.filter(product__stock__gt=0)
+
+    items_qs = _get_sorted_items(items_qs, sort_param)
+
+    return items_qs, search_query, sort_param, available_only
+
+
 @require_GET
 def favourites_page(request: HttpRequest) -> HttpResponse:
     """Main favourites page showing all wishlists."""
-    wishlists = _get_user_wishlists(request).prefetch_related(
+    wishlists = _get_user_wishlists(request).annotate(
+        item_count=Count("items")
+    ).prefetch_related(
         Prefetch(
             "items",
             queryset=WishListItem.objects.select_related("product").prefetch_related(
                 Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
-            ),
+            ).order_by("-created_at"),
+            to_attr="prefetched_items",
         )
-    ).annotate(item_count=Count("items"))
+    )
 
-    # Get or create default wishlist
-    if not wishlists.filter(is_default=True).exists():
-        if request.user.is_authenticated:
-            WishList.get_or_create_default(user=request.user)
-        else:
-            WishList.get_or_create_default(session_key=_get_session_key(request))
-        # Re-fetch wishlists
-        wishlists = _get_user_wishlists(request).prefetch_related(
-            Prefetch(
-                "items",
-                queryset=WishListItem.objects.select_related("product").prefetch_related(
-                    Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
-                ),
-            )
-        ).annotate(item_count=Count("items"))
-
-    # Get active wishlist from query param or default
+    # Determine if we show overview or detail
     active_wishlist_id = request.GET.get("list")
+    show_overview = False
+    is_shared_view = False  # True when viewing someone else's list
+
     if active_wishlist_id:
         try:
-            active_wishlist = wishlists.get(pk=int(active_wishlist_id))
-        except (ValueError, WishList.DoesNotExist):
-            active_wishlist = wishlists.filter(is_default=True).first()
+            active_wishlist = wishlists.get(share_id=active_wishlist_id)
+        except WishList.DoesNotExist:
+            # Check if this is a shared list from another user
+            try:
+                active_wishlist = WishList.objects.get(share_id=active_wishlist_id)
+                is_shared_view = True
+            except WishList.DoesNotExist:
+                active_wishlist = wishlists.filter(is_default=True).first()
     else:
-        active_wishlist = wishlists.filter(is_default=True).first()
+        # No specific list selected → always show overview (card tiles)
+        show_overview = True
+        active_wishlist = None
+
+    # Apply filters to active wishlist items (only in detail mode)
+    search_query = ""
+    current_sort = "recent"
+    available_only = False
+    filtered_items = None
+    if active_wishlist:
+        items_qs = active_wishlist.items.select_related("product__category").prefetch_related(
+            Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")),
+            Prefetch(
+                "product__attribute_values",
+                queryset=ProductAttributeValue.objects.select_related("option__attribute")
+                .filter(option__attribute__show_on_tile=True)
+                .order_by("option__attribute__tile_display_order", "option__attribute__name"),
+                to_attr="tile_attributes_prefetch",
+            ),
+        )
+        filtered_items, search_query, current_sort, available_only = _filter_wishlist_items(items_qs, request)
+
+    # Sort wishlists for overview mode
+    list_sort = request.GET.get("list_sort", "updated_desc")
+    if show_overview:
+        if list_sort == "updated_asc":
+            wishlists = wishlists.order_by("updated_at")
+        elif list_sort == "alpha_asc":
+            wishlists = wishlists.order_by("name")
+        elif list_sort == "alpha_desc":
+            wishlists = wishlists.order_by("-name")
+        else:
+            # Default: updated_desc (newest first)
+            wishlists = wishlists.order_by("-updated_at")
+
+    # Check if all wishlists are empty (for onboarding display)
+    # Also true when no wishlists exist at all
+    has_wishlists = _get_user_wishlists(request).exists()
+    all_lists_empty = not has_wishlists or not WishListItem.objects.filter(
+        wishlist__in=_get_user_wishlists(request)
+    ).exists()
+
+    # Paginate wishlists in overview mode
+    wishlists_page = None
+    if show_overview:
+        lists_per_page = 6
+        paginator = Paginator(wishlists, lists_per_page)
+        page_number = request.GET.get("page", 1)
+        try:
+            wishlists_page = paginator.page(page_number)
+        except PageNotAnInteger:
+            wishlists_page = paginator.page(1)
+        except EmptyPage:
+            wishlists_page = paginator.page(paginator.num_pages)
 
     return render(
         request,
         "favourites/favourites_page.html",
         {
             "wishlists": wishlists,
+            "wishlists_page": wishlists_page,
             "active_wishlist": active_wishlist,
-            "page_title": _("Favourites"),
+            "filtered_items": filtered_items,
+            "search_query": search_query,
+            "current_sort": current_sort,
+            "available_only": available_only,
+            "show_overview": show_overview,
+            "is_shared_view": is_shared_view,
+            "list_sort": list_sort,
+            "all_lists_empty": all_lists_empty,
+            "page_title": _("Shopping lists"),
         },
     )
 
@@ -106,8 +194,15 @@ def wishlist_detail(request: HttpRequest, pk: int) -> HttpResponse:
     wishlists = _get_user_wishlists(request)
     wishlist = get_object_or_404(wishlists, pk=pk)
 
-    items = wishlist.items.select_related("product").prefetch_related(
-        Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
+    items = wishlist.items.select_related("product__category").prefetch_related(
+        Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")),
+        Prefetch(
+            "product__attribute_values",
+            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+            .filter(option__attribute__show_on_tile=True)
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
+            to_attr="tile_attributes_prefetch",
+        ),
     )
 
     return render(
@@ -136,13 +231,13 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
         messages.error(request, _("Please enter a name for the list."))
         return redirect("favourites:favourites_page")
 
-    if len(name) > 100:
+    if len(name) > 64:
         if request.headers.get("HX-Request"):
             return HttpResponse(
-                '<div class="text-red-600 text-sm">' + _("Name is too long (max 100 characters).") + "</div>",
+                '<div class="text-red-600 text-sm">' + _("Name is too long (max 64 characters).") + "</div>",
                 status=400,
             )
-        messages.error(request, _("Name is too long (max 100 characters)."))
+        messages.error(request, _("Name is too long (max 64 characters)."))
         return redirect("favourites:favourites_page")
 
     # Check for existing name
@@ -161,6 +256,15 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
         wishlist = WishList.objects.create(name=name, user=request.user)
     else:
         wishlist = WishList.objects.create(name=name, session_key=_get_session_key(request))
+
+    # Add products from product picker if any
+    product_ids = request.POST.getlist("product_ids")
+    if product_ids:
+        from apps.catalog.models import Product
+
+        products = Product.objects.filter(id__in=product_ids)
+        for product in products:
+            WishListItem.objects.get_or_create(wishlist=wishlist, product=product)
 
     if request.headers.get("HX-Request"):
         # Return JSON for HTMX
@@ -227,23 +331,14 @@ def update_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
         )
 
     messages.success(request, _("List updated successfully."))
-    return redirect("favourites:favourites_page")
+    return redirect(f"{reverse('favourites:favourites_page')}?list={wishlist.share_id}")
 
 
 @require_POST
 def delete_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
-    """Delete a wishlist (cannot delete default)."""
+    """Delete a wishlist."""
     wishlists = _get_user_wishlists(request)
     wishlist = get_object_or_404(wishlists, pk=pk)
-
-    if wishlist.is_default:
-        if request.headers.get("HX-Request"):
-            return JsonResponse(
-                {"success": False, "message": _("Cannot delete the default Favourites list.")},
-                status=400,
-            )
-        messages.error(request, _("Cannot delete the default Favourites list."))
-        return redirect("favourites:favourites_page")
 
     wishlist.delete()
 
@@ -303,7 +398,11 @@ def add_to_wishlist(request: HttpRequest) -> HttpResponse:
     return JsonResponse(
         {
             "success": True,
-            "message": _("Added to {list_name}.").format(list_name=wishlist.name),
+            "message": format_html(
+                _("Added <strong>{product_name}</strong> to {list_name}."),
+                product_name=product.name,
+                list_name=wishlist.name,
+            ),
             "item": {
                 "id": item.id,
                 "wishlist_id": wishlist.id,
@@ -350,8 +449,10 @@ def remove_from_wishlist(request: HttpRequest) -> HttpResponse:
         return JsonResponse(
             {
                 "success": True,
-                "message": _("Removed {product_name} from {count} list(s).").format(
-                    product_name=product_name, count=count
+                "message": format_html(
+                    _("Removed <strong>{product_name}</strong> from {count} list(s)."),
+                    product_name=product_name,
+                    count=count,
                 ),
                 "product_id": int(product_id),
                 "product_name": product_name,
@@ -369,8 +470,10 @@ def remove_from_wishlist(request: HttpRequest) -> HttpResponse:
     return JsonResponse(
         {
             "success": True,
-            "message": _("Removed {product_name} from {list_name}.").format(
-                product_name=product_name, list_name=wishlist.name
+            "message": format_html(
+                _("Removed <strong>{product_name}</strong> from {list_name}."),
+                product_name=product_name,
+                list_name=wishlist.name,
             ),
             "product_id": int(product_id),
             "product_name": product_name,
@@ -480,27 +583,39 @@ def add_all_to_cart(request: HttpRequest) -> HttpResponse:
 
 @require_GET
 def get_wishlists(request: HttpRequest) -> HttpResponse:
-    """Get all wishlists for the current user (for dropdowns)."""
+    """Get all wishlists for the current user (for dropdowns).
+
+    Optional query params:
+      - product_id: If provided, each wishlist entry will include
+        ``contains_product`` (bool) indicating whether the product is in that list.
+    """
     wishlists = _get_user_wishlists(request).annotate(item_count=Count("items"))
 
-    # Ensure default wishlist exists
-    if not wishlists.filter(is_default=True).exists():
-        if request.user.is_authenticated:
-            WishList.get_or_create_default(user=request.user)
-        else:
-            WishList.get_or_create_default(session_key=_get_session_key(request))
-        wishlists = _get_user_wishlists(request).annotate(item_count=Count("items"))
+    # Determine per-list containment when product_id is provided
+    product_id = request.GET.get("product_id")
+    containing_ids: set[int] = set()
+    if product_id:
+        try:
+            pid = int(product_id)
+            containing_ids = set(
+                WishListItem.objects.filter(
+                    wishlist__in=wishlists, product_id=pid
+                ).values_list("wishlist_id", flat=True)
+            )
+        except (ValueError, TypeError):
+            pass
 
     data = []
     for wl in wishlists:
-        data.append(
-            {
-                "id": wl.id,
-                "name": wl.name,
-                "is_default": wl.is_default,
-                "item_count": wl.item_count,
-            }
-        )
+        entry = {
+            "id": wl.id,
+            "name": wl.name,
+            "is_default": wl.is_default,
+            "item_count": wl.item_count,
+        }
+        if product_id:
+            entry["contains_product"] = wl.id in containing_ids
+        data.append(entry)
 
     return JsonResponse({"wishlists": data})
 
@@ -592,19 +707,38 @@ def toggle_favourite(request: HttpRequest) -> HttpResponse:
 
 # Partial templates for HTMX
 @require_GET
-def wishlist_items_partial(request: HttpRequest, pk: int) -> HttpResponse:
+def wishlist_items_partial(request: HttpRequest) -> HttpResponse:
     """Partial template for wishlist items (HTMX)."""
+    share_id = request.GET.get("list")
+    if not share_id:
+        return HttpResponse("", status=400)
+        
     wishlists = _get_user_wishlists(request)
-    wishlist = get_object_or_404(wishlists, pk=pk)
+    wishlist = get_object_or_404(wishlists, share_id=share_id)
 
-    items = wishlist.items.select_related("product").prefetch_related(
-        Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
+    items_qs = wishlist.items.select_related("product__category").prefetch_related(
+        Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")),
+        Prefetch(
+            "product__attribute_values",
+            queryset=ProductAttributeValue.objects.select_related("option__attribute")
+            .filter(option__attribute__show_on_tile=True)
+            .order_by("option__attribute__tile_display_order", "option__attribute__name"),
+            to_attr="tile_attributes_prefetch",
+        ),
     )
+    items, search_query, current_sort, available_only = _filter_wishlist_items(items_qs, request)
 
     return render(
         request,
-        "favourites/partials/wishlist_items.html",
-        {"wishlist": wishlist, "items": items, "wishlists": wishlists},
+        "favourites/partials/wishlist_products.html",
+        {
+            "wishlist": wishlist,
+            "items": items,
+            "wishlists": wishlists,
+            "search_query": search_query,
+            "current_sort": current_sort,
+            "available_only": available_only,
+        },
     )
 
 
@@ -616,8 +750,8 @@ def wishlists_sidebar_partial(request: HttpRequest) -> HttpResponse:
     active_wishlist = None
     if active_id:
         try:
-            active_wishlist = wishlists.get(pk=int(active_id))
-        except (ValueError, WishList.DoesNotExist):
+            active_wishlist = wishlists.get(share_id=active_id)
+        except WishList.DoesNotExist:
             pass
 
     return render(
@@ -625,3 +759,101 @@ def wishlists_sidebar_partial(request: HttpRequest) -> HttpResponse:
         "favourites/partials/wishlists_sidebar.html",
         {"wishlists": wishlists, "active_wishlist": active_wishlist},
     )
+
+
+@require_POST
+def copy_items(request: HttpRequest) -> HttpResponse:
+    """Copy selected items to another wishlist."""
+    item_ids = request.POST.getlist("item_ids")
+    target_wishlist_id = request.POST.get("target_wishlist_id")
+
+    if not item_ids or not target_wishlist_id:
+        return JsonResponse(
+            {"success": False, "message": _("Please select items and a target list.")}, status=400
+        )
+
+    wishlists = _get_user_wishlists(request)
+    target_wishlist = get_object_or_404(wishlists, pk=target_wishlist_id)
+    items = WishListItem.objects.filter(pk__in=item_ids, wishlist__in=wishlists)
+
+    copied_count = 0
+    skipped_count = 0
+    for item in items:
+        if WishListItem.objects.filter(wishlist=target_wishlist, product=item.product).exists():
+            skipped_count += 1
+            continue
+        WishListItem.objects.create(
+            wishlist=target_wishlist,
+            product=item.product,
+            price_when_added=item.price_when_added,
+        )
+        copied_count += 1
+
+    message = _("{count} item(s) copied to {list_name}.").format(
+        count=copied_count, list_name=target_wishlist.name
+    )
+    if skipped_count > 0:
+        message += " " + _("{count} item(s) already existed.").format(count=skipped_count)
+
+    return JsonResponse({"success": True, "message": message, "copied_count": copied_count})
+
+
+@require_POST
+def bulk_remove(request: HttpRequest) -> HttpResponse:
+    """Remove multiple items from a wishlist."""
+    item_ids = request.POST.getlist("item_ids")
+
+    if not item_ids:
+        return JsonResponse(
+            {"success": False, "message": _("Please select items to remove.")}, status=400
+        )
+
+    wishlists = _get_user_wishlists(request)
+    items = WishListItem.objects.filter(pk__in=item_ids, wishlist__in=wishlists)
+    count = items.count()
+
+    # Get wishlist for response stats
+    first_item = items.first()
+    wishlist = first_item.wishlist if first_item else None
+
+    items.delete()
+
+    response_data = {"success": True, "message": _("{count} item(s) removed.").format(count=count)}
+    if wishlist:
+        response_data["wishlist_id"] = wishlist.id
+        response_data["wishlist_item_count"] = wishlist.items.count()
+        response_data["wishlist_total_value"] = float(wishlist.total_value)
+
+    return JsonResponse(response_data)
+
+
+@require_GET
+def get_all_products(request: HttpRequest) -> HttpResponse:
+    """Get all unique products across all wishlists for the product picker modal."""
+    wishlists = _get_user_wishlists(request)
+    items = (
+        WishListItem.objects.filter(wishlist__in=wishlists)
+        .select_related("product")
+        .prefetch_related(
+            Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
+        )
+        .order_by("-created_at")
+    )
+
+    # Deduplicate by product
+    seen = set()
+    products = []
+    for item in items:
+        if item.product_id not in seen:
+            seen.add(item.product_id)
+            first_image = item.product.images.first()
+            products.append(
+                {
+                    "id": item.product_id,
+                    "name": item.product.name,
+                    "image_url": first_image.image.url if first_image else "",
+                    "price": float(item.product.price),
+                }
+            )
+
+    return JsonResponse({"products": products})

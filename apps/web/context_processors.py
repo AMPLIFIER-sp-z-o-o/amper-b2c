@@ -38,7 +38,7 @@ def _filter_categories_with_products(categories):
 
     # Get all category IDs that have at least one active product
     category_ids_with_products = set(
-        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+        Product.objects.filter(status=ProductStatus.ACTIVE)
         .values_list("category_id", flat=True)
         .distinct()
     )

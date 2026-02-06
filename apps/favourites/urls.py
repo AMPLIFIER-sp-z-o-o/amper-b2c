@@ -19,10 +19,13 @@ urlpatterns = [
     path("toggle/", views.toggle_favourite, name="toggle_favourite"),
     # Bulk operations
     path("add-all-to-cart/", views.add_all_to_cart, name="add_all_to_cart"),
+    path("copy-items/", views.copy_items, name="copy_items"),
+    path("bulk-remove/", views.bulk_remove, name="bulk_remove"),
     # API endpoints
     path("api/wishlists/", views.get_wishlists, name="get_wishlists"),
     path("api/status/", views.check_product_status, name="check_product_status"),
+    path("api/products/", views.get_all_products, name="get_all_products"),
     # Partials for HTMX
-    path("partials/items/<int:pk>/", views.wishlist_items_partial, name="wishlist_items_partial"),
+    path("partials/items/", views.wishlist_items_partial, name="wishlist_items_partial"),
     path("partials/sidebar/", views.wishlists_sidebar_partial, name="wishlists_sidebar_partial"),
 ]

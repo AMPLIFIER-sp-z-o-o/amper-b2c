@@ -27,7 +27,7 @@
       <div class="flex-1 min-w-0">
         <span class="block font-medium truncate">{{ wishlist.name }}</span>
         <span class="text-xs {% if wishlist == active_wishlist %}text-primary-600/70 dark:text-primary-400/70{% else %}text-gray-400 dark:text-gray-500{% endif %}">
-          {{ wishlist.item_count }} {% translate "items" %}
+          {{ wishlist.item_count }} {% translate "products" %}
         </span>
       </div>
       {% if wishlist == active_wishlist %}

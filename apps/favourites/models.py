@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+import string
 from decimal import Decimal
 
 from django.conf import settings
@@ -9,6 +11,12 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.catalog.models import Product
 from apps.utils.models import BaseModel
+
+
+def _generate_share_id() -> str:
+    """Generate a unique, non-guessable share ID (10 chars, lowercase + digits)."""
+    chars = string.ascii_lowercase + string.digits
+    return "".join(secrets.choice(chars) for _ in range(10))
 
 
 class WishList(BaseModel):
@@ -22,6 +30,15 @@ class WishList(BaseModel):
         max_length=100,
         verbose_name=_("Name"),
         help_text=_("Name of the wishlist"),
+    )
+    share_id = models.CharField(
+        max_length=10,
+        unique=True,
+        default=_generate_share_id,
+        editable=False,
+        db_index=True,
+        verbose_name=_("Share ID"),
+        help_text=_("Unique, non-guessable identifier for sharing"),
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
