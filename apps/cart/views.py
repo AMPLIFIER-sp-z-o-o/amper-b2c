@@ -4,6 +4,7 @@ from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from apps.catalog.models import Product
 from .models import Cart, CartLine
+from django.template.loader import render_to_string
 
 # Create your views here.
 def cart_page(request):
@@ -52,11 +53,13 @@ def add_to_cart(request):
     )
 
     if not created:
-        line.quantity += quantity
+        line.quantity = quantity
         line.save(update_fields=["quantity"])
 
     cart.recalculate()
     request.session["cart_id"] = cart.id
+
+    line_html = render_to_string("Cart/nav_cart_line.html", {"line": line})
 
     response = JsonResponse({
         "success": True,
@@ -64,6 +67,7 @@ def add_to_cart(request):
         "cart_total": str(cart.total),
         "product_quantity": line.quantity,
         "lines_count": cart.lines.count(),
+        "updated_line_html": line_html
     })
 
     response.set_cookie("cart_id", cart.id, max_age=60*60*24*10)
@@ -72,9 +76,22 @@ def add_to_cart(request):
 
 @require_POST
 def remove_from_cart(request):
-    line_id = request.POST.get("line_id")
+    product_id = request.POST.get("product_id")
+    cart_id = request.session.get("cart_id")
 
-    line = get_object_or_404(CartLine, id=line_id)
+    if not product_id:
+        return JsonResponse({"success": False}, status=400)
+
+    line = CartLine.objects.filter(
+        cart_id=cart_id,
+        product_id=product_id
+    ).first()
+
+    lineId = line.id
+
+    if not line:
+        return JsonResponse({"success": False}, status=404)
+
     cart = line.cart
 
     if request.user.is_authenticated:
@@ -91,5 +108,8 @@ def remove_from_cart(request):
         "success": True,
         "cart_total": str(cart.total),
         "lines_count": cart.lines.count(),
+        "removed_line_id": lineId,
     })
+
+
 
