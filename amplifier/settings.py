@@ -310,6 +310,7 @@ TEMPLATES = [
                 "apps.web.context_processors.navigation_categories",
                 "apps.support.context_processors.admin_extra_userlinks",
                 "apps.support.context_processors.draft_preview",
+                "apps.cart.context_processors.cart_context",
             ],
             "loaders": _DEFAULT_LOADERS if DEBUG else _CACHED_LOADERS,
         },
