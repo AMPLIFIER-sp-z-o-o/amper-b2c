@@ -556,22 +556,26 @@ class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         total = obj.products.count()
         active = obj.products.filter(status="active").count()
         hidden = obj.products.filter(status="hidden").count()
+        disabled = obj.products.filter(status="disabled").count()
 
         url = reverse("admin:catalog_product_changelist") + f"?category__id__exact={obj.pk}"
-        return format_html(
-            '<span class="text-lg font-semibold">{}</span> {} '
-            '(<span class="text-green-600">{} {}</span>, '
-            '<span class="text-gray-500">{} {}</span>) — '
-            '<a href="{}" class="text-primary-600 hover:underline">{}</a>',
-            total,
-            _("products total"),
-            active,
-            _("active"),
-            hidden,
-            _("hidden"),
+        parts = [
+            format_html(
+                '<span class="text-lg font-semibold">{}</span> {} (',
+                total,
+                _("products total"),
+            ),
+            format_html('<span class="text-green-600">{} {}</span>', active, _("active")),
+            format_html(', <span class="text-gray-500">{} {}</span>', hidden, _("hidden")),
+        ]
+        if disabled:
+            parts.append(format_html(', <span class="text-orange-500">{} {}</span>', disabled, _("disabled")))
+        parts.append(format_html(
+            ') — <a href="{}" class="text-primary-600 hover:underline">{}</a>',
             url,
             _("View all products"),
-        )
+        ))
+        return mark_safe("".join(str(p) for p in parts))
 
     product_count_detail.short_description = _("Product Count")
 

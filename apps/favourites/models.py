@@ -245,5 +245,5 @@ class WishListItem(BaseModel):
 
     @property
     def is_available(self) -> bool:
-        """Check if the product is still available (in stock)."""
-        return self.product.stock > 0
+        """Check if the product is still available (in stock and not disabled)."""
+        return not self.product.is_unavailable

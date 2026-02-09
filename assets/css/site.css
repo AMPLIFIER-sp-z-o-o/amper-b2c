@@ -214,6 +214,23 @@ button[disabled]:hover,
 }
 
 /* ===========================================
+   Toast Close Button
+   Circular hover background for toast dismiss.
+   =========================================== */
+
+.toast-close-btn {
+  border-radius: 9999px !important;
+}
+
+.toast-close-btn:hover {
+  background-color: #d1d5db !important; /* gray-300 */
+}
+
+:is(.dark) .toast-close-btn:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+/* ===========================================
    Button Loading State
    Shows a spinner and disables interaction while
    an async operation (fetch/POST) is in progress.
@@ -241,6 +258,29 @@ button[disabled]:hover,
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ===========================================
+   Favourite Heart Pulse Animation
+   =========================================== */
+
+@keyframes favouritePulse {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.favourite-btn-pulse {
+  animation: favouritePulse 0.4s ease-in-out;
 }
 
 /* Utilities */

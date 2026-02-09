@@ -16,6 +16,11 @@ from apps.utils.models import BaseModel
 class ProductStatus(models.TextChoices):
     ACTIVE = "active", _("Active")
     HIDDEN = "hidden", _("Hidden")
+    DISABLED = "disabled", _("Disabled")
+
+
+# Statuses that are visible to customers (shown on storefront)
+VISIBLE_STATUSES = [ProductStatus.ACTIVE, ProductStatus.DISABLED]
 
 
 class Category(BaseModel):
@@ -60,7 +65,7 @@ class Product(BaseModel):
         max_length=20,
         choices=ProductStatus.choices,
         default=ProductStatus.HIDDEN,
-        help_text=_("Controls product page visibility."),
+        help_text=_("Controls product visibility and availability. 'Disabled' products are shown but marked as temporarily unavailable."),
     )
     price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     stock = models.PositiveIntegerField(default=0)
@@ -110,6 +115,11 @@ class Product(BaseModel):
 
     def get_absolute_url(self) -> str:
         return reverse("catalog:product_detail", kwargs={"slug": self.slug, "id": self.id})
+
+    @property
+    def is_unavailable(self) -> bool:
+        """Check if the product is unavailable (out of stock or disabled)."""
+        return self.stock <= 0 or self.status == ProductStatus.DISABLED
 
     @property
     def tile_display_attributes(self) -> list:

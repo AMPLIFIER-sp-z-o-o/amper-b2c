@@ -415,6 +415,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = (*default_headers, "x-password-reset-key", "x-email-verification-key")
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[FRONTEND_ADDRESS])
 SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_AGE = 604800  # 7 days in seconds
 
 # User signup configuration: change to "mandatory" to require users to confirm email before signing in.
 # or "optional" to send confirmation emails but not require them
@@ -608,14 +609,14 @@ CACHES = {
 CELERY_BROKER_URL = CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
+from celery import schedules  # noqa: E402
+
 # Add tasks to this dict and run `python manage.py bootstrap_celery_tasks` to create them
 SCHEDULED_TASKS = {
-    # Example of a crontab schedule
-    # from celery import schedules
-    # "daily-4am-task": {
-    #     "task": "some.task.path",
-    #     "schedule": schedules.crontab(minute=0, hour=4),
-    # },
+    "cleanup-anonymous-wishlists": {
+        "task": "apps.favourites.tasks.cleanup_anonymous_wishlists",
+        "schedule": schedules.crontab(minute=0, hour=3),  # daily at 3 AM
+    },
 }
 
 # Channels / Daphne setup

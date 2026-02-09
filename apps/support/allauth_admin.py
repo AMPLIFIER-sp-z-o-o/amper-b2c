@@ -49,10 +49,19 @@ class SimplifiedSocialAppForm(forms.ModelForm):
             label=_("Provider"),
             help_text=_("Select the authentication provider"),
         )
-        self.fields["provider"].widget = unfold_widgets.UnfoldAdminSelect2Widget(
-            attrs={"data-minimum-results-for-search": 0},
-            choices=self.fields["provider"].choices,
-        )
+        # Lock provider selection when editing an existing social app
+        if self.instance and self.instance.pk:
+            self.fields["provider"].disabled = True
+            self.fields["provider"].help_text = _("Provider cannot be changed after creation")
+            self.fields["provider"].widget = unfold_widgets.UnfoldAdminSelect2Widget(
+                attrs={"data-minimum-results-for-search": 0, "disabled": "disabled"},
+                choices=self.fields["provider"].choices,
+            )
+        else:
+            self.fields["provider"].widget = unfold_widgets.UnfoldAdminSelect2Widget(
+                attrs={"data-minimum-results-for-search": 0},
+                choices=self.fields["provider"].choices,
+            )
         self.fields["client_id"].label = _("Client ID / App ID")
         self.fields["client_id"].help_text = _("OAuth Client ID (Google), App ID (Facebook), or API Key (Twitter)")
         self.fields["secret"].label = _("Client Secret")

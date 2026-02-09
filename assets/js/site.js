@@ -4,6 +4,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Format prices using browser locale with Intl.NumberFormat
   formatPrices();
 
+  // Keep Sign In link in sync with the current browser URL
+  updateSignInLink();
+
   // Detect and sync browser timezone
   detectAndSyncTimezone();
 
@@ -370,8 +373,32 @@ function initCategoryBannerSlider() {
 
 window.initCategoryBannerSlider = initCategoryBannerSlider;
 
+/**
+ * Keep the navbar "Sign In" link in sync with the current browser URL.
+ * Uses window.location instead of server-rendered request.get_full_path
+ * so that HTMX pushState / filter changes are always reflected.
+ * Skips adding ?next= when on the homepage since "/" is the default redirect.
+ */
+function updateSignInLink() {
+  const link = document.getElementById("nav-sign-in-link");
+  if (!link) return;
+  const baseUrl = link.dataset.loginUrl;
+  const path = window.location.pathname + window.location.search;
+  if (path === "/" || path === "") {
+    link.href = baseUrl;
+  } else {
+    link.href = baseUrl + "?next=" + encodeURIComponent(path);
+  }
+}
+window.updateSignInLink = updateSignInLink;
+
 // Re-format prices after HTMX swaps (for dynamic content)
 document.addEventListener("htmx:afterSwap", formatPrices);
+document.addEventListener("htmx:afterSwap", updateSignInLink);
+// Also update on htmx:pushedIntoHistory (fired after hx-push-url updates the URL)
+document.addEventListener("htmx:pushedIntoHistory", updateSignInLink);
+// Update on browser back/forward navigation
+window.addEventListener("popstate", updateSignInLink);
 document.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "products-container") {
     initCategoryRecommendedSlider();
@@ -463,6 +490,7 @@ async function loadFavouriteStatus() {
   try {
     const response = await fetch(
       `/favourites/api/status/?product_ids=${uniqueIds.join(",")}`,
+      { cache: "no-store" },
     );
     if (!response.ok) return;
 
@@ -473,12 +501,12 @@ async function loadFavouriteStatus() {
       Object.keys(status).map((id) => parseInt(id, 10)),
     );
 
-    // Update all favourite buttons
+    // Update all favourite buttons – set filled or unfilled
     document.querySelectorAll(".favourite-btn").forEach((btn) => {
+      // Skip buttons managed by favourites page (it has its own logic)
+      if (btn.dataset.favouritePageManaged === "true") return;
       const productId = parseInt(btn.dataset.productId, 10);
-      if (favouriteIds.has(productId)) {
-        setFavouriteState(btn, true);
-      }
+      setFavouriteState(btn, favouriteIds.has(productId));
     });
   } catch (e) {
     console.warn("Failed to load favourite status:", e);
@@ -511,6 +539,9 @@ async function handleFavouriteClick(e) {
   const productId = btn.dataset.productId;
   if (!productId) return;
 
+  // Skip if a page-specific handler is managing this button (e.g., FavouritesPage)
+  if (btn.dataset.favouritePageManaged === "true") return;
+
   // If picker is already open for this button, close it
   const existingPicker = document.getElementById("wishlist-picker-dropdown");
   if (existingPicker && existingPicker._sourceBtn === btn) {
@@ -521,6 +552,10 @@ async function handleFavouriteClick(e) {
   // Prevent double-clicks while loading
   if (btn.classList.contains("btn-loading")) return;
 
+  // Heart click animation
+  btn.classList.add("favourite-btn-pulse");
+  setTimeout(() => btn.classList.remove("favourite-btn-pulse"), 500);
+
   try {
     // Fetch wishlists with containment info for this product
     const res = await fetch(
@@ -530,13 +565,47 @@ async function handleFavouriteClick(e) {
     const data = await res.json();
     const wishlists = data.wishlists || [];
 
-    if (wishlists.length > 1) {
-      // Multiple lists → show picker with add / remove per list
+    // Single list: quick toggle without showing picker
+    if (wishlists.length === 1) {
+      const wl = wishlists[0];
+      if (wl.contains_product) {
+        // Already in the only list → remove and toggle heart off
+        await removeFromSpecificWishlist(productId, wl.id, btn);
+        return;
+      }
+      // Not in the list yet → add, then show picker
+      try {
+        const csrfToken = getCsrfToken();
+        const addRes = await fetch("/favourites/add/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-CSRFToken": csrfToken,
+          },
+          body: `product_id=${productId}&wishlist_id=${wl.id}`,
+          credentials: "same-origin",
+        });
+        if (addRes.ok) {
+          const addData = await addRes.json();
+          wl.contains_product = true;
+          setFavouriteState(btn, true);
+          updateAllFavouriteButtons(productId, true);
+          if (addData.message) showToast(addData.message, "success");
+        }
+      } catch (_) {
+        /* show picker anyway */
+      }
       showWishlistPicker(btn, productId, wishlists);
       return;
     }
 
-    // Single list (or none) → quick toggle on default list
+    // Multiple lists → show picker so user can manage which lists
+    if (wishlists.length > 1) {
+      showWishlistPicker(btn, productId, wishlists);
+      return;
+    }
+
+    // No lists yet → add to default list (creates it), then show picker
     const isFavourited =
       btn
         .querySelector(".favourite-icon-filled")
@@ -546,6 +615,20 @@ async function handleFavouriteClick(e) {
       await removeFromSpecificWishlist(productId, null, btn);
     } else {
       await addToFavourites(productId, btn);
+      // Re-fetch wishlists so the picker shows the newly created default list
+      try {
+        const res2 = await fetch(
+          `/favourites/api/wishlists/?product_id=${productId}`,
+          { credentials: "same-origin" },
+        );
+        const data2 = await res2.json();
+        const newWishlists = data2.wishlists || [];
+        if (newWishlists.length >= 1) {
+          showWishlistPicker(btn, productId, newWishlists);
+        }
+      } catch (_) {
+        /* picker is a nice-to-have; toast already shown */
+      }
     }
   } catch (_) {
     // Fetch failed → fall back to simple toggle
@@ -580,7 +663,7 @@ function showWishlistPicker(btn, productId, wishlists) {
   picker.id = "wishlist-picker-dropdown";
   picker._sourceBtn = btn; // track source button
   picker.className =
-    "fixed z-[100] w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] border border-gray-100 dark:border-gray-700 overflow-hidden opacity-0 scale-95 transition-all duration-150 ease-out";
+    "fixed z-[100] w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] border border-gray-100 dark:border-gray-700 overflow-hidden opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out";
 
   const isLoggedIn = document.body.dataset.authenticated === "true";
 
@@ -606,7 +689,7 @@ function showWishlistPicker(btn, productId, wishlists) {
     .join("");
 
   const loginHintHtml = !isLoggedIn
-    ? `<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
+    ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
     : "";
 
   picker.innerHTML = `<div>
@@ -772,7 +855,7 @@ function showWishlistPicker(btn, productId, wishlists) {
 
   // Animate in
   requestAnimationFrame(() => {
-    picker.classList.remove("opacity-0", "scale-95");
+    picker.classList.remove("opacity-0", "scale-95", "pointer-events-none");
     picker.classList.add("opacity-100", "scale-100");
   });
 
@@ -872,11 +955,12 @@ function _closePickerOnOutsideClick(e) {
 function closeWishlistPicker() {
   const picker = document.getElementById("wishlist-picker-dropdown");
   if (picker) {
-    picker.classList.add("opacity-0", "scale-95");
+    picker.classList.add("opacity-0", "scale-95", "pointer-events-none");
     picker.classList.remove("opacity-100", "scale-100");
     setTimeout(() => picker.remove(), 150);
   }
   document.removeEventListener("click", _closePickerOnOutsideClick);
+  document.removeEventListener("scroll", closeWishlistPicker);
 }
 
 /**
@@ -999,6 +1083,24 @@ async function removeFromSpecificWishlist(productId, wishlistId, btn) {
     if (!wishlistId) {
       setFavouriteState(btn, false);
       updateAllFavouriteButtons(productId, false);
+    } else if (btn) {
+      // Specific list removal — check if product is still in any other list
+      try {
+        const statusRes = await fetch(
+          `/favourites/api/status/?product_ids=${productId}`,
+          { cache: "no-store", credentials: "same-origin" },
+        );
+        const statusData = await statusRes.json();
+        const stillInLists = (statusData.status || {})[productId];
+        if (!stillInLists || stillInLists.length === 0) {
+          setFavouriteState(btn, false);
+          updateAllFavouriteButtons(productId, false);
+        }
+      } catch (_) {
+        // Assume removed if we can't verify
+        setFavouriteState(btn, false);
+        updateAllFavouriteButtons(productId, false);
+      }
     }
 
     // Update favourites page UI if applicable
@@ -1091,7 +1193,7 @@ function showToast(message, type = "success") {
       <span class="sr-only">${isSuccess ? "Check icon" : "Error icon"}</span>
     </div>
     <div class="mx-4 text-sm font-medium">${message}</div>
-    <button type="button" class="ms-auto -mx-1.5 -my-1.5 bg-white text-gray-500 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-300 inline-flex items-center justify-center h-8 w-8 dark:text-gray-400 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-600 cursor-pointer" data-dismiss-target="#${toastId}" aria-label="Close">
+    <button type="button" class="toast-close-btn ms-auto -mx-1.5 -my-1.5 bg-white text-gray-500 hover:text-gray-900 p-1.5 inline-flex items-center justify-center h-8 w-8 shrink-0 dark:text-gray-400 dark:hover:text-white dark:bg-gray-800 cursor-pointer transition-colors" data-dismiss-target="#${toastId}" aria-label="Close">
       <span class="sr-only">Close</span>
       <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
@@ -1154,6 +1256,15 @@ document.addEventListener("htmx:afterSwap", () => {
   attachFavouriteHandlers();
   loadFavouriteStatus();
   initRelativeTimes();
+});
+
+// Sync heart state when navigating back/forward via browser history (bfcache)
+// Always reload status on pageshow — on bfcache restore the DOM is stale,
+// and on fresh loads this is a harmless second call that ensures correctness.
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) {
+    loadFavouriteStatus();
+  }
 });
 
 /**

@@ -585,7 +585,9 @@ body.nav-scroll-locked {
           </div>
           {% else %}
           <a
+            id="nav-sign-in-link"
             href="{% url 'account_login' %}"
+            data-login-url="{% url 'account_login' %}"
             class="inline-flex items-center rounded-lg justify-center p-2 md:p-2 hover:bg-gray-200 dark:hover:bg-gray-700 text-base md:text-sm font-medium leading-none text-gray-900 dark:text-white transition-colors duration-300"
           >
             <svg class="w-6 h-6 md:w-5 md:h-5 md:me-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -2182,11 +2184,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (shouldHide) {
           rowWrapper.style.transform = 'translateY(-100%)';
           rowWrapper.style.opacity = '0';
+          rowWrapper.style.pointerEvents = 'none';
           drawerQuick.classList.add('is-visible');
           navbarMain.classList.add('shadow-md');
         } else {
           rowWrapper.style.transform = 'translateY(0)';
           rowWrapper.style.opacity = '1';
+          rowWrapper.style.pointerEvents = '';
           drawerQuick.classList.remove('is-visible');
           navbarMain.classList.remove('shadow-md');
         }
@@ -2255,6 +2259,7 @@ document.addEventListener('DOMContentLoaded', function() {
              // Slide up and fade out together
              rowWrapper.style.transform = 'translateY(-100%)';
              rowWrapper.style.opacity = '0';
+             rowWrapper.style.pointerEvents = 'none';
              drawerQuick.classList.add('is-visible');
              // Add shadow to the main nav when categories row is hidden
              navbarMain.classList.add('shadow-md');
@@ -2262,6 +2267,7 @@ document.addEventListener('DOMContentLoaded', function() {
              // Slide down and fade in together
              rowWrapper.style.transform = 'translateY(0)';
              rowWrapper.style.opacity = '1';
+             rowWrapper.style.pointerEvents = '';
              drawerQuick.classList.remove('is-visible');
              // Remove shadow from main nav when categories row is visible
              navbarMain.classList.remove('shadow-md');

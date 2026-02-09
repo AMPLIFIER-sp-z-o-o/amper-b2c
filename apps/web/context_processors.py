@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Prefetch, Q
 
-from apps.catalog.models import Category, Product, ProductStatus
+from apps.catalog.models import Category, Product, ProductStatus, VISIBLE_STATUSES
 from apps.web.models import BottomBar, CustomCSS, Footer, FooterSectionLink, Navbar, NavbarItem, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
@@ -38,7 +38,7 @@ def _filter_categories_with_products(categories):
 
     # Get all category IDs that have at least one active product
     category_ids_with_products = set(
-        Product.objects.filter(status=ProductStatus.ACTIVE)
+        Product.objects.filter(status__in=VISIBLE_STATUSES)
         .values_list("category_id", flat=True)
         .distinct()
     )

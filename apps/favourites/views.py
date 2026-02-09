@@ -2,7 +2,6 @@ import json
 from decimal import Decimal
 
 from django.contrib import messages
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError
 from django.db.models import Count, Prefetch, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
@@ -122,6 +121,7 @@ def favourites_page(request: HttpRequest) -> HttpResponse:
     current_sort = "recent"
     available_only = False
     filtered_items = None
+    has_unavailable = False
     if active_wishlist:
         items_qs = active_wishlist.items.select_related("product__category").prefetch_related(
             Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")),
@@ -133,6 +133,8 @@ def favourites_page(request: HttpRequest) -> HttpResponse:
                 to_attr="tile_attributes_prefetch",
             ),
         )
+        # Check if any items are unavailable (stock <= 0) before filtering
+        has_unavailable = active_wishlist.items.filter(product__stock__lte=0).exists()
         filtered_items, search_query, current_sort, available_only = _filter_wishlist_items(items_qs, request)
 
     # Sort wishlists for overview mode
@@ -155,30 +157,17 @@ def favourites_page(request: HttpRequest) -> HttpResponse:
         wishlist__in=_get_user_wishlists(request)
     ).exists()
 
-    # Paginate wishlists in overview mode
-    wishlists_page = None
-    if show_overview:
-        lists_per_page = 6
-        paginator = Paginator(wishlists, lists_per_page)
-        page_number = request.GET.get("page", 1)
-        try:
-            wishlists_page = paginator.page(page_number)
-        except PageNotAnInteger:
-            wishlists_page = paginator.page(1)
-        except EmptyPage:
-            wishlists_page = paginator.page(paginator.num_pages)
-
     return render(
         request,
         "favourites/favourites_page.html",
         {
             "wishlists": wishlists,
-            "wishlists_page": wishlists_page,
             "active_wishlist": active_wishlist,
             "filtered_items": filtered_items,
             "search_query": search_query,
             "current_sort": current_sort,
             "available_only": available_only,
+            "has_unavailable": has_unavailable,
             "show_overview": show_overview,
             "is_shared_view": is_shared_view,
             "list_sort": list_sort,
@@ -265,6 +254,19 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
         products = Product.objects.filter(id__in=product_ids)
         for product in products:
             WishListItem.objects.get_or_create(wishlist=wishlist, product=product)
+
+    # Copy items from another wishlist (when coming from Copy to List → Create New List)
+    copy_item_ids = request.POST.getlist("copy_item_ids")
+    if copy_item_ids:
+        source_items = WishListItem.objects.filter(
+            pk__in=copy_item_ids, wishlist__in=_get_user_wishlists(request)
+        ).select_related("product")
+        for item in source_items:
+            WishListItem.objects.get_or_create(
+                wishlist=wishlist,
+                product=item.product,
+                defaults={"price_when_added": item.price_when_added},
+            )
 
     if request.headers.get("HX-Request"):
         # Return JSON for HTMX
@@ -727,6 +729,7 @@ def wishlist_items_partial(request: HttpRequest) -> HttpResponse:
         ),
     )
     items, search_query, current_sort, available_only = _filter_wishlist_items(items_qs, request)
+    has_unavailable = wishlist.items.filter(product__stock__lte=0).exists()
 
     return render(
         request,
@@ -738,6 +741,7 @@ def wishlist_items_partial(request: HttpRequest) -> HttpResponse:
             "search_query": search_query,
             "current_sort": current_sort,
             "available_only": available_only,
+            "has_unavailable": has_unavailable,
         },
     )
 
@@ -778,6 +782,7 @@ def copy_items(request: HttpRequest) -> HttpResponse:
 
     copied_count = 0
     skipped_count = 0
+    last_copied_product_name = ""
     for item in items:
         if WishListItem.objects.filter(wishlist=target_wishlist, product=item.product).exists():
             skipped_count += 1
@@ -787,13 +792,23 @@ def copy_items(request: HttpRequest) -> HttpResponse:
             product=item.product,
             price_when_added=item.price_when_added,
         )
+        last_copied_product_name = item.product.name
         copied_count += 1
 
-    message = _("{count} item(s) copied to {list_name}.").format(
-        count=copied_count, list_name=target_wishlist.name
-    )
-    if skipped_count > 0:
-        message += " " + _("{count} item(s) already existed.").format(count=skipped_count)
+    if copied_count == 1:
+        message = format_html(
+            _("Copied <strong>{product_name}</strong> to {list_name}."),
+            product_name=last_copied_product_name,
+            list_name=target_wishlist.name,
+        )
+    else:
+        message = _("{count} products copied to {list_name}.").format(
+            count=copied_count, list_name=target_wishlist.name
+        )
+    if skipped_count == 1:
+        message += " " + _("1 product already existed.")
+    elif skipped_count > 1:
+        message += " " + _("{count} products already existed.").format(count=skipped_count)
 
     return JsonResponse({"success": True, "message": message, "copied_count": copied_count})
 

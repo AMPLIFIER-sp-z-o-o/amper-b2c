@@ -16,6 +16,9 @@
         </h2>
         <form class="mt-6 space-y-6" method="post">
           {% csrf_token %}
+          {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+          {% endif %}
           {{ form.non_field_errors }}
           {% render_field form.email %}
           {% render_field form.password1 %}
@@ -35,7 +38,7 @@
         {% include 'account/components/social/social_buttons.html' %}
         <div class="text-sm mt-4">
           {% translate "Already have account?" %}
-          <a href="{% url 'account_login' %}" class="font-medium pg-link">
+          <a href="{% url 'account_login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}" class="font-medium pg-link">
             {% translate "Go to sign in." %}
           </a>
         </div>

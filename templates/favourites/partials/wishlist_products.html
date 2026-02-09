@@ -15,7 +15,7 @@
 
       {# Reuse the shared product list card component #}
       <div class="flex-1 min-w-0">
-        {% include "web/components/product_list_card.html" with product=item.product is_favourited=True %}
+        {% include "web/components/product_list_card.html" with product=item.product is_favourited=True hide_favourite=is_shared_view %}
       </div>
     </div>
     {% endfor %}
