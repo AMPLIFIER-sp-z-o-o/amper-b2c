@@ -148,6 +148,17 @@ Global template context provided by [apps/web/context_processors.py](../apps/web
 - Views: Add to app's `urls.py`, use `reverse("app:view_name")` for URL generation.
 - Templates: Extend `web/base.html`, use Flowbite components, include HTMX attributes for interactivity.
 
+## DRY Principle & Component Reuse
+
+This project strictly follows the **DRY (Don't Repeat Yourself)** principle. Any UI element, logic, or component that is used in more than one place MUST be extracted into a reusable unit:
+
+1. **UI Components**: Recurring HTML patterns (buttons, inputs, cards, specialized widgets) MUST be extracted into Django template includes (typically in `templates/web/components/` or app-specific `includes/` folders).
+2. **Logic & Utils**: Helper functions used across multiple views or models MUST be placed in `apps/utils/` or the relevant app's `helpers.py`.
+3. **Styles**: Repeated Tailwind patterns should be extracted into CSS utility classes in `assets/css/site.css` (e.g., `.btn-press`, `.hover-bg`).
+4. **JavaScript**: Reusable frontend logic MUST be defined in `assets/js/site.js` as global functions or modularized, avoiding inline `<script>` tags.
+
+When implementing a feature, always check if a similar element already exists. If you find yourself copying more than 5-10 lines of HTML/JS, **stop and refactor it into a shared component**.
+
 ## UI Components & Styling
 
 ### Swiper/Slider Components (HTMX-Compatible Pattern)
@@ -250,6 +261,13 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 - **Style**: `text-sm text-gray-500 dark:text-gray-400`
 - **When to use**: Pagination info ("1-10 of 50"), empty state messages, form field hints, footer copyright, timestamps.
 - **Markup**: `<span class="text-muted">Page 1 of 5</span>`
+
+### Default Subtitle Style
+
+All secondary/descriptive text under main headings (like "Start your shopping in seconds" on login or "Manage your lists" on favourites) MUST use the `.text-subtitle` utility class. This ensures a consistent look across the app with:
+
+- **Font**: `text-sm font-medium`
+- **Color**: `text-gray-600 dark:text-gray-300`
 
 #### ❌ Anti-Patterns
 
@@ -408,6 +426,97 @@ document.addEventListener('click', function(e) {
 - All bulk action buttons (bulk remove, copy to list, add to cart)
 - Any new button that triggers a network request
 
+### Form Submit Button Loading States (Standard Form Posts)
+
+Every button that submits a standard (non-AJAX) form to the backend MUST show a loading state on submit. This prevents double-clicks and gives the user immediate feedback. Since the page navigates away on success, no `btnReset` is needed.
+
+**Pattern:**
+
+```html
+<button
+  id="my-submit-btn"
+  type="submit"
+  class="... inline-flex items-center justify-center gap-2 transition-all duration-200"
+>
+  <svg
+    id="my-submit-spinner"
+    class="hidden w-4 h-4 animate-spin"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      class="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      stroke-width="4"
+    ></circle>
+    <path
+      class="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+  <span>Button Label</span>
+</button>
+<script>
+  (function () {
+    const form = document.querySelector('form[action="..."]');
+    if (form) {
+      form.addEventListener("submit", function () {
+        const btn = document.getElementById("my-submit-btn");
+        const spinner = document.getElementById("my-submit-spinner");
+        if (btn && !btn.dataset.loading) {
+          btn.dataset.loading = "true";
+          btn.classList.add("opacity-60", "pointer-events-none");
+          if (spinner) spinner.classList.remove("hidden");
+        }
+      });
+    }
+  })();
+</script>
+```
+
+**Which form submit buttons require this:**
+
+- Password reset request ("Send Reset Link")
+- Password reset from key ("Change Password")
+- Request login code ("Request Code")
+- Confirm login code ("Confirm")
+- Password change ("Change Password")
+- Any new form submission button that posts to the backend
+
+**Rules:**
+
+1. Use `<button>` with `type="submit"` instead of `<input type="submit">` — buttons accept child elements (spinner SVG).
+2. The spinner SVG is hidden by default (`class="hidden"`), shown on submit by removing `hidden`.
+3. Use `opacity-60` + `pointer-events-none` to gray out button — never swap background colors.
+4. Guard against double-submit by checking `btn.dataset.loading` before applying.
+5. Wrap the label text in `<span>` so the spinner and text are properly flexed.
+
+### Button Loading/Disabled Visual Style
+
+When a button enters a loading or disabled state (e.g., after form submission), it MUST retain its original background color and only reduce opacity. **NEVER** swap the button's background to a gray color like `bg-gray-400` — this makes the button look too washed out and inconsistent.
+
+**Correct pattern:**
+
+```javascript
+// Add opacity + disable pointer events — button keeps its original color
+btn.classList.add("opacity-60", "pointer-events-none");
+```
+
+**NEVER do this:**
+
+```javascript
+// ❌ DON'T: Swap background to gray — too washed out
+btn.classList.remove("bg-primary-600", "hover:bg-primary-700");
+btn.classList.add("bg-gray-400", "pointer-events-none");
+```
+
+**Why:** The button should still look like itself (just dimmed) so the user understands the action is processing. Swapping to gray makes it look broken or permanently disabled rather than temporarily processing.
+
 ### Dropdown & Menu Text Weight
 
 All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `font-medium` (`text-sm font-medium`) for their text. Never use the default `font-normal` weight for dropdown items — thin text reduces readability and looks inconsistent with the rest of the UI.
@@ -418,6 +527,25 @@ All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `
 <button class="text-sm font-medium text-gray-700 dark:text-gray-300 ...">
   Share list
 </button>
+```
+
+### Checkbox & Agreement Label Weight
+
+Labels for checkboxes and agreement/consent text (e.g., "I agree to the Terms and Conditions") MUST use at least `font-normal` (400) weight. **NEVER** use `font-light` (300) for these labels — thin text reduces readability and makes important legal/consent text easy to overlook.
+
+**Correct:**
+
+```html
+<label class="font-normal text-gray-600 dark:text-gray-300 cursor-pointer">
+  I agree to the Terms and Conditions
+</label>
+```
+
+**NEVER do this:**
+
+```html
+<!-- ❌ DON'T: font-light makes consent text too thin and hard to read -->
+<label class="font-light text-gray-500 ...">...</label>
 ```
 
 ### Dropdown & Popover Open/Close Transitions
@@ -546,8 +674,10 @@ To maintain a clean, modern aesthetic, interactive form elements and controls (i
 
 **1. Default State (Resting):**
 
-- Use `bg-gray-100` background and `border-none`.
+- Use `bg-gray-100` background and `border-none` for all text inputs across the application (auth pages, navbar search, filter bars, login code pages). This provides consistent visual weight and ensures the input boundary is visible on both white card and gray backgrounds.
 - For checkboxes/radios: `border-gray-300` or `dark:border-gray-600`.
+- **NEVER** use `bg-gray-50` for inputs — it is virtually invisible on white backgrounds and provides no visual affordance.
+- **NEVER** use `bg-gray-200` for text inputs — it is too heavy and inconsistent with the rest of the app.
 
 **2. Focus/Active State (Elevated):**
 
@@ -562,13 +692,31 @@ To maintain a clean, modern aesthetic, interactive form elements and controls (i
 - Selected items in sorting or navigation (text-only) should be indicated by **font weight** (`font-bold` or `font-semibold`) and grayscale contrast (e.g., `text-gray-900`) rather than primary colors.
 - Pagination: The active page should use the "Elevated" focus style (`bg-white` + shadow) while other pages stay `bg-gray-100`.
 
-**Implementation Example (Input):**
+**Implementation Example (Input on white card — auth pages):**
 
 ```html
 <input
   type="text"
   class="bg-gray-100 border-none focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all ..."
 />
+```
+
+**Implementation Example (Input on gray background — navbar/filters):**
+
+```html
+<input
+  type="text"
+  class="bg-gray-100 border-none focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all ..."
+/>
+```
+
+#### ❌ Anti-Patterns
+
+```html
+<!-- DON'T: bg-gray-50 is invisible on white backgrounds -->
+<input class="bg-gray-50 border-none ..." />
+<!-- DON'T: bg-gray-200 is too heavy -->
+<input class="bg-gray-200 border-none ..." />
 ```
 
 ### Custom CSS Compatibility
@@ -665,6 +813,61 @@ If a new view needs slightly different card behavior (e.g., a "compare" button),
 ```django-html
 {# DO: Always include the shared component #}
 {% include "web/components/product_list_card.html" with product=product %}
+```
+
+### Shared Auth Page Components (MUST Reuse)
+
+All **repeated UI components across authentication pages** (login, signup, password reset, login code, etc.) are defined as shared Django template includes in `templates/account/includes/`. When modifying or adding auth pages, you **MUST** reuse these shared components via `{% include %}`. **NEVER** duplicate auth component HTML/JS across multiple templates.
+
+#### Available Auth Includes
+
+| Component               | Path                                                  | Parameters                                      | Purpose                                        |
+| ----------------------- | ----------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------- |
+| **Auth card CSS**       | `templates/account/includes/auth_card_css.html`       | _(none)_                                        | Entrance animation keyframes for auth cards    |
+| **Eye toggle**          | `templates/account/includes/eye_toggle.html`          | `input_id`, `toggle_id`, `eye_id`, `eye_off_id` | Password visibility toggle button + script     |
+| **Password strength**   | `templates/account/includes/password_strength.html`   | `password_input_id`, optional `email_input_id`  | Strength meter bars + requirements + script    |
+| **Password match**      | `templates/account/includes/password_match.html`      | `password1_id`, `password2_id`                  | Password confirmation match indicator + script |
+| **Form submit loading** | `templates/account/includes/form_submit_loading.html` | `btn_id`, `spinner_id`                          | Button loading state on form submit            |
+
+#### Usage Examples
+
+```django-html
+{# Auth card animation (in {% block page_head %}) #}
+{% include "account/includes/auth_card_css.html" %}
+
+{# Eye toggle inside <div class="relative"> wrapper #}
+{% include "account/includes/eye_toggle.html" with input_id=form.password.id_for_label toggle_id="toggle-password" eye_id="eye-icon" eye_off_id="eye-off-icon" %}
+
+{# Password strength meter (with email similarity check on signup) #}
+{% include "account/includes/password_strength.html" with password_input_id=form.password1.id_for_label email_input_id=form.email.id_for_label %}
+
+{# Password strength meter (without email check, e.g. password reset) #}
+{% include "account/includes/password_strength.html" with password_input_id=form.password1.id_for_label %}
+
+{# Password match validation #}
+{% include "account/includes/password_match.html" with password1_id=form.password1.id_for_label password2_id=form.password2.id_for_label %}
+
+{# Form submit loading state #}
+{% include "account/includes/form_submit_loading.html" with btn_id="my-btn" spinner_id="my-spinner" %}
+```
+
+#### Rules
+
+1. **One source of truth**: If you need to change how the eye toggle looks or how the strength meter calculates score, edit the include file — all pages update automatically.
+2. **Extending behavior**: If a new auth page needs a variation of an existing component, add an **optional context variable** to the existing include (like `email_input_id` for the email similarity check). Do NOT fork the template.
+3. **New auth components**: If a new reusable pattern emerges across auth pages, extract it into `templates/account/includes/` and update this table.
+
+#### ❌ Anti-Pattern (NEVER do this)
+
+```django-html
+{# DON'T: Copy-paste eye toggle HTML/JS into a new template #}
+<button type="button" id="toggle-password" class="absolute ...">
+  <svg id="eye-icon" ...>...</svg>
+  <svg id="eye-off-icon" class="hidden" ...>...</svg>
+</button>
+<script>
+  document.getElementById('toggle-password').addEventListener('click', function() { ... });
+</script>
 ```
 
 ## Change Validation & Testing

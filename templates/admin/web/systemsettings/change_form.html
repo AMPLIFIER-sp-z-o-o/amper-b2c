@@ -1,0 +1,235 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block after_related_objects %}
+  {{ block.super }}
+
+  {# ── SMTP Testing Panel ─────────────────────────────────────────────── #}
+  <div id="smtp-testing-panel" class="border border-base-200 rounded-default mt-6 dark:border-base-700">
+    <div class="bg-base-50 border-b border-base-200 px-4 py-3 rounded-t-default dark:bg-base-800 dark:border-base-700">
+      <h2 class="font-semibold text-base-900 dark:text-base-100">
+        {% translate "SMTP Connection Test" %}
+      </h2>
+      <p class="text-sm text-base-500 mt-1 dark:text-base-400">
+        {% translate "Test your SMTP configuration to ensure emails can be sent." %}
+      </p>
+    </div>
+
+    <div class="p-4 space-y-4">
+      {# Connection test #}
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <button
+            type="button"
+            id="btn-test-smtp"
+            class="bg-base-100 border border-base-200 cursor-pointer font-medium px-4 py-2 rounded-default text-sm transition-all hover:bg-base-200 dark:bg-base-700 dark:border-base-600 dark:hover:bg-base-600 inline-flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            {% translate "Test Connection" %}
+          </button>
+          <span id="smtp-test-status" class="text-sm font-medium hidden"></span>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <input
+            type="email"
+            id="test-email-recipient"
+            placeholder="{% translate 'Recipient email address' %}"
+            value="{{ original.smtp_test_recipient_email|default:request.user.email }}"
+            class="input border border-base-200 bg-white font-medium rounded-default shadow-xs text-sm px-3 py-2 w-96 dark:bg-base-900 dark:border-base-700 dark:text-font-default-dark placeholder-base-400 dark:placeholder-base-500 focus:outline-2 focus:-outline-offset-2 focus:outline-primary-600"
+          />
+          <button
+            type="button"
+            id="btn-send-test-email"
+            class="bg-primary-600 border border-transparent cursor-pointer font-medium px-4 py-2 rounded-default text-sm text-white transition-all hover:bg-primary-700 inline-flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            {% translate "Send Test Email" %}
+          </button>
+        </div>
+      </div>
+
+      {# Steps output #}
+      <div id="smtp-test-steps" class="hidden">
+        <div class="bg-base-50 border border-base-200 rounded-default p-3 dark:bg-base-800 dark:border-base-700">
+          <ul id="smtp-steps-list" class="space-y-1 text-sm font-mono"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+
+    // ── Password visibility toggle (eye icon) ────────────────────────────
+    document.querySelectorAll('input[type="password"]').forEach(function(input) {
+      // Wrap input in a relative container for absolute positioning of the toggle
+      const inlineWrapper = document.createElement('div');
+      inlineWrapper.style.position = 'relative';
+      inlineWrapper.style.display = 'inline-block';
+      inlineWrapper.style.width = '100%';
+      inlineWrapper.style.maxWidth = input.offsetWidth ? input.offsetWidth + 'px' : '42rem';
+      input.parentElement.insertBefore(inlineWrapper, input);
+      inlineWrapper.appendChild(input);
+      input.style.paddingRight = '2.5rem';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = 'position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);padding:0.25rem;cursor:pointer;border:none;background:none;border-radius:0.375rem;transition:color 0.15s;';
+      btn.className = 'text-base-400 hover:text-base-600 dark:text-base-500 dark:hover:text-base-300';
+      btn.title = '{% translate "Toggle password visibility" %}';
+      btn.innerHTML = `
+        <svg class="eye-icon" style="width:1.25rem;height:1.25rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        <svg class="eye-off-icon" style="width:1.25rem;height:1.25rem;display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+        </svg>`;
+      inlineWrapper.appendChild(btn);
+
+      btn.addEventListener('click', function() {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : '';
+        btn.querySelector('.eye-off-icon').style.display = isPassword ? '' : 'none';
+      });
+    });
+
+    // ── Collect current (possibly unsaved) SMTP form values ─────────────
+    function collectSmtpFormValues() {
+      const val = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.value : undefined;
+      };
+      const checked = (id) => {
+        const el = document.getElementById(id);
+        return el ? el.checked : undefined;
+      };
+      return {
+        smtp_host: val('id_smtp_host'),
+        smtp_port: val('id_smtp_port'),
+        smtp_username: val('id_smtp_username'),
+        smtp_password: val('id_smtp_password'),
+        smtp_use_tls: checked('id_smtp_use_tls'),
+        smtp_use_ssl: checked('id_smtp_use_ssl'),
+        smtp_default_from_email: val('id_smtp_default_from_email'),
+        smtp_timeout: val('id_smtp_timeout'),
+        smtp_enabled: checked('id_smtp_enabled'),
+      };
+    }
+
+    // ── Test Connection ──────────────────────────────────────────────────
+    const btnTest = document.getElementById('btn-test-smtp');
+    const status = document.getElementById('smtp-test-status');
+    const stepsContainer = document.getElementById('smtp-test-steps');
+    const stepsList = document.getElementById('smtp-steps-list');
+
+    function setStatus(text, type) {
+      status.classList.remove('hidden', 'text-green-600', 'text-red-600', 'text-yellow-600',
+        'dark:text-green-400', 'dark:text-red-400', 'dark:text-yellow-400');
+      if (type === 'ok') {
+        status.classList.add('text-green-600', 'dark:text-green-400');
+      } else if (type === 'error') {
+        status.classList.add('text-red-600', 'dark:text-red-400');
+      } else {
+        status.classList.add('text-yellow-600', 'dark:text-yellow-400');
+      }
+      status.textContent = text;
+    }
+
+    function renderSteps(steps) {
+      stepsList.innerHTML = '';
+      steps.forEach(function(s) {
+        const li = document.createElement('li');
+        li.className = 'flex items-center gap-2';
+        const icon = s.status === 'ok' ? '✓' : s.status === 'error' ? '✗' : '⚠';
+        const colorClass = s.status === 'ok'
+          ? 'text-green-600 dark:text-green-400'
+          : s.status === 'error'
+            ? 'text-red-600 dark:text-red-400'
+            : 'text-yellow-600 dark:text-yellow-400';
+        li.innerHTML = '<span class="' + colorClass + ' font-bold">' + icon + '</span> '
+          + '<span class="text-base-700 dark:text-base-300">' + s.step + '</span>'
+          + (s.detail ? ' <span class="text-base-400 dark:text-base-500 text-xs">(' + s.detail + ')</span>' : '');
+        stepsList.appendChild(li);
+      });
+      stepsContainer.classList.remove('hidden');
+    }
+
+    btnTest.addEventListener('click', async function() {
+      btnTest.disabled = true;
+      btnTest.style.opacity = '0.6';
+      setStatus('{% translate "Testing..." %}', 'warning');
+      stepsContainer.classList.add('hidden');
+
+      try {
+        const res = await fetch('{% url "admin:web_systemsettings_test_smtp" %}', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(collectSmtpFormValues()),
+        });
+        const data = await res.json();
+        setStatus(data.message, data.success ? 'ok' : 'error');
+        if (data.steps) renderSteps(data.steps);
+      } catch (e) {
+        setStatus('{% translate "Request failed" %}: ' + e.message, 'error');
+      } finally {
+        btnTest.disabled = false;
+        btnTest.style.opacity = '';
+      }
+    });
+
+    // ── Send Test Email ──────────────────────────────────────────────────
+    const btnEmail = document.getElementById('btn-send-test-email');
+    const recipientInput = document.getElementById('test-email-recipient');
+
+    btnEmail.addEventListener('click', async function() {
+      const recipient = recipientInput.value.trim();
+      if (!recipient) {
+        setStatus('{% translate "Please enter a recipient email address." %}', 'error');
+        recipientInput.focus();
+        return;
+      }
+
+      btnEmail.disabled = true;
+      btnEmail.style.opacity = '0.6';
+      setStatus('{% translate "Sending test email..." %}', 'warning');
+      stepsContainer.classList.add('hidden');
+
+      try {
+        const res = await fetch('{% url "admin:web_systemsettings_test_email" %}', {
+          method: 'POST',
+          headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ recipient: recipient, ...collectSmtpFormValues() }),
+        });
+        const data = await res.json();
+        setStatus(data.message, data.success ? 'ok' : 'error');
+      } catch (e) {
+        setStatus('{% translate "Request failed" %}: ' + e.message, 'error');
+      } finally {
+        btnEmail.disabled = false;
+        btnEmail.style.opacity = '';
+      }
+    });
+
+    // ── Move panel before Cloudflare fieldset ────────────────────────────
+    const panel = document.getElementById('smtp-testing-panel');
+    const headings = Array.from(document.querySelectorAll('h2'));
+    const cloudflareHeading = headings.find(h => h.textContent.includes('Cloudflare Turnstile'));
+    if (panel && cloudflareHeading) {
+      const fieldset = cloudflareHeading.closest('fieldset');
+      if (fieldset) {
+        fieldset.parentNode.insertBefore(panel, fieldset);
+      }
+    }
+  })();
+  </script>
+{% endblock %}

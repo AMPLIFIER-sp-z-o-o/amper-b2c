@@ -2,11 +2,12 @@ from django import forms
 from django.contrib import admin
 from django.db import models
 from django.db.models import Q
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import StackedInline, TabularInline
-from unfold.widgets import UnfoldAdminColorInputWidget, UnfoldAdminSelect2Widget
+from unfold.widgets import UnfoldAdminColorInputWidget, UnfoldAdminPasswordInput, UnfoldAdminSelect2Widget
 
 from apps.utils.admin_mixins import AutoReorderMixin, BaseModelAdmin, HistoryModelAdmin, SingletonAdminMixin
 from apps.utils.admin_utils import make_image_preview_html
@@ -23,6 +24,7 @@ from .models import (
     Navbar,
     NavbarItem,
     SiteSettings,
+    SystemSettings,
     TopBar,
 )
 
@@ -126,19 +128,37 @@ class SiteSettingsForm(forms.ModelForm):
     class Meta:
         model = SiteSettings
         fields = "__all__"
-        labels = {
-            "default_image": _("Product Image"),
-        }
         widgets = {
             "currency": UnfoldAdminSelect2Widget,
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Change "Clear" label to "Delete" on file/image fields for consistency
+        # with the inline delete pattern used in product images.
+        for field in self.fields.values():
+            if hasattr(field.widget, "clear_checkbox_label"):
+                field.widget.clear_checkbox_label = _("Delete")
+        # Restrict logo upload to raster image formats only (SVG not supported in emails)
+        if "logo" in self.fields:
+            self.fields["logo"].widget.attrs["accept"] = "image/png,image/jpeg,image/jpg"
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+        if logo and hasattr(logo, "name"):
+            allowed_extensions = (".png", ".jpg", ".jpeg")
+            if not logo.name.lower().endswith(allowed_extensions):
+                raise forms.ValidationError(
+                    _("Only PNG and JPG images are supported. SVG files are not compatible with email clients.")
+                )
+        return logo
 
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     form = SiteSettingsForm
     list_display = ("store_name", "currency", "updated_at")
-    readonly_fields = ("default_image_preview",)
+    readonly_fields = ()
 
     class Media:
         css = {
@@ -149,7 +169,13 @@ class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         (
             _("Store Information"),
             {
-                "fields": ("store_name", "site_url", "description", "keywords", "default_image"),
+                "fields": (
+                    "store_name",
+                    "site_url",
+                    "description",
+                    "keywords",
+                    "logo",
+                ),
                 "description": _("Basic store information used in SEO and meta tags."),
             },
         ),
@@ -162,20 +188,9 @@ class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         ),
     )
 
-    def default_image_preview(self, obj):
-        """Display ProductImageInline-style preview for default image."""
-        show_link = obj and obj.pk
-        return make_image_preview_html(
-            obj.default_image if obj else None,
-            alt_text="Default image",
-            show_open_link=show_link,
-        )
-
-    default_image_preview.short_description = _("Preview")
-
     def formfield_for_dbfield(self, db_field, **kwargs):
         formfield = super().formfield_for_dbfield(db_field, **kwargs)
-        if isinstance(db_field, models.ImageField):
+        if isinstance(db_field, (models.ImageField, models.FileField)):
             formfield.widget.attrs["data-product-image-upload"] = "true"
         return formfield
 
@@ -590,9 +605,7 @@ class DynamicPageAdmin(HistoryModelAdmin):
             if value == "footer":
                 return queryset.filter(footer_links__isnull=False).distinct()
             if value == "any":
-                return queryset.filter(
-                    Q(navbar_items__isnull=False) | Q(footer_links__isnull=False)
-                ).distinct()
+                return queryset.filter(Q(navbar_items__isnull=False) | Q(footer_links__isnull=False)).distinct()
             if value == "none":
                 return queryset.filter(
                     navbar_items__isnull=True,
@@ -631,3 +644,309 @@ class DynamicPageAdmin(HistoryModelAdmin):
     @admin.display(description=_("URL path"))
     def url_path(self, obj):
         return obj.get_absolute_url() if obj else ""
+
+
+# ============================================================================
+# System Settings Admin
+# ============================================================================
+
+
+class SystemSettingsForm(forms.ModelForm):
+    """Admin form that exposes SMTP password and Turnstile secret key
+    as plain-text widgets while storing them Fernet-encrypted on save."""
+
+    smtp_password = forms.CharField(
+        widget=UnfoldAdminPasswordInput(render_value=True),
+        required=False,
+        label=_("SMTP password"),
+        help_text=_("Password or API key for authenticating with your email provider."),
+    )
+    turnstile_secret_key = forms.CharField(
+        widget=UnfoldAdminPasswordInput(render_value=True),
+        required=False,
+        label=_("Turnstile secret key"),
+        help_text=_("Server-side secret key from Cloudflare Turnstile dashboard. Never shared publicly."),
+    )
+
+    class Meta:
+        model = SystemSettings
+        exclude = ("smtp_password_encrypted", "turnstile_secret_key_encrypted")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.fields["smtp_password"].initial = self.instance.smtp_password
+            self.fields["turnstile_secret_key"].initial = self.instance.turnstile_secret_key
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.smtp_password = self.cleaned_data.get("smtp_password", "")
+        instance.turnstile_secret_key = self.cleaned_data.get("turnstile_secret_key", "")
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(SystemSettings)
+class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    form = SystemSettingsForm
+    change_form_template = "admin/web/systemsettings/change_form.html"
+    list_display = ("__str__", "smtp_enabled", "smtp_host", "updated_at")
+
+    fieldsets = (
+        (
+            _("SMTP Server"),
+            {
+                "fields": ("smtp_host", "smtp_port", "smtp_use_tls", "smtp_use_ssl", "smtp_timeout", "smtp_enabled"),
+                "description": _("Configure the outgoing mail server."),
+            },
+        ),
+        (
+            _("SMTP Authentication"),
+            {
+                "fields": ("smtp_username", "smtp_password"),
+            },
+        ),
+        (
+            _("Email Defaults"),
+            {
+                "fields": ("smtp_default_from_email",),
+            },
+        ),
+        (
+            _("Cloudflare Turnstile (CAPTCHA)"),
+            {
+                "fields": ("turnstile_enabled", "turnstile_site_key", "turnstile_secret_key"),
+                "description": _(
+                    "Configure Cloudflare Turnstile to protect registration and login forms from bots. "
+                    "Get your keys from the Cloudflare Turnstile dashboard: https://dash.cloudflare.com/turnstile"
+                ),
+            },
+        ),
+    )
+
+    def has_add_permission(self, request):
+        return not SystemSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        settings_obj = SystemSettings.get_settings()
+        return redirect(reverse("admin:web_systemsettings_change", args=[settings_obj.pk]))
+
+    def get_urls(self):
+        from django.urls import path as url_path
+
+        custom_urls = [
+            url_path(
+                "send-test-email/",
+                self.admin_site.admin_view(self.send_test_email_view),
+                name="web_systemsettings_test_email",
+            ),
+            url_path(
+                "test-smtp-connection/",
+                self.admin_site.admin_view(self.test_smtp_connection_view),
+                name="web_systemsettings_test_smtp",
+            ),
+        ]
+        return custom_urls + super().get_urls()
+
+    @staticmethod
+    def _get_smtp_overrides_from_request(data):
+        """Extract SMTP field overrides from the AJAX request body so that
+        unsaved form changes are used for testing."""
+        overrides = {}
+        field_map = {
+            "smtp_host": str,
+            "smtp_port": int,
+            "smtp_username": str,
+            "smtp_password": str,
+            "smtp_use_tls": bool,
+            "smtp_use_ssl": bool,
+            "smtp_default_from_email": str,
+            "smtp_timeout": int,
+            "smtp_enabled": bool,
+        }
+        for field, cast in field_map.items():
+            if field in data and data[field] is not None and data[field] != "":
+                try:
+                    if cast is bool:
+                        val = data[field]
+                        overrides[field] = val if isinstance(val, bool) else str(val).lower() in ("true", "1", "on")
+                    else:
+                        overrides[field] = cast(data[field])
+                except (ValueError, TypeError):
+                    pass
+        return overrides
+
+    def send_test_email_view(self, request):
+        """Send a test email to a specified recipient using the configured SMTP. Returns JSON."""
+        import json
+        import smtplib
+
+        from django.core.mail import EmailMessage
+        from django.core.mail.backends.smtp import EmailBackend as SmtpEmailBackend
+        from django.core.validators import validate_email
+
+        if request.method != "POST":
+            return JsonResponse({"success": False, "message": str(_("Invalid request method."))})
+
+        try:
+            data = json.loads(request.body)
+            recipient = data.get("recipient", "").strip()
+        except (json.JSONDecodeError, AttributeError):
+            data = {}
+            recipient = ""
+
+        system_settings = SystemSettings.get_settings()
+        overrides = self._get_smtp_overrides_from_request(data)
+
+        if not recipient:
+            recipient = system_settings.smtp_test_recipient_email or request.user.email
+
+        try:
+            validate_email(recipient)
+        except Exception:
+            return JsonResponse({
+                "success": False,
+                "message": str(_("Invalid email address: %(email)s") % {"email": recipient}),
+            })
+
+        try:
+            if recipient and recipient != system_settings.smtp_test_recipient_email:
+                system_settings.smtp_test_recipient_email = recipient
+                system_settings.save(update_fields=["smtp_test_recipient_email"])
+
+            # Build connection params from saved settings + overrides
+            host = overrides.get("smtp_host", system_settings.smtp_host)
+            port = overrides.get("smtp_port", system_settings.smtp_port)
+            username = overrides.get("smtp_username", system_settings.smtp_username)
+            password = overrides.get("smtp_password", system_settings.smtp_password)
+            use_tls = overrides.get("smtp_use_tls", system_settings.smtp_use_tls)
+            use_ssl = overrides.get("smtp_use_ssl", system_settings.smtp_use_ssl)
+            timeout = overrides.get("smtp_timeout", system_settings.smtp_timeout)
+            from_email = overrides.get("smtp_default_from_email", system_settings.smtp_default_from_email)
+
+            backend = SmtpEmailBackend(
+                host=host, port=port, username=username, password=password,
+                use_tls=use_tls, use_ssl=use_ssl, timeout=timeout,
+            )
+            # Use store name from SiteSettings for the test email subject
+            try:
+                from apps.web.models import SiteSettings as _SiteSettings
+                _store_name = _SiteSettings.get_settings().store_name or "Store"
+            except Exception:
+                _store_name = "Store"
+
+            email = EmailMessage(
+                subject=_("%(store_name)s — SMTP Test Email") % {"store_name": _store_name},
+                body=_("This is a test email sent from %(store_name)s admin to verify SMTP configuration.") % {"store_name": _store_name},
+                from_email=from_email,
+                to=[recipient],
+                connection=backend,
+            )
+            email.send()
+            return JsonResponse({
+                "success": True,
+                "message": str(_("Test email sent successfully to %(email)s.") % {"email": recipient}),
+            })
+        except Exception as exc:
+            return JsonResponse({
+                "success": False,
+                "message": str(_("Failed to send test email: %(error)s") % {"error": str(exc)}),
+            })
+
+    def test_smtp_connection_view(self, request):
+        """Test SMTP connection without sending an email — returns JSON.
+        Reads unsaved form values from the request body so changes can be
+        tested before saving."""
+        import json
+        import smtplib
+        import time
+
+        if request.method != "POST":
+            return JsonResponse({"success": False, "message": str(_("Invalid request method."))})
+
+        try:
+            data = json.loads(request.body) if request.body else {}
+        except (json.JSONDecodeError, AttributeError):
+            data = {}
+
+        system_settings = SystemSettings.get_settings()
+        overrides = self._get_smtp_overrides_from_request(data)
+
+        smtp_enabled = overrides.get("smtp_enabled", system_settings.smtp_enabled)
+        if not smtp_enabled:
+            return JsonResponse({"success": False, "message": str(_("SMTP is disabled in settings."))})
+
+        steps = []
+        start = time.monotonic()
+
+        # Use overrides (unsaved form values) when available
+        host = overrides.get("smtp_host", system_settings.smtp_host)
+        port = overrides.get("smtp_port", system_settings.smtp_port)
+        use_tls = overrides.get("smtp_use_tls", system_settings.smtp_use_tls)
+        username = overrides.get("smtp_username", system_settings.smtp_username)
+        password = overrides.get("smtp_password", system_settings.smtp_password)
+        from_email = overrides.get("smtp_default_from_email", system_settings.smtp_default_from_email)
+
+        try:
+            # Step 1: Connect
+            server = smtplib.SMTP(host, port, timeout=10)
+            steps.append({"step": str(_("Connect to server")), "status": "ok"})
+
+            # Step 2: EHLO
+            server.ehlo()
+            steps.append({"step": str(_("EHLO handshake")), "status": "ok"})
+
+            # Step 3: STARTTLS (if applicable)
+            if use_tls:
+                server.starttls()
+                server.ehlo()
+                steps.append({"step": str(_("STARTTLS encryption")), "status": "ok"})
+
+            # Step 4: Authenticate
+            if username and password:
+                server.login(username, password)
+                steps.append({"step": str(_("Authentication")), "status": "ok"})
+
+            # Step 5: Verify sender
+            from_email = from_email or "test@example.com"
+            code, resp = server.mail(from_email)
+            if code == 250:
+                steps.append({"step": str(_("Sender accepted")), "status": "ok", "detail": from_email})
+                server.rset()
+            else:
+                steps.append({"step": str(_("Sender verification")), "status": "warning", "detail": resp.decode()})
+
+            elapsed = round((time.monotonic() - start) * 1000)
+            server.quit()
+
+            return JsonResponse({
+                "success": True,
+                "message": str(_("SMTP connection test passed! (%(ms)dms)") % {"ms": elapsed}),
+                "steps": steps,
+            })
+
+        except smtplib.SMTPAuthenticationError as e:
+            steps.append({"step": str(_("Authentication")), "status": "error", "detail": str(e)})
+            return JsonResponse({
+                "success": False,
+                "message": str(_("Authentication failed. Check your username and password.")),
+                "steps": steps,
+            })
+        except smtplib.SMTPConnectError as e:
+            steps.append({"step": str(_("Connect to server")), "status": "error", "detail": str(e)})
+            return JsonResponse({
+                "success": False,
+                "message": str(_("Could not connect to SMTP server.")),
+                "steps": steps,
+            })
+        except Exception as e:
+            steps.append({"step": str(_("Unexpected error")), "status": "error", "detail": str(e)})
+            return JsonResponse({
+                "success": False,
+                "message": str(_("Connection test failed: %(error)s") % {"error": str(e)}),
+                "steps": steps,
+            })

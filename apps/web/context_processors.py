@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Prefetch, Q
 
-from apps.catalog.models import Category, Product, ProductStatus, VISIBLE_STATUSES
+from apps.catalog.models import Category, Product, VISIBLE_STATUSES
 from apps.web.models import BottomBar, CustomCSS, Footer, FooterSectionLink, Navbar, NavbarItem, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
@@ -82,9 +82,15 @@ def project_meta(request):
 
     theme_cookie = request.COOKIES.get("theme", "")
 
+    # Site logo URL (from uploaded logo in SiteSettings)
+    site_logo_url = ""
+    if site_settings_obj:
+        site_logo_url = _safe_call(lambda: site_settings_obj.logo_url, default="")
+
     return {
         "project_meta": project_data,
         "site_currency": site_currency,
+        "site_logo": site_logo_url,
         "server_url": get_server_root(),
         "page_url": absolute_url(request.path),
         "page_title": "",
@@ -305,3 +311,20 @@ def navigation_categories(request):
         "navbar_mode": navbar_mode,
         "custom_navbar_items": custom_navbar_items,
     }
+
+
+def email_verification_banner(request):
+    """
+    Show the email verification banner for logged-in users whose primary
+    email is not yet verified (when verification is not 'none').
+    A cookie-based dismiss keeps the banner hidden for 24 hours.
+    """
+    show = False
+    if (
+        request.user.is_authenticated
+        and settings.ACCOUNT_EMAIL_VERIFICATION != "none"
+    ):
+        from allauth.account.models import EmailAddress
+
+        show = not EmailAddress.objects.filter(user=request.user, email=request.user.email, verified=True).exists()
+    return {"show_email_verification_banner": show}

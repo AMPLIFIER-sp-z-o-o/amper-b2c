@@ -1,11 +1,16 @@
+from allauth.account.internal.flows import password_reset as password_reset_flow
 from allauth.account.models import EmailAddress
+from allauth.account.views import ConfirmEmailView, PasswordResetFromKeyView
 from allauth.socialaccount.models import SocialAccount
 from django.contrib import messages
+from django.contrib.messages import get_messages
+from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
+from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
@@ -153,3 +158,85 @@ def set_timezone(request):
         request.user.save(update_fields=["timezone"])
 
     return response
+
+
+@login_required
+@require_POST
+def resend_verification_email(request):
+    """Resend email verification to the current user's primary email."""
+    try:
+        email_address = EmailAddress.objects.get(user=request.user, email=request.user.email)
+        if not email_address.verified:
+            email_address.send_confirmation(request)
+    except EmailAddress.DoesNotExist:
+        # Create the EmailAddress record and send confirmation
+        email_address = EmailAddress.objects.add_email(request, request.user, request.user.email, confirm=True)
+    return JsonResponse({"status": "ok"})
+
+
+# ── Custom Email Confirmation View (auto-login) ──────────────────────
+
+
+class AutoLoginConfirmEmailView(ConfirmEmailView):
+    """Override allauth's ConfirmEmailView to always auto-login the user
+    whose email was just confirmed, regardless of session state."""
+
+    def post(self, *args, **kwargs):
+        self.object = verification = self.get_object()
+        from allauth.account.internal.flows import email_verification
+
+        email_address, response = email_verification.verify_email_and_resume(
+            self.request, verification
+        )
+        if response:
+            return response
+        if not email_address:
+            return self.respond(False)
+
+        # Force-login the user whose email was just confirmed
+        user = email_address.user
+        if not self.request.user.is_authenticated or self.request.user.pk != user.pk:
+            # Log out any currently logged-in user
+            self.logout()
+            # Hack: set backend attribute required by Django's login()
+            backend = getattr(user, "backend", None)
+            if not backend:
+                from django.conf import settings as django_settings
+
+                user.backend = django_settings.AUTHENTICATION_BACKENDS[0]
+            auth_login(self.request, user)
+
+        # Replace the default confirmation message so the email can be emphasized.
+        for _msg in get_messages(self.request):
+            pass
+        email_html = format_html("<strong>{}</strong>", email_address.email)
+        messages.success(self.request, format_html(_("You have confirmed {email}."), email=email_html))
+
+        return redirect("/")
+
+
+# ── Custom Password Reset From Key View (redirect to home) ──────────
+
+
+class AutoLoginPasswordResetFromKeyView(PasswordResetFromKeyView):
+    """Override allauth's PasswordResetFromKeyView so that after a
+    successful password change the user is logged in and redirected to
+    the homepage with a toast, instead of showing a separate 'done' page."""
+
+    def form_valid(self, form):
+        form.save()
+        resp = password_reset_flow.finalize_password_reset(
+            self.request, self.reset_user
+        )
+        if resp:
+            return resp
+        # Fallback: auto-login manually and redirect home
+        user = self.reset_user
+        backend = getattr(user, "backend", None)
+        if not backend:
+            from django.conf import settings as django_settings
+
+            user.backend = django_settings.AUTHENTICATION_BACKENDS[0]
+        auth_login(self.request, user)
+        messages.success(self.request, _("Your password has been changed successfully."))
+        return redirect("/")

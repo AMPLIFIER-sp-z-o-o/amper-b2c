@@ -5,7 +5,9 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django_ckeditor_5.fields import CKEditor5Field
 
+from apps.media.storage import DynamicMediaStorage
 from apps.utils.datetime_utils import is_within_wall_clock_range, wall_clock_utc_now
+from apps.utils.encryption import decrypt_value, encrypt_value
 from apps.utils.models import BaseModel, SingletonModel
 
 
@@ -189,6 +191,13 @@ class SiteSettings(SingletonModel):
         verbose_name=_("SEO keywords"),
         help_text=_("Comma-separated keywords for search engines."),
     )
+    logo = models.FileField(
+        upload_to="site/",
+        storage=DynamicMediaStorage(),
+        blank=True,
+        verbose_name=_("Logo"),
+        help_text=_("Logo displayed in the store, emails, and branding. Supports PNG, JPG."),
+    )
     default_image = models.ImageField(
         upload_to="site/",
         blank=True,
@@ -215,6 +224,13 @@ class SiteSettings(SingletonModel):
     def currency_symbol(self) -> str:
         """Return the symbol for the selected currency."""
         return self.CURRENCY_SYMBOLS.get(self.currency, self.currency)
+
+    @property
+    def logo_url(self) -> str:
+        """Return the uploaded logo URL, or empty string if none uploaded."""
+        if self.logo:
+            return self.logo.url
+        return ""
 
 
 class DynamicPage(BaseModel):
@@ -695,3 +711,134 @@ class NavbarItem(BaseModel):
     def has_children(self) -> bool:
         """Check if this item has children to display in dropdown."""
         return self.item_type == self.ItemType.CATEGORY and self.category and self.category.children.exists()
+
+
+class SystemSettings(SingletonModel):
+    """
+    Singleton model for system-level configuration: SMTP, reCAPTCHA, etc.
+    Sensitive values (passwords, keys) are stored Fernet-encrypted.
+    """
+
+    # ── SMTP ──────────────────────────────────────────────────────────────
+    smtp_host = models.CharField(
+        max_length=255,
+        default="",
+        blank=True,
+        verbose_name=_("SMTP host"),
+        help_text=_("The address of your email provider's mail server (e.g. smtp.sendgrid.net, smtp.gmail.com)."),
+    )
+    smtp_port = models.PositiveIntegerField(
+        default=587,
+        verbose_name=_("SMTP port"),
+        help_text=_("Port number for the mail server. Common values: 587 (STARTTLS) or 465 (SSL)."),
+    )
+    smtp_username = models.CharField(
+        max_length=255,
+        default="",
+        blank=True,
+        verbose_name=_("SMTP username"),
+        help_text=_("The login username for your email provider."),
+    )
+    smtp_password_encrypted = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("SMTP password (encrypted)"),
+        help_text=_("Stored encrypted. Managed via the admin form."),
+    )
+    smtp_use_tls = models.BooleanField(
+        default=True,
+        verbose_name=_("Use TLS"),
+        help_text=_(
+            "Encrypts the connection to the mail server using TLS (recommended for port 587). Do not enable both TLS and SSL at the same time."
+        ),
+    )
+    smtp_use_ssl = models.BooleanField(
+        default=False,
+        verbose_name=_("Use SSL"),
+        help_text=_(
+            "Encrypts the connection using SSL (typically used with port 465). Do not enable both TLS and SSL at the same time."
+        ),
+    )
+    smtp_default_from_email = models.EmailField(
+        default="",
+        blank=True,
+        verbose_name=_("Default from email"),
+        help_text=_("The sender email address that recipients will see (e.g. noreply@yourcompany.com)."),
+    )
+    smtp_test_recipient_email = models.EmailField(
+        default="",
+        blank=True,
+        verbose_name=_("Test recipient email"),
+        help_text=_("Default recipient used for SMTP test emails sent from the admin panel."),
+    )
+    smtp_timeout = models.PositiveIntegerField(
+        default=30,
+        verbose_name=_("SMTP timeout (seconds)"),
+        help_text=_(
+            "How long to wait (in seconds) for the mail server to respond before giving up. Default is 30 seconds."
+        ),
+    )
+    smtp_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_("SMTP enabled"),
+        help_text=_(
+            "When enabled, emails are sent via the configured mail server. When disabled, emails are not delivered."
+        ),
+    )
+
+    # ── Cloudflare Turnstile ────────────────────────────────────────────
+    turnstile_site_key = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        verbose_name=_("Turnstile site key"),
+        help_text=_("Cloudflare Turnstile site key (visible in browser)."),
+    )
+    turnstile_secret_key_encrypted = models.TextField(
+        blank=True,
+        default="",
+        verbose_name=_("Turnstile secret key (encrypted)"),
+        help_text=_("Stored encrypted. Managed via the admin form."),
+    )
+    turnstile_enabled = models.BooleanField(
+        default=False,
+        verbose_name=_("Turnstile enabled"),
+        help_text=_("Enable Cloudflare Turnstile on registration and login forms."),
+    )
+
+    class Meta:
+        verbose_name = _("System settings")
+        verbose_name_plural = _("System settings")
+
+    def __str__(self) -> str:
+        return str(_("Configuration"))
+
+    # ── SMTP password property ────────────────────────────────────────────
+    @property
+    def smtp_password(self) -> str:
+        return decrypt_value(self.smtp_password_encrypted)
+
+    @smtp_password.setter
+    def smtp_password(self, value: str):
+        self.smtp_password_encrypted = encrypt_value(value) if value else ""
+
+    # ── Turnstile secret key property ──────────────────────────────────
+    @property
+    def turnstile_secret_key(self) -> str:
+        return decrypt_value(self.turnstile_secret_key_encrypted)
+
+    @turnstile_secret_key.setter
+    def turnstile_secret_key(self, value: str):
+        self.turnstile_secret_key_encrypted = encrypt_value(value) if value else ""
+
+    def get_connection_params(self) -> dict:
+        """Return kwargs suitable for ``django.core.mail.get_connection()``."""
+        return {
+            "host": self.smtp_host,
+            "port": self.smtp_port,
+            "username": self.smtp_username,
+            "password": self.smtp_password,
+            "use_tls": self.smtp_use_tls,
+            "use_ssl": self.smtp_use_ssl,
+            "timeout": self.smtp_timeout,
+        }

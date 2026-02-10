@@ -1,5 +1,5 @@
 """
-WSGI config for AMPLFIER sp. z o.o. project.
+WSGI config for this project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 

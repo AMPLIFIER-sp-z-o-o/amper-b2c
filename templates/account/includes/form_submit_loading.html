@@ -1,0 +1,21 @@
+{# Form submit loading state (spinner + disabled button). #}
+{# Place after the submit button inside the form. #}
+{# Required context: btn_id, spinner_id #}
+<script>
+(function() {
+  var btn = document.getElementById('{{ btn_id }}');
+  if (btn) {
+    var form = btn.closest('form');
+    if (form) {
+      form.addEventListener('submit', function() {
+        var spinner = document.getElementById('{{ spinner_id }}');
+        if (!btn.dataset.loading) {
+          btn.dataset.loading = 'true';
+          btn.classList.add('opacity-60', 'pointer-events-none');
+          if (spinner) spinner.classList.remove('hidden');
+        }
+      });
+    }
+  }
+})();
+</script>

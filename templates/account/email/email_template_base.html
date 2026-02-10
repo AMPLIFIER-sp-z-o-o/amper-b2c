@@ -1,135 +1,170 @@
-{# This template was automatically created with Dyspatch (https://playground.dyspatch.io/) #}
-<!doctype html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-  <head>
-    <title>
-    </title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style type="text/css">
-      #outlook a{padding: 0;}
-      			.ReadMsgBody{width: 100%;}
-      			.ExternalClass{width: 100%;}
-      			.ExternalClass *{line-height: 100%;}
-      			body{margin: 0; padding: 0; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%;}
-      			table, td{border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;}
-      			img{border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; -ms-interpolation-mode: bicubic;}
-      			p{display: block; margin: 13px 0;}
-    </style>
-    <!--[if !mso]><!-->
-    <style type="text/css">
-      @media only screen and (max-width:480px) {
-      			  		@-ms-viewport {width: 320px;}
-      			  		@viewport {	width: 320px; }
-      				}
-    </style>
-    <!--<![endif]-->
+{% load i18n %}
+<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en">
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!--[if mso]>
-		<xml>
-			<o:OfficeDocumentSettings>
-				<o:AllowPNG/>
-				<o:PixelsPerInch>96</o:PixelsPerInch>
-			</o:OfficeDocumentSettings>
-		</xml>
-		<![endif]-->
-    <!--[if lte mso 11]>
-		<style type="text/css">
-			.outlook-group-fix{width:100% !important;}
-		</style>
-		<![endif]-->
-    <style type="text/css">
-      @media only screen and (min-width:480px) {
-      .dys-column-per-100 {
-      	width: 100.000000% !important;
-      	max-width: 100.000000%;
-      }
-      }
-      @media only screen and (min-width:480px) {
-      .dys-column-per-100 {
-      	width: 100.000000% !important;
-      	max-width: 100.000000%;
-      }
-      }
+    <xml><w:WordDocument xmlns:w="urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyReadingMail/></w:WordDocument>
+    <o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml>
+    <![endif]-->
+    <!--[if !mso]><!-->
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600,700" rel="stylesheet" type="text/css">
+    <!--<![endif]-->
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; padding: 0; }
+        a[x-apple-data-detectors] { color: inherit !important; text-decoration: inherit !important; }
+        #MessageViewBody a { color: inherit; text-decoration: none; }
+        p { line-height: inherit; }
+        .desktop_hide, .desktop_hide table { mso-hide: all; display: none; max-height: 0px; overflow: hidden; }
+        .image_block img+div { display: none; }
+        sup, sub { font-size: 75%; line-height: 0; }
+        @media (max-width:670px) {
+            .image_block div.fullWidth { max-width: 100% !important; }
+            .mobile_hide { display: none; }
+            .row-content { width: 100% !important; }
+            .stack .column { width: 100%; display: block; }
+            .mobile_hide { min-height: 0; max-height: 0; max-width: 0; overflow: hidden; font-size: 0px; }
+            .desktop_hide, .desktop_hide table { display: table !important; max-height: none !important; }
+        }
     </style>
-  </head>
-  <body>
-    <div>
-      <!--[if mso | IE]>
-<table align="center" border="0" cellpadding="0" cellspacing="0" style="width:600px;" width="600"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
-<![endif]-->
-      <div style='margin:0px auto;max-width:600px;'>
-        <table align='center' border='0' cellpadding='0' cellspacing='0' role='presentation' style='width:100%;'>
-          <tbody>
+    <!--[if mso]><style>sup, sub { font-size: 100% !important; } sup { mso-text-raise:10% } sub { mso-text-raise:-10% }</style><![endif]-->
+</head>
+<body class="body" style="margin: 0; background-color: #f3f4f6; padding: 0; -webkit-text-size-adjust: none; text-size-adjust: none;">
+    <div class="preheader" style="display:none;font-size:1px;color:#333333;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">{% block preheader %}{% endblock %}</div>
+    <table class="nl-container" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #f3f4f6;">
+        <tbody>
             <tr>
-              <td style='direction:ltr;font-size:0px;padding:10px 20px;text-align:center;vertical-align:top;'>
-                <!--[if mso | IE]>
-<table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:top;width:600px;">
-<![endif]-->
-                <div class='dys-column-per-100 outlook-group-fix' style='direction:ltr;display:inline-block;font-size:13px;text-align:left;vertical-align:top;width:100%;'>
-                  <table border='0' cellpadding='0' cellspacing='0' role='presentation' style='vertical-align:top;' width='100%'>
-                    <tr>
-                      <td align='left' style='font-size:0px;padding:10px 25px;word-break:break-word;'>
-                        <div style='color:#000000;font-family:Helvetica, Arial, sans-serif;font-size:18px;line-height:28px;text-align:left;'>
-                          {% block message_body %}
-                          {% endblock %}
-                        </div>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-                <!--[if mso | IE]>
-</td></tr></table>
-<![endif]-->
-              </td>
+                <td>
+                    {# ── Logo header ── #}
+                    <table class="row row-1" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <table class="row-content stack" align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 650px; margin: 0 auto;" width="650">
+                                        <tbody>
+                                            <tr>
+                                                <td class="column column-1" width="100%" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; background-color: #f3f4f6; padding-top: 30px; vertical-align: top;">
+                                                    <table class="image_block block-1" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                                                        <tr>
+                                                            <td class="pad" style="padding-bottom:15px;padding-left:60px;padding-right:60px;width:100%;">
+                                                                <div class="alignment" align="center">
+                                                                    {% if logo_url %}
+                                                                    <div class="fullWidth" style="max-width: 200px;">
+                                                                        <a href="{{ site_url }}" target="_blank" style="text-decoration:none;">
+                                                                            <img src="{{ logo_url }}" style="display: block; height: auto; border: 0; width: 100%; max-height: 60px; object-fit: contain;" width="200" alt="{{ store_name|default:'' }}" title height="auto">
+                                                                        </a>
+                                                                    </div>
+                                                                    {% else %}
+                                                                    <a href="{{ site_url }}" style="color:#111827;font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:24px;font-weight:bold;text-decoration:none;" target="_blank">
+                                                                        {{ store_name|default:"" }}
+                                                                    </a>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {# ── Message body (white card) ── #}
+                    <table class="row row-2" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <table class="row-content stack" align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 650px; margin: 0 auto;" width="650">
+                                        <tbody>
+                                            <tr>
+                                                <td class="column column-1" width="100%" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; background-color: #FFFFFF; padding-top: 8px; vertical-align: top;">
+                                                    <table class="paragraph_block block-1" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+                                                        <tr>
+                                                            <td class="pad" style="padding-bottom:1px;padding-left:60px;padding-right:60px;">
+                                                                <div style="color:#555555;direction:ltr;font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:400;letter-spacing:0px;line-height:1.5;text-align:center;mso-line-height-alt:21px;">&nbsp;</div>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    <table class="paragraph_block block-2" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+                                                        <tr>
+                                                            <td class="pad" style="padding-bottom:1px;padding-left:60px;padding-right:60px;padding-top:1px;">
+                                                                <div style="color:#555555;direction:ltr;font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;font-weight:400;letter-spacing:0px;line-height:2;text-align:left;mso-line-height-alt:28px;">
+                                                                    {% block message_body %}
+                                                                    {% endblock %}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    {% block cta %}
+                                                    <table class="paragraph_block block-3" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+                                                        <tr>
+                                                            <td class="pad" style="padding:10px 60px 30px 60px;">
+                                                                <table border="0" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;line-height:100%;">
+                                                                    <tr>
+                                                                        <td align="center" bgcolor="#1A56DB" role="presentation" style="background-color:#1A56DB;border:none;border-radius:6px;cursor:auto;padding:12px 28px;" valign="middle">
+                                                                            <a href="{% block cta_link %}{% endblock %}" style="background:#1A56DB;color:#ffffff;font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;line-height:120%;margin:0;text-decoration:none;text-transform:none;" target="_blank">
+                                                                                {% block cta_text %}{% endblock %}
+                                                                            </a>
+                                                                        </td>
+                                                                    </tr>
+                                                                </table>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                    {% endblock cta %}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    {# ── Footer ── #}
+                    <table class="row row-3" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <table class="row-content stack" align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 650px; margin: 0 auto;" width="650">
+                                        <tbody>
+                                            <tr>
+                                                <td class="column column-1" width="100%" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; background-color: #f3f4f6; padding-top: 20px; vertical-align: top;">
+                                                    <table class="paragraph_block block-footer" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+                                                        <tr>
+                                                            <td class="pad" style="padding: 24px 60px 40px 60px;">
+                                                                <div style="color:#6b7280;direction:ltr;font-family:'Open Sans','Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;letter-spacing:0px;line-height:1.6;text-align:center;mso-line-height-alt:19px;">
+                                                                    <p style="margin:0 0 12px 0;">
+                                                                        {% translate "This is an automated message from" %} <strong>{{ store_name|default:"" }}</strong>.
+                                                                    </p>
+                                                                    <p style="margin:0 0 12px 0;">
+                                                                        {% translate "If you have questions or did not initiate this action, you can safely ignore this email." %}
+                                                                    </p>
+                                                                    <p style="margin:16px 0 0 0; color:#9ca3af;">
+                                                                        <strong>{{ store_name|default:"" }}</strong><br />
+                                                                        &copy; {{ current_year|default:"2026" }} {{ store_name|default:"" }}. {% translate "All rights reserved." %}
+                                                                    </p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
             </tr>
-          </tbody>
-        </table>
-      </div>
-      <!--[if mso | IE]>
-</td></tr></table>
-<![endif]-->
-{% block cta %}
-      <!--[if mso | IE]>
-<table align="center" border="0" cellpadding="0" cellspacing="0" style="width:600px;" width="600"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;">
-<![endif]-->
-      <div style='margin:0px auto;max-width:600px;'>
-        <table align='center' border='0' cellpadding='0' cellspacing='0' role='presentation' style='width:100%;'>
-          <tbody>
-            <tr>
-              <td style='direction:ltr;font-size:0px;padding:0 20px;text-align:center;vertical-align:top;'>
-                <!--[if mso | IE]>
-<table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td style="vertical-align:top;width:600px;">
-<![endif]-->
-                <div class='dys-column-per-100 outlook-group-fix' style='direction:ltr;display:inline-block;font-size:13px;text-align:left;vertical-align:top;width:100%;'>
-                  <table border='0' cellpadding='0' cellspacing='0' role='presentation' style='vertical-align:top;' width='100%'>
-                    <tr>
-                      <td align='left' style='font-size:0px;padding:10px 25px;word-break:break-word;' vertical-align='middle'>
-                        <table border='0' cellpadding='0' cellspacing='0' role='presentation' style='border-collapse:separate;line-height:100%;'>
-                          <tr>
-                            <td align='center' bgcolor='#3273dc' role='presentation' style='background-color:#3273dc;border:none;border-radius:0px;cursor:auto;padding:10px 25px;' valign='middle'>
-                              <a href='{% block cta_link %}{% endblock %}' style='background:#3273dc;color:#ffffff;font-family:Helvetica, Arial, sans-serif;font-size:22px;font-weight:normal;line-height:120%;margin:0;text-decoration:none;text-transform:none;' target='_blank'>
-                                {% block cta_text %}{% endblock %}
-                              </a>
-                            </td>
-                          </tr>
-                        </table>
-                      </td>
-                    </tr>
-                  </table>
-                </div>
-                <!--[if mso | IE]>
-</td></tr></table>
-<![endif]-->
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <!--[if mso | IE]>
-</td></tr></table>
-<![endif]-->
-{% endblock cta %}
-    </div>
-  </body>
+        </tbody>
+    </table>
+</body>
 </html>

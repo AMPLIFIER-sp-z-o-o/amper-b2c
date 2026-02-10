@@ -94,6 +94,9 @@
 </script>
 {% block body_wrapper %}
   {% include 'web/components/draft_preview_notice.html' %}
+{% block email_verification_banner %}
+  {% include 'web/components/email_verification_banner.html' %}
+{% endblock email_verification_banner %}
 {% block top_bar %}
   {% include 'web/components/top_bar.html' %}
 {% endblock top_bar %}

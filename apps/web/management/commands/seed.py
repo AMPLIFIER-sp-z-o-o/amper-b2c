@@ -6,6 +6,7 @@ It populates the current database with site settings, categories, products, etc.
 Credentials loaded from environment variables (.env file):
 - AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY -> MediaStorageSettings
 - GOOGLE_CLIENT_ID, GOOGLE_SECRET_ID -> SocialApp (Google OAuth)
+- SMTP_PASSWORD -> SystemSettings (SendGrid API key)
 
 Default superuser:
 - Email: admin@example.com
@@ -67,10 +68,17 @@ from apps.web.models import (
     Navbar,
     NavbarItem,
     SiteSettings,
+    SystemSettings,
     TopBar,
 )
 
-SITES_DATA = [{"id": 1, "domain": "localhost:8000", "name": "AMPLFIER sp. z o.o."}]
+# Site domain is read from SITE_DOMAIN env var (default: localhost:8000).
+# On QA/production, set e.g. SITE_DOMAIN=amper-b2c.ampliapps.com
+_SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "localhost:8000")
+_SITE_SCHEME = "http" if _SITE_DOMAIN.startswith("localhost") else "https"
+_SITE_URL = f"{_SITE_SCHEME}://{_SITE_DOMAIN}"
+
+SITES_DATA = [{"id": 1, "domain": _SITE_DOMAIN, "name": "AMPLFIER sp. z o.o."}]
 
 TOPBAR_DATA = [
     {
@@ -195,12 +203,28 @@ CUSTOM_CSS_DATA = [
 SITE_SETTINGS_DATA = [
     {
         "id": 1,
-        "store_name": "",
-        "site_url": "",
-        "description": "",
-        "keywords": "",
+        "store_name": "AMPER",
+        "site_url": _SITE_URL,
+        "description": "Your one-stop shop for quality products.",
+        "keywords": "e-commerce, amper, shop",
         "default_image": "",
         "currency": "PLN",
+        "logo": "site/amper-b2c-logo.png",
+    }
+]
+
+SYSTEM_SETTINGS_DATA = [
+    {
+        "id": 1,
+        "smtp_host": "smtp.sendgrid.net",
+        "smtp_port": 587,
+        "smtp_username": "apikey",
+        "smtp_use_tls": True,
+        "smtp_use_ssl": False,
+        "smtp_default_from_email": "noreply@ampliapps.com",
+        "smtp_timeout": 30,
+        "smtp_enabled": True,
+        "turnstile_enabled": False,
     }
 ]
 
@@ -5871,6 +5895,7 @@ class Command(BaseCommand):
                 self._seed_topbar()
                 self._seed_custom_css()
                 self._seed_site_settings()
+                self._seed_system_settings()
                 self._seed_dynamic_pages()
                 self._seed_media_storage_settings()
                 self._seed_footer()
@@ -5999,7 +6024,7 @@ class Command(BaseCommand):
     def _seed_site_settings(self):
         """Seed SiteSettings model."""
         for item in SITE_SETTINGS_DATA:
-            SiteSettings.objects.update_or_create(
+            obj, _ = SiteSettings.objects.update_or_create(
                 id=item["id"],
                 defaults={
                     "store_name": item["store_name"],
@@ -6008,9 +6033,39 @@ class Command(BaseCommand):
                     "keywords": item["keywords"],
                     "default_image": item["default_image"],
                     "currency": item["currency"],
+                    "logo": item.get("logo", ""),
                 },
             )
+            if item.get("logo"):
+                self._upload_if_missing(obj, "logo", item["logo"])
         self.stdout.write(f"  SiteSettings: {len(SITE_SETTINGS_DATA)} records")
+
+    def _seed_system_settings(self):
+        """Seed SystemSettings model (SMTP, Turnstile config)."""
+        from apps.utils.encryption import encrypt_value
+
+        smtp_password = os.environ.get("SMTP_PASSWORD", "")
+
+        for item in SYSTEM_SETTINGS_DATA:
+            defaults = {
+                "smtp_host": item["smtp_host"],
+                "smtp_port": item["smtp_port"],
+                "smtp_username": item["smtp_username"],
+                "smtp_use_tls": item["smtp_use_tls"],
+                "smtp_use_ssl": item["smtp_use_ssl"],
+                "smtp_default_from_email": item["smtp_default_from_email"],
+                "smtp_timeout": item["smtp_timeout"],
+                "smtp_enabled": item["smtp_enabled"],
+                "turnstile_enabled": item["turnstile_enabled"],
+            }
+            if smtp_password:
+                defaults["smtp_password_encrypted"] = encrypt_value(smtp_password)
+
+            SystemSettings.objects.update_or_create(
+                id=item["id"],
+                defaults=defaults,
+            )
+        self.stdout.write(f"  SystemSettings: {len(SYSTEM_SETTINGS_DATA)} records")
 
     def _seed_dynamic_pages(self):
         """Seed DynamicPage model."""
@@ -6585,6 +6640,7 @@ class Command(BaseCommand):
             "web_bottombar",
             "web_customcss",
             "web_sitesettings",
+            "web_dynamicpage",
             "catalog_category",
             "catalog_categorybanner",
             "catalog_categoryrecommendedproduct",

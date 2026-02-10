@@ -1,0 +1,61 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+{% load static %}
+{% block body %}
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+      <div class="w-full place-self-center lg:col-span-6">
+          <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8">
+              <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
+                  {% if site_logo %}
+                  <img class="w-20 h-20 mr-3 object-contain" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+                  {% endif %}
+                  {{ project_meta.NAME|default:"" }}
+              </a>
+              <h1 class="mb-2 text-2xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+                  {% translate "Enter sign-in code" %}
+              </h1>
+              <p class="text-subtitle mt-1">
+                  {% translate "A sign-in code has been sent to your email. Please enter it below." %}
+              </p>
+              {{ form.non_field_errors }}
+              <form class="mt-4 space-y-6 sm:mt-6" method="post" action="{% url 'account_confirm_login_code' %}">
+                  {% csrf_token %}
+                  {% if redirect_field_value %}
+                  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                  {% endif %}
+                  <div>
+                      <label for="{{ form.code.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Code" %}</label>
+                      <input type="text" name="code" id="{{ form.code.id_for_label }}" maxlength="6" inputmode="text" class="bg-gray-100 border-none text-gray-900 rounded-lg text-center text-xl font-mono tracking-[0.3em] uppercase focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" placeholder="------" required="" autocomplete="one-time-code">
+                      {{ form.code.errors }}
+                  </div>
+                  <button id="confirm-code-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200">
+                    <svg id="confirm-code-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <span>{% translate "Confirm" %}</span>
+                  </button>
+                  <script>
+                    (function() {
+                      var codeInput = document.getElementById('{{ form.code.id_for_label }}');
+                      // Auto-uppercase and restrict to alphanumeric only
+                      if (codeInput) {
+                        codeInput.addEventListener('input', function() {
+                          this.value = this.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+                        });
+                      }
+                    })();
+                  </script>
+                  {% include "account/includes/form_submit_loading.html" with btn_id="confirm-code-btn" spinner_id="confirm-code-spinner" %}
+              </form>
+              <div class="mt-4 text-center">
+                  <a href="{% url 'account_request_login_code' %}" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">{% translate "Request another code" %}</a>
+                  <span class="mx-2 text-gray-300 dark:text-gray-600">|</span>
+                  <a href="{% url 'account_login' %}" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">{% translate "Cancel" %}</a>
+              </div>
+          </div>
+      </div>
+      <div class="mr-auto place-self-center lg:col-span-6">
+          <img class="hidden mx-auto lg:flex" src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/authentication/illustration.svg" alt="illustration">
+      </div>
+  </div>
+</section>
+{% endblock %}

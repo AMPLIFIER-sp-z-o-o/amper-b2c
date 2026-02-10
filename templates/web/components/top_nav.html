@@ -296,9 +296,9 @@ body.nav-scroll-locked {
 {# Backdrop overlay for dropdowns #}
 <div id="nav-backdrop" class="fixed inset-0 bg-black/40 z-45 transition-opacity duration-200 opacity-0 pointer-events-none" aria-hidden="true"></div>
 
-<nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-50 bg-white dark:bg-gray-800 antialiased relative transition-shadow duration-300">
+<nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-60 bg-white dark:bg-gray-800 antialiased relative transition-shadow duration-300">
   {# Top row: Logo, Search, Cart, Account #}
-  <div class="py-2.5 md:py-4 relative z-20 bg-white dark:bg-gray-800">
+  <div class="py-2.5 md:py-4 relative z-30 bg-white dark:bg-gray-800">
     <div class="max-w-7xl px-4 mx-auto 2xl:px-0">
       <div class="flex flex-wrap items-center justify-between gap-y-2.5 md:gap-x-8 lg:flex-nowrap">
         <div class="flex items-center justify-between w-full md:contents">
@@ -318,16 +318,13 @@ body.nav-scroll-locked {
               </svg>
             </button>
             <a href="{% url 'web:home' %}" title="{{ project_meta.NAME }}">
+              {% if site_logo %}
               <img
-                class="w-auto h-9 md:h-16 dark:hidden"
-                src="{% static 'images/web/amper-b2c-logo.svg' %}"
+                class="w-auto h-9 md:h-16"
+                src="{{ site_logo }}"
                 alt="{{ project_meta.NAME }}"
               />
-              <img
-                class="hidden w-auto h-9 md:h-16 dark:block"
-                src="{% static 'images/web/amper-b2c-logo.svg' %}"
-                alt="{{ project_meta.NAME }}"
-              />
+              {% endif %}
             </a>
           </div>
 
@@ -512,7 +509,7 @@ body.nav-scroll-locked {
         {# Search Bar with Category Dropdown #}
         <div class="w-full md:w-auto md:flex-1 md:order-2 relative" id="search-container">
           <label for="navbar-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">{% translate "Search" %}</label>
-          <div class="relative flex group bg-gray-100 dark:bg-gray-700 rounded-lg transition-shadow duration-150 ease-in focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] focus-within:bg-white dark:focus-within:bg-gray-600">
+          <div class="relative flex items-center group bg-gray-100 dark:bg-gray-700 rounded-lg transition-shadow duration-150 ease-in focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] focus-within:bg-white dark:focus-within:bg-gray-600">
             {# Search Input #}
             <div class="relative flex-1">
               <input type="hidden" id="search-category-id" value="" />
@@ -520,7 +517,7 @@ body.nav-scroll-locked {
               <input
                 type="text"
                 id="navbar-search"
-                class="block w-full py-2 md:py-4 text-base md:text-sm text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-14 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
+                class="block w-full py-2 md:py-3.5 text-base md:text-sm text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-14 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
                 placeholder="{% translate "Search products..." %}"
                 autocomplete="off"
               />
@@ -566,12 +563,12 @@ body.nav-scroll-locked {
             </div>
 
             {# Search Button Icon #}
-            <div class="hidden md:block p-1">
+            <div class="hidden md:flex items-center p-1">
               <button
                 type="button"
                 id="search-btn-desktop"
                 onmousedown="event.preventDefault()"
-                class="flex items-center justify-center px-4 h-full bg-primary-600 text-white rounded-lg hover:bg-primary-700 active:scale-95 transition-all duration-200 cursor-pointer border-none"
+                class="flex items-center justify-center w-10 h-10 bg-primary-600 text-white rounded-md hover:bg-primary-700 active:scale-95 transition-all duration-200 cursor-pointer border-none"
               >
                 <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
@@ -581,7 +578,7 @@ body.nav-scroll-locked {
           </div>
 
           {# Search Results Dropdown #}
-          <div id="search-results" class="hidden absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-50 cursor-pointer">
+          <div id="search-results" class="hidden absolute left-0 right-0 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto z-[100] cursor-pointer">
             <div id="search-results-content">
               {# Content will be dynamically populated #}
             </div>
@@ -735,7 +732,7 @@ body.nav-scroll-locked {
 </nav>
 
 {# MOVED Categories Navigation Row Container #}
-  <div class="hidden md:block relative w-full z-50" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
+  <div class="hidden md:block relative w-full z-40" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
     {# Categories Navigation Bar #}
     <div class="py-3 w-full bg-white dark:bg-gray-800 shadow-md" id="categories-nav-wrapper">
     <div id="categories-nav-container" class="px-4 relative mx-auto 2xl:px-0 max-w-7xl">
@@ -1546,7 +1543,11 @@ document.addEventListener('DOMContentLoaded', function() {
       activeDropdown = dropdown;
     }
 
-    showBackdrop();
+    // Only show backdrop for category dropdowns, not for cart/account
+    const isCartOrAccount = dropdown && (dropdown.id === 'cartDropdown' || dropdown.id === 'accountDropdown');
+    if (!isCartOrAccount) {
+      showBackdrop();
+    }
     
     // Lock body scroll if dropdown is open (only on mobile)
     if (window.innerWidth < 768) {

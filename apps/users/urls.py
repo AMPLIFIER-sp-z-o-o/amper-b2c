@@ -9,4 +9,5 @@ urlpatterns = [
     path("api-keys/create/", views.create_api_key, name="create_api_key"),
     path("api-keys/revoke/", views.revoke_api_key, name="revoke_api_key"),
     path("set-timezone/", views.set_timezone, name="set_timezone"),
+    path("resend-verification-email/", views.resend_verification_email, name="resend_verification_email"),
 ]

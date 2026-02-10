@@ -1,0 +1,29 @@
+{% load i18n %}
+{% if show_email_verification_banner %}
+<div id="email-verification-banner" class="relative z-50 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between flex-wrap gap-2">
+      <div class="flex items-center min-w-0">
+        <span class="flex p-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30">
+          <svg class="h-5 w-5 text-primary-600 dark:text-primary-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+          </svg>
+        </span>
+        <p class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-200">
+          {% translate "Secure your account and enable password reset. Your account is not yet verified." %}
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="resend-verification-btn" type="button" class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 dark:bg-primary-600 dark:hover:bg-primary-700 rounded-md transition-colors cursor-pointer">
+          {% translate "Send activation link" %}
+        </button>
+        <button id="dismiss-verification-banner" type="button" class="shrink-0 p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer" aria-label="{% translate 'Dismiss' %}">
+          <svg class="h-5 w-5 text-gray-500 dark:text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}

@@ -4,8 +4,8 @@
 {% block body %}
 <section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
   <div class="max-w-screen-xl mx-auto">
-    <div class="lg:flex justify-between">
-      <div class="px-4 lg:flex-1">
+    <div class="flex flex-col lg:grid lg:grid-cols-[1fr_28rem] xl:grid-cols-[1fr_32rem]">
+      <div class="order-1 px-4 lg:col-start-1 lg:row-start-1">
         <div class="max-w-md lg:max-w-none mx-auto flex flex-col lg:flex-row justify-center mb-4">
           <ul class="grid grid-cols-4 lg:block gap-4 order-2 lg:order-1 lg:space-y-4 mt-8 lg:mt-0" id="product-2-tab" data-tabs-toggle="#product-2-tab-content" data-tabs-active-classes="border-gray-200 dark:border-gray-700" data-tabs-inactive-classes="border-transparent hover:border-gray-200 dark:hover:dark:border-gray-700 dark:border-transparent" role="tablist">
             {% for img in product.images.all %}
@@ -67,11 +67,13 @@
             {% endfor %}
           </div>
         </div>
+      </div>
 
+      <div class="order-3 px-4 lg:col-start-1 lg:row-start-2">
         <div id="accordion-flush" data-accordion="collapse" data-active-classes="bg-white dark:bg-gray-900 text-gray-900 dark:text-white" data-inactive-classes="text-gray-500 dark:text-gray-400">
           <h2 id="accordion-flush-heading-1">
             <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-1" aria-expanded="true" aria-controls="accordion-flush-body-1">
-              <span>Product Details</span>
+              <span>{% translate "Product Details" %}</span>
               <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
               </svg>
@@ -84,7 +86,7 @@
           </div>
           <h2 id="accordion-flush-heading-2">
             <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-2" aria-expanded="false" aria-controls="accordion-flush-body-2">
-              <span>Specifications</span>
+              <span>{% translate "Specifications" %}</span>
               <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
               </svg>
@@ -98,7 +100,7 @@
           </div>
           <h2 id="accordion-flush-heading-3">
             <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-3" aria-expanded="false" aria-controls="accordion-flush-body-3">
-              <span>Warranty</span>
+              <span>{% translate "Warranty" %}</span>
               <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
               </svg>
@@ -114,7 +116,7 @@
         
       </div>
 
-      <div class="w-full mt-6 lg:max-w-lg lg:mt-0 shrink-0 px-4">
+      <div class="order-2 mt-6 lg:mt-0 px-4 lg:col-start-2 lg:row-start-1 lg:row-span-2">
         <div
           class="p-4 border border-gray-200 rounded-lg sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
         >
@@ -254,7 +256,7 @@
               class="text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white"
               data-price="{{ product.price }}" data-currency="{{ site_currency }}"
             >
-              {product.price}
+              {{ product.price|floatformat:2 }}
             </p>
 
             <form class="flex items-center gap-2 mt-0">
@@ -262,7 +264,7 @@
                 <label
                   for="quantity"
                   class="text-sm font-medium text-gray-900 dark:text-white"
-                  >Quantity</label
+                  >{% translate "Quantity" %}</label
                 >
                 <button
                   data-tooltip-target="quantity-desc-3"
@@ -376,7 +378,7 @@
                 />
               </svg>
 
-              Add to cart
+              {% translate "Add to cart" %}
             </a>
             {% endif %}
           </div>

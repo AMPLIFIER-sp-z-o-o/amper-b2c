@@ -45,6 +45,13 @@ function btnLoading(btn) {
   ) {
     btn.classList.add("inline-flex", "items-center", "justify-center", "gap-2");
     btn.dataset.btnFlexAdded = "1";
+  } else {
+    // If it already has flex, ensure it has a gap for the spinner
+    const hasGap = Array.from(btn.classList).some((c) => c.startsWith("gap-"));
+    if (!hasGap) {
+      btn.classList.add("gap-2");
+      btn.dataset.btnGapAdded = "1";
+    }
   }
   // Hide existing SVG icon (direct child) to replace with spinner
   const existingIcon = btn.querySelector(":scope > svg");
@@ -81,6 +88,10 @@ function btnReset(btn) {
       "gap-2",
     );
     delete btn.dataset.btnFlexAdded;
+  }
+  if (btn.dataset.btnGapAdded) {
+    btn.classList.remove("gap-2");
+    delete btn.dataset.btnGapAdded;
   }
 }
 
@@ -1486,3 +1497,59 @@ function checkIfFavouritesListEmpty() {
     renderWishlistEmptyState();
   }
 }
+
+// ─── Email Verification Banner ────────────────────────────────────
+function initEmailVerificationBanner() {
+  const banner = document.getElementById("email-verification-banner");
+  if (!banner) return;
+
+  // If already dismissed this browser session, hide immediately
+  if (sessionStorage.getItem("email_verified_dismiss") === "1") {
+    banner.style.display = "none";
+    return;
+  }
+
+  // Dismiss button – hide banner for this browser session
+  const dismissBtn = document.getElementById("dismiss-verification-banner");
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", () => {
+      banner.style.transition = "opacity .2s ease, max-height .3s ease";
+      banner.style.opacity = "0";
+      banner.style.maxHeight = "0";
+      banner.style.overflow = "hidden";
+      sessionStorage.setItem("email_verified_dismiss", "1");
+      setTimeout(() => banner.remove(), 300);
+    });
+  }
+
+  // Resend button – POST to resend endpoint
+  const resendBtn = document.getElementById("resend-verification-btn");
+  if (resendBtn) {
+    resendBtn.addEventListener("click", async () => {
+      if (resendBtn.classList.contains("btn-loading")) return;
+      window.btnLoading(resendBtn);
+      try {
+        const csrfToken = getCsrfToken();
+        const res = await fetch("/users/resend-verification-email/", {
+          method: "POST",
+          headers: {
+            "X-CSRFToken": csrfToken || "",
+            "Content-Type": "application/json",
+          },
+          credentials: "same-origin",
+        });
+        if (res.ok) {
+          window.showToast?.("Verification email sent!", "success");
+        } else {
+          window.showToast?.("Could not send email. Try again later.", "error");
+        }
+      } catch {
+        window.showToast?.("Could not send email. Try again later.", "error");
+      } finally {
+        window.btnReset(resendBtn);
+      }
+    });
+  }
+}
+
+document.addEventListener("DOMContentLoaded", initEmailVerificationBanner);

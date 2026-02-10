@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import IntegrityError, connection
 from django.db.models import Count, Max, Min, Prefetch, Q
 from django.db.models.functions import Coalesce
 from django.http import Http404, JsonResponse
@@ -80,6 +81,46 @@ def dynamic_page_detail(request, slug: str, pk: int):
             "page_title": page.meta_title or page.name,
             "page_description": page.meta_description,
             "page_canonical_url": page.get_absolute_url(),
+        },
+    )
+
+
+def terms_page(request):
+    """Serve the Terms and Conditions page from a DynamicPage with slug='terms'."""
+    try:
+        page, _created = DynamicPage.objects.get_or_create(
+            slug="terms",
+            defaults={
+                "name": "Terms and Conditions",
+                "meta_title": "Terms and Conditions",
+                "content": "<p>Your terms and conditions go here.</p>",
+                "is_active": True,
+            },
+        )
+    except IntegrityError:
+        # Sequence out of sync after seed data – reset it and fetch existing row
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT setval(pg_get_serial_sequence('web_dynamicpage', 'id'), "
+                "COALESCE((SELECT MAX(id) FROM web_dynamicpage), 0) + 1, false)"
+            )
+        page = DynamicPage.objects.filter(slug="terms").first()
+        if page is None:
+            page = DynamicPage.objects.create(
+                slug="terms",
+                name="Terms and Conditions",
+                meta_title="Terms and Conditions",
+                content="<p>Your terms and conditions go here.</p>",
+                is_active=True,
+            )
+    apply_draft_to_existing_instance(request, page)
+    return render(
+        request,
+        "web/dynamicpage_detail.html",
+        {
+            "page": page,
+            "page_title": page.meta_title or page.name,
+            "page_description": page.meta_description,
         },
     )
 
