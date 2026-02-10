@@ -120,4 +120,9 @@
 {% block page_js %}
 {% endblock page_js %}
     <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
+     <script>
+      window.ADD_TO_CART_URL = "{% url 'cart:add_to_cart' %}";
+      window.REMOVE_FROM_CART_URL = "{% url 'cart:remove_from_cart' %}";
+    </script>
+    <script src="{% static 'js/cart.js' %}" defer></script>
 </html>

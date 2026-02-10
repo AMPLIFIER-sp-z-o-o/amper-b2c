@@ -167,6 +167,7 @@ function formatPrices() {
     }
   });
 }
+window.formatPrices = formatPrices;
 
 function initCategoryRecommendedSlider() {
   const swiperContainers = document.querySelectorAll(

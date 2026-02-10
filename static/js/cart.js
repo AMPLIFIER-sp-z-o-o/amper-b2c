@@ -1,3 +1,4 @@
+
 window.Cart = (function () {
     function getCSRFToken() {
         return document.querySelector('[name=csrfmiddlewaretoken]')?.value;
@@ -7,7 +8,6 @@ window.Cart = (function () {
         const totalEls = document.querySelectorAll('[data-cart-total]');
         const cartLinesNumber =  document.querySelectorAll('[data-cart-lines-number]');
         const navCartLinesContainer = document.querySelector('#nav-cart-lines')
-
         if (!totalEls.length) return;
         if (data.updated_line_html) {
             const temp = document.createElement('div');
@@ -22,15 +22,21 @@ window.Cart = (function () {
 
             if (existingLine) {
                 existingLine.replaceWith(newLine);
+                window.showToast(`Updated <strong>${data.product_name}</strong> in Cart`, 'success')
+
             } else {
                 navCartLinesContainer.appendChild(newLine);
+                window.showToast(`Added <strong>${data.product_name}</strong> to Cart`, 'success')
             }
         }
         if (data.removed_line_id) {
             document.querySelectorAll(
                 `[data-cart-line-id="${data.removed_line_id}"]`
             ).forEach(el => el.remove());
+            window.showToast(`Removed <strong>${data.product_name}</strong> from Cart`, 'success')
         }
+
+
 
         if (data.cart_total !== undefined) {
             totalEls.forEach(el => {
@@ -44,8 +50,9 @@ window.Cart = (function () {
                 el.textContent = `(${data.lines_count} ${label})`;
             });
 
-            window.formatPrices();
+            
         }
+        formatPrices()
     }
 
     function addToCart(productId, quantity = 1) {
@@ -69,11 +76,12 @@ window.Cart = (function () {
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-            localStorage.setItem("cart_id", data.cart_id);
+                localStorage.setItem("cart_id", data.cart_id);
 
-            document.dispatchEvent(
-                new CustomEvent("cart:updated", { detail: data })
-            );
+                document.dispatchEvent(
+                    new CustomEvent("cart:updated", { detail: data })
+                );
+               
             }
         })
         .catch(console.error);
@@ -93,7 +101,6 @@ window.Cart = (function () {
             .then(res => res.json())
             .then(data => {
             if (data.success) {
-                updateCartSummary(data);
 
                 document.dispatchEvent(
                 new CustomEvent("cart:updated", { detail: data })
