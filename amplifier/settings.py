@@ -1,5 +1,5 @@
 """
-Django settings for AMPLFIER sp. z o.o. project.
+Django settings for this project.
 
 For more information on this file, see
 https://docs.djangoproject.com/en/stable/topics/settings/
@@ -61,11 +61,11 @@ DJANGO_APPS = [
 ]
 
 PROJECT_METADATA = {
-    "NAME": gettext_lazy("AMPLFIER sp. z o.o."),
-    "URL": "http://localhost:8000",
-    "DESCRIPTION": gettext_lazy("AMPER-B2C is a top-notch, next-gen  B2C e-commerce solution."),  # noqa: E501
+    "NAME": "",
+    "URL": "",
+    "DESCRIPTION": "",
     "IMAGE": None,
-    "KEYWORDS": "e-commerce, amper-b2c",
+    "KEYWORDS": "",
 }
 
 # Put your third-party apps here
@@ -110,13 +110,15 @@ PROJECT_APPS = [
     "apps.homepage.apps.HomepageConfig",
     "apps.support.apps.SupportConfig",
     "apps.cart.apps.CartConfig",
+    "apps.favourites.apps.FavouritesConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
 
 UNFOLD = {
-    "SITE_TITLE": "AMPER B2C Admin",
-    "SITE_HEADER": "AMPER B2C",
+    "THEME": "light",
+    "SITE_TITLE": "Admin",
+    "SITE_HEADER": "Admin",
     "STYLES": [
         # Custom admin styles are loaded via vite_asset in templates/admin/base.html
     ],
@@ -239,6 +241,10 @@ UNFOLD = {
                         "title": gettext_lazy("Custom CSS"),
                         "link": reverse_lazy("admin:web_customcss_changelist"),
                     },
+                    {
+                        "title": gettext_lazy("System Settings"),
+                        "link": reverse_lazy("admin:web_systemsettings_changelist"),
+                    },
                 ],
             },
         ],
@@ -312,8 +318,10 @@ TEMPLATES = [
                 "apps.web.context_processors.footer_context",
                 "apps.web.context_processors.bottom_bar_context",
                 "apps.web.context_processors.navigation_categories",
+                "apps.web.context_processors.email_verification_banner",
                 "apps.support.context_processors.admin_extra_userlinks",
                 "apps.support.context_processors.draft_preview",
+                "apps.cart.context_processors.cart_context",
             ],
             "loaders": _DEFAULT_LOADERS if DEBUG else _CACHED_LOADERS,
         },
@@ -354,16 +362,11 @@ LOGIN_REDIRECT_URL = "/"
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
-    {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
     },
     {
-        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
-    },
-    {
-        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
 ]
 
@@ -372,11 +375,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ACCOUNT_ADAPTER = "apps.users.adapter.EmailAsUsernameAdapter"
 HEADLESS_ADAPTER = "apps.users.adapter.CustomHeadlessAdapter"
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
 
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False  # don't send "forgot password" emails to unknown accounts
 ACCOUNT_CONFIRM_EMAIL_ON_GET = True
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = "/"
 ACCOUNT_UNIQUE_EMAIL = True
 # This configures a honeypot field to prevent bots from signing up.
 # The ID strikes a balance of "realistic" - to catch bots,
@@ -386,11 +390,13 @@ ACCOUNT_SIGNUP_FORM_HONEYPOT_FIELD = "phone_number_x"
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_LOGOUT_ON_GET = True
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = True
 ACCOUNT_LOGIN_BY_CODE_ENABLED = True
 ACCOUNT_USER_DISPLAY = lambda user: user.get_display_name()  # noqa: E731
 
 ACCOUNT_FORMS = {
     "signup": "apps.users.forms.TermsSignupForm",
+    "login": "apps.users.forms.TurnstileLoginForm",
 }
 SOCIALACCOUNT_FORMS = {
     "signup": "apps.users.forms.CustomSocialSignupForm",
@@ -413,10 +419,18 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = (*default_headers, "x-password-reset-key", "x-email-verification-key")
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[FRONTEND_ADDRESS])
 SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_AGE = 2592000  # 30 days in seconds
 
 # User signup configuration: change to "mandatory" to require users to confirm email before signing in.
 # or "optional" to send confirmation emails but not require them
-ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none")
+ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="optional")
+
+ACCOUNT_RATE_LIMITS = {
+    "login": "5/m/ip",
+    "login_failed": "5/5m/ip,3/5m/key",
+    "confirm_email": "1/3m/key",
+    "request_login_code": "3/h/ip",
+}
 
 AUTHENTICATION_BACKENDS = (
     # Needed to login by username in Django admin, regardless of `allauth`
@@ -526,24 +540,17 @@ FORMS_URLFIELD_ASSUME_HTTPS = True
 # Email setup
 
 # default email used by your server
-SERVER_EMAIL = env("SERVER_EMAIL", default="noreply@localhost:8000")
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="tomek@dziemidowicz.cloud")
+SERVER_EMAIL = env("SERVER_EMAIL", default="noreply@example.com")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
 
-# The default value will print emails to the console, but you can change that here
-# and in your environment.
-EMAIL_BACKEND = env("EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend")
+# Email backend configuration.
+# The DatabaseSmtpBackend reads SMTP settings from the SystemSettings admin panel.
+# When smtp_enabled=False in SystemSettings, it automatically falls back to console output.
+# To force console output locally (bypassing SystemSettings entirely), set in your .env:
+#   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_BACKEND = env("EMAIL_BACKEND", default="apps.utils.email_backend.DatabaseSmtpBackend")
 
-# Most production backends will require further customization. The below example uses Mailgun.
-# ANYMAIL = {
-#     "MAILGUN_API_KEY": env("MAILGUN_API_KEY", default=None),
-#     "MAILGUN_SENDER_DOMAIN": env("MAILGUN_SENDER_DOMAIN", default=None),
-# }
-
-# use in production
-# see https://github.com/anymail/django-anymail for more details/examples
-# EMAIL_BACKEND = "anymail.backends.mailgun.EmailBackend"
-
-EMAIL_SUBJECT_PREFIX = "[AMPLFIER sp. z o.o.] "
+EMAIL_SUBJECT_PREFIX = ""
 
 # Django sites
 
@@ -563,8 +570,8 @@ REST_FRAMEWORK = {
 
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "AMPLFIER sp. z o.o.",
-    "DESCRIPTION": "AMPER is a top-notch, next-gen SFA/FFM/e-commerce solution.",  # noqa: E501
+    "TITLE": "API",
+    "DESCRIPTION": "API documentation.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SWAGGER_UI_SETTINGS": {
@@ -605,15 +612,17 @@ CACHES = {
 
 CELERY_BROKER_URL = CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_BROKER_CONNECTION_TIMEOUT = 2  # seconds – fail fast when broker is unavailable
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = False
+
+from celery import schedules  # noqa: E402
 
 # Add tasks to this dict and run `python manage.py bootstrap_celery_tasks` to create them
 SCHEDULED_TASKS = {
-    # Example of a crontab schedule
-    # from celery import schedules
-    # "daily-4am-task": {
-    #     "task": "some.task.path",
-    #     "schedule": schedules.crontab(minute=0, hour=4),
-    # },
+    "cleanup-anonymous-wishlists": {
+        "task": "apps.favourites.tasks.cleanup_anonymous_wishlists",
+        "schedule": schedules.crontab(minute=0, hour=3),  # daily at 3 AM
+    },
 }
 
 # Channels / Daphne setup
@@ -637,7 +646,7 @@ USE_HTTPS_IN_ABSOLUTE_URLS = env.bool("USE_HTTPS_IN_ABSOLUTE_URLS", default=Fals
 
 DRAFT_PREVIEW_TTL_MINUTES = env.int("DRAFT_PREVIEW_TTL_MINUTES", default=1440)
 
-ADMINS = ["tomek@dziemidowicz.cloud"]
+ADMINS = []
 
 # Add your google analytics ID to the environment to connect to Google Analytics
 GOOGLE_ANALYTICS_ID = env("GOOGLE_ANALYTICS_ID", default="")
@@ -670,6 +679,16 @@ LOGGING = {
         "amplifier": {
             "handlers": ["console"],
             "level": env("AMPLIFIER_LOG_LEVEL", default="INFO"),
+        },
+        "apps.users.adapter": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "apps.utils.email_backend": {
+            "handlers": ["console"],
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
         },
     },
 }

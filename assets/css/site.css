@@ -168,6 +168,121 @@ html {
   @apply hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors;
 }
 
+/* ===========================================
+   Button Pressed (Active) State
+   Provides visual feedback when buttons are clicked.
+   Use .btn-press for a subtle background shift on press.
+   =========================================== */
+
+.btn-press {
+  @apply active:bg-gray-300 dark:active:bg-gray-600 transition-colors;
+}
+
+/* ===========================================
+   Disabled Button Hover Fix
+   Buttons with disabled + cursor-not-allowed must NOT
+   change background or text color on hover.
+   =========================================== */
+
+button:disabled:hover,
+button[disabled]:hover,
+.disabled-no-hover:hover {
+  background-color: inherit !important;
+  color: inherit !important;
+  box-shadow: none !important;
+}
+
+/* ===========================================
+   Typography Utility Classes
+   =========================================== */
+
+/* 
+ * Subtitle text style for descriptive text appearing under headings.
+ * More visible than muted helper text (gray-500/400).
+ * Use for: page subtitles, section descriptions, summary info under titles.
+ */
+.text-subtitle {
+  @apply text-sm font-medium text-gray-600 dark:text-gray-300;
+}
+
+/*
+ * Muted text style for secondary/helper information.
+ * Use for: pagination info, empty states, footer text, form hints.
+ */
+.text-muted {
+  @apply text-sm text-gray-500 dark:text-gray-400;
+}
+
+/* ===========================================
+   Toast Close Button
+   Circular hover background for toast dismiss.
+   =========================================== */
+
+.toast-close-btn {
+  border-radius: 9999px !important;
+}
+
+.toast-close-btn:hover {
+  background-color: #d1d5db !important; /* gray-300 */
+}
+
+:is(.dark) .toast-close-btn:hover {
+  background-color: #374151 !important; /* gray-700 */
+}
+
+/* ===========================================
+   Button Loading State
+   Shows a spinner and disables interaction while
+   an async operation (fetch/POST) is in progress.
+   Use via JS: btnLoading(btn) / btnReset(btn)
+   =========================================== */
+
+.btn-loading {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.btn-spinner svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ===========================================
+   Favourite Heart Pulse Animation
+   =========================================== */
+
+@keyframes favouritePulse {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  60% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.favourite-btn-pulse {
+  animation: favouritePulse 0.4s ease-in-out;
+}
+
 /* Utilities */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */

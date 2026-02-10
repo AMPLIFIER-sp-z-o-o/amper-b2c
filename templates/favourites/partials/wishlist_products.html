@@ -1,0 +1,71 @@
+{% load i18n %}
+
+{% if items %}
+{# Products Container (filtered results exist) #}
+<div id="favourites-products-grid" class="favourites-products-container animate-fade-in">
+  <div class="flex flex-col gap-3">
+    {% for item in items %}
+    <div class="wishlist-item-row flex items-start gap-3" data-item-id="{{ item.id }}">
+      {# Checkbox for bulk selection #}
+      {% if not is_shared_view %}
+      <div class="flex items-center pt-7 shrink-0">
+        <input type="checkbox" class="wishlist-item-checkbox w-5 h-5 rounded border-2 border-gray-400 dark:border-gray-500 text-primary-600 focus:ring-0 cursor-pointer" data-item-id="{{ item.id }}">
+      </div>
+      {% endif %}
+
+      {# Reuse the shared product list card component #}
+      <div class="flex-1 min-w-0">
+        {% include "web/components/product_list_card.html" with product=item.product is_favourited=True hide_favourite=is_shared_view %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+{% elif search_query or available_only %}
+{# Filtered results returned nothing - show "No results found" #}
+<div class="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-12 text-center">
+  <div class="max-w-sm mx-auto">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700">
+      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "No results found" %}</h3>
+    <p class="text-gray-500 mt-2">{% translate "Try adjusting your search or filters." %}</p>
+    {% if search_query %}
+    <button type="button" onclick="document.getElementById('wishlist-search-input').value=''; FavouritesPage.reloadItems();" class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 underline cursor-pointer">
+      {% translate "Clear search" %}
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+{% else %}
+{# List is truly empty - no items at all #}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+  <div class="max-w-sm mx-auto">
+    <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700">
+      {% if wishlist.is_default %}
+      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+      </svg>
+      {% else %}
+      <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+      </svg>
+      {% endif %}
+    </div>
+    <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{% translate "This list is empty" %}</h3>
+    <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Start adding products to fill this list." %}</p>
+    <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+      {% translate "Browse Products" %}
+    </a>
+  </div>
+</div>
+{% endif %}
+
+<script>
+  if (typeof formatPrices === 'function') formatPrices();
+</script>

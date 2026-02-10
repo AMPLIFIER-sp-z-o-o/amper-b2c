@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from allauth.account.forms import SignupForm
+from allauth.account.forms import LoginForm, SignupForm
 from allauth.socialaccount.forms import SignupForm as SocialSignupForm
 from django import forms
 from django.conf import settings
@@ -16,6 +16,30 @@ from .helpers import validate_profile_picture
 from .models import CustomUser
 
 
+def _validate_turnstile_token(token):
+    """Shared Turnstile token validation logic."""
+    if not settings.TURNSTILE_SECRET:
+        logging.info("No turnstile secret found, not checking captcha")
+        return token
+
+    if not token:
+        raise forms.ValidationError(_("Missing captcha. Please try again."))
+
+    turnstile_url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    payload = {
+        "secret": settings.TURNSTILE_SECRET,
+        "response": token,
+    }
+    try:
+        response = requests.post(turnstile_url, data=payload, timeout=10).json()
+        if not response["success"]:
+            raise forms.ValidationError(_("Invalid captcha. Please try again."))
+    except requests.Timeout:
+        raise forms.ValidationError(_("Captcha verification timed out. Please try again.")) from None
+
+    return token
+
+
 class TurnstileSignupForm(SignupForm):
     """
     Sign up form that includes a turnstile captcha.
@@ -24,27 +48,18 @@ class TurnstileSignupForm(SignupForm):
     turnstile_token = forms.CharField(widget=forms.HiddenInput(), required=False)
 
     def clean_turnstile_token(self):
-        if not settings.TURNSTILE_SECRET:
-            logging.info("No turnstile secret found, not checking captcha")
-            return
+        return _validate_turnstile_token(self.cleaned_data.get("turnstile_token", None))
 
-        turnstile_token = self.cleaned_data.get("turnstile_token", None)
-        if not turnstile_token:
-            raise forms.ValidationError("Missing captcha. Please try again.")
 
-        turnstile_url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
-        payload = {
-            "secret": settings.TURNSTILE_SECRET,
-            "response": turnstile_token,
-        }
-        try:
-            response = requests.post(turnstile_url, data=payload, timeout=10).json()
-            if not response["success"]:
-                raise forms.ValidationError("Invalid captcha. Please try again.")
-        except requests.Timeout:
-            raise forms.ValidationError("Captcha verification timed out. Please try again.") from None
+class TurnstileLoginForm(LoginForm):
+    """
+    Login form that includes a turnstile captcha.
+    """
 
-        return turnstile_token
+    turnstile_token = forms.CharField(widget=forms.HiddenInput(), required=False)
+
+    def clean_turnstile_token(self):
+        return _validate_turnstile_token(self.cleaned_data.get("turnstile_token", None))
 
 
 class CustomUserChangeForm(UserChangeForm):
@@ -80,7 +95,7 @@ class TermsSignupForm(TurnstileSignupForm):
         super().__init__(*args, **kwargs)
         # blank out overly-verbose help text
         self.fields["password1"].help_text = ""
-        link = '<a class="link" href="{}" target="_blank">{}</a>'.format(
+        link = '<a class="link hover:underline" href="{}" target="_blank">{}</a>'.format(
             reverse("web:terms"),
             _("Terms and Conditions"),
         )

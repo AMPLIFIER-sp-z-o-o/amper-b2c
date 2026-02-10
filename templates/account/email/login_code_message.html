@@ -1,16 +1,16 @@
 {% extends 'account/email/email_template_base.html' %}
 {% load i18n %}
 {% block message_body %}
-  <p>
-    {% blocktranslate trimmed with site_name=current_site.name %}
-      Your sign-in code for {{ site_name }} is listed below. Please enter it in your open browser window.
-    {% endblocktranslate %}
-  </p>
-  <p style="font-weight: bold">{{ code }}</p>
-  <p>
-    {% blocktranslate trimmed %}
-      This mail can be safely ignored if you did not initiate this action.
-    {% endblocktranslate %}
-  </p>
+<p style="margin: 0; margin-bottom: 0px;">{% translate "Hello," %}</p>
+<p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+<p style="margin: 0; margin-bottom: 0px;">
+  {% blocktranslate trimmed with site_name=store_name %}
+    Use the code below to sign in to your {{ site_name }} account.
+  {% endblocktranslate %}
+</p>
+<p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+<p style="margin: 0; margin-bottom: 0px; font-weight: bold; font-family: monospace; font-size: 24px;">{{ code }}</p>
+<p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+<p style="margin: 0; margin-bottom: 0px;">{% translate "If you did not request this code, you can safely ignore this email." %}</p>
 {% endblock %}
 {% block cta %}{% endblock %}

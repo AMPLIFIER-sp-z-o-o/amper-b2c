@@ -2,6 +2,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.db import IntegrityError, connection
 from django.db.models import Count, Max, Min, Prefetch, Q
 from django.db.models.functions import Coalesce
 from django.http import Http404, JsonResponse
@@ -19,6 +20,7 @@ from apps.catalog.models import (
     ProductAttributeValue,
     ProductImage,
     ProductStatus,
+    VISIBLE_STATUSES,
 )
 from apps.homepage.models import (
     Banner,
@@ -40,7 +42,7 @@ from apps.support.draft_utils import (
 def product_list(request, category_id=None, category_slug=None):
     """Product list page."""
     products = (
-        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0).prefetch_related("images").order_by("name")
+        Product.objects.filter(status__in=VISIBLE_STATUSES).prefetch_related("images").order_by("name")
     )
 
     category = None
@@ -79,6 +81,46 @@ def dynamic_page_detail(request, slug: str, pk: int):
             "page_title": page.meta_title or page.name,
             "page_description": page.meta_description,
             "page_canonical_url": page.get_absolute_url(),
+        },
+    )
+
+
+def terms_page(request):
+    """Serve the Terms and Conditions page from a DynamicPage with slug='terms'."""
+    try:
+        page, _created = DynamicPage.objects.get_or_create(
+            slug="terms",
+            defaults={
+                "name": "Terms and Conditions",
+                "meta_title": "Terms and Conditions",
+                "content": "<p>Your terms and conditions go here.</p>",
+                "is_active": True,
+            },
+        )
+    except IntegrityError:
+        # Sequence out of sync after seed data – reset it and fetch existing row
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT setval(pg_get_serial_sequence('web_dynamicpage', 'id'), "
+                "COALESCE((SELECT MAX(id) FROM web_dynamicpage), 0) + 1, false)"
+            )
+        page = DynamicPage.objects.filter(slug="terms").first()
+        if page is None:
+            page = DynamicPage.objects.create(
+                slug="terms",
+                name="Terms and Conditions",
+                meta_title="Terms and Conditions",
+                content="<p>Your terms and conditions go here.</p>",
+                is_active=True,
+            )
+    apply_draft_to_existing_instance(request, page)
+    return render(
+        request,
+        "web/dynamicpage_detail.html",
+        {
+            "page": page,
+            "page_title": page.meta_title or page.name,
+            "page_description": page.meta_description,
         },
     )
 
@@ -126,8 +168,7 @@ def home(request):
             product_count=Count(
                 "section_products",
                 filter=Q(
-                    section_products__product__status=ProductStatus.ACTIVE,
-                    section_products__product__stock__gt=0,
+                    section_products__product__status__in=VISIBLE_STATUSES,
                 ),
             )
         )
@@ -147,7 +188,7 @@ def home(request):
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
-                    .filter(product__status=ProductStatus.ACTIVE, product__stock__gt=0)
+                    .filter(product__status__in=VISIBLE_STATUSES)
                     .order_by("order", "id")
                 ),
             )
@@ -194,8 +235,7 @@ def home(request):
             product_count=Count(
                 "section_products",
                 filter=Q(
-                    section_products__product__status=ProductStatus.ACTIVE,
-                    section_products__product__stock__gt=0,
+                    section_products__product__status__in=VISIBLE_STATUSES,
                 ),
             )
         )
@@ -215,7 +255,7 @@ def home(request):
                             to_attr="tile_attributes_prefetch",
                         ),
                     )
-                    .filter(product__status=ProductStatus.ACTIVE, product__stock__gt=0)
+                    .filter(product__status__in=VISIBLE_STATUSES)
                     .order_by("order", "id")
                 ),
             )
@@ -301,7 +341,7 @@ def search_suggestions(request):
         return JsonResponse({"suggestions": [], "total_count": 0, "query": ""})
 
     # Start with active products
-    products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+    products = Product.objects.filter(status__in=VISIBLE_STATUSES)
 
     # Apply category filter if specified
     if category_id:
@@ -330,7 +370,7 @@ def search_suggestions(request):
     products = products.filter(Q(name__icontains=query)).select_related("category").order_by("name")[:8]
 
     # Get total count for "See all results" link
-    total_products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+    total_products = Product.objects.filter(status__in=VISIBLE_STATUSES)
     if category_id:
         try:
             category = Category.objects.get(id=int(category_id))
@@ -383,7 +423,7 @@ def search_results(request):
         return redirect("web:home")
 
     # Start with active products
-    products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+    products = Product.objects.filter(status__in=VISIBLE_STATUSES)
 
     # Apply category filter if specified
     search_category = None
@@ -518,7 +558,7 @@ def search_results(request):
         products_page.object_list = products_list
 
     # Get price range for all active products
-    price_range = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0).aggregate(
+    price_range = Product.objects.filter(status__in=VISIBLE_STATUSES).aggregate(
         min_price=Coalesce(Min("price"), Decimal("0")),
         max_price=Coalesce(Max("price"), Decimal("0")),
     )
@@ -731,7 +771,7 @@ def _get_category_product_counts_batch(category_ids):
     Returns a dict of category_id -> product_count.
     """
     counts = (
-        Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0, category_id__in=category_ids)
+        Product.objects.filter(status__in=VISIBLE_STATUSES, category_id__in=category_ids)
         .values("category_id")
         .annotate(count=Count("id"))
     )
@@ -750,7 +790,7 @@ def _get_category_total_product_count(category, category_children_map, product_c
 def _get_category_product_count(category):
     """Get total product count for a category including all descendants."""
     category_ids = _get_descendant_category_ids(category)
-    return Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0, category_id__in=category_ids).count()
+    return Product.objects.filter(status__in=VISIBLE_STATUSES, category_id__in=category_ids).count()
 
 
 def _build_category_filter_tree(current_category=None):
@@ -807,7 +847,7 @@ def product_list(request, category_id=None, category_slug=None):
         apply_draft_to_existing_instance(request, current_category)
 
     # Start with active products
-    products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+    products = Product.objects.filter(status__in=VISIBLE_STATUSES)
 
     # Category filtering
     if current_category:
@@ -923,7 +963,7 @@ def product_list(request, category_id=None, category_slug=None):
         products_page = paginator.page(paginator.num_pages)
 
     # Get price range for all active products (for filter hints)
-    price_range = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0).aggregate(
+    price_range = Product.objects.filter(status__in=VISIBLE_STATUSES).aggregate(
         min_price=Coalesce(Min("price"), Decimal("0")),
         max_price=Coalesce(Max("price"), Decimal("0")),
     )
@@ -931,7 +971,7 @@ def product_list(request, category_id=None, category_slug=None):
     # Get available attributes for filtering - show all options that have products in base category,
     # not just in filtered results (so options don't disappear when filtering)
     # First, get the base product set (before attribute filtering) for the category
-    base_products = Product.objects.filter(status=ProductStatus.ACTIVE, stock__gt=0)
+    base_products = Product.objects.filter(status__in=VISIBLE_STATUSES)
     if current_category:
         category_ids = _get_descendant_category_ids(current_category)
         base_products = base_products.filter(category_id__in=category_ids)
@@ -1152,8 +1192,7 @@ def product_list(request, category_id=None, category_slug=None):
             recommended_products = (
                 CategoryRecommendedProduct.objects.filter(
                     category=current_category,
-                    product__status=ProductStatus.ACTIVE,
-                    product__stock__gt=0,
+                    product__status__in=VISIBLE_STATUSES,
                 )
                 .select_related("product", "product__category")
                 .prefetch_related(

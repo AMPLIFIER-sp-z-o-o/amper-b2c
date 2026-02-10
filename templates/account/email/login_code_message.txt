@@ -1,0 +1,12 @@
+{% load i18n %}{% autoescape off %}{% translate "Hello," %}
+
+{% blocktranslate trimmed with site_name=store_name %}Use the code below to sign in to your {{ site_name }} account.{% endblocktranslate %}
+
+{{ code }}
+
+{% translate "If you did not request this code, you can safely ignore this email." %}
+
+--
+{% blocktranslate trimmed with site_name=store_name %}This is an automated message from {{ site_name }}.{% endblocktranslate %}
+© {{ current_year }} {{ store_name|default:"" }}.
+{% endautoescape %}

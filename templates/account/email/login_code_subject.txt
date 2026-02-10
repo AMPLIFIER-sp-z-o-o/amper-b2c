@@ -1,0 +1,4 @@
+{% load i18n %}
+{% autoescape off %}
+{% blocktranslate trimmed with site_name=store_name %}Sign-in code for your {{ site_name }} account{% endblocktranslate %}
+{% endautoescape %}

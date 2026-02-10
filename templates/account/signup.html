@@ -1,45 +1,130 @@
 {% extends "web/base.html" %}
 {% load i18n %}
 {% load static %}
-{% load form_tags %}
+{% load socialaccount %}
+{% load social_tags %}
 {% block page_head %}
 {% if turnstile_key %}
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 {% endif %}
+{% include "account/includes/auth_card_css.html" %}
 {% endblock %}
 {% block body %}
-  <div class="flex justify-center my-8 ">
-    <div class="w-full max-w-sm px-4 py-4">
-      <div>
-        <h2 class="mt-6 text-center text-2xl font-bold text-gray-900 dark:text-gray-100">
-          Sign up
-        </h2>
-        <form class="mt-6 space-y-6" method="post">
-          {% csrf_token %}
-          {{ form.non_field_errors }}
-          {% render_field form.email %}
-          {% render_field form.password1 %}
-          {% if form.password2 %}
-            {% render_field form.password2 %}
-          {% endif %}
-          {% render_field form.terms_agreement %}
-          <div class="relative overflow-hidden">
-            {% render_field form.phone_number_x %}
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="grid max-w-screen-xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+      <div class="w-full place-self-center lg:col-span-6">
+          <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card">
+              <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
+                  {% if site_logo %}
+                  <img class="w-20 h-20 mr-3 object-contain" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+                  {% endif %}
+                  {{ project_meta.NAME|default:"" }}
+              </a>
+              <h1 class="mb-2 text-2xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+                  {% translate "Create your account" %}
+              </h1>
+              <p class="text-subtitle mt-1">
+                  {% translate "Start your shopping in seconds." %}
+              </p>
+              {{ form.non_field_errors }}
+              <form class="mt-4 space-y-6 sm:mt-6" method="post" action="{% url 'account_signup' %}" autocomplete="off">
+                  {% csrf_token %}
+                  {% if redirect_field_value %}
+                  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                  {% endif %}
+                  <div class="grid gap-6">
+                      <div>
+                          <label for="{{ form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Email" %}</label>
+                          <input type="email" name="email" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" autocomplete="email" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" placeholder="{% translate 'Enter your email' %}" required="">
+                          {{ form.email.errors }}
+                      </div>
+                      <div>
+                          <label for="{{ form.password1.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Password" %}</label>
+                          <div class="relative">
+                            <input type="password" name="password1" id="{{ form.password1.id_for_label }}" placeholder="{% translate 'Enter your password' %}" autocomplete="new-password" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 pr-10 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" required="">
+                            {% include "account/includes/eye_toggle.html" with input_id=form.password1.id_for_label toggle_id="toggle-password" eye_id="eye-icon" eye_off_id="eye-off-icon" %}
+                          </div>
+                          {% include "account/includes/password_strength.html" with password_input_id=form.password1.id_for_label email_input_id=form.email.id_for_label %}
+                          {{ form.password1.errors }}
+                      </div>
+                  </div>
+                  {% if form.password2 %}
+                  <div>
+                      <label for="{{ form.password2.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Confirm Password" %}</label>
+                      <div class="relative">
+                        <input type="password" name="password2" id="{{ form.password2.id_for_label }}" placeholder="{% translate 'Confirm your password' %}" autocomplete="new-password" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 pr-10 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" required="">
+                        {% include "account/includes/eye_toggle.html" with input_id=form.password2.id_for_label toggle_id="toggle-password2" eye_id="eye-icon-2" eye_off_id="eye-off-icon-2" %}
+                      </div>
+                      {% include "account/includes/password_match.html" with password1_id=form.password1.id_for_label password2_id=form.password2.id_for_label %}
+                      {{ form.password2.errors }}
+                  </div>
+                  {% endif %}
+                  <div class="flex items-start">
+                      <div class="flex items-center h-5">
+                          <input id="{{ form.terms_agreement.id_for_label }}" name="terms_agreement" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800 accent-primary-600 cursor-pointer" {% if form.terms_agreement.value %}checked{% endif %} required="">
+                      </div>
+                      <div class="ml-3 text-sm">
+                          <label for="{{ form.terms_agreement.id_for_label }}" class="font-medium text-gray-600 dark:text-gray-300 cursor-pointer">
+                              {{ form.terms_agreement.label }}
+                          </label>
+                      </div>
+                  </div>
+                  {{ form.terms_agreement.errors }}
+                  <button id="signup-submit-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200 mt-4">
+                      <svg id="signup-btn-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span>{% translate "Sign Up" %}</span>
+                  </button>
+
+                  <div style="position: absolute; left: -9999px; overflow: hidden;">
+                      <input type="text" name="phone_number_x" id="{{ form.phone_number_x.id_for_label }}" tabindex="-1" autocomplete="off">
+                  </div>
+                  {% if turnstile_key %}
+                  <div class="cf-turnstile" data-sitekey="{{ turnstile_key }}" data-response-field-name="turnstile_token"></div>
+                  {{ form.turnstile_token.errors }}
+                  {% endif %}
+                  {% get_socialapps as social_providers %}
+                  {% if social_providers %}
+                  <div class="flex items-center">
+                      <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                      <div class="px-5 text-center text-gray-500 dark:text-gray-400">{% translate "or" %}</div>
+                      <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+                  </div>
+                  <div class="space-y-3">
+                      {% for provider in social_providers %}
+                      <button type="submit" formaction="{% provider_login_url provider.id %}" class="w-full inline-flex items-center justify-center py-2.5 px-5 text-sm font-semibold text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-300 hover:bg-gray-200 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 shadow-sm transition-all duration-200 cursor-pointer btn-press">
+                          {% if provider.id == "google" %}
+                          <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <g clip-path="url(#clip0_13183_10121)"><path d="M20.3081 10.2303C20.3081 9.55056 20.253 8.86711 20.1354 8.19836H10.7031V12.0492H16.1046C15.8804 13.2911 15.1602 14.3898 14.1057 15.0879V17.5866H17.3282C19.2205 15.8449 20.3081 13.2728 20.3081 10.2303Z" fill="#3F83F8"/><path d="M10.7019 20.0006C13.3989 20.0006 15.6734 19.1151 17.3306 17.5865L14.1081 15.0879C13.2115 15.6979 12.0541 16.0433 10.7056 16.0433C8.09669 16.0433 5.88468 14.2832 5.091 11.9169H1.76562V14.4927C3.46322 17.8695 6.92087 20.0006 10.7019 20.0006V20.0006Z" fill="#34A853"/><path d="M5.08857 11.9169C4.66969 10.6749 4.66969 9.33008 5.08857 8.08811V5.51233H1.76688C0.348541 8.33798 0.348541 11.667 1.76688 14.4927L5.08857 11.9169V11.9169Z" fill="#FBBC04"/><path d="M10.7019 3.95805C12.1276 3.936 13.5055 4.47247 14.538 5.45722L17.393 2.60218C15.5852 0.904587 13.1858 -0.0287217 10.7019 0.000673888C6.92087 0.000673888 3.46322 2.13185 1.76562 5.51234L5.08732 8.08813C5.87733 5.71811 8.09302 3.95805 10.7019 3.95805V3.95805Z" fill="#EA4335"/></g><defs><clipPath id="clip0_13183_10121"><rect width="20" height="20" fill="white" transform="translate(0.5)"/></clipPath></defs>
+                          </svg>
+                          {% elif provider.id == "apple" %}
+                          <svg class="w-5 h-5 mr-2 text-gray-900 dark:text-white" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <g clip-path="url(#clip0_13183_29163)"><path d="M18.6574 15.5863C18.3549 16.2851 17.9969 16.9283 17.5821 17.5196C17.0167 18.3257 16.5537 18.8838 16.1969 19.1936C15.6439 19.7022 15.0513 19.9627 14.4168 19.9775C13.9612 19.9775 13.4119 19.8479 12.7724 19.585C12.1308 19.3232 11.5412 19.1936 11.0021 19.1936C10.4366 19.1936 9.83024 19.3232 9.18162 19.585C8.53201 19.8479 8.00869 19.985 7.60858 19.9985C7.00008 20.0245 6.39356 19.7566 5.78814 19.1936C5.40174 18.8566 4.91842 18.2788 4.33942 17.4603C3.71821 16.5863 3.20749 15.5727 2.80738 14.4172C2.37887 13.1691 2.16406 11.9605 2.16406 10.7904C2.16406 9.45009 2.45368 8.29407 3.03379 7.32534C3.4897 6.54721 4.09622 5.9334 4.85533 5.4828C5.61445 5.03219 6.43467 4.80257 7.31797 4.78788C7.80129 4.78788 8.4351 4.93738 9.22273 5.2312C10.0081 5.52601 10.5124 5.67551 10.7335 5.67551C10.8988 5.67551 11.4591 5.5007 12.4088 5.15219C13.3069 4.82899 14.0649 4.69517 14.6859 4.74788C16.3685 4.88368 17.6327 5.54699 18.4734 6.74202C16.9685 7.65384 16.2241 8.93097 16.2389 10.5693C16.2525 11.8454 16.7154 12.9074 17.6253 13.7506C18.0376 14.1419 18.4981 14.4444 19.0104 14.6592C18.8993 14.9814 18.7821 15.29 18.6574 15.5863V15.5863ZM14.7982 0.400358C14.7982 1.40059 14.4328 2.3345 13.7044 3.19892C12.8254 4.22654 11.7623 4.82035 10.6093 4.72665C10.5947 4.60665 10.5861 4.48036 10.5861 4.34765C10.5861 3.38743 11.0041 2.3598 11.7465 1.51958C12.1171 1.09416 12.5884 0.740434 13.16 0.458257C13.7304 0.18029 14.2698 0.0265683 14.7772 0.000244141C14.7921 0.133959 14.7982 0.267682 14.7982 0.400345V0.400358Z" fill="currentColor"/></g><defs><clipPath id="clip0_13183_29163"><rect width="20" height="20" fill="white" transform="translate(0.5)"/></clipPath></defs>
+                          </svg>
+                          {% elif provider.id == "facebook" %}
+                          <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10.5 0C4.97715 0 0.5 4.47715 0.5 10C0.5 14.9913 4.15684 19.1283 8.9375 19.8785V12.8906H6.39844V10H8.9375V7.79688C8.9375 5.29063 10.4305 3.90625 12.7146 3.90625C13.8084 3.90625 14.9531 4.10156 14.9531 4.10156V6.5625H13.6922C12.4499 6.5625 12.0625 7.3334 12.0625 8.125V10H14.8359L14.3926 12.8906H12.0625V19.8785C16.8432 19.1283 20.5 14.9913 20.5 10C20.5 4.47715 16.0228 0 10.5 0Z" fill="#1877F2"/>
+                          </svg>
+                          {% elif provider.id == "twitter_oauth2" %}
+                          <svg class="w-5 h-5 mr-2" viewBox="0 0 21 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12.2845 8.46864L19.5685 0H17.8435L11.5175 7.3532L6.4655 0H0.5L8.1205 11.1193L0.5 20H2.225L8.887 12.2348L14.2345 20H20.2L12.284 8.46864H12.2845ZM9.7595 11.2173L8.9855 10.1101L2.8475 1.29968H5.6385L10.4475 8.40994L11.2215 9.51718L17.8445 18.7594H15.0535L9.7595 11.2178V11.2173Z" fill="currentColor"/>
+                          </svg>
+                          {% endif %}
+                          {% blocktranslate with name=provider.name %}Continue with {{ name }}{% endblocktranslate %}
+                      </button>
+                      {% endfor %}
+                  </div>
+                  {% endif %}
+
+                  <p class="text-sm font-normal text-gray-500 dark:text-gray-400 text-center mt-6">
+                      {% translate "Already have an account?" %} <a href="{% url 'account_login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">{% translate "Sign in" %}</a>.
+                  </p>
+              </form>
+              {% include "account/includes/form_submit_loading.html" with btn_id="signup-submit-btn" spinner_id="signup-btn-spinner" %}
           </div>
-          {% if turnstile_key %}
-          <div class="cf-turnstile" data-sitekey="{{ turnstile_key }}" data-response-field-name="turnstile_token"></div>
-          {{ form.turnstile_token.errors }}
-          {% endif %}
-          <input class="btn btn-primary btn-block" type="submit" value="{% translate "Sign Up" %}">
-        </form>
-        {% include 'account/components/social/social_buttons.html' %}
-        <div class="text-sm mt-4">
-          {% translate "Already have account?" %}
-          <a href="{% url 'account_login' %}" class="font-medium pg-link">
-            {% translate "Go to sign in." %}
-          </a>
-        </div>
       </div>
-    </div>
+      <div class="mr-auto place-self-center lg:col-span-6">
+          <img class="hidden mx-auto lg:flex" src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/authentication/illustration.svg" alt="illustration">
+      </div>
   </div>
+</section>
 {% endblock %}

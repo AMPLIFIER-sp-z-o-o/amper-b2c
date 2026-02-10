@@ -1,0 +1,188 @@
+{% load i18n %}
+
+{# Onboarding section shown when user has no items in any list #}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div class="flex flex-col lg:flex-row items-center gap-8 lg:gap-12 p-8 sm:p-10 lg:p-12">
+    
+    {# Left: Instructions #}
+    <div class="flex-1 min-w-0">
+      <h2 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-8">
+        {% translate "How do shopping lists work?" %}
+      </h2>
+
+      <ol class="space-y-8">
+        {# Step 1 #}
+        <li class="flex gap-4">
+          <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0 mt-0.5">1</div>
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white text-base">
+              {% translate "Save products and build your collection" %}
+            </h3>
+            <p class="text-subtitle mt-1">
+              {% translate "Tap the heart on any product to bookmark it instantly. No more scrolling through pages to find that item you liked yesterday." %}
+            </p>
+          </div>
+        </li>
+
+        {# Step 2 #}
+        <li class="flex gap-4">
+          <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0 mt-0.5">2</div>
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white text-base">
+              {% translate "Organize into as many lists as you want" %}
+            </h3>
+            <p class="text-subtitle mt-1">
+              {% translate "Create separate lists for different purposes — PC builds, birthday gift ideas, recommendations for friends, or weekly shopping." %}
+            </p>
+          </div>
+        </li>
+
+        {# Step 3 #}
+        <li class="flex gap-4">
+          <div class="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-700 dark:text-primary-300 font-bold text-sm shrink-0 mt-0.5">3</div>
+          <div>
+            <h3 class="font-semibold text-gray-900 dark:text-white text-base">
+              {% translate "Share with anyone" %}
+            </h3>
+            <p class="text-subtitle mt-1">
+              {% translate "Need advice from family or a friend's opinion? Share your entire list with a single link instead of sending items one by one." %}
+            </p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="mt-8">
+        <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          {% translate "Browse Products" %}
+        </a>
+      </div>
+    </div>
+
+    {# Right: Illustration #}
+    <div class="w-full lg:w-105 shrink-0 flex items-center justify-center">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 420" class="w-full max-w-100 h-auto" aria-hidden="true">
+        {# Background decorative circles #}
+        <circle cx="240" cy="210" r="180" fill="currentColor" class="text-gray-50 dark:text-gray-700/50"/>
+        <circle cx="240" cy="210" r="140" fill="currentColor" class="text-gray-100/60 dark:text-gray-700/30"/>
+
+        {# Main clipboard/list #}
+        <g transform="translate(150, 60)">
+          {# Clipboard body #}
+          <rect x="0" y="20" width="160" height="220" rx="12" fill="white" stroke="currentColor" stroke-width="2" class="text-gray-300 dark:text-gray-500"/>
+          <rect x="0" y="20" width="160" height="220" rx="12" fill="currentColor" class="text-white dark:text-gray-800" stroke="currentColor" stroke-width="2" style="stroke: var(--tw-ring-color, #d1d5db)"/>
+          
+          {# Clipboard clip #}
+          <rect x="45" y="10" width="70" height="24" rx="6" fill="currentColor" class="text-gray-200 dark:text-gray-600"/>
+          <rect x="55" y="4" width="50" height="18" rx="4" fill="currentColor" class="text-primary-500 dark:text-primary-400"/>
+          <circle cx="80" cy="13" r="4" fill="white"/>
+
+          {# List items with checkmarks #}
+          {# Item 1 - checked #}
+          <g transform="translate(20, 52)">
+            <rect x="0" y="0" width="20" height="20" rx="5" fill="currentColor" class="text-primary-500"/>
+            <path d="M5 10 L9 14 L16 6" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="30" y="3" width="90" height="6" rx="3" fill="currentColor" class="text-gray-200 dark:text-gray-600"/>
+            <rect x="30" y="13" width="60" height="4" rx="2" fill="currentColor" class="text-gray-100 dark:text-gray-700"/>
+          </g>
+
+          {# Item 2 - checked #}
+          <g transform="translate(20, 92)">
+            <rect x="0" y="0" width="20" height="20" rx="5" fill="currentColor" class="text-primary-500"/>
+            <path d="M5 10 L9 14 L16 6" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="30" y="3" width="75" height="6" rx="3" fill="currentColor" class="text-gray-200 dark:text-gray-600"/>
+            <rect x="30" y="13" width="50" height="4" rx="2" fill="currentColor" class="text-gray-100 dark:text-gray-700"/>
+          </g>
+
+          {# Item 3 - unchecked #}
+          <g transform="translate(20, 132)">
+            <rect x="0" y="0" width="20" height="20" rx="5" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-300 dark:text-gray-500"/>
+            <rect x="30" y="3" width="85" height="6" rx="3" fill="currentColor" class="text-gray-200 dark:text-gray-600"/>
+            <rect x="30" y="13" width="55" height="4" rx="2" fill="currentColor" class="text-gray-100 dark:text-gray-700"/>
+          </g>
+
+          {# Item 4 - unchecked #}
+          <g transform="translate(20, 172)">
+            <rect x="0" y="0" width="20" height="20" rx="5" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-300 dark:text-gray-500"/>
+            <rect x="30" y="3" width="70" height="6" rx="3" fill="currentColor" class="text-gray-200 dark:text-gray-600"/>
+            <rect x="30" y="13" width="45" height="4" rx="2" fill="currentColor" class="text-gray-100 dark:text-gray-700"/>
+          </g>
+
+          {# Small + button on clipboard #}
+          <g transform="translate(119, 200)">
+            <circle cx="11" cy="11" r="14" fill="currentColor" class="text-primary-100 dark:text-primary-900/50"/>
+            <circle cx="11" cy="11" r="11" fill="currentColor" class="text-primary-500"/>
+            <path d="M6 11 H16 M11 6 V16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        {# Gift box - top right #}
+        <g transform="translate(340, 55)">
+          <rect x="5" y="15" width="50" height="40" rx="4" fill="currentColor" class="text-rose-100 dark:text-rose-900/40"/>
+          <rect x="5" y="15" width="50" height="40" rx="4" stroke="currentColor" stroke-width="1.5" class="text-rose-300 dark:text-rose-700" fill="none"/>
+          <rect x="0" y="10" width="60" height="12" rx="3" fill="currentColor" class="text-rose-400 dark:text-rose-500"/>
+          {# Ribbon vertical #}
+          <rect x="26" y="22" width="8" height="33" fill="currentColor" class="text-rose-300 dark:text-rose-600"/>
+          {# Bow #}
+          <path d="M30 10 C30 0, 15 0, 20 10" fill="currentColor" class="text-rose-400 dark:text-rose-500"/>
+          <path d="M30 10 C30 0, 45 0, 40 10" fill="currentColor" class="text-rose-400 dark:text-rose-500"/>
+          <circle cx="30" cy="10" r="3" fill="currentColor" class="text-rose-500 dark:text-rose-400"/>
+        </g>
+
+        {# Share / link icon - bottom right #}
+        <g transform="translate(350, 250)">
+          <circle cx="24" cy="12" r="20" fill="currentColor" class="text-blue-50 dark:text-blue-900/30"/>
+          <circle cx="24" cy="12" r="8" fill="currentColor" class="text-blue-400 dark:text-blue-500"/>
+          <circle cx="24" cy="48" r="20" fill="currentColor" class="text-blue-50 dark:text-blue-900/30"/>
+          <circle cx="24" cy="48" r="8" fill="currentColor" class="text-blue-400 dark:text-blue-500"/>
+          <circle cx="60" cy="30" r="20" fill="currentColor" class="text-blue-50 dark:text-blue-900/30"/>
+          <circle cx="60" cy="30" r="8" fill="currentColor" class="text-blue-400 dark:text-blue-500"/>
+          {# Connecting lines #}
+          <line x1="32" y1="16" x2="52" y2="26" stroke="currentColor" stroke-width="2" class="text-blue-300 dark:text-blue-600"/>
+          <line x1="32" y1="44" x2="52" y2="34" stroke="currentColor" stroke-width="2" class="text-blue-300 dark:text-blue-600"/>
+        </g>
+
+        {# Heart icon - left side #}
+        <g transform="translate(55, 155)">
+          <circle cx="25" cy="25" r="30" fill="currentColor" class="text-rose-50 dark:text-rose-900/30"/>
+          <path d="M25 40 L15 30 C10 25, 10 18, 16 14 C20 12, 24 14, 25 17 C26 14, 30 12, 34 14 C40 18, 40 25, 35 30 Z" fill="currentColor" class="text-rose-400 dark:text-rose-500"/>
+        </g>
+
+        {# Shopping bag - bottom left #}
+        <g transform="translate(70, 290)">
+          <rect x="5" y="15" width="44" height="46" rx="4" fill="currentColor" class="text-amber-100 dark:text-amber-900/40"/>
+          <rect x="5" y="15" width="44" height="46" rx="4" stroke="currentColor" stroke-width="1.5" class="text-amber-300 dark:text-amber-700" fill="none"/>
+          <path d="M16 18 V10 C16 4, 38 4, 38 10 V18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" class="text-amber-400 dark:text-amber-500"/>
+        </g>
+
+        {# Decorative dots #}
+        <circle cx="100" cy="80" r="3" fill="currentColor" class="text-gray-300 dark:text-gray-600"/>
+        <circle cx="380" cy="170" r="2.5" fill="currentColor" class="text-gray-300 dark:text-gray-600"/>
+        <circle cx="130" cy="350" r="2" fill="currentColor" class="text-gray-300 dark:text-gray-600"/>
+        <circle cx="410" cy="140" r="3" fill="currentColor" class="text-primary-300 dark:text-primary-700"/>
+        <circle cx="75" cy="120" r="2" fill="currentColor" class="text-primary-200 dark:text-primary-800"/>
+        <circle cx="360" cy="340" r="2.5" fill="currentColor" class="text-primary-200 dark:text-primary-800"/>
+
+        {# Small X marks like in the reference #}
+        <g class="text-gray-300 dark:text-gray-600" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <g transform="translate(95, 55)"><line x1="-4" y1="-4" x2="4" y2="4"/><line x1="4" y1="-4" x2="-4" y2="4"/></g>
+          <g transform="translate(420, 100)"><line x1="-4" y1="-4" x2="4" y2="4"/><line x1="4" y1="-4" x2="-4" y2="4"/></g>
+          <g transform="translate(350, 195)"><line x1="-3" y1="-3" x2="3" y2="3"/><line x1="3" y1="-3" x2="-3" y2="3"/></g>
+          <g transform="translate(115, 280)"><line x1="-3" y1="-3" x2="3" y2="3"/><line x1="3" y1="-3" x2="-3" y2="3"/></g>
+          <g transform="translate(420, 310)"><line x1="-4" y1="-4" x2="4" y2="4"/><line x1="4" y1="-4" x2="-4" y2="4"/></g>
+        </g>
+
+        {# Sparkle accents #}
+        <g transform="translate(335, 40)" class="text-amber-300 dark:text-amber-500">
+          <path d="M4 0 L5 3 L8 4 L5 5 L4 8 L3 5 L0 4 L3 3 Z" fill="currentColor"/>
+        </g>
+        <g transform="translate(55, 260)" class="text-primary-300 dark:text-primary-500">
+          <path d="M3 0 L4 2.5 L6.5 3 L4 4 L3 6.5 L2 4 L0 3 L2 2.5 Z" fill="currentColor" transform="scale(1.2)"/>
+        </g>
+      </svg>
+    </div>
+
+  </div>
+</div>

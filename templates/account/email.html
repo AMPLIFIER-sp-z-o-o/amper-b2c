@@ -31,10 +31,37 @@
       <div class="mt-2">
         <button class="pg-button-primary" type="submit" name="action_primary">{% translate 'Make Primary' %}</button>
         <button class="pg-button-secondary" type="submit" name="action_send">{% translate 'Re-send Verification' %}</button>
-        <button class="pg-button-danger" type="submit" name="action_remove">{% translate 'Remove' %}</button>
+        <button class="pg-button-danger" type="button" id="remove-email-btn">{% translate 'Remove' %}</button>
+        <button class="pg-button-danger" type="submit" name="action_remove" id="remove-email-submit" style="display:none;"></button>
       </div>
     </fieldset>
   </form>
+
+{# Remove Email Confirmation Modal #}
+<div id="remove-email-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="remove-email-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Remove E-mail?" %}</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Do you really want to remove the selected e-mail address?" %}</p>
+        <div class="flex gap-3">
+          <button type="button" id="remove-email-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+            {% translate "Cancel" %}
+          </button>
+          <button type="button" id="remove-email-confirm" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+            {% translate "Remove" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% else %}
   <p>
     <strong>{% translate 'Warning:' %}</strong> {% translate "You currently do not have any e-mail address set up. You should really add an e-mail address so you can receive notifications, reset your password, etc." %}
@@ -55,14 +82,23 @@
 {% block page_js %}
   <script>
     (function () {
-      var message = "{% translate 'Do you really want to remove the selected e-mail address?' %}";
-      var actions = document.getElementsByName('action_remove');
-      if (actions.length) {
-        actions[0].addEventListener("click", function (e) {
-          console.log('asdlfkjsadlkjflsakjdflksdaj')
-          if (!confirm(message)) {
-            e.preventDefault();
-          }
+      var removeBtn = document.getElementById('remove-email-btn');
+      var modal = document.getElementById('remove-email-modal');
+      var cancelBtn = document.getElementById('remove-email-cancel');
+      var backdrop = document.getElementById('remove-email-backdrop');
+      var confirmBtn = document.getElementById('remove-email-confirm');
+      var hiddenSubmit = document.getElementById('remove-email-submit');
+
+      function showModal() { if (modal) modal.classList.remove('hidden'); }
+      function hideModal() { if (modal) modal.classList.add('hidden'); }
+
+      if (removeBtn) removeBtn.addEventListener('click', showModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', hideModal);
+      if (backdrop) backdrop.addEventListener('click', hideModal);
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+          hideModal();
+          if (hiddenSubmit) hiddenSubmit.click();
         });
       }
     })();

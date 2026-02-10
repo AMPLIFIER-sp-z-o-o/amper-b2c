@@ -1,17 +1,23 @@
 {% extends "web/base.html" %}
-{% load static %}
+{% load static i18n %}
 {% block body %}
-<section class="section mt-7">
-  <div class="container">
-    <div class="pg-columns pg-columns-reversed pg-align-items-center">
-      <div class="pg-column">
-        <img class="img-fluid" src="{% static 'images/undraw/undraw_alert.svg' %}" alt="Uh-Oh">
-      </div>
-      <div class="pg-column">
+<section class="min-h-[60vh] flex items-center">
+  <div class="max-w-screen-xl mx-auto px-4 py-16 w-full">
+    <div class="flex flex-col-reverse items-center gap-10 lg:flex-row lg:gap-20">
+      <div class="flex-1 text-center lg:text-left">
         {% block error_details %}
         {% endblock %}
+        <div class="mt-8">
+          <a href="{% url 'web:home' %}" class="inline-flex items-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-all duration-200">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+            {% translate "Back to Home" %}
+          </a>
+        </div>
+      </div>
+      <div class="flex-1 flex justify-center">
+        <img class="max-w-xs lg:max-w-sm" src="{% static 'images/undraw/undraw_alert.svg' %}" alt="Error">
       </div>
     </div>
   </div>
 </section>
-{% endblock%}
+{% endblock %}

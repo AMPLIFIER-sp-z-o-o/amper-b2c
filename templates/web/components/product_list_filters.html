@@ -208,6 +208,7 @@
 </script>
 {% endif %}
 
+{% if not is_mobile %}
 <script>
 // Build query string from current filter state
 function buildFilterQueryString() {
@@ -1095,4 +1096,4 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 </script>
-
+{% endif %}

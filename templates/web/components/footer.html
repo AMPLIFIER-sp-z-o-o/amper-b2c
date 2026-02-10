@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load static %}
 <footer class="footer-standard bg-white antialiased dark:bg-gray-800">
   <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
     {% if footer and footer.is_active %}
@@ -90,8 +89,11 @@
     <div class="py-6 md:py-8">
       <div class="gap-4 space-y-5 xl:flex xl:items-center xl:justify-between xl:space-y-0">
         <a href="{% url 'web:home' %}" title="" class="block">
-            <img class="block w-auto h-12 md:h-18 dark:hidden" src="{% static 'images/web/amper-b2c-logo.svg' %}" alt="">
-            <img class="hidden w-auto h-12 md:h-18 dark:block" src="{% static 'images/web/amper-b2c-logo.svg' %}" alt="">
+            {% if site_logo %}
+            <img class="block w-auto h-12 md:h-18" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+            {% else %}
+            <span class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">{{ project_meta.NAME|default:"" }}</span>
+            {% endif %}
         </a>
 
         {# Bottom bar links from CMS #}

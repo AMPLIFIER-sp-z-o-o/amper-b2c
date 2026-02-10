@@ -1,4 +1,4 @@
-"""AMPLFIER sp. z o.o. URL Configuration
+"""URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/stable/topics/http/urls/
@@ -18,12 +18,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView
 from django.views.i18n import JavaScriptCatalog
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
+
+from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView
 
 sitemaps = {
     "static": StaticViewSitemap(),
@@ -39,6 +41,17 @@ urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
+    # Custom allauth view overrides (must come BEFORE allauth includes)
+    path(
+        "accounts/confirm-email/<str:key>/",
+        AutoLoginConfirmEmailView.as_view(),
+        name="account_confirm_email",
+    ),
+    re_path(
+        r"^accounts/password/reset/key/(?P<uidb36>[0-9A-Za-z]+)-(?P<key>.+)/$",
+        AutoLoginPasswordResetFromKeyView.as_view(),
+        name="account_reset_password_from_key",
+    ),
     path("accounts/", include("allauth.urls")),
     path("_allauth/", include("allauth.headless.urls")),
     path("users/", include("apps.users.urls")),
@@ -48,6 +61,7 @@ urlpatterns = [
     path("celery-progress/", include("celery_progress.urls")),
     path("products/", include("apps.catalog.urls")),
     path("cart/", include("apps.cart.urls")),
+    path("favourites/", include("apps.favourites.urls")),
     # API docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Optional UI - you may wish to remove one of these depending on your preference

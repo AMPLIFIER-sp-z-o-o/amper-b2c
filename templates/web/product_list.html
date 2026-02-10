@@ -92,7 +92,7 @@
         <!-- Title and count -->
         <div class="mb-4 text-center md:text-left">
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">{{ page_title }}</h2>
-          <p id="products-found-text" class="mt-1 text-sm text-gray-500 dark:text-gray-400" data-singular="{% translate "product found" %}" data-plural="{% translate "products found" %}">
+          <p id="products-found-text" class="mt-1 text-subtitle" data-singular="{% translate "product found" %}" data-plural="{% translate "products found" %}">
             {% blocktrans count counter=total_count %}{{ counter }} product found{% plural %}{{ counter }} products found{% endblocktrans %}
           </p>
         </div>

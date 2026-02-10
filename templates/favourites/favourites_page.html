@@ -1,0 +1,1180 @@
+{% extends "web/base.html" %}
+{% load i18n static %}
+
+{% block body %}
+<div class="min-h-screen bg-linear-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+  {# Header Section #}
+  <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+    <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-linear-to-br from-rose-500 to-pink-600 shadow-lg shadow-rose-500/25">
+            <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white tracking-tight">{% translate "Shopping lists" %}</h1>
+            <p class="text-subtitle mt-1">{% translate "Manage your shopping lists and saved products" %}</p>
+          </div>
+        </div>
+        
+        {# Create New List Button #}
+        <button 
+          type="button" 
+          id="create-list-btn"
+          class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+          </svg>
+          {% translate "New List" %}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {# Main Content #}
+  <div class="max-w-7xl mx-auto px-4 py-4 sm:py-5">
+    {% if not user.is_authenticated %}
+    {# Anonymous user — info banner about list expiry #}
+    <div class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+      <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
+      <p class="leading-relaxed">
+        {% translate "Your lists are stored for 90 days. Sign in to save them permanently." %}
+        <a href="{% url 'account_login' %}?next={% url 'favourites:favourites_page' %}" class="font-semibold underline hover:text-amber-900 dark:hover:text-amber-200">{% translate "Sign in" %}</a>
+      </p>
+    </div>
+    {% endif %}
+    {% if show_overview %}
+    {# ===== MULTI-LIST OVERVIEW ===== #}
+    {% if not wishlists.count or wishlists.count == 0 %}
+    {# ===== ONBOARDING ONLY: No wishlists exist ===== #}
+    {% include "favourites/partials/lists_onboarding.html" %}
+    {% else %}
+    {# ===== MULTI-LIST OVERVIEW ===== #}
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex-1"></div>
+      {# List Sort Dropdown #}
+      <div class="relative">
+        <button type="button" id="list-sort-btn" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+          <span>{% translate "Sort:" %}</span>
+          <span class="font-semibold">
+            {% if list_sort == 'updated_asc' %}{% translate "Oldest edited" %}
+            {% elif list_sort == 'alpha_asc' %}{% translate "A → Z" %}
+            {% elif list_sort == 'alpha_desc' %}{% translate "Z → A" %}
+            {% else %}{% translate "Recently edited" %}{% endif %}
+          </span>
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"></path></svg>
+        </button>
+        <div id="list-sort-dropdown" class="absolute right-0 top-full mt-1 z-50 w-52 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out">
+          <ul class="py-1 text-sm">
+            <li>
+              <a href="?list_sort=updated_desc" class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors {% if list_sort == 'updated_desc' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}">
+                <span>{% translate "Recently edited" %}</span>
+                {% if list_sort == 'updated_desc' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
+              </a>
+            </li>
+            <li>
+              <a href="?list_sort=updated_asc" class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors {% if list_sort == 'updated_asc' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}">
+                <span>{% translate "Oldest edited" %}</span>
+                {% if list_sort == 'updated_asc' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
+              </a>
+            </li>
+            <li>
+              <a href="?list_sort=alpha_asc" class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors {% if list_sort == 'alpha_asc' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}">
+                <span>{% translate "A → Z" %}</span>
+                {% if list_sort == 'alpha_asc' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
+              </a>
+            </li>
+            <li>
+              <a href="?list_sort=alpha_desc" class="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors {% if list_sort == 'alpha_desc' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}">
+                <span>{% translate "Z → A" %}</span>
+                {% if list_sort == 'alpha_desc' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {# List Cards Grid #}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for wishlist in wishlists %}
+      <a href="?list={{ wishlist.share_id }}" class="group relative bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-all duration-200">
+        {# Card Header: Title + Modified + Menu #}
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <div class="flex-1 min-w-0">
+            <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ wishlist.name }}</h3>
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5"><span class="relative-time" data-timestamp="{{ wishlist.updated_at|date:'c' }}"></span></p>
+          </div>
+          {# Context Menu Button #}
+          <div class="relative z-10 shrink-0">
+            <button type="button" class="list-card-menu-btn p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer" data-wishlist-id="{{ wishlist.id }}" onclick="event.preventDefault(); event.stopPropagation();">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/></svg>
+            </button>
+            <div class="list-card-menu absolute right-0 top-full mt-1 w-44 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out">
+              <button type="button" class="share-list-btn w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" data-wishlist-id="{{ wishlist.id }}" data-share-id="{{ wishlist.share_id }}" onclick="event.preventDefault(); event.stopPropagation();">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                {% translate "Share list" %}
+              </button>
+              <button type="button" class="delete-list-btn w-full flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer" data-wishlist-id="{{ wishlist.id }}" data-wishlist-name="{{ wishlist.name }}" onclick="event.preventDefault(); event.stopPropagation();">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                {% translate "Delete list" %}
+              </button>
+            </div>
+          </div>
+        </div>
+        {# Card Body: Product thumbnails or empty state #}
+        {% if wishlist.item_count > 0 %}
+        <div class="flex items-center gap-2 mb-3 overflow-hidden">
+          {% for item in wishlist.prefetched_items|slice:":5" %}
+          {% with item.product.images.all|first as first_img %}
+          {% if first_img %}
+          <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 shrink-0">
+            <img src="{{ first_img.image.url }}" alt="{{ item.product.name }}" class="w-full h-full object-contain p-0.5" loading="lazy">
+          </div>
+          {% endif %}
+          {% endwith %}
+          {% endfor %}
+          {% if wishlist.item_count > 5 %}
+          <div class="w-14 h-14 rounded-lg bg-gray-100 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 flex items-center justify-center shrink-0">
+            <span class="text-xs font-semibold text-gray-500 dark:text-gray-400">+{{ wishlist.item_count|add:"-5" }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <p class="text-sm font-semibold text-gray-900 dark:text-white"><span data-price="{{ wishlist.total_value }}" data-currency="{{ site_currency }}">{{ wishlist.total_value }}</span></p>
+        {% else %}
+        <div class="flex items-center gap-2 py-2">
+          <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+          </svg>
+          <span class="text-subtitle">{% translate "List is empty – add products" %}</span>
+        </div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+
+    {# ===== ONBOARDING SECTION (always visible below lists) ===== #}
+    <div class="mt-10">
+      {% include "favourites/partials/lists_onboarding.html" %}
+    </div>
+    {% endif %}{# end all_lists_empty else #}
+
+    {% elif is_shared_view and active_wishlist %}
+    {# ===== SHARED LIST VIEW (anonymous / other user) ===== #}
+    <div class="mb-6">
+      <a href="{% url 'favourites:favourites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        {% translate "View all shopping lists" %}
+      </a>
+    </div>
+
+    {# Shared list info banner #}
+    <div class="mb-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20 px-4 py-3 text-sm text-blue-800 dark:text-blue-300">
+      <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+      <p class="leading-relaxed">
+        {% translate "You are viewing a shared shopping list. You can browse the products and add them to your cart." %}
+      </p>
+    </div>
+
+    <div class="flex flex-col gap-6">
+      <main class="flex-1 min-w-0" id="wishlist-content">
+        {# List Header #}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-linear-to-br from-blue-100 to-blue-200 dark:from-blue-900/40 dark:to-blue-800/40">
+                <svg class="w-6 h-6 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+                </svg>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ active_wishlist.name }}</h2>
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{% translate "Shared" %}</span>
+                </div>
+                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value }}</span> {% translate "total" %}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {# Products Grid — controls stay outside HTMX swap; only products swap #}
+        <div id="wishlist-items-outer">
+          {% include "favourites/partials/wishlist_items.html" with wishlist=active_wishlist items=filtered_items search_query=search_query current_sort=current_sort available_only=available_only is_shared_view=True %}
+        </div>
+      </main>
+    </div>
+
+    {% else %}
+    {# ===== DETAIL VIEW (existing sidebar + items layout) ===== #}
+    {# Back to overview link (only when multiple lists) #}
+    {% if wishlists|length > 1 %}
+    <div class="mb-4">
+      <a href="{% url 'favourites:favourites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        {% translate "View all shopping lists" %}
+      </a>
+    </div>
+    {% endif %}
+    <div class="flex flex-col lg:flex-row gap-6">
+      {# Sidebar - Lists Navigation #}
+      <aside class="lg:w-72 shrink-0">
+        <div class="lg:sticky lg:top-32">
+          <div id="wishlists-sidebar" class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+              <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{% translate "Your Lists" %}</h2>
+            </div>
+            <nav class="p-2 space-y-1 max-h-[60vh] overflow-y-auto">
+              {% for wishlist in wishlists %}
+              <a 
+                href="?list={{ wishlist.share_id }}"
+                class="wishlist-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if wishlist == active_wishlist %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+                data-wishlist-id="{{ wishlist.id }}"
+              >
+                {% if wishlist.is_default %}
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-primary-100 dark:bg-primary-800{% else %}bg-rose-50 dark:bg-rose-900/30{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if wishlist == active_wishlist %}text-primary-600 dark:text-primary-400{% else %}text-rose-500{% endif %}" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                  </svg>
+                </div>
+                {% else %}
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-primary-100 dark:bg-primary-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if wishlist == active_wishlist %}text-primary-600 dark:text-primary-400{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  </svg>
+                </div>
+                {% endif %}
+                <div class="flex-1 min-w-0">
+                  <span class="block font-medium truncate">{{ wishlist.name }}</span>
+                  <span class="text-xs font-semibold {% if wishlist == active_wishlist %}text-primary-600/70 dark:text-primary-400/70{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                    {{ wishlist.item_count }} {% translate "products" %}
+                  </span>
+                </div>
+                {% if wishlist == active_wishlist %}
+                <div class="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"></div>
+                {% endif %}
+              </a>
+              {% empty %}
+              <div class="px-3 py-6 text-center text-gray-500 dark:text-gray-400">
+                <svg class="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+                <p class="text-sm">{% translate "No lists yet" %}</p>
+              </div>
+              {% endfor %}
+            </nav>
+          </div>
+        </div>
+      </aside>
+
+      {# Main Content Area #}
+      <main class="flex-1 min-w-0" id="wishlist-content">
+        {% if active_wishlist %}
+        {# List Header #}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div class="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+              {% if active_wishlist.is_default %}
+              <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-900/40 dark:to-pink-900/40">
+                <svg class="w-6 h-6 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+              </div>
+              {% else %}
+              <div class="flex items-center justify-center w-12 h-12 rounded-xl bg-linear-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600">
+                <svg class="w-6 h-6 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+              </div>
+              {% endif %}
+              <div>
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ active_wishlist.name }}</h2>
+                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value }}</span> {% translate "total" %}</p>
+              </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              {% if not user.is_authenticated %}
+              <a 
+                href="{% url 'account_login' %}?next={% url 'favourites:favourites_page' %}"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                </svg>
+                {% translate "Save to account" %}
+              </a>
+              {% endif %}
+              {% if active_wishlist.items.exists %}
+              <button 
+                type="button"
+                class="share-list-btn btn-press inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
+                data-wishlist-id="{{ active_wishlist.id }}"
+                data-share-id="{{ active_wishlist.share_id }}"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path>
+                </svg>
+                {% translate "Share list" %}
+              </button>
+              {% endif %}
+              {% if not active_wishlist.is_default %}
+              <button 
+                type="button"
+                class="edit-list-btn btn-press inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
+                data-wishlist-id="{{ active_wishlist.id }}"
+                data-wishlist-name="{{ active_wishlist.name }}"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                </svg>
+                {% translate "Edit" %}
+              </button>
+              {% endif %}
+              <button 
+                type="button"
+                class="delete-list-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 rounded-lg transition-colors cursor-pointer"
+                data-wishlist-id="{{ active_wishlist.id }}"
+                data-wishlist-name="{{ active_wishlist.name }}"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                {% translate "Delete" %}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {# Products Grid — controls stay outside HTMX swap; only products swap #}
+        <div id="wishlist-items-outer">
+          {% include "favourites/partials/wishlist_items.html" with wishlist=active_wishlist items=filtered_items search_query=search_query current_sort=current_sort available_only=available_only %}
+        </div>
+        <template id="wishlist-empty-state-template">
+          <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div class="max-w-sm mx-auto">
+              <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{% translate "This list is empty" %}</h3>
+              <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Start adding products to fill this list." %}</p>
+              <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+                {% translate "Browse Products" %}
+              </a>
+            </div>
+          </div>
+        </template>
+        {% else %}
+        {# Empty State #}
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+          <div class="max-w-sm mx-auto">
+            <div class="flex items-center justify-center w-20 h-20 mx-auto mb-6 rounded-full bg-linear-to-br from-rose-100 to-pink-100 dark:from-rose-900/30 dark:to-pink-900/30">
+              <svg class="w-10 h-10 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+              </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{% translate "Start saving your favourites" %}</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Click the heart icon on any product to add it to your Favourites list." %}</p>
+            <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+              {% translate "Browse Products" %}
+            </a>
+          </div>
+        </div>
+        {% endif %}
+      </main>
+    </div>
+    {% endif %}{# end show_overview else #}
+  </div>
+</div>
+
+{# Create/Edit List Modal #}
+<div id="list-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl transform transition-all max-h-[90vh] flex flex-col" id="modal-content">
+      <div class="p-6 flex flex-col min-h-0">
+        <div class="flex items-center justify-between mb-6 shrink-0">
+          <h3 id="modal-title" class="text-lg font-bold text-gray-900 dark:text-white">{% translate "Create New List" %}</h3>
+          <button type="button" id="modal-close" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <form id="list-form" method="POST" action="{% url 'favourites:create_wishlist' %}">
+          {% csrf_token %}
+          <input type="hidden" name="wishlist_id" id="form-wishlist-id" value="">
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <label for="list-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{% translate "List Name" %}</label>
+              <span id="list-name-counter" class="text-xs text-gray-400">0 / 64</span>
+            </div>
+            <input 
+              type="text" 
+              id="list-name" 
+              name="name" 
+              required 
+              maxlength="64"
+              class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-none rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-0 focus:bg-white dark:focus:bg-gray-600 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all"
+              placeholder="{% translate 'e.g., Birthday Wishlist' %}"
+            >
+            <p class="mt-1 text-xs text-gray-400">{% translate "Name can be up to 64 characters long." %}</p>
+          </div>
+
+          {# Product Picker Section - only shown for new lists #}
+          <div id="product-picker-section" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{% translate "Choose what to add to the list:" %}</label>
+            <div id="product-picker-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-52 overflow-y-auto p-1">
+              <div class="flex items-center justify-center py-8 col-span-full text-sm text-gray-400">
+                <svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {% translate "Loading products..." %}
+              </div>
+            </div>
+          </div>
+
+          <div id="form-error" class="hidden mb-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg"></div>
+          <div class="flex gap-3 shrink-0">
+            <button type="button" id="modal-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+              {% translate "Cancel" %}
+            </button>
+            <button type="submit" id="modal-submit" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors cursor-pointer">
+              {% translate "Create List" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Delete Confirmation Modal #}
+<div id="delete-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="delete-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Delete List?" %}</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate 'Are you sure you want to delete' %} "<span id="delete-list-name" class="font-semibold"></span>"? {% translate "This action cannot be undone." %}</p>
+        <form id="delete-form" method="POST" action="">
+          {% csrf_token %}
+          <div class="flex gap-3">
+            <button type="button" id="delete-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+              {% translate "Cancel" %}
+            </button>
+            <button type="submit" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+              {% translate "Delete" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Remove Products Confirmation Modal #}
+<div id="remove-items-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="remove-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Remove Products?" %}</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Are you sure you want to remove the selected items from this list?" %}</p>
+        <div class="flex gap-3">
+          <button type="button" id="remove-items-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+            {% translate "Cancel" %}
+          </button>
+          <button type="button" id="remove-items-confirm" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+            {% translate "Remove" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Copy Items to List Modal #}
+<div id="copy-items-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="copy-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">{% translate "Copy to List" %}</h3>
+          <button type="button" id="copy-modal-close" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="space-y-2 max-h-80 overflow-y-auto pr-1" id="copy-lists-container">
+          {% for wishlist in wishlists %}
+            {% if wishlist.id != active_wishlist.id %}
+            <button type="button" class="w-full text-left p-3 flex items-center gap-3 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-xl transition-all group select-list-btn cursor-pointer" data-list-id="{{ wishlist.id }}">
+              <div class="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 group-hover:scale-105 transition-transform">
+                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 0-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+              </div>
+              <div>
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white">{{ wishlist.name }}</span>
+                <span class="text-xs text-gray-500">{{ wishlist.items.count }} {% translate "product" %}{{ wishlist.items.count|pluralize }}</span>
+              </div>
+            </button>
+            {% endif %}
+          {% endfor %}
+          
+          <button type="button" id="copy-create-new-list" class="w-full text-left p-3 flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/40 rounded-xl transition-all group cursor-pointer">
+            <div class="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center border border-primary-200 dark:border-primary-800 text-primary-600 group-hover:scale-105 transition-transform">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </div>
+            <span class="text-sm font-semibold text-primary-700 dark:text-primary-400">{% translate "Create New List" %}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock body %}
+
+{% block page_js %}
+<script>
+// Translation strings and context variables
+window.FAVOURITES_ITEM_TEXT = '{% translate "item" %}';
+window.FAVOURITES_ITEMS_TEXT = '{% translate "items" %}';
+window.FAVOURITES_SELECTED_TEXT = '{% translate "Selected" %}';
+window.FAVOURITES_TOTAL_TEXT = '{% translate "total" %}';
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize functionality
+  FavouritesPage.init();
+});
+
+const FavouritesPage = {
+  activeWishlistId: '{{ active_wishlist.share_id }}',
+  activeWishlistPk: '{{ active_wishlist.id }}',
+  csrfToken: '{{ csrf_token }}',
+  searchTimeout: null,
+
+  init: function() {
+    this.bindGlobalEvents();
+    this.bindListModals();
+    this.bindOverviewActions();
+    this.bindSearchAndSort();
+    this.bindPersistentBulkActions();  // once: header btn, bulk bar btns
+    this.bindItemCheckboxes();         // rebindable: checkboxes inside swapped content
+    this.bindItemActions();
+    this.updateBulkButtonBar();
+  },
+
+  _toggleDropdown: function(el) {
+    if (!el) return;
+    const isOpen = !el.classList.contains('pointer-events-none');
+    if (isOpen) {
+      el.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+      el.classList.remove('opacity-100', 'scale-100');
+    } else {
+      el.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+      el.classList.add('opacity-100', 'scale-100');
+    }
+  },
+
+  _closeDropdown: function(el) {
+    if (!el) return;
+    el.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+    el.classList.remove('opacity-100', 'scale-100');
+  },
+
+  bindGlobalEvents: function() {
+    // cart.js now shows the toast with the product name directly
+    document.addEventListener('cart:updated', () => {
+      // Cart UI updates handled here if needed
+    });
+
+    // Re-bind only swapped content after HTMX swaps
+    document.addEventListener('htmx:afterSwap', (event) => {
+      if (event.detail.target.id === 'wishlist-items-container') {
+        this.hideItemsLoading();
+        this.bindItemCheckboxes();  // checkboxes inside swapped content
+        this.bindItemActions();     // buttons inside swapped content
+        this.updateBulkButtonBar();
+        // Re-format prices if needed
+        if (window.formatPrices) window.formatPrices();
+      }
+    });
+
+    // Global click listener to close dropdowns/menus
+    document.addEventListener('click', (e) => {
+      // Close sort dropdowns
+      if (!e.target.closest('#sort-dropdown-btn') && !e.target.closest('#sort-dropdown-menu')) {
+        this._closeDropdown(document.getElementById('sort-dropdown-menu'));
+      }
+      if (!e.target.closest('#list-sort-btn') && !e.target.closest('#list-sort-dropdown')) {
+        this._closeDropdown(document.getElementById('list-sort-dropdown'));
+      }
+      if (!e.target.closest('#wishlist-sort-btn') && !e.target.closest('#wishlist-sort-dropdown')) {
+        this._closeDropdown(document.getElementById('wishlist-sort-dropdown'));
+      }
+      // Close all item menus
+      if (!e.target.closest('.item-menu-btn') && !e.target.closest('.item-menu-dropdown')) {
+        document.querySelectorAll('.item-menu-dropdown').forEach(m => this._closeDropdown(m));
+      }
+      // Close list card context menus
+      if (!e.target.closest('.list-card-menu-btn') && !e.target.closest('.list-card-menu')) {
+        document.querySelectorAll('.list-card-menu').forEach(m => {
+          m.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+          m.classList.remove('opacity-100', 'scale-100');
+        });
+      }
+    });
+  },
+
+  // --- OVERVIEW ACTIONS ---
+
+  bindOverviewActions: function() {
+    // List sort dropdown toggle
+    document.getElementById('list-sort-btn')?.addEventListener('click', () => {
+      this._toggleDropdown(document.getElementById('list-sort-dropdown'));
+    });
+
+    // List card context menus
+    document.querySelectorAll('.list-card-menu-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const menu = btn.nextElementSibling;
+        document.querySelectorAll('.list-card-menu').forEach(m => {
+          if (m !== menu) {
+            m.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            m.classList.remove('opacity-100', 'scale-100');
+          }
+        });
+        const isOpen = !menu.classList.contains('pointer-events-none');
+        if (isOpen) {
+          menu.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+          menu.classList.remove('opacity-100', 'scale-100');
+        } else {
+          menu.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+          menu.classList.add('opacity-100', 'scale-100');
+        }
+      });
+    });
+
+    // Share list buttons (copy URL) - works in both overview and detail
+    document.querySelectorAll('.share-list-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const shareId = btn.dataset.shareId;
+        const url = window.location.origin + window.location.pathname + '?list=' + shareId;
+        if (navigator.share) {
+          navigator.share({
+            title: document.title,
+            url: url
+          }).catch(() => {});
+        } else {
+          navigator.clipboard.writeText(url).then(() => {
+            window.showToast?.('{% translate "Link copied to clipboard" %}', 'success');
+          }).catch(() => {
+            const input = document.createElement('input');
+            input.value = url;
+            document.body.appendChild(input);
+            input.select();
+            document.execCommand('copy');
+            document.body.removeChild(input);
+            window.showToast?.('{% translate "Link copied to clipboard" %}', 'success');
+          });
+        }
+        btn.closest('.list-card-menu')?.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+      });
+    });
+  },
+
+  // --- MODALS (Create/Edit/Delete/Copy) ---
+
+  bindListModals: function() {
+    const listModal = document.getElementById('list-modal');
+    const deleteModal = document.getElementById('delete-modal');
+    const copyModal = document.getElementById('copy-items-modal');
+
+    // Create Modal
+    document.getElementById('create-list-btn')?.addEventListener('click', () => this.showListModal());
+    document.getElementById('copy-create-new-list')?.addEventListener('click', () => {
+      copyModal.classList.add('hidden');
+      // Pass the selected item IDs so they get copied to the new list
+      this.showListModal(null, window.selectedItemIdsForCopy || []);
+    });
+
+    // Edit Modal
+    document.querySelectorAll('.edit-list-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this.showListModal({
+          id: btn.dataset.wishlistId,
+          name: btn.dataset.wishlistName
+        });
+      });
+    });
+
+    // Delete Modal
+    document.querySelectorAll('.delete-list-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.wishlistId;
+        const name = btn.dataset.wishlistName;
+        document.getElementById('delete-form').action = `/favourites/delete/${id}/`;
+        document.getElementById('delete-list-name').textContent = name;
+        deleteModal.classList.remove('hidden');
+      });
+    });
+
+    // Loading state on form submission (create/edit)
+    document.getElementById('list-form')?.addEventListener('submit', function() {
+      const submitBtn = document.getElementById('modal-submit');
+      if (submitBtn) window.btnLoading(submitBtn);
+    });
+
+    // Loading state on delete form submission
+    document.getElementById('delete-form')?.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      if (submitBtn) window.btnLoading(submitBtn);
+    });
+
+    // Close buttons
+    [
+      {btn: 'modal-close', modal: 'list-modal'},
+      {btn: 'modal-cancel', modal: 'list-modal'},
+      {btn: 'modal-backdrop', modal: 'list-modal'},
+      {btn: 'delete-cancel', modal: 'delete-modal'},
+      {btn: 'delete-modal-backdrop', modal: 'delete-modal'},
+      {btn: 'copy-modal-close', modal: 'copy-items-modal'},
+      {btn: 'copy-modal-backdrop', modal: 'copy-items-modal'},
+      {btn: 'remove-items-cancel', modal: 'remove-items-modal'},
+      {btn: 'remove-modal-backdrop', modal: 'remove-items-modal'}
+    ].forEach(item => {
+      document.getElementById(item.btn)?.addEventListener('click', () => {
+        document.getElementById(item.modal).classList.add('hidden');
+      });
+    });
+
+    // Remove products confirmation
+    document.getElementById('remove-items-confirm')?.addEventListener('click', async () => {
+      const modal = document.getElementById('remove-items-modal');
+      const confirmBtn = document.getElementById('remove-items-confirm');
+      const ids = this._pendingRemoveItemIds || [];
+      const triggerBtn = this._pendingRemoveBtn;
+      if (ids.length === 0) { modal.classList.add('hidden'); return; }
+      window.btnLoading(confirmBtn);
+      await this.bulkPost('{% url "favourites:bulk_remove" %}', { item_ids: ids.join(',') }, triggerBtn);
+      window.btnReset(confirmBtn);
+      modal.classList.add('hidden');
+      this._pendingRemoveItemIds = null;
+      this._pendingRemoveBtn = null;
+    });
+
+    // Char counter for name
+    const nameInput = document.getElementById('list-name');
+    const counter = document.getElementById('list-name-counter');
+    nameInput?.addEventListener('input', () => {
+      counter.textContent = `${nameInput.value.length} / 64`;
+    });
+  },
+
+  showListModal: function(data = null, copyItemIds = []) {
+    const modal = document.getElementById('list-modal');
+    const form = document.getElementById('list-form');
+    const title = document.getElementById('modal-title');
+    const submitBtn = document.getElementById('modal-submit');
+    const pickerSection = document.getElementById('product-picker-section');
+    const nameInput = document.getElementById('list-name');
+    const idInput = document.getElementById('form-wishlist-id');
+
+    form.reset();
+    document.getElementById('list-name-counter').textContent = "0 / 64";
+    document.getElementById('form-error').classList.add('hidden');
+
+    // Remove any previously injected copy_item_ids hidden inputs
+    form.querySelectorAll('input[name="copy_item_ids"]').forEach(el => el.remove());
+
+    if (data) {
+      // Edit mode
+      title.textContent = '{% translate "Edit List" %}';
+      submitBtn.textContent = '{% translate "Save Changes" %}';
+      form.action = `/favourites/update/${data.id}/`;
+      idInput.value = data.id;
+      nameInput.value = data.name;
+      pickerSection.classList.add('hidden');
+    } else {
+      // Create mode
+      title.textContent = '{% translate "Create New List" %}';
+      submitBtn.textContent = '{% translate "Create List" %}';
+      form.action = '{% url "favourites:create_wishlist" %}';
+      idInput.value = '';
+      pickerSection.classList.remove('hidden');
+
+      // If coming from Copy to List flow, inject copy_item_ids hidden fields
+      // and resolve the product IDs to pre-select in the picker
+      let preSelectProductIds = [];
+      if (copyItemIds && copyItemIds.length > 0) {
+        copyItemIds.forEach(itemId => {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.name = 'copy_item_ids';
+          hidden.value = itemId;
+          form.appendChild(hidden);
+
+          // Resolve product ID from the DOM
+          const row = document.querySelector(`.wishlist-item-row[data-item-id="${itemId}"]`);
+          if (row) {
+            const card = row.querySelector('[data-product-id]');
+            if (card) preSelectProductIds.push(card.dataset.productId);
+          }
+        });
+      }
+
+      this.loadProductPicker(preSelectProductIds);
+    }
+
+    modal.classList.remove('hidden');
+    nameInput.focus();
+  },
+
+  // --- SEARCH & SORT ---
+
+  bindSearchAndSort: function() {
+    // Search with debounce
+    document.addEventListener('input', (e) => {
+      if (e.target.id === 'wishlist-search-input') {
+        clearTimeout(this.searchTimeout);
+        // Show/hide clear button
+        const clearBtn = document.getElementById('wishlist-search-clear');
+        if (clearBtn) {
+          clearBtn.classList.toggle('hidden', !e.target.value);
+        }
+        this.searchTimeout = setTimeout(() => this.reloadItems(), 400);
+      }
+    });
+
+    // Sort dropdown
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('#wishlist-sort-btn');
+      if (btn) {
+        this._toggleDropdown(document.getElementById('wishlist-sort-dropdown'));
+      }
+
+      const sortOption = e.target.closest('.wishlist-sort-option');
+      if (sortOption) {
+        const val = sortOption.dataset.sort;
+        // Update sort label locally for instant feedback
+        const sortLabel = document.getElementById('wishlist-sort-label');
+        if (sortLabel) {
+          sortLabel.dataset.currentSort = val;
+          sortLabel.textContent = val === 'oldest' ? '{% translate "Oldest" %}' : '{% translate "Recently added" %}';
+        }
+        // Update active state on sort options
+        document.querySelectorAll('.wishlist-sort-option').forEach(opt => {
+          if (opt.dataset.sort === val) {
+            opt.classList.add('bg-gray-50', 'dark:bg-gray-600', 'font-bold', 'text-primary-600', 'dark:text-primary-400');
+            opt.classList.remove('text-gray-700', 'dark:text-gray-300');
+          } else {
+            opt.classList.remove('bg-gray-50', 'dark:bg-gray-600', 'font-bold', 'text-primary-600', 'dark:text-primary-400');
+            opt.classList.add('text-gray-700', 'dark:text-gray-300');
+          }
+        });
+        this.reloadItems({ sort: val });
+        this._closeDropdown(document.getElementById('wishlist-sort-dropdown'));
+      }
+    });
+
+    // Availability toggle
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'wishlist-available-toggle') {
+        this.reloadItems();
+      }
+    });
+  },
+
+  showItemsLoading: function() {
+    const container = document.getElementById('wishlist-items-container');
+    if (!container) return;
+
+    // Create overlay
+    let overlay = document.getElementById('wishlist-loading-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'wishlist-loading-overlay';
+      overlay.className = 'absolute inset-0 bg-white/50 dark:bg-gray-900/50 z-10 transition-opacity duration-200 rounded-2xl';
+    }
+
+    // Create spinner
+    let spinner = document.getElementById('wishlist-loading-spinner');
+    if (!spinner) {
+      spinner = document.createElement('div');
+      spinner.id = 'wishlist-loading-spinner';
+      spinner.className = 'absolute inset-0 flex items-center justify-center z-20 pointer-events-none';
+      spinner.innerHTML = `
+        <div role="status">
+          <svg aria-hidden="true" class="w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-primary-600 dark:fill-primary-500" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+            <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+          </svg>
+          <span class="sr-only">Loading...</span>
+        </div>
+      `;
+    }
+
+    container.style.position = 'relative';
+    container.style.minHeight = '200px';
+    container.appendChild(overlay);
+    container.appendChild(spinner);
+  },
+
+  hideItemsLoading: function() {
+    document.getElementById('wishlist-loading-overlay')?.remove();
+    document.getElementById('wishlist-loading-spinner')?.remove();
+  },
+
+  reloadItems: function(params = {}) {
+    const searchInput = document.getElementById('wishlist-search-input');
+    const availableToggle = document.getElementById('wishlist-available-toggle');
+    const sortLabel = document.getElementById('wishlist-sort-label');
+    const sortVal = params.sort || sortLabel?.dataset.currentSort || document.querySelector('.wishlist-sort-option.font-bold')?.dataset.sort || 'recent';
+    
+    const query = new URLSearchParams();
+    query.set('list', this.activeWishlistId);
+    if (searchInput?.value) query.set('q', searchInput.value);
+    
+    if (availableToggle?.checked) query.set('available', '1');
+    
+    if (sortVal && sortVal !== 'recent') query.set('sort', sortVal);
+
+    // Show loading overlay on the products container
+    this.showItemsLoading();
+
+    const url = `{% url "favourites:wishlist_items_partial" %}?${query.toString()}`;
+    
+    htmx.ajax('GET', url, {
+      target: '#wishlist-items-container',
+      swap: 'innerHTML'
+    });
+
+    // Update URL
+    window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`);
+  },
+
+  // --- BULK ACTIONS (persistent elements — called ONCE) ---
+
+  bindPersistentBulkActions: function() {
+    // Bulk action buttons (outside swapped container)
+    document.getElementById('wishlist-bulk-remove-btn')?.addEventListener('click', () => this.handleBulkAction('delete'));
+    document.getElementById('wishlist-copy-btn')?.addEventListener('click', () => this.handleBulkAction('copy'));
+    // Select All checkbox (outside swapped container)
+    document.getElementById('wishlist-select-all')?.addEventListener('change', () => {
+      document.querySelectorAll('.wishlist-item-checkbox').forEach(cb => cb.checked = document.getElementById('wishlist-select-all').checked);
+      this.updateBulkButtonBar();
+    });
+  },
+
+  // --- ITEM CHECKBOXES (inside swapped container — called on every swap) ---
+
+  bindItemCheckboxes: function() {
+    const selectAll = document.getElementById('wishlist-select-all');
+    const itemCheckboxes = document.querySelectorAll('.wishlist-item-checkbox');
+
+    itemCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const allChecked = Array.from(document.querySelectorAll('.wishlist-item-checkbox')).every(c => c.checked);
+        if (selectAll) selectAll.checked = allChecked;
+        this.updateBulkButtonBar();
+      });
+    });
+  },
+
+  updateBulkButtonBar: function() {
+    const selected = document.querySelectorAll('.wishlist-item-checkbox:checked');
+    const bar = document.getElementById('wishlist-bulk-actions');
+    const removeBtn = document.getElementById('wishlist-bulk-remove-btn');
+    const copyBtn = document.getElementById('wishlist-copy-btn');
+    if (selected.length > 0) {
+      if (removeBtn) removeBtn.disabled = false;
+      if (copyBtn) copyBtn.disabled = false;
+    } else {
+      if (removeBtn) removeBtn.disabled = true;
+      if (copyBtn) copyBtn.disabled = true;
+    }
+  },
+
+  handleBulkAction: async function(action) {
+    const selected = Array.from(document.querySelectorAll('.wishlist-item-checkbox:checked')).map(cb => cb.dataset.itemId);
+    if (selected.length === 0 && action !== 'all-available') return;
+
+    // Determine which button triggered this action for loading state
+    const btnMap = {
+      'delete': document.getElementById('wishlist-bulk-remove-btn'),
+      'copy': document.getElementById('wishlist-copy-btn'),
+    };
+    const triggerBtn = btnMap[action];
+
+    if (action === 'delete') {
+      this._pendingRemoveItemIds = selected;
+      this._pendingRemoveBtn = triggerBtn;
+      document.getElementById('remove-items-modal').classList.remove('hidden');
+      return;
+    } else if (action === 'copy') {
+      this.showCopyModal(selected);
+    }
+  },
+
+  bulkPost: async function(url, data, triggerBtn, skipReload) {
+    const formData = (data instanceof FormData) ? data : new FormData();
+    if (!(data instanceof FormData)) {
+      for (const key in data) formData.append(key, data[key]);
+    }
+
+    if (triggerBtn) window.btnLoading(triggerBtn);
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': this.csrfToken },
+        body: formData
+      });
+      const resData = await response.json();
+      if (resData.success) {
+        window.showToast?.(resData.message, 'success');
+        if (!skipReload) this.reloadItems();
+      } else {
+        window.showToast?.(resData.message, 'error');
+      }
+    } catch (e) {
+      window.showToast?.('{% translate "Connection error" %}', 'error');
+    } finally {
+      if (triggerBtn) window.btnReset(triggerBtn);
+    }
+  },
+
+  showCopyModal: function(itemIds) {
+    window.selectedItemIdsForCopy = itemIds;
+    const modal = document.getElementById('copy-items-modal');
+    modal.classList.remove('hidden');
+
+    document.querySelectorAll('.select-list-btn').forEach(btn => {
+      btn.onclick = async () => {
+        window.btnLoading(btn);
+        const targetId = btn.dataset.listId;
+        const formData = new FormData();
+        itemIds.forEach(id => formData.append('item_ids', id));
+        formData.append('target_wishlist_id', targetId);
+        
+        await this.bulkPost('{% url "favourites:copy_items" %}', formData);
+        window.btnReset(btn);
+        modal.classList.add('hidden');
+      };
+    });
+  },
+
+  // --- ITEM ACTIONS (Individual) ---
+
+  bindItemActions: function() {
+    // NOTE: Add-to-cart buttons (.add-to-cart-btn) are handled globally by cart.js
+    // via event delegation. We only need to handle favourites-specific actions here.
+
+    // Favourite buttons inside wishlist items (toggle removes from wishlist)
+    document.querySelectorAll('#wishlist-items-container .favourite-btn').forEach(btn => {
+      // Mark as page-managed so site.js global handler skips it
+      btn.dataset.favouritePageManaged = 'true';
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        if (btn.classList.contains('btn-loading')) return;
+        window.btnLoading(btn);
+
+        const productId = btn.dataset.productId;
+        const formData = new FormData();
+        formData.append('product_id', productId);
+
+        try {
+          const r = await fetch('{% url "favourites:toggle_favourite" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': this.csrfToken },
+            body: formData
+          });
+          const data = await r.json();
+          if (data.success) {
+            window.showToast?.(data.message, 'success');
+            this.reloadItems();
+          } else {
+            window.showToast?.(data.message, 'error');
+          }
+        } catch (_) {
+          window.showToast?.('{% translate "Connection error" %}', 'error');
+        } finally {
+          window.btnReset(btn);
+        }
+      };
+    });
+  },
+
+  // --- PRODUCT PICKER ---
+
+  loadProductPicker: async function(preSelectProductIds = []) {
+    const grid = document.getElementById('product-picker-grid');
+    if (!grid) return;
+
+    const preSelected = new Set(preSelectProductIds.map(String));
+
+    try {
+      const response = await fetch('{% url "favourites:get_all_products" %}');
+      const data = await response.json();
+      
+      if (data.products && data.products.length > 0) {
+        grid.innerHTML = data.products.map(p => {
+          const isChecked = preSelected.has(String(p.id));
+          return `
+          <label class="relative group cursor-pointer">
+            <input type="checkbox" name="product_ids" value="${p.id}" class="peer hidden"${isChecked ? ' checked' : ''}>
+            <div class="p-2 border border-gray-100 dark:border-gray-700 rounded-lg group-hover:bg-gray-50 dark:group-hover:bg-gray-700 peer-checked:border-primary-600 peer-checked:bg-primary-50 dark:peer-checked:bg-primary-900/20 transition-all">
+              <div class="aspect-square rounded-md overflow-hidden bg-white mb-1">
+                <img src="${p.image_url}" alt="${p.name}" class="w-full h-full object-contain p-1">
+              </div>
+              <span class="block text-[10px] leading-tight text-gray-500 dark:text-gray-400 line-clamp-1">${p.name}</span>
+            </div>
+            <div class="absolute top-1 right-1 w-4 h-4 bg-primary-600 text-white rounded-full flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+          </label>
+        `}).join('');
+      } else {
+        grid.innerHTML = `<div class="col-span-full py-8 text-center text-sm text-gray-400">{% translate "No products found in your other lists." %}</div>`;
+      }
+    } catch (e) {
+      grid.innerHTML = `<div class="col-span-full py-8 text-center text-sm text-red-500">{% translate "Failed to load products." %}</div>`;
+    }
+  }
+};
+</script>
+{% endblock page_js %}
