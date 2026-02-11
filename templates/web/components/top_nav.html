@@ -436,14 +436,17 @@ body.nav-scroll-locked {
               <svg class="w-8 h-8 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-width="1.5" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
               </svg>
-              <span class="hidden md:inline text-base font-medium truncate max-w-28">{{ user.first_name }}</span>
+              <span class="hidden md:inline text-base font-medium truncate max-w-28" data-user-first-name>{{ user.first_name }}</span>
               <span class="sr-only md:hidden">{% translate "Account" %}</span>
             </a>
 
             <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-64 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-xl bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
-              {# User email header #}
+              {# User display name header #}
               <div class="px-4 py-3 cursor-text select-text">
-                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ user.email }}</p>
+                <p class="text-base font-medium text-gray-900 dark:text-white truncate" data-user-display-name>{{ user.get_display_name }}</p>
+                {% if user.get_full_name %}
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+                {% endif %}
               </div>
 
               <ul class="p-1.5 text-start text-sm font-medium text-gray-900 dark:text-white">

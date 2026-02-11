@@ -1,0 +1,61 @@
+{% load i18n %}
+{# ── "Check Email" quick-link to webmail ──────────────────────────── #}
+{# Usage: {% include "account/includes/check_email_button.html" with email=user.email %} #}
+{# Only renders a button when the email domain maps to a known webmail provider. #}
+
+{% if email %}
+<a id="check-email-btn-{{ email|slugify }}"
+   href="#"
+   target="_blank"
+   rel="noopener noreferrer"
+   class="hidden items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
+   data-check-email="{{ email }}">
+  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+  </svg>
+  <span class="check-email-label">{% translate "Check Email" %}</span>
+</a>
+
+<script>
+(function() {
+  var PROVIDERS = {
+    'gmail.com':        'https://mail.google.com',
+    'googlemail.com':   'https://mail.google.com',
+    'outlook.com':      'https://outlook.live.com',
+    'hotmail.com':      'https://outlook.live.com',
+    'live.com':         'https://outlook.live.com',
+    'msn.com':          'https://outlook.live.com',
+    'yahoo.com':        'https://mail.yahoo.com',
+    'yahoo.pl':         'https://mail.yahoo.com',
+    'wp.pl':            'https://poczta.wp.pl',
+    'onet.pl':          'https://poczta.onet.pl',
+    'onet.eu':          'https://poczta.onet.pl',
+    'op.pl':            'https://poczta.onet.pl',
+    'interia.pl':       'https://poczta.interia.pl',
+    'interia.eu':       'https://poczta.interia.pl',
+    'o2.pl':            'https://poczta.o2.pl',
+    'tlen.pl':          'https://poczta.o2.pl',
+    'gazeta.pl':        'https://poczta.gazeta.pl',
+    'icloud.com':       'https://www.icloud.com/mail',
+    'me.com':           'https://www.icloud.com/mail',
+    'protonmail.com':   'https://mail.proton.me',
+    'proton.me':        'https://mail.proton.me',
+    'pm.me':            'https://mail.proton.me',
+    'zoho.com':         'https://mail.zoho.com'
+  };
+
+  document.querySelectorAll('[data-check-email]').forEach(function(btn) {
+    var email = btn.getAttribute('data-check-email');
+    if (!email) return;
+    var domain = email.split('@').pop().toLowerCase();
+    var url = PROVIDERS[domain];
+    if (url) {
+      btn.href = url;
+      btn.classList.remove('hidden');
+      btn.classList.add('inline-flex');
+    }
+  });
+})();
+</script>
+{% endif %}

@@ -1,5 +1,5 @@
 {% extends "account/account_base.html" %}
-{% load i18n static %}
+{% load i18n static time_tags %}
 
 {% block account_content %}
 <div class="space-y-8">
@@ -87,7 +87,7 @@
               <div class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg p-2.5 border-none select-all">
                 {{ user.email }}
               </div>
-              <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold {% if user.has_verified_email %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400{% endif %}">
+              <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold {% if user.has_verified_email %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400{% endif %}">
                 {% if user.has_verified_email %}
                 <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 {% translate "Verified" %}
@@ -98,40 +98,62 @@
               </div>
             </div>
 
-            {# Pending email change status #}
-            {% if pending_email %}
-            <div class="mt-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-900/30 p-4">
+            {# Unverified email — send verification link #}
+            {% if not user.has_verified_email %}
+            <div id="unverified-email-banner" class="mt-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.1),0_0_2px_0_rgba(0,0,0,0.06)] p-4">
               <div class="flex gap-3">
-                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/30 shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                </div>
                 <div class="flex-1">
-                  <p class="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">
-                    {% translate "Pending confirmation" %}: {{ pending_email.new_email }}
+                  <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                    {% translate "Your email is not verified" %}
                   </p>
-                  <p class="text-sm text-amber-700 dark:text-amber-400 mb-3">
-                    {% translate "A verification link has been sent. Please check your inbox." %}
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                    {% translate "Please verify your email address to secure your account. Check your inbox for a verification link, or request a new one." %}
                   </p>
-                  <div class="flex flex-wrap gap-2">
-                    <form method="POST" action="{% url 'users:account_resend_email_change' %}" class="inline">
-                      {% csrf_token %}
-                      <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 rounded-lg transition-colors cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                        {% translate "Resend" %}
-                      </button>
-                    </form>
-                    <form method="POST" action="{% url 'users:account_cancel_email_change' %}" class="inline">
-                      {% csrf_token %}
-                      <button type="submit" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        {% translate "Cancel" %}
-                      </button>
-                    </form>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="resend-verification-btn-details" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-all duration-200 cursor-pointer">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                      {% translate "Send Verification Link" %}
+                    </button>
+                    {% include "account/includes/check_email_button.html" with email=user.email %}
                   </div>
                 </div>
               </div>
             </div>
             {% endif %}
+
+            {# Pending email change status #}
+            <div id="pending-email-section" class="mt-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.1),0_0_2px_0_rgba(0,0,0,0.06)] p-4{% if not pending_email %} hidden{% endif %}">
+              <div class="flex gap-3">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                    {% translate "Pending confirmation" %}: <span id="pending-email-label">{{ pending_email.new_email }}</span>
+                  </p>
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                    {% translate "A verification link has been sent. Please check your inbox." %}
+                  </p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <form method="POST" action="{% url 'users:account_resend_email_change' %}" id="resend-email-change-form" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-all duration-200 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {% translate "Resend Verification Link" %}
+                      </button>
+                    </form>
+                    {% include "account/includes/check_email_button.html" with email=pending_email.new_email %}
+                  </div>
+                </div>
+              </div>
+            </div>
 
             {# Change email form #}
             <div class="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
@@ -154,7 +176,7 @@
                     placeholder="{% translate 'Enter your new email' %}"
                     required
                   >
-                  <p class="mt-2 text-muted">{% translate "A verification link will be sent to your new email. The change takes effect after confirmation." %}</p>
+                  <p class="mt-2 text-subtitle">{% translate "A verification link will be sent to your new email. The change takes effect after confirmation." %}</p>
                   <div class="mt-4 flex gap-3">
                     <button
                       id="email-change-btn"
@@ -203,19 +225,19 @@
 
           <div class="mt-4 max-w-md space-y-3">
             {# Security metadata #}
-            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               {% if user.password_changed_at %}
-              {% translate "Last changed" %}: {{ user.password_changed_at|timesince }} {% translate "ago" %}
+              {% translate "Last changed" %}: {{ user.password_changed_at|smart_timesince }}
               {% else %}
               {% translate "Last changed" %}: {% translate "Never" %}
               {% endif %}
             </div>
 
             {% if user.last_login %}
-            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
               <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
-              {% translate "Last login" %}: {{ user.last_login|timesince }} {% translate "ago" %}
+              {% translate "Last login" %}: {{ user.last_login|smart_timesince }}
             </div>
             {% endif %}
           </div>
@@ -255,10 +277,10 @@
             <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
             </svg>
-            <div class="text-sm text-red-800 dark:text-red-300 leading-relaxed">
+            <div class="text-sm font-medium text-red-800 dark:text-red-300 leading-relaxed">
               <p class="font-semibold mb-1">{% translate "This action is irreversible" %}</p>
               <p>{% translate "Deleting your account will permanently remove:" %}</p>
-              <ul class="list-disc list-inside mt-2 space-y-1">
+              <ul class="list-disc list-inside mt-2 space-y-1 font-medium">
                 <li>{% translate "Your order history" %}</li>
                 <li>{% translate "Saved addresses and payment methods" %}</li>
                 <li>{% translate "Shopping lists and favourites" %}</li>
@@ -298,7 +320,7 @@
           </svg>
         </div>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 text-center">{% translate "Delete Account?" %}</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-5 text-sm leading-relaxed text-center">
+        <p class="text-gray-500 dark:text-gray-400 mb-5 text-sm font-medium leading-relaxed text-center">
           {% translate "To confirm, please enter your password. This action is permanent and cannot be undone." %}
         </p>
         <form method="POST" action="{% url 'users:account_delete' %}" id="delete-account-form">
@@ -337,54 +359,147 @@
 {% block page_js %}
 <script>
 (function() {
-  // Form submit loading — profile details
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+  // ── Helper: AJAX form submit ──
+  function ajaxPost(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: body,
+    });
+  }
+
+  // ── Save Changes (profile details) — AJAX ──
   const detailsForm = document.getElementById('account-details-form');
   if (detailsForm) {
-    detailsForm.addEventListener('submit', function() {
+    detailsForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
       const btn = document.getElementById('save-details-btn');
-      const spinner = document.getElementById('save-details-spinner');
-      if (btn && !btn.dataset.loading) {
-        btn.dataset.loading = 'true';
-        btn.classList.add('opacity-60', 'pointer-events-none');
-        if (spinner) spinner.classList.remove('hidden');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(detailsForm.action, new FormData(detailsForm));
+        const data = await res.json();
+        if (res.ok) {
+          window.showToast(data.message, 'success');
+          // Update name everywhere on the page (navbar, dropdown, etc.)
+          if (data.first_name !== undefined) {
+            document.querySelectorAll('[data-user-first-name]').forEach(el => { el.textContent = data.first_name; });
+          }
+          if (data.display_name) {
+            document.querySelectorAll('[data-user-display-name]').forEach(el => { el.textContent = data.display_name; });
+          }
+        } else {
+          const errMsg = data.message || Object.values(data.errors || {}).flat().join(', ') || 'Error';
+          window.showToast(errMsg, 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
       }
     });
   }
 
-  // Toggle email change form
+  // ── Resend email verification (unverified email) — AJAX ──
+  const resendVerifyBtn = document.getElementById('resend-verification-btn-details');
+  if (resendVerifyBtn) {
+    resendVerifyBtn.addEventListener('click', async function() {
+      if (resendVerifyBtn.classList.contains('btn-loading')) return;
+      window.btnLoading(resendVerifyBtn);
+      try {
+        const res = await ajaxPost('{% url "users:resend_verification_email" %}', null);
+        if (res.ok) {
+          window.showToast('{% translate "Verification link sent to" %} <strong>{{ user.email }}</strong>', 'success');
+        } else {
+          window.showToast('{% translate "Failed to send verification link. Please try again." %}', 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(resendVerifyBtn);
+      }
+    });
+  }
+
+  // ── Toggle email change form ──
   const toggleBtn = document.getElementById('toggle-email-change');
-  const emailForm = document.getElementById('email-change-form');
+  const emailFormWrapper = document.getElementById('email-change-form');
   const cancelBtn = document.getElementById('cancel-email-change');
 
-  if (toggleBtn && emailForm) {
+  if (toggleBtn && emailFormWrapper) {
     toggleBtn.addEventListener('click', function() {
-      emailForm.classList.toggle('hidden');
-      if (!emailForm.classList.contains('hidden')) {
+      emailFormWrapper.classList.toggle('hidden');
+      if (!emailFormWrapper.classList.contains('hidden')) {
         document.getElementById('new_email')?.focus();
       }
     });
   }
-  if (cancelBtn && emailForm) {
+  if (cancelBtn && emailFormWrapper) {
     cancelBtn.addEventListener('click', function() {
-      emailForm.classList.add('hidden');
+      emailFormWrapper.classList.add('hidden');
     });
   }
 
-  // Email change form submit loading
+  // ── Request email change — AJAX ──
   const emailChangeForm = document.getElementById('email-change-request-form');
   if (emailChangeForm) {
-    emailChangeForm.addEventListener('submit', function() {
+    emailChangeForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
       const btn = document.getElementById('email-change-btn');
-      const spinner = document.getElementById('email-change-spinner');
-      if (btn && !btn.dataset.loading) {
-        btn.dataset.loading = 'true';
-        btn.classList.add('opacity-60', 'pointer-events-none');
-        if (spinner) spinner.classList.remove('hidden');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(emailChangeForm.action, new FormData(emailChangeForm));
+        const data = await res.json();
+        if (res.ok) {
+          window.showToast(data.message, 'success');
+          // Show the pending email banner
+          const pendingSection = document.getElementById('pending-email-section');
+          if (pendingSection && data.new_email) {
+            const pendingLabel = document.getElementById('pending-email-label');
+            if (pendingLabel) pendingLabel.textContent = data.new_email;
+            pendingSection.classList.remove('hidden');
+          }
+          // Hide the change form and clear input
+          emailFormWrapper?.classList.add('hidden');
+          emailChangeForm.reset();
+        } else {
+          window.showToast(data.message || 'Error', 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
       }
     });
   }
 
-  // Delete account modal
+  // ── Resend email change verification — AJAX ──
+  const resendForm = document.getElementById('resend-email-change-form');
+  if (resendForm) {
+    resendForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = resendForm.querySelector('button[type="submit"]');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(resendForm.action, new FormData(resendForm));
+        const data = await res.json();
+        window.showToast(data.message, res.ok ? 'success' : 'error');
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
+      }
+    });
+  }
+
+  // ── Delete account modal ──
   const trigger = document.getElementById('delete-account-trigger');
   const modal = document.getElementById('delete-account-modal');
   const cancel = document.getElementById('delete-account-cancel');
@@ -404,7 +519,7 @@
     }
   });
 
-  // Delete form loading state
+  // Delete form loading state (stays as regular form post — navigates away)
   const deleteForm = document.getElementById('delete-account-form');
   if (deleteForm) {
     deleteForm.addEventListener('submit', function() {

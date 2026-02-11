@@ -1,16 +1,42 @@
 {% extends "account/base.html" %}
 {% load i18n %}
+
+{% block page_head %}
+{% include "account/includes/auth_card_css.html" %}
+{% endblock %}
+
 {% block content %}
-    <h1 class="pg-title">{% translate "Verify Your E-mail Address" %}</h1>
-    <p>
-        {% blocktranslate trimmed %}
-        We have sent an e-mail to you for verification.
-        Follow the link provided to finalize the signup process.
-        {% endblocktranslate %}
-    </p>
-    <p>
-        {% blocktranslate trimmed %}
-        Please contact us if you do not receive it within a few minutes.
-        {% endblocktranslate %}
-    </p>
+<div class="auth-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+
+  {# ── Envelope icon ── #}
+  <div class="flex justify-center mb-5">
+    <div class="flex items-center justify-center w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/30">
+      <svg class="w-8 h-8 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+      </svg>
+    </div>
+  </div>
+
+  <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+    {% translate "Verify Your E-mail Address" %}
+  </h1>
+
+  <p class="text-subtitle mb-1">
+    {% blocktranslate trimmed %}
+    We have sent an e-mail to you for verification.
+    Follow the link provided to finalize the signup process.
+    {% endblocktranslate %}
+  </p>
+
+  <p class="text-muted mb-6">
+    {% blocktranslate trimmed %}
+    Please contact us if you do not receive it within a few minutes.
+    {% endblocktranslate %}
+  </p>
+
+  {# ── Quick-link to webmail ── #}
+  {% include "account/includes/check_email_button.html" with email=user.email %}
+
+</div>
 {% endblock %}

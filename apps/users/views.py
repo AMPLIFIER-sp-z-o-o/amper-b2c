@@ -181,11 +181,24 @@ def resend_verification_email(request):
 def account_details(request):
     """Account details page — update first name, manage email, security info."""
     if request.method == "POST":
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
         form = AccountDetailsForm(request.POST, instance=request.user)
         if form.is_valid():
             form.save()
+            if is_ajax:
+                request.user.refresh_from_db()
+                return JsonResponse({
+                    "status": "ok",
+                    "message": str(_("Your details have been updated.")),
+                    "first_name": request.user.first_name,
+                    "display_name": request.user.get_display_name(),
+                })
             messages.success(request, _("Your details have been updated."))
             return redirect("users:account_details")
+        else:
+            if is_ajax:
+                errors = {field: [str(e) for e in errs] for field, errs in form.errors.items()}
+                return JsonResponse({"status": "error", "errors": errors}, status=400)
     else:
         form = AccountDetailsForm(instance=request.user)
 
@@ -245,9 +258,12 @@ def account_delete(request):
 @require_POST
 def account_request_email_change(request):
     """Request an email address change — sends verification to new email."""
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     form = EmailChangeForm(request.POST, user=request.user)
     if not form.is_valid():
-        error_msg = next(iter(form.errors.values()))[0] if form.errors else _("Invalid email.")
+        error_msg = str(next(iter(form.errors.values()))[0]) if form.errors else str(_("Invalid email."))
+        if is_ajax:
+            return JsonResponse({"status": "error", "message": error_msg}, status=400)
         messages.error(request, error_msg)
         return redirect("users:account_details")
 
@@ -262,10 +278,11 @@ def account_request_email_change(request):
     pending.notified_old_email = True
     pending.save(update_fields=["notified_old_email"])
 
-    messages.success(
-        request,
-        _("A verification link has been sent to {email}. Please check your inbox.").format(email=new_email),
-    )
+    email_html = format_html("<strong>{}</strong>", new_email)
+    msg = format_html(_("Verification link sent to {email}."), email=email_html)
+    if is_ajax:
+        return JsonResponse({"status": "ok", "message": str(msg), "new_email": new_email})
+    messages.success(request, msg)
     return redirect("users:account_details")
 
 
@@ -273,8 +290,12 @@ def account_request_email_change(request):
 @require_POST
 def account_cancel_email_change(request):
     """Cancel a pending email change."""
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     PendingEmailChange.objects.filter(user=request.user).delete()
-    messages.success(request, _("Email change has been cancelled."))
+    msg = str(_("Email change has been cancelled."))
+    if is_ajax:
+        return JsonResponse({"status": "ok", "message": msg})
+    messages.success(request, msg)
     return redirect("users:account_details")
 
 
@@ -282,18 +303,23 @@ def account_cancel_email_change(request):
 @require_POST
 def account_resend_email_change(request):
     """Resend the verification email for a pending email change."""
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     try:
         pending = request.user.pending_email_change
         if pending.is_expired:
             # Refresh the token
             pending = PendingEmailChange.create_for_user(request.user, pending.new_email)
         _send_email_change_verification(request, pending)
-        messages.success(
-            request,
-            _("Verification link has been resent to {email}.").format(email=pending.new_email),
-        )
+        email_html = format_html("<strong>{}</strong>", pending.new_email)
+        msg = format_html(_("Verification link resent to {email}."), email=email_html)
+        if is_ajax:
+            return JsonResponse({"status": "ok", "message": str(msg)})
+        messages.success(request, msg)
     except PendingEmailChange.DoesNotExist:
-        messages.error(request, _("No pending email change found."))
+        msg = str(_("No pending email change found."))
+        if is_ajax:
+            return JsonResponse({"status": "error", "message": msg}, status=400)
+        messages.error(request, msg)
     return redirect("users:account_details")
 
 

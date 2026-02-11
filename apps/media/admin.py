@@ -3,15 +3,20 @@ Admin configuration for Media Storage settings and Media Library.
 Uses Unfold admin theme for modern UI.
 """
 
+from django import forms
 from django.apps import apps
 from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.decorators import display
+from unfold.widgets import UnfoldAdminPasswordInput
 
 from apps.utils.admin_mixins import HistoryModelAdmin, SingletonAdminMixin
 
 from .models import MediaFile, MediaStorageSettings
+
+# Sentinel value used to detect "no change" for secret fields.
+_SECRET_UNCHANGED = "__secret_unchanged__"
 
 # =============================================================================
 # Media File Admin
@@ -592,9 +597,74 @@ class MediaFileAdmin(HistoryModelAdmin):
 # =============================================================================
 
 
+class MediaStorageSettingsForm(forms.ModelForm):
+    """Admin form that masks the AWS secret access key.
+    The real value is never sent to the browser; a sentinel placeholder
+    indicates whether a value is stored. Submitting unchanged preserves
+    the existing secret; clearing it removes it."""
+
+    aws_secret_access_key = forms.CharField(
+        widget=UnfoldAdminPasswordInput(render_value=True),
+        required=False,
+        label=_("AWS Secret Access Key"),
+        help_text=_(
+            "Your AWS secret key. The current value is never displayed. "
+            "Leave unchanged to keep the existing key, or enter a new value to replace it."
+        ),
+    )
+
+    class Meta:
+        model = MediaStorageSettings
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            # Check if secret key is stored using raw SQL to avoid auto-decryption
+            from django.db import connection
+
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT aws_secret_access_key FROM media_mediastoragesettings WHERE id = %s",
+                    [self.instance.pk],
+                )
+                row = cursor.fetchone()
+                has_secret = bool(row and row[0])
+            # Use self.initial dict - ModelForm uses this for rendering, not field.initial
+            if has_secret:
+                self.initial["aws_secret_access_key"] = _SECRET_UNCHANGED
+            else:
+                self.initial["aws_secret_access_key"] = ""
+
+    def save(self, commit=True):
+        """Save with special handling for the AWS secret key sentinel."""
+        instance = super().save(commit=False)
+        secret_val = self.cleaned_data.get("aws_secret_access_key", "")
+        if secret_val == _SECRET_UNCHANGED and instance.pk:
+            # Keep the existing encrypted value - read raw from DB
+            from django.db import connection
+
+            with connection.cursor() as c:
+                c.execute(
+                    "SELECT aws_secret_access_key FROM media_mediastoragesettings WHERE id = %s",
+                    [instance.pk],
+                )
+                r = c.fetchone()
+                instance.__dict__["aws_secret_access_key"] = (r[0] if r else "") or ""
+        elif secret_val != _SECRET_UNCHANGED:
+            instance.aws_secret_access_key = secret_val
+        if commit:
+            instance.save()
+        return instance
+
+
+
 @admin.register(MediaStorageSettings)
 class MediaStorageSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     """Admin for media storage settings - singleton model with direct form access."""
+
+    form = MediaStorageSettingsForm
+    change_form_template = "admin/media/mediastoragesettings/change_form.html"
 
     def get_readonly_fields(self, request, obj=None):
         """Make aws_bucket_name and aws_region read-only when editing existing object."""
@@ -710,6 +780,8 @@ class MediaStorageSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         """Test connection after saving if S3 is selected."""
         super().save_model(request, obj, form, change)
 
+        # Re-read from DB to get properly decrypted value for connection test
+        obj.refresh_from_db()
         if obj.provider_type == "s3" and obj.aws_access_key_id and obj.aws_secret_access_key:
             success, message = obj.test_connection()
             if success:

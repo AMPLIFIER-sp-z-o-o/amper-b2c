@@ -1,0 +1,78 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block after_related_objects %}
+  {{ block.super }}
+
+  <script>
+  (function() {
+    const SECRET_UNCHANGED = '__secret_unchanged__';
+
+    // ── Secret field status indicators ───────────────────────────────────
+    document.querySelectorAll('input[type="password"]').forEach(function(input) {
+      const isSentinel = input.value === SECRET_UNCHANGED;
+
+      // Create status indicator
+      const statusEl = document.createElement('div');
+      statusEl.className = 'mt-1.5 text-xs font-medium flex items-center gap-1.5';
+      if (isSentinel) {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>'
+          + '<span class="text-green-700 dark:text-green-400">{% translate "Secret key is set" %}</span>'
+          + ' <span class="text-base-400 dark:text-base-500">— {% translate "clear the field and save to remove, or type a new value to replace" %}</span>';
+      } else {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-yellow-500"></span>'
+          + '<span class="text-yellow-700 dark:text-yellow-400">{% translate "No secret key set" %}</span>';
+      }
+
+      const insertTarget = input.parentElement;
+      if (insertTarget.parentElement) {
+        insertTarget.parentElement.insertBefore(statusEl, insertTarget.nextSibling);
+      }
+
+      // Clear sentinel on focus so user can type
+      if (isSentinel) {
+        input.addEventListener('focus', function onFocus() {
+          if (input.value === SECRET_UNCHANGED) {
+            input.value = '';
+          }
+          input.removeEventListener('focus', onFocus);
+        });
+      }
+    });
+
+    // ── Password visibility toggle (eye icon) ────────────────────────────
+    document.querySelectorAll('input[type="password"]').forEach(function(input) {
+      const inlineWrapper = document.createElement('div');
+      inlineWrapper.style.position = 'relative';
+      inlineWrapper.style.display = 'inline-block';
+      inlineWrapper.style.width = '100%';
+      inlineWrapper.style.maxWidth = input.offsetWidth ? input.offsetWidth + 'px' : '42rem';
+      input.parentElement.insertBefore(inlineWrapper, input);
+      inlineWrapper.appendChild(input);
+      input.style.paddingRight = '2.5rem';
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.style.cssText = 'position:absolute;right:0.5rem;top:50%;transform:translateY(-50%);padding:0.25rem;cursor:pointer;border:none;background:none;border-radius:0.375rem;transition:color 0.15s;';
+      btn.className = 'text-base-400 hover:text-base-600 dark:text-base-500 dark:hover:text-base-300';
+      btn.title = '{% translate "Toggle password visibility" %}';
+      btn.innerHTML = `
+        <svg class="eye-icon" style="width:1.25rem;height:1.25rem" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        <svg class="eye-off-icon" style="width:1.25rem;height:1.25rem;display:none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+        </svg>`;
+      inlineWrapper.appendChild(btn);
+
+      btn.addEventListener('click', function() {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.querySelector('.eye-icon').style.display = isPassword ? 'none' : '';
+        btn.querySelector('.eye-off-icon').style.display = isPassword ? '' : 'none';
+      });
+    });
+  })();
+  </script>
+{% endblock %}

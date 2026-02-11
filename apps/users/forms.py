@@ -143,6 +143,11 @@ class DeleteAccountForm(forms.Form):
 class TermsSignupForm(TurnstileSignupForm):
     """Custom signup form to add a checkbox for accepting the terms."""
 
+    first_name = forms.CharField(
+        label=_("First Name"),
+        max_length=150,
+        required=True,
+    )
     terms_agreement = forms.BooleanField(required=True)
 
     def __init__(self, *args, **kwargs):
