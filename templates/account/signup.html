@@ -48,17 +48,6 @@
                           {{ form.password1.errors }}
                       </div>
                   </div>
-                  {% if form.password2 %}
-                  <div>
-                      <label for="{{ form.password2.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Confirm Password" %}</label>
-                      <div class="relative">
-                        <input type="password" name="password2" id="{{ form.password2.id_for_label }}" placeholder="{% translate 'Confirm your password' %}" autocomplete="new-password" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 pr-10 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" required="">
-                        {% include "account/includes/eye_toggle.html" with input_id=form.password2.id_for_label toggle_id="toggle-password2" eye_id="eye-icon-2" eye_off_id="eye-off-icon-2" %}
-                      </div>
-                      {% include "account/includes/password_match.html" with password1_id=form.password1.id_for_label password2_id=form.password2.id_for_label %}
-                      {{ form.password2.errors }}
-                  </div>
-                  {% endif %}
                   <div class="flex items-start">
                       <div class="flex items-center h-5">
                           <input id="{{ form.terms_agreement.id_for_label }}" name="terms_agreement" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800 accent-primary-600 cursor-pointer" {% if form.terms_agreement.value %}checked{% endif %} required="">

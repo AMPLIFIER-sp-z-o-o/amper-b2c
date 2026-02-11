@@ -375,7 +375,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ACCOUNT_ADAPTER = "apps.users.adapter.EmailAsUsernameAdapter"
 HEADLESS_ADAPTER = "apps.users.adapter.CustomHeadlessAdapter"
 ACCOUNT_LOGIN_METHODS = {"email"}
-ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*"]
 
 ACCOUNT_EMAIL_SUBJECT_PREFIX = ""
 ACCOUNT_EMAIL_UNKNOWN_ACCOUNTS = False  # don't send "forgot password" emails to unknown accounts
