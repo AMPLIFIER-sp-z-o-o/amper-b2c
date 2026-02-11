@@ -1,0 +1,23 @@
+{% extends 'account/email/email_template_base.html' %}
+{% load i18n %}
+{% block preheader %}{% translate "An email change has been requested for your account" %}{% endblock %}
+{% block title %}{% translate "Email change request notification" %}{% endblock %}
+{% block message_body %}
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% blocktranslate trimmed with site_name=store_name %}
+      An email address change has been requested for your {{ site_name }} account.
+    {% endblocktranslate %}
+  </p>
+  <p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% blocktranslate trimmed with new_email=new_email %}
+      A verification link has been sent to <strong>{{ new_email }}</strong>.
+      The change will only take effect after the new email is verified.
+    {% endblocktranslate %}
+  </p>
+  <p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% translate "If you did not initiate this change, please secure your account by changing your password immediately." %}
+  </p>
+{% endblock %}
+{% block cta %}{% endblock %}

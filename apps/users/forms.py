@@ -86,6 +86,60 @@ class UploadAvatarForm(forms.Form):
     avatar = forms.FileField(validators=[validate_profile_picture])
 
 
+class AccountDetailsForm(forms.ModelForm):
+    """Form for updating the user's first name on the Account Details page."""
+
+    first_name = forms.CharField(
+        label=_("First Name"),
+        max_length=150,
+        required=False,
+    )
+
+    class Meta:
+        model = CustomUser
+        fields = ("first_name",)
+
+
+class EmailChangeForm(forms.Form):
+    """Form for requesting an email address change."""
+
+    new_email = forms.EmailField(
+        label=_("New Email Address"),
+        max_length=254,
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_new_email(self):
+        new_email = self.cleaned_data["new_email"].lower().strip()
+        if new_email == self.user.email.lower():
+            raise forms.ValidationError(_("This is already your current email address."))
+        if CustomUser.objects.filter(email__iexact=new_email).exclude(pk=self.user.pk).exists():
+            raise forms.ValidationError(_("This email address is already in use."))
+        return new_email
+
+
+class DeleteAccountForm(forms.Form):
+    """Form for confirming account deletion with password."""
+
+    password = forms.CharField(
+        label=_("Password"),
+        widget=forms.PasswordInput,
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        if not self.user.check_password(password):
+            raise forms.ValidationError(_("Incorrect password. Please try again."))
+        return password
+
+
 class TermsSignupForm(TurnstileSignupForm):
     """Custom signup form to add a checkbox for accepting the terms."""
 

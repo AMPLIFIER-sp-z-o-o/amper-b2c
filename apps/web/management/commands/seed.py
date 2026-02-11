@@ -6599,6 +6599,7 @@ class Command(BaseCommand):
             email=email,
             defaults={
                 "username": email,
+                "first_name": "Admin",
                 "is_staff": True,
                 "is_superuser": True,
                 "is_active": True,
@@ -6611,6 +6612,7 @@ class Command(BaseCommand):
             EmailAddress.objects.get_or_create(user=user, email=email, defaults={"verified": True, "primary": True})
             self.stdout.write(self.style.SUCCESS(f"  Superuser created: {email} / {password}"))
         else:
+            user.first_name = "Admin"
             user.is_staff = True
             user.is_superuser = True
             user.set_password(password)

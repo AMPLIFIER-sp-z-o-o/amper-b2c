@@ -1,7 +1,8 @@
-from allauth.account.signals import email_confirmed, user_signed_up
+from allauth.account.signals import email_confirmed, password_changed, password_reset, user_signed_up
 from django.core.files.storage import default_storage
 from django.db.models.signals import post_delete, pre_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from apps.users.models import CustomUser
 
@@ -21,6 +22,14 @@ def update_user_email(sender, request, email_address, **kwargs):
     # This also sets user.email to the new email address.
     # hat tip: https://stackoverflow.com/a/29661871/8207
     email_address.set_as_primary()
+
+
+@receiver(password_changed)
+@receiver(password_reset)
+def track_password_change(sender, request, user, **kwargs):
+    """Record timestamp when user changes or resets their password."""
+    user.password_changed_at = timezone.now()
+    user.save(update_fields=["password_changed_at"])
 
 
 @receiver(pre_save, sender=CustomUser)
