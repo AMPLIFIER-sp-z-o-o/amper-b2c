@@ -68,7 +68,9 @@ def add_to_cart(request):
         "product_quantity": line.quantity,
         "lines_count": cart.lines.count(),
         "updated_line_html": line_html,
-        "product_name": product.name
+        "product_name": product.name,
+        "line_subtotal": line.subtotal,
+        "line_id": line.id
     })
 
     response.set_cookie("cart_id", cart.id, max_age=60*60*24*10)
@@ -90,7 +92,7 @@ def remove_from_cart(request):
 
     lineId = line.id
     productName = line.product.name
-    
+
     if not line:
         return JsonResponse({"success": False}, status=404)
 

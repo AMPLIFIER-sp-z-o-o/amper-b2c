@@ -36,6 +36,10 @@ docker network create nginx-proxy
 docker network create amper-b2c
 ```
 
+## Official DOCKER repository
+
+https://hub.docker.com/r/ampliapps/amper-b2c
+
 ## 📁 Directory structure
 
 Create a directory for the deployment:
