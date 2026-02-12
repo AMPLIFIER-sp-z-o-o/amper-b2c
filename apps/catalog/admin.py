@@ -238,7 +238,7 @@ class CategoryProductInline(TabularInline):
 
     def price_display(self, obj):
         """Display price with data-price for JS formatting."""
-        currency = SiteSettings.get_settings().currency or "PLN"
+        currency = SiteSettings.get_settings().currency or "USD"
         return mark_safe(f'<span data-price="{obj.price}" data-currency="{currency}">{obj.price}</span>')
 
     price_display.short_description = _("Price")
@@ -362,7 +362,7 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     @admin.display(description=_("Price"), ordering="price")
     def price_display(self, obj):
         """Display price with data-price for JS formatting."""
-        currency = SiteSettings.get_settings().currency or "PLN"
+        currency = SiteSettings.get_settings().currency or "USD"
         return mark_safe(f'<span data-price="{obj.price}" data-currency="{currency}">{obj.price}</span>')
 
     def image_preview(self, obj):
@@ -389,7 +389,7 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     @admin.display(description=_("Revenue"), ordering="revenue_total")
     def revenue_display(self, obj):
         """Display revenue with data-price for JS formatting."""
-        currency = SiteSettings.get_settings().currency or "PLN"
+        currency = SiteSettings.get_settings().currency or "USD"
         return mark_safe(
             f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
         )
@@ -405,7 +405,7 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     @admin.display(description=_("Revenue (total)"))
     def revenue_total_display(self, obj):
         """Display revenue with data-price for JS formatting."""
-        currency = SiteSettings.get_settings().currency or "PLN"
+        currency = SiteSettings.get_settings().currency or "USD"
         return mark_safe(
             f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
         )

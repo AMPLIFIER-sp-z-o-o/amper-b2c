@@ -1,0 +1,193 @@
+[
+  {
+    "id": 1,
+    "section_id": 1,
+    "label": "About Us",
+    "url": "/about/",
+    "order": 0
+  },
+  {
+    "id": 2,
+    "section_id": 1,
+    "label": "Contact",
+    "url": "/contact/",
+    "order": 1
+  },
+  {
+    "id": 3,
+    "section_id": 2,
+    "label": "Catalog",
+    "url": "/",
+    "order": 0
+  },
+  {
+    "id": 4,
+    "section_id": 2,
+    "label": "New Arrivals",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 5,
+    "section_id": 2,
+    "label": "Best Sellers",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 6,
+    "section_id": 2,
+    "label": "Deals",
+    "url": "/",
+    "order": 3
+  },
+  {
+    "id": 27,
+    "section_id": 2,
+    "label": "Promotions",
+    "url": "/dynamic-page/promotions/2/",
+    "link_type": "custom_url",
+    "order": 4
+  },
+  {
+    "id": 7,
+    "section_id": 3,
+    "label": "Help Center",
+    "url": "/",
+    "order": 0
+  },
+  {
+    "id": 8,
+    "section_id": 3,
+    "label": "Contact Us",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 9,
+    "section_id": 3,
+    "label": "Shipping",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 10,
+    "section_id": 3,
+    "label": "Returns",
+    "url": "/",
+    "order": 3
+  },
+  {
+    "id": 11,
+    "section_id": 4,
+    "label": "About Us",
+    "url": "/",
+    "order": 0
+  },
+  {
+    "id": 12,
+    "section_id": 4,
+    "label": "Careers",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 13,
+    "section_id": 4,
+    "label": "Press",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 14,
+    "section_id": 4,
+    "label": "Blog",
+    "url": "/",
+    "order": 3
+  },
+  {
+    "id": 15,
+    "section_id": 5,
+    "label": "Privacy Policy",
+    "url": "/dynamic-page/privacy-policy/1/",
+    "link_type": "custom_url",
+    "order": 0
+  },
+  {
+    "id": 16,
+    "section_id": 5,
+    "label": "Terms of Service",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 17,
+    "section_id": 5,
+    "label": "Cookie Policy",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 18,
+    "section_id": 5,
+    "label": "Sitemap",
+    "url": "/",
+    "order": 3
+  },
+  {
+    "id": 19,
+    "section_id": 6,
+    "label": "Documentation",
+    "url": "/",
+    "order": 0
+  },
+  {
+    "id": 20,
+    "section_id": 6,
+    "label": "API Reference",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 21,
+    "section_id": 6,
+    "label": "Community",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 22,
+    "section_id": 6,
+    "label": "Partners",
+    "url": "/",
+    "order": 3
+  },
+  {
+    "id": 23,
+    "section_id": 7,
+    "label": "My Profile",
+    "url": "/users/profile/",
+    "order": 0
+  },
+  {
+    "id": 24,
+    "section_id": 7,
+    "label": "My Orders",
+    "url": "/",
+    "order": 1
+  },
+  {
+    "id": 25,
+    "section_id": 7,
+    "label": "Wishlist",
+    "url": "/",
+    "order": 2
+  },
+  {
+    "id": 26,
+    "section_id": 7,
+    "label": "Settings",
+    "url": "/",
+    "order": 3
+  }
+]

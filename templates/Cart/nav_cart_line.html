@@ -18,8 +18,8 @@
       {{ line.product.name }}
     </a>
 
-    <p class="text-sm text-gray-500 dark:text-gray-400" data-cart-line-price>
-      {{ line.price }} zł
+    <p class="text-sm text-gray-500 dark:text-gray-400" data-cart-line-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">
+      {{ line.price }}
     </p>
 
     <div class="flex items-center gap-2 mt-2">

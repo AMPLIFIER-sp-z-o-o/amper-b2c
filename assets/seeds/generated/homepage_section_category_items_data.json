@@ -1,0 +1,130 @@
+[
+  {
+    "id": 1,
+    "category_box_id": 1,
+    "name": "Beauty",
+    "image": "storefront/seed/computers.svg",
+    "url": "/category/40/beauty/",
+    "order": 0
+  },
+  {
+    "id": 2,
+    "category_box_id": 1,
+    "name": "Fragrances",
+    "image": "storefront/seed/gaming.svg",
+    "url": "/category/54/fragrances/",
+    "order": 1
+  },
+  {
+    "id": 3,
+    "category_box_id": 1,
+    "name": "Furniture",
+    "image": "storefront/seed/tablets.svg",
+    "url": "/category/68/furniture/",
+    "order": 2
+  },
+  {
+    "id": 4,
+    "category_box_id": 1,
+    "name": "Groceries",
+    "image": "storefront/seed/fashion.svg",
+    "url": "/category/82/groceries/",
+    "order": 3
+  },
+  {
+    "id": 5,
+    "category_box_id": 2,
+    "name": "Home Decoration",
+    "image": "storefront/seed/laptops.svg",
+    "url": "/category/96/home-decoration/",
+    "order": 0
+  },
+  {
+    "id": 6,
+    "category_box_id": 2,
+    "name": "Kitchen Accessories",
+    "image": "storefront/seed/watches.svg",
+    "url": "/category/110/kitchen-accessories/",
+    "order": 1
+  },
+  {
+    "id": 7,
+    "category_box_id": 2,
+    "name": "Laptops",
+    "image": "storefront/seed/accessories-tablets.svg",
+    "url": "/category/124/laptops/",
+    "order": 2
+  },
+  {
+    "id": 8,
+    "category_box_id": 2,
+    "name": "Mens Shirts",
+    "image": "storefront/seed/accessories.svg",
+    "url": "/category/138/mens-shirts/",
+    "order": 3
+  },
+  {
+    "id": 9,
+    "category_box_id": 3,
+    "name": "Mens Shoes",
+    "image": "storefront/seed/computers.svg",
+    "url": "/category/152/mens-shoes/",
+    "order": 0
+  },
+  {
+    "id": 10,
+    "category_box_id": 3,
+    "name": "Mens Watches",
+    "image": "storefront/seed/gaming.svg",
+    "url": "/category/166/mens-watches/",
+    "order": 1
+  },
+  {
+    "id": 11,
+    "category_box_id": 3,
+    "name": "Mobile Accessories",
+    "image": "storefront/seed/tablets.svg",
+    "url": "/category/180/mobile-accessories/",
+    "order": 2
+  },
+  {
+    "id": 12,
+    "category_box_id": 3,
+    "name": "Motorcycle",
+    "image": "storefront/seed/fashion.svg",
+    "url": "/category/194/motorcycle/",
+    "order": 3
+  },
+  {
+    "id": 13,
+    "category_box_id": 4,
+    "name": "Skin Care",
+    "image": "storefront/seed/laptops.svg",
+    "url": "/category/208/skin-care/",
+    "order": 0
+  },
+  {
+    "id": 14,
+    "category_box_id": 4,
+    "name": "Smartphones",
+    "image": "storefront/seed/watches.svg",
+    "url": "/category/222/smartphones/",
+    "order": 1
+  },
+  {
+    "id": 15,
+    "category_box_id": 4,
+    "name": "Sports Accessories",
+    "image": "storefront/seed/accessories-tablets.svg",
+    "url": "/category/236/sports-accessories/",
+    "order": 2
+  },
+  {
+    "id": 16,
+    "category_box_id": 4,
+    "name": "Sunglasses",
+    "image": "storefront/seed/accessories.svg",
+    "url": "/category/250/sunglasses/",
+    "order": 3
+  }
+]

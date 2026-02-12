@@ -541,7 +541,7 @@ body.nav-scroll-locked {
                   </button>
                   <div class="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                   {% for category in nav_categories %}
-                  <button type="button" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" data-category-slug="{{ category.slug }}" class="search-category-option w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                  <button type="button" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" data-category-slug="{{ category.slug }}" class="search-category-option w-full text-left px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
                     {{ category.name }}
                   </button>
                   {% endfor %}
@@ -791,7 +791,7 @@ body.nav-scroll-locked {
           <!-- Left Column: Categories -->
           <div class="w-1/2 border-r border-gray-100 dark:border-gray-700 p-3 flex flex-col bg-white dark:bg-gray-800">
             <div class="mb-2 px-2">
-              <a href="{{ category.get_absolute_url }}" class="subcategory-item flex items-center gap-2 px-3 py-2 text-sm font-extrabold text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
+                <a href="{{ category.get_absolute_url }}" class="subcategory-item flex items-center gap-2 px-3 py-2 text-sm font-extrabold text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors duration-200"
                   data-preview-title="{{ category.name }}"
                   data-preview-url="{{ category.get_absolute_url }}" 
                   data-has-children="false"
@@ -806,8 +806,8 @@ body.nav-scroll-locked {
                   data-preview-url="{{ child.get_absolute_url }}" 
                   data-has-children="{% if child.children.all %}true{% else %}false{% endif %}"
                   data-parent-id="{{ category.id }}">
-                <a href="{{ child.get_absolute_url }}" class="flex items-center justify-between px-3 py-2 text-sm text-gray-700 dark:text-gray-300 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 rounded-lg transition-colors duration-200">
-                  <span class="font-medium">{{ child.name }}</span>
+                <a href="{{ child.get_absolute_url }}" class="flex items-center justify-between px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:bg-gray-200 dark:group-hover:bg-gray-700 rounded-lg transition-colors duration-200">
+                  <span>{{ child.name }}</span>
                   {% if child.children.all %}
                   <svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors duration-200" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7"/>
@@ -829,11 +829,18 @@ body.nav-scroll-locked {
           <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview">
              <!-- Default State -->
              <div id="preview-default-{{ category.id }}" class="subcategory-preview-default p-6 transition-all duration-300 transform scale-100 opacity-100 z-10 flex flex-col items-center">
-               {% if category.image %}
-                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-16 h-16 object-contain mb-4 mix-blend-multiply dark:mix-blend-normal transform transition-transform duration-500 group-hover/preview:scale-110">
+               {% if nav_category_preview_icon %}
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
+                  <span class="text-3xl leading-none">{{ nav_category_preview_icon }}</span>
+                </div>
                {% else %}
-                <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110">
-                  <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-500 dark:text-gray-400">
+                  <svg class="w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+                    <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+                    <rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+                    <rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+                  </svg>
                 </div>
                {% endif %}
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ category.name }}</h3>
@@ -858,6 +865,37 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchResultsContent = document.getElementById('search-results-content');
   const searchLoading = document.getElementById('search-loading');
   const searchContainer = document.getElementById('search-container');
+  const navCategoryPreviewIcon = "{{ nav_category_preview_icon|default:''|escapejs }}";
+
+  function escapeHtml(value) {
+    return String(value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getCategoryPreviewBadgeHtml() {
+    if (navCategoryPreviewIcon) {
+      return `
+      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
+        <span class="text-3xl leading-none">${escapeHtml(navCategoryPreviewIcon)}</span>
+      </div>
+      `;
+    }
+
+    return `
+      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-500 dark:text-gray-400">
+        <svg class="w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+          <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+          <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+          <rect x="4" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+          <rect x="14" y="14" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
+        </svg>
+      </div>
+    `;
+  }
 
   let searchTimeout = null;
   let currentQuery = '';
@@ -1583,9 +1621,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Empty state / Generic state
                 contentHtml = `
                     <div class="h-full flex flex-col items-center justify-center p-6 text-center">
-                        <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-400">
-                             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
-                        </div>
+                      ${getCategoryPreviewBadgeHtml()}
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">${previewTitle}</h3>
                         <a href="${previewUrl}" class="inline-flex items-center justify-center w-auto px-6 py-2.5 bg-primary-700 text-white hover:bg-primary-800 text-sm font-bold rounded-lg transition-colors duration-300 shadow-sm">
                           {% translate "Go to" %} ${previewTitle}

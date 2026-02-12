@@ -1,0 +1,8 @@
+{
+  "provider_type": "s3",
+  "aws_bucket_name": "amper-b2c-demo",
+  "aws_region": "eu-central-1",
+  "aws_location": "media",
+  "cdn_enabled": false,
+  "cdn_domain": ""
+}

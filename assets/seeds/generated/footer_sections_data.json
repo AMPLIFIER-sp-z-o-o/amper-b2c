@@ -1,0 +1,44 @@
+[
+  {
+    "id": 1,
+    "footer_id": 1,
+    "name": "Test Section",
+    "order": 0
+  },
+  {
+    "id": 2,
+    "footer_id": 1,
+    "name": "Shop",
+    "order": 0
+  },
+  {
+    "id": 3,
+    "footer_id": 1,
+    "name": "Support",
+    "order": 0
+  },
+  {
+    "id": 4,
+    "footer_id": 1,
+    "name": "Company",
+    "order": 0
+  },
+  {
+    "id": 5,
+    "footer_id": 1,
+    "name": "Legal",
+    "order": 0
+  },
+  {
+    "id": 6,
+    "footer_id": 1,
+    "name": "Resources",
+    "order": 0
+  },
+  {
+    "id": 7,
+    "footer_id": 1,
+    "name": "Account",
+    "order": 0
+  }
+]

@@ -1,0 +1,35 @@
+[
+  {
+    "id": 1,
+    "category_id": 40,
+    "name": "Flowbite Category Banner 1 - iMac",
+    "tab_title": "Computers",
+    "image": "banners/seed/flowbite-carousel-1.jpg",
+    "mobile_image": "",
+    "url": "/category/40/beauty/",
+    "is_active": true,
+    "order": 0
+  },
+  {
+    "id": 2,
+    "category_id": 40,
+    "name": "Flowbite Category Banner 2 - Fashion",
+    "tab_title": "New arrivals",
+    "image": "banners/seed/flowbite-carousel-2.jpg",
+    "mobile_image": "",
+    "url": "/products/",
+    "is_active": true,
+    "order": 1
+  },
+  {
+    "id": 3,
+    "category_id": 40,
+    "name": "Flowbite Category Banner 3 - Gaming",
+    "tab_title": "Gaming",
+    "image": "banners/seed/flowbite-carousel-3.jpg",
+    "mobile_image": "",
+    "url": "/category/40/beauty/",
+    "is_active": true,
+    "order": 2
+  }
+]

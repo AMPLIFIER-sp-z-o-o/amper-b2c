@@ -1,0 +1,7 @@
+[
+  {
+    "id": 1,
+    "custom_css": "/* Top bar styles */\n#top-bar-standard  {\n  background-color: #1a56db;\n}",
+    "custom_css_active": true
+  }
+]

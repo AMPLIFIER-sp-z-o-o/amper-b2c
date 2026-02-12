@@ -31,7 +31,7 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
-from apps.web.models import DynamicPage
+from apps.web.models import DynamicPage, SiteSettings
 from apps.support.draft_utils import (
     apply_draft_to_existing_instance,
     apply_draft_to_instance,
@@ -61,6 +61,16 @@ def product_list(request, category_id=None, category_slug=None):
             "category": category,
         },
     )
+
+
+def _get_site_currency_for_labels() -> str:
+    try:
+        settings_obj = SiteSettings.get_settings()
+        if settings_obj and settings_obj.currency:
+            return settings_obj.currency
+    except Exception:
+        pass
+    return SiteSettings.Currency.USD
 
 
 def dynamic_page_detail(request, slug: str, pk: int):
@@ -628,6 +638,7 @@ def search_results(request):
                 available_attributes.append(attr)
 
     # Build active filters list for display chips
+    display_currency = _get_site_currency_for_labels()
     active_filters = []
 
     # Price filters
@@ -636,7 +647,8 @@ def search_results(request):
             {
                 "type": "price_min",
                 "value": current_price_min,
-                "label": _("Price: from %(price)s zł") % {"price": current_price_min},
+                "label": _("Price: from %(price)s %(currency)s")
+                % {"price": current_price_min, "currency": display_currency},
             }
         )
     if current_price_max:
@@ -644,7 +656,8 @@ def search_results(request):
             {
                 "type": "price_max",
                 "value": current_price_max,
-                "label": _("Price: to %(price)s zł") % {"price": current_price_max},
+                "label": _("Price: to %(price)s %(currency)s")
+                % {"price": current_price_max, "currency": display_currency},
             }
         )
 
@@ -1090,6 +1103,7 @@ def product_list(request, category_id=None, category_slug=None):
         page_title = _("All products")
 
     # Build active filters list for display chips
+    display_currency = _get_site_currency_for_labels()
     active_filters = []
 
     # Price filters
@@ -1098,7 +1112,8 @@ def product_list(request, category_id=None, category_slug=None):
             {
                 "type": "price_min",
                 "value": current_price_min,
-                "label": _("Price: from %(price)s zł") % {"price": current_price_min},
+                "label": _("Price: from %(price)s %(currency)s")
+                % {"price": current_price_min, "currency": display_currency},
             }
         )
     if current_price_max:
@@ -1106,7 +1121,8 @@ def product_list(request, category_id=None, category_slug=None):
             {
                 "type": "price_max",
                 "value": current_price_max,
-                "label": _("Price: to %(price)s zł") % {"price": current_price_max},
+                "label": _("Price: to %(price)s %(currency)s")
+                % {"price": current_price_max, "currency": display_currency},
             }
         )
 

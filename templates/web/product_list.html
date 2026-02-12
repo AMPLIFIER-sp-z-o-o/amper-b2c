@@ -71,7 +71,7 @@
                   <ul class="max-h-80 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
                     {% for sibling in item.siblings %}
                     <li>
-                      <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold{% endif %}">
+                      <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold text-gray-900 dark:text-white{% endif %}">
                         {{ sibling.name }}
                       </a>
                     </li>
@@ -238,15 +238,22 @@ function toggleViewMode(newView) {
   applyViewMode(newView);
 }
 
-// Format prices with Polish locale (global function for use by toggleViewMode)
+// Format prices with currency-aware locale (global function for use by toggleViewMode)
 // formatPrices(container) definition remains same
 function formatPrices(container) {
+  const currencyLocales = {
+    USD: 'en-US',
+    EUR: 'de-DE',
+    PLN: 'pl-PL'
+  };
+
   const selector = container ? container.querySelectorAll('[data-price]') : document.querySelectorAll('[data-price]');
   selector.forEach(function(el) {
     const price = parseFloat(el.dataset.price);
-    const currency = el.dataset.currency || 'PLN';
+    const currency = el.dataset.currency || '{{ site_currency|default:"USD" }}';
+    const locale = currencyLocales[currency] || 'en-US';
     if (!isNaN(price)) {
-      el.textContent = new Intl.NumberFormat('pl-PL', {
+      el.textContent = new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: currency
       }).format(price);

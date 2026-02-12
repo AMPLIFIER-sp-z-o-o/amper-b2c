@@ -1,0 +1,32 @@
+[
+  {
+    "id": 44,
+    "name": "Category",
+    "show_on_tile": true,
+    "tile_display_order": 1
+  },
+  {
+    "id": 45,
+    "name": "Type",
+    "show_on_tile": true,
+    "tile_display_order": 2
+  },
+  {
+    "id": 46,
+    "name": "Brand",
+    "show_on_tile": true,
+    "tile_display_order": 3
+  },
+  {
+    "id": 47,
+    "name": "Material",
+    "show_on_tile": true,
+    "tile_display_order": 4
+  },
+  {
+    "id": 48,
+    "name": "Visual Label",
+    "show_on_tile": false,
+    "tile_display_order": 5
+  }
+]
