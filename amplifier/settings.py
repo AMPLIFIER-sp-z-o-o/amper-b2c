@@ -502,6 +502,7 @@ STORAGES = {
 
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+MEDIA_PRESIGNED_URL_EXPIRES = env.int("MEDIA_PRESIGNED_URL_EXPIRES", default=3600)
 
 USE_S3_MEDIA = env.bool("USE_S3_MEDIA", default=False)
 if USE_S3_MEDIA:

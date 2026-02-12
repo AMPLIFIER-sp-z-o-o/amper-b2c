@@ -193,22 +193,16 @@ class MediaFile(BaseModel):
     def get_full_url(self, expires_in=3600):
         """
         Generate full URL for the file based on storage settings.
-        For S3, returns a direct public URL (non-expiring).
+        For S3, returns CDN URL (if configured) or a presigned URL.
         """
         if not self.file:
             return None
 
-        from apps.media.storage import _build_s3_key, _get_cached_s3_client
+        from apps.media.storage import build_s3_media_url
 
-        # Try cached S3 client first for performance
-        s3_cache = _get_cached_s3_client()
-        if s3_cache:
-            file_path = str(self.file)
-            key = _build_s3_key(file_path, s3_cache["settings"])
-            settings = s3_cache["settings"]
-            if settings.cdn_enabled and settings.cdn_domain:
-                return settings.get_cdn_url(key)
-            return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
+        s3_url = build_s3_media_url(str(self.file), expires_in=expires_in)
+        if s3_url:
+            return s3_url
 
         # Local storage - use Django's default URL
         return self.file.url if self.file else None
@@ -216,21 +210,16 @@ class MediaFile(BaseModel):
     def get_download_url(self, expires_in=3600):
         """
         Generate a download URL for the file.
-        For S3, returns a direct public URL (non-expiring).
+        For S3, returns CDN URL (if configured) or a presigned URL.
         """
         if not self.file:
             return None
 
-        from apps.media.storage import _build_s3_key, _get_cached_s3_client
+        from apps.media.storage import build_s3_media_url
 
-        s3_cache = _get_cached_s3_client()
-        if s3_cache:
-            file_path = str(self.file)
-            key = _build_s3_key(file_path, s3_cache["settings"])
-            settings = s3_cache["settings"]
-            if settings.cdn_enabled and settings.cdn_domain:
-                return settings.get_cdn_url(key)
-            return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
+        s3_url = build_s3_media_url(str(self.file), expires_in=expires_in)
+        if s3_url:
+            return s3_url
 
         return self.file.url
 
@@ -363,7 +352,8 @@ class MediaStorageSettings(BaseModel):
                 "region_name": self.aws_region,
                 "location": self.aws_location,
                 "file_overwrite": False,
-                "querystring_auth": False,
+                "querystring_auth": True,
+                "querystring_expire": int(getattr(settings, "MEDIA_PRESIGNED_URL_EXPIRES", 3600)),
                 "default_acl": None,  # Bucket policy handles access, not per-object ACLs
             }
 

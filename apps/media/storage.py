@@ -86,6 +86,34 @@ def _build_s3_key(name, settings):
     return f"{location}/{name}"
 
 
+def build_s3_media_url(name, expires_in=None):
+    """Build media URL for S3-backed files (CDN or presigned URL)."""
+    if not name:
+        return None
+
+    s3_cache = _get_cached_s3_client()
+    if not s3_cache:
+        return None
+
+    media_settings = s3_cache["settings"]
+    key = _build_s3_key(name, media_settings)
+
+    if media_settings.cdn_enabled and media_settings.cdn_domain:
+        return media_settings.get_cdn_url(key)
+
+    expires = expires_in if expires_in is not None else getattr(settings, "MEDIA_PRESIGNED_URL_EXPIRES", 3600)
+    expires = max(int(expires), 1)
+
+    return s3_cache["client"].generate_presigned_url(
+        "get_object",
+        Params={
+            "Bucket": s3_cache["bucket"],
+            "Key": key,
+        },
+        ExpiresIn=expires,
+    )
+
+
 def get_active_storage():
     """
     Get the appropriate storage backend based on MediaStorageSettings.
@@ -190,16 +218,12 @@ class DynamicMediaStorage(FileSystemStorage):
     def url(self, name, inline=True):
         """
         Get URL for the file.
-        For S3, returns a direct public URL (non-expiring).
+        For S3, returns CDN URL (if configured) or a presigned URL.
         """
         try:
-            s3_cache = _get_cached_s3_client()
-            if s3_cache:
-                settings = s3_cache["settings"]
-                key = _build_s3_key(name, settings)
-                if settings.cdn_enabled and settings.cdn_domain:
-                    return settings.get_cdn_url(key)
-                return f"https://{settings.aws_bucket_name}.s3.{settings.aws_region}.amazonaws.com/{key}"
+            s3_url = build_s3_media_url(name)
+            if s3_url:
+                return s3_url
 
             # For local storage, use default URL generation
             storage = self._get_storage()
