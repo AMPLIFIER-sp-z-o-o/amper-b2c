@@ -25,7 +25,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
-from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView
+from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView, CustomPasswordChangeView
 
 sitemaps = {
     "static": StaticViewSitemap(),
@@ -42,6 +42,11 @@ urlpatterns = [
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
     # Custom allauth view overrides (must come BEFORE allauth includes)
+    path(
+        "accounts/password/change/",
+        CustomPasswordChangeView.as_view(),
+        name="account_change_password",
+    ),
     path(
         "accounts/confirm-email/<str:key>/",
         AutoLoginConfirmEmailView.as_view(),

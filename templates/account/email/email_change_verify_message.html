@@ -1,0 +1,23 @@
+{% extends 'account/email/email_template_base.html' %}
+{% load i18n %}
+{% block preheader %}{% translate "Please confirm your new email address" %}{% endblock %}
+{% block title %}{% translate "Confirm your new email address" %}{% endblock %}
+{% block message_body %}
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% blocktranslate trimmed with site_name=store_name new_email=new_email %}
+      You have requested to change your email address on {{ site_name }} to <strong>{{ new_email }}</strong>.
+    {% endblocktranslate %}
+  </p>
+  <p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% blocktranslate trimmed with expiry_hours=expiry_hours %}
+      Please click the button below to confirm this change. This link will expire in {{ expiry_hours }} hours.
+    {% endblocktranslate %}
+  </p>
+  <p style="margin: 0; margin-bottom: 0px;">&nbsp;</p>
+  <p style="margin: 0; margin-bottom: 0px;">
+    {% translate "If you did not request this change, you can safely ignore this email." %}
+  </p>
+{% endblock %}
+{% block cta_link %}{{ confirm_url }}{% endblock %}
+{% block cta_text %}{% translate "Confirm Email Address" %}{% endblock %}

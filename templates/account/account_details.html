@@ -1,0 +1,537 @@
+{% extends "account/account_base.html" %}
+{% load i18n static time_tags %}
+
+{% block account_content %}
+<div class="space-y-8">
+
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  {# ─── GROUP 1: YOUR PROFILE ─── #}
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  <div>
+    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2">
+      <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      {% translate "Your Profile" %}
+    </h2>
+    <p class="text-subtitle mb-4">{% translate "Your personal information visible across the store" %}</p>
+
+    <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div class="p-5 sm:p-6">
+        <form method="POST" action="{% url 'users:account_details' %}" id="account-details-form">
+          {% csrf_token %}
+          <div class="max-w-md">
+            <label for="id_first_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "First Name" %}</label>
+            <input
+              type="text"
+              name="first_name"
+              id="id_first_name"
+              value="{{ form.first_name.value|default_if_none:'' }}"
+              maxlength="150"
+              class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200"
+              placeholder="{% translate 'Enter your first name' %}"
+            >
+            {% if form.first_name.errors %}
+            <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+            {% endif %}
+          </div>
+
+          <div class="mt-5">
+            <button
+              id="save-details-btn"
+              type="submit"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+            >
+              <svg id="save-details-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>{% translate "Save Changes" %}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  {# ─── GROUP 2: SECURITY ─── #}
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  <div>
+    <h2 id="security-section" class="text-lg font-bold text-gray-900 dark:text-white mb-1 flex items-center gap-2 scroll-mt-20">
+      <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+      </svg>
+      {% translate "Security" %}
+    </h2>
+    <p class="text-subtitle mb-4">{% translate "Manage your login credentials and account security" %}</p>
+
+    <div class="space-y-4">
+
+      {# ─── Email Address ─── #}
+      <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-5 sm:p-6">
+          <div class="flex items-center gap-3 mb-5">
+            <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-900/30">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-gray-900 dark:text-white">{% translate "Email Address" %}</h3>
+              <p class="text-subtitle">{% translate "Your login email and primary contact" %}</p>
+            </div>
+          </div>
+
+          <div class="max-w-md">
+            {# Current email display #}
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Current Email" %}</label>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-base rounded-lg p-2.5 border-none select-all">
+                {{ user.email }}
+              </div>
+              <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold {% if user.has_verified_email %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400{% else %}bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400{% endif %}">
+                {% if user.has_verified_email %}
+                <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                {% translate "Verified" %}
+                {% else %}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                {% translate "Unverified" %}
+                {% endif %}
+              </div>
+            </div>
+
+            {# Unverified email — send verification link #}
+            {% if not user.has_verified_email %}
+            <div id="unverified-email-banner" class="mt-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.1),0_0_2px_0_rgba(0,0,0,0.06)] p-4">
+              <div class="flex gap-3">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-900/30 shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                    {% translate "Your email is not verified" %}
+                  </p>
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                    {% translate "Please verify your email address to secure your account. Check your inbox for a verification link, or request a new one." %}
+                  </p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <button type="button" id="resend-verification-btn-details" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-all duration-200 cursor-pointer">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                      {% translate "Send Verification Link" %}
+                    </button>
+                    {% include "account/includes/check_email_button.html" with email=user.email %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endif %}
+
+            {# Pending email change status #}
+            <div id="pending-email-section" class="mt-4 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.1),0_0_2px_0_rgba(0,0,0,0.06)] p-4{% if not pending_email %} hidden{% endif %}">
+              <div class="flex gap-3">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-900/30 shrink-0 mt-0.5">
+                  <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                  </svg>
+                </div>
+                <div class="flex-1">
+                  <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                    {% translate "Pending confirmation" %}: <span id="pending-email-label">{{ pending_email.new_email }}</span>
+                  </p>
+                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                    {% translate "A verification link has been sent. Please check your inbox." %}
+                  </p>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <form method="POST" action="{% url 'users:account_resend_email_change' %}" id="resend-email-change-form" class="inline">
+                      {% csrf_token %}
+                      <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm transition-all duration-200 cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        {% translate "Resend Verification Link" %}
+                      </button>
+                    </form>
+                    {% include "account/includes/check_email_button.html" with email=pending_email.new_email %}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {# Change email form #}
+            <div class="mt-5 pt-5 border-t border-gray-200 dark:border-gray-700">
+              <button type="button" id="toggle-email-change" class="inline-flex items-center gap-2 text-sm font-medium text-primary-700 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 cursor-pointer transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                {% translate "Change email address" %}
+              </button>
+
+              <div id="email-change-form" class="hidden mt-4">
+                <form method="POST" action="{% url 'users:account_request_email_change' %}" id="email-change-request-form">
+                  {% csrf_token %}
+                  <label for="new_email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "New Email Address" %}</label>
+                  <input
+                    type="email"
+                    name="new_email"
+                    id="new_email"
+                    class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200"
+                    placeholder="{% translate 'Enter your new email' %}"
+                    required
+                  >
+                  <p class="mt-2 text-subtitle">{% translate "A verification link will be sent to your new email. The change takes effect after confirmation." %}</p>
+                  <div class="mt-4 flex gap-3">
+                    <button
+                      id="email-change-btn"
+                      type="submit"
+                      class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
+                    >
+                      <svg id="email-change-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                      <span>{% translate "Send Verification Link" %}</span>
+                    </button>
+                    <button type="button" id="cancel-email-change" class="px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+                      {% translate "Cancel" %}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {# ─── Password ─── #}
+      <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="p-5 sm:p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-900/30 shrink-0">
+                <svg class="w-5 h-5 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-gray-900 dark:text-white">{% translate "Password" %}</h3>
+                <p class="text-subtitle">{% translate "Keep your account secure with a strong password" %}</p>
+              </div>
+            </div>
+            <a
+              href="{% url 'account_change_password' %}?next={% url 'users:account_details' %}%23security-section"
+              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-700 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/40 rounded-lg transition-all duration-200 cursor-pointer whitespace-nowrap self-start sm:self-auto"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
+              {% translate "Change Password" %}
+            </a>
+          </div>
+
+          <div class="mt-4 max-w-md space-y-3">
+            {# Security metadata #}
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              {% if user.password_changed_at %}
+              {% translate "Last changed" %}: {{ user.password_changed_at|smart_timesince }}
+              {% else %}
+              {% translate "Last changed" %}: {% translate "Never" %}
+              {% endif %}
+            </div>
+
+            {% if user.last_login %}
+            <div class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/></svg>
+              {% translate "Last login" %}: {{ user.last_login|smart_timesince }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  {# ─── GROUP 3: DANGER ZONE ─── #}
+  {# ═══════════════════════════════════════════════════════════════════ #}
+  <div>
+    <h2 class="text-lg font-bold text-red-700 dark:text-red-400 mb-1 flex items-center gap-2">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+      </svg>
+      {% translate "Danger Zone" %}
+    </h2>
+    <p class="text-subtitle mb-4">{% translate "Irreversible actions on your account" %}</p>
+
+    <section class="bg-red-50/50 dark:bg-red-950/20 rounded-2xl shadow-sm border border-red-200 dark:border-red-900/50 overflow-hidden">
+      <div class="p-5 sm:p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-red-100 dark:bg-red-900/30">
+            <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-gray-900 dark:text-white">{% translate "Delete account permanently" %}</h3>
+            <p class="text-subtitle">{% translate "This action cannot be undone" %}</p>
+          </div>
+        </div>
+
+        <div class="rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 p-4 mb-4">
+          <div class="flex gap-3">
+            <svg class="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <div class="text-sm font-medium text-red-800 dark:text-red-300 leading-relaxed">
+              <p class="font-semibold mb-1">{% translate "This action is irreversible" %}</p>
+              <p>{% translate "Deleting your account will permanently remove:" %}</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 font-medium">
+                <li>{% translate "Your order history" %}</li>
+                <li>{% translate "Saved addresses and payment methods" %}</li>
+                <li>{% translate "Shopping lists and favourites" %}</li>
+                <li>{% translate "All account preferences" %}</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          id="delete-account-trigger"
+          class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/20 hover:bg-red-200 dark:hover:bg-red-900/40 rounded-lg transition-all duration-200 cursor-pointer"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          {% translate "Delete My Account" %}
+        </button>
+      </div>
+    </section>
+  </div>
+
+</div>
+{% endblock account_content %}
+
+{% block account_modals %}
+{# Delete Account Confirmation Modal — requires password #}
+<div id="delete-account-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="delete-account-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 text-center">{% translate "Delete Account?" %}</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-5 text-sm font-medium leading-relaxed text-center">
+          {% translate "To confirm, please enter your password. This action is permanent and cannot be undone." %}
+        </p>
+        <form method="POST" action="{% url 'users:account_delete' %}" id="delete-account-form">
+          {% csrf_token %}
+          <div class="mb-5">
+            <label for="delete-password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Password" %}</label>
+            <div class="relative">
+              <input
+                type="password"
+                name="password"
+                id="delete-password"
+                autocomplete="current-password"
+                class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 pr-10 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200"
+                placeholder="{% translate 'Enter your password' %}"
+                required
+              >
+              {% include "account/includes/eye_toggle.html" with input_id="delete-password" toggle_id="toggle-delete-password" eye_id="eye-delete" eye_off_id="eye-off-delete" %}
+            </div>
+          </div>
+          <div class="flex gap-3">
+            <button type="button" id="delete-account-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+              {% translate "Cancel" %}
+            </button>
+            <button type="submit" id="delete-account-confirm-btn" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center gap-2">
+              <svg id="delete-account-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>{% translate "Delete permanently" %}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock account_modals %}
+
+{% block page_js %}
+<script>
+(function() {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+  // ── Helper: AJAX form submit ──
+  function ajaxPost(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+      },
+      body: body,
+    });
+  }
+
+  // ── Save Changes (profile details) — AJAX ──
+  const detailsForm = document.getElementById('account-details-form');
+  if (detailsForm) {
+    detailsForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('save-details-btn');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(detailsForm.action, new FormData(detailsForm));
+        const data = await res.json();
+        if (res.ok) {
+          window.showToast(data.message, 'success');
+          // Update name everywhere on the page (navbar, dropdown, etc.)
+          if (data.first_name !== undefined) {
+            document.querySelectorAll('[data-user-first-name]').forEach(el => { el.textContent = data.first_name; });
+          }
+          if (data.display_name) {
+            document.querySelectorAll('[data-user-display-name]').forEach(el => { el.textContent = data.display_name; });
+          }
+        } else {
+          const errMsg = data.message || Object.values(data.errors || {}).flat().join(', ') || 'Error';
+          window.showToast(errMsg, 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
+      }
+    });
+  }
+
+  // ── Resend email verification (unverified email) — AJAX ──
+  const resendVerifyBtn = document.getElementById('resend-verification-btn-details');
+  if (resendVerifyBtn) {
+    resendVerifyBtn.addEventListener('click', async function() {
+      if (resendVerifyBtn.classList.contains('btn-loading')) return;
+      window.btnLoading(resendVerifyBtn);
+      try {
+        const res = await ajaxPost('{% url "users:resend_verification_email" %}', null);
+        if (res.ok) {
+          window.showToast('{% translate "Verification link sent to" %} <strong>{{ user.email }}</strong>', 'success');
+        } else {
+          window.showToast('{% translate "Failed to send verification link. Please try again." %}', 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(resendVerifyBtn);
+      }
+    });
+  }
+
+  // ── Toggle email change form ──
+  const toggleBtn = document.getElementById('toggle-email-change');
+  const emailFormWrapper = document.getElementById('email-change-form');
+  const cancelBtn = document.getElementById('cancel-email-change');
+
+  if (toggleBtn && emailFormWrapper) {
+    toggleBtn.addEventListener('click', function() {
+      emailFormWrapper.classList.toggle('hidden');
+      if (!emailFormWrapper.classList.contains('hidden')) {
+        document.getElementById('new_email')?.focus();
+      }
+    });
+  }
+  if (cancelBtn && emailFormWrapper) {
+    cancelBtn.addEventListener('click', function() {
+      emailFormWrapper.classList.add('hidden');
+    });
+  }
+
+  // ── Request email change — AJAX ──
+  const emailChangeForm = document.getElementById('email-change-request-form');
+  if (emailChangeForm) {
+    emailChangeForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('email-change-btn');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(emailChangeForm.action, new FormData(emailChangeForm));
+        const data = await res.json();
+        if (res.ok) {
+          window.showToast(data.message, 'success');
+          // Show the pending email banner
+          const pendingSection = document.getElementById('pending-email-section');
+          if (pendingSection && data.new_email) {
+            const pendingLabel = document.getElementById('pending-email-label');
+            if (pendingLabel) pendingLabel.textContent = data.new_email;
+            pendingSection.classList.remove('hidden');
+          }
+          // Hide the change form and clear input
+          emailFormWrapper?.classList.add('hidden');
+          emailChangeForm.reset();
+        } else {
+          window.showToast(data.message || 'Error', 'error');
+        }
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
+      }
+    });
+  }
+
+  // ── Resend email change verification — AJAX ──
+  const resendForm = document.getElementById('resend-email-change-form');
+  if (resendForm) {
+    resendForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = resendForm.querySelector('button[type="submit"]');
+      if (btn.classList.contains('btn-loading')) return;
+      window.btnLoading(btn);
+      try {
+        const res = await ajaxPost(resendForm.action, new FormData(resendForm));
+        const data = await res.json();
+        window.showToast(data.message, res.ok ? 'success' : 'error');
+      } catch (err) {
+        window.showToast('An error occurred. Please try again.', 'error');
+      } finally {
+        window.btnReset(btn);
+      }
+    });
+  }
+
+  // ── Delete account modal ──
+  const trigger = document.getElementById('delete-account-trigger');
+  const modal = document.getElementById('delete-account-modal');
+  const cancel = document.getElementById('delete-account-cancel');
+  const backdrop = document.getElementById('delete-account-backdrop');
+
+  function showDeleteModal() { modal.classList.remove('hidden'); }
+  function hideDeleteModal() { modal.classList.add('hidden'); }
+
+  trigger?.addEventListener('click', showDeleteModal);
+  cancel?.addEventListener('click', hideDeleteModal);
+  backdrop?.addEventListener('click', hideDeleteModal);
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && modal && !modal.classList.contains('hidden')) {
+      hideDeleteModal();
+    }
+  });
+
+  // Delete form loading state (stays as regular form post — navigates away)
+  const deleteForm = document.getElementById('delete-account-form');
+  if (deleteForm) {
+    deleteForm.addEventListener('submit', function() {
+      const btn = document.getElementById('delete-account-confirm-btn');
+      const spinner = document.getElementById('delete-account-spinner');
+      if (btn && !btn.dataset.loading) {
+        btn.dataset.loading = 'true';
+        btn.classList.add('opacity-60', 'pointer-events-none');
+        if (spinner) spinner.classList.remove('hidden');
+      }
+    });
+  }
+})();
+</script>
+{% endblock page_js %}

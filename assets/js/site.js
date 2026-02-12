@@ -1204,13 +1204,7 @@ function showToast(message, type = "success") {
       </svg>
       <span class="sr-only">${isSuccess ? "Check icon" : "Error icon"}</span>
     </div>
-    <div class="mx-4 text-sm font-medium">${message}</div>
-    <button type="button" class="toast-close-btn ms-auto -mx-1.5 -my-1.5 bg-white text-gray-500 hover:text-gray-900 p-1.5 inline-flex items-center justify-center h-8 w-8 shrink-0 dark:text-gray-400 dark:hover:text-white dark:bg-gray-800 cursor-pointer transition-colors" data-dismiss-target="#${toastId}" aria-label="Close">
-      <span class="sr-only">Close</span>
-      <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-      </svg>
-    </button>
+    <div class="ms-3 text-sm font-medium">${message}</div>
   `;
 
   toastContainer.appendChild(toast);
@@ -1230,12 +1224,11 @@ function showToast(message, type = "success") {
     }, 300);
   };
 
-  // Add click listener to close button to trigger animation
-  const closeBtn = toast.querySelector("button[data-dismiss-target]");
-  closeBtn.addEventListener("click", (e) => {
-    e.preventDefault();
+  // Click anywhere on the toast to dismiss it
+  toast.addEventListener("click", () => {
     removeToast();
   });
+  toast.style.cursor = "pointer";
 
   // Auto-dismiss after 5 seconds
   setTimeout(removeToast, 5000);
@@ -1504,8 +1497,16 @@ function initEmailVerificationBanner() {
   const banner = document.getElementById("email-verification-banner");
   if (!banner) return;
 
+  // Use a user-specific dismiss key so dismissing as user A
+  // doesn't hide the banner for a newly-registered user B.
+  const userId = banner.dataset.userId || "";
+  const dismissKey = `email_verified_dismiss_${userId}`;
+
+  // Clean up legacy non-user-specific key
+  sessionStorage.removeItem("email_verified_dismiss");
+
   // If already dismissed this browser session, hide immediately
-  if (sessionStorage.getItem("email_verified_dismiss") === "1") {
+  if (sessionStorage.getItem(dismissKey) === "1") {
     banner.style.display = "none";
     return;
   }
@@ -1518,7 +1519,7 @@ function initEmailVerificationBanner() {
       banner.style.opacity = "0";
       banner.style.maxHeight = "0";
       banner.style.overflow = "hidden";
-      sessionStorage.setItem("email_verified_dismiss", "1");
+      sessionStorage.setItem(dismissKey, "1");
       setTimeout(() => banner.remove(), 300);
     });
   }

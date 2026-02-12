@@ -65,8 +65,8 @@
                     <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
                       {% translate "Don't have an account?" %}
                     </p>
-                    <a href="{% url 'account_signup' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}" class="w-full inline-flex items-center justify-center py-2.5 px-5 text-sm font-semibold text-gray-900 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 rounded-lg shadow-sm transition-all duration-200 cursor-pointer btn-press">
-                      {% translate "Create an account" %}
+                    <a href="{% url 'account_signup' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}" class="w-full inline-flex items-center justify-center py-2.5 px-5 text-sm font-semibold text-primary-600 bg-white border border-primary-600 hover:bg-primary-600 hover:text-white dark:bg-gray-800 dark:text-primary-500 dark:border-primary-500 dark:hover:bg-primary-500 dark:hover:text-white rounded-lg shadow-sm transition-all duration-300 cursor-pointer btn-press">
+                      {% translate "Create account" %}
                     </a>
                   </div>
 

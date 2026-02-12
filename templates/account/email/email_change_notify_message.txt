@@ -1,0 +1,7 @@
+{% load i18n %}{% blocktranslate with site_name=store_name %}Email change notification for {{ site_name }}{% endblocktranslate %}
+
+{% blocktranslate with site_name=store_name %}An email address change has been requested for your {{ site_name }} account.{% endblocktranslate %}
+
+{% blocktranslate with new_email=new_email %}A verification link has been sent to {{ new_email }}. The change will only take effect after the new email is verified.{% endblocktranslate %}
+
+{% translate "If you did not initiate this change, please secure your account by changing your password immediately." %}

@@ -651,21 +651,31 @@ class DynamicPageAdmin(HistoryModelAdmin):
 # ============================================================================
 
 
+# Sentinel value used to detect "no change" for secret fields.
+_SECRET_UNCHANGED = "__secret_unchanged__"
+
+
 class SystemSettingsForm(forms.ModelForm):
     """Admin form that exposes SMTP password and Turnstile secret key
-    as plain-text widgets while storing them Fernet-encrypted on save."""
+    as password inputs. The actual value is never sent back to the browser;
+    instead, a placeholder indicates whether a value is currently stored.
+    Submitting the form with the placeholder unchanged preserves the
+    existing secret; clearing the field removes it."""
 
     smtp_password = forms.CharField(
         widget=UnfoldAdminPasswordInput(render_value=True),
         required=False,
         label=_("SMTP password"),
-        help_text=_("Password or API key for authenticating with your email provider."),
+        help_text=_("Password or API key for authenticating with your email provider. "
+                    "The current value is never displayed. Leave unchanged to keep the existing password, "
+                    "or enter a new value to replace it."),
     )
     turnstile_secret_key = forms.CharField(
         widget=UnfoldAdminPasswordInput(render_value=True),
         required=False,
         label=_("Turnstile secret key"),
-        help_text=_("Server-side secret key from Cloudflare Turnstile dashboard. Never shared publicly."),
+        help_text=_("Server-side secret key from Cloudflare Turnstile dashboard. Never shared publicly. "
+                    "Leave unchanged to keep the existing key, or enter a new value to replace it."),
     )
 
     class Meta:
@@ -675,13 +685,29 @@ class SystemSettingsForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
-            self.fields["smtp_password"].initial = self.instance.smtp_password
-            self.fields["turnstile_secret_key"].initial = self.instance.turnstile_secret_key
+            # Show a sentinel placeholder if a value is stored; empty otherwise.
+            if self.instance.smtp_password_encrypted:
+                self.fields["smtp_password"].initial = _SECRET_UNCHANGED
+            else:
+                self.fields["smtp_password"].initial = ""
+            if self.instance.turnstile_secret_key_encrypted:
+                self.fields["turnstile_secret_key"].initial = _SECRET_UNCHANGED
+            else:
+                self.fields["turnstile_secret_key"].initial = ""
 
     def save(self, commit=True):
         instance = super().save(commit=False)
-        instance.smtp_password = self.cleaned_data.get("smtp_password", "")
-        instance.turnstile_secret_key = self.cleaned_data.get("turnstile_secret_key", "")
+
+        # SMTP password: only update when the user actually changed the value
+        smtp_val = self.cleaned_data.get("smtp_password", "")
+        if smtp_val != _SECRET_UNCHANGED:
+            instance.smtp_password = smtp_val
+
+        # Turnstile secret key: same logic
+        ts_val = self.cleaned_data.get("turnstile_secret_key", "")
+        if ts_val != _SECRET_UNCHANGED:
+            instance.turnstile_secret_key = ts_val
+
         if commit:
             instance.save()
         return instance
@@ -770,6 +796,9 @@ class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         }
         for field, cast in field_map.items():
             if field in data and data[field] is not None and data[field] != "":
+                # Skip the sentinel placeholder — it means "unchanged, use stored value"
+                if field in ("smtp_password",) and data[field] == _SECRET_UNCHANGED:
+                    continue
                 try:
                     if cast is bool:
                         val = data[field]

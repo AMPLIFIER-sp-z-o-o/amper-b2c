@@ -65,6 +65,49 @@
   <script>
   (function() {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+    const SECRET_UNCHANGED = '__secret_unchanged__';
+
+    // ── Secret field status indicators ───────────────────────────────────
+    // For password fields that use the sentinel pattern, show a status badge
+    // and clear the sentinel on focus so the user can type a new value.
+    document.querySelectorAll('input[type="password"]').forEach(function(input) {
+      const isSentinel = input.value === SECRET_UNCHANGED;
+
+      // Create status indicator
+      const statusEl = document.createElement('div');
+      statusEl.className = 'mt-1.5 text-xs font-medium flex items-center gap-1.5';
+      if (isSentinel) {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>'
+          + '<span class="text-green-700 dark:text-green-400">{% translate "Password is set" %}</span>'
+          + ' <span class="text-base-400 dark:text-base-500">— {% translate "clear the field and save to remove, or type a new value to replace" %}</span>';
+      } else {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-yellow-500"></span>'
+          + '<span class="text-yellow-700 dark:text-yellow-400">{% translate "No password set" %}</span>';
+      }
+
+      // Insert after the help text if present, otherwise after the input wrapper
+      const helpText = input.closest('.flex')?.querySelector('.help') || input.closest('.flex')?.querySelector('p');
+      const insertTarget = input.parentElement;
+      if (insertTarget.parentElement) {
+        insertTarget.parentElement.insertBefore(statusEl, insertTarget.nextSibling);
+      }
+
+      // Clear sentinel on focus so user can type
+      if (isSentinel) {
+        input.addEventListener('focus', function onFocus() {
+          if (input.value === SECRET_UNCHANGED) {
+            input.value = '';
+          }
+          input.removeEventListener('focus', onFocus);
+        });
+        // If user leaves the field empty after clearing, restore sentinel
+        input.addEventListener('blur', function() {
+          if (input.value === '') {
+            // Keep empty — user intentionally cleared it
+          }
+        });
+      }
+    });
 
     // ── Password visibility toggle (eye icon) ────────────────────────────
     document.querySelectorAll('input[type="password"]').forEach(function(input) {

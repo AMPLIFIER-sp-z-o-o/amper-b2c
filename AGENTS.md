@@ -521,6 +521,11 @@ btn.classList.add("bg-gray-400", "pointer-events-none");
 
 All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `font-medium` (`text-sm font-medium`) for their text. Never use the default `font-normal` weight for dropdown items — thin text reduces readability and looks inconsistent with the rest of the UI.
 
+### Typography Constraints
+
+- **Font Size Restriction**: Never use `text-xs` for primary or interactive labels. `text-xs` is strictly reserved for secondary metadata or very small secondary hint text. For user identification (like email in dropdowns), use at least `text-sm` or ensure higher weight if `text-xs` must be used for layout reasons.
+- **User Identification & Usernames**: All primary user identification labels (usernames, display names) MUST use `text-base font-medium` across the application. Never use `text-sm` for primary user identification.
+
 **Example:**
 
 ```html
