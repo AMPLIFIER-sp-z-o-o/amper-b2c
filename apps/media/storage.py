@@ -95,6 +95,17 @@ def get_active_storage():
     """
     from apps.media.models import MediaStorageSettings
 
+    def _get_env_configured_storage():
+        """Return Django's default storage when env-based S3 is enabled."""
+        if not getattr(settings, "USE_S3_MEDIA", False):
+            return None
+        try:
+            from django.core.files.storage import storages
+
+            return storages["default"]
+        except Exception:
+            return None
+
     # Check cache first
     cache_key = "active_storage"
     if cache_key in _storage_cache:
@@ -103,32 +114,42 @@ def get_active_storage():
     try:
         media_settings = MediaStorageSettings.get_settings()
 
-        if media_settings.provider_type == "local":
-            storage = FileSystemStorage(
-                location=str(settings.MEDIA_ROOT),
-                base_url=settings.MEDIA_URL,
-            )
-        elif media_settings.provider_type == "s3":
+        # Prefer DB-configured storage when fully configured
+        if media_settings.provider_type == "s3":
             storage = media_settings.get_storage_backend()
             if storage is None:
                 # S3 selected but not fully configured yet (e.g. initial setup)
-                # Fallback to local storage silently
+                # If env-based S3 is enabled, prefer it over local filesystem.
+                storage = _get_env_configured_storage()
+                if storage is None:
+                    storage = FileSystemStorage(
+                        location=str(settings.MEDIA_ROOT),
+                        base_url=settings.MEDIA_URL,
+                    )
+        elif media_settings.provider_type == "local":
+            # If env-based S3 is enabled, use it even if DB is still at defaults.
+            storage = _get_env_configured_storage()
+            if storage is None:
                 storage = FileSystemStorage(
                     location=str(settings.MEDIA_ROOT),
                     base_url=settings.MEDIA_URL,
                 )
-            # If we got a backend, it's already configured
         else:
-            storage = FileSystemStorage(
-                location=str(settings.MEDIA_ROOT),
-                base_url=settings.MEDIA_URL,
-            )
+            storage = _get_env_configured_storage()
+            if storage is None:
+                storage = FileSystemStorage(
+                    location=str(settings.MEDIA_ROOT),
+                    base_url=settings.MEDIA_URL,
+                )
 
         _storage_cache[cache_key] = storage
         return storage
 
     except Exception as e:
         logger.error(f"Error getting active storage: {e}")
+        env_storage = _get_env_configured_storage()
+        if env_storage is not None:
+            return env_storage
         return FileSystemStorage(
             location=str(settings.MEDIA_ROOT),
             base_url=settings.MEDIA_URL,
