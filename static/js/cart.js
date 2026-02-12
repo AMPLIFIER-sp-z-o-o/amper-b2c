@@ -35,23 +35,6 @@ window.Cart = (function () {
             ).forEach(el => el.remove());
             window.showToast(`Removed <strong>${data.product_name}</strong> from Cart`, 'success')
         }
-        if(data.line_id) {
-            const cartPage = document.querySelector("#cart-page-lines");
-            if (!cartPage) return;
-            const lineEl = cartPage.querySelector(
-            `[data-cart-line-id="${data.line_id}"]`
-            );
-            const priceEls = lineEl.querySelectorAll("[data-price]");
-            priceEls.forEach(priceEl => {
-                priceEl.dataset.price = data.line_subtotal;
-                priceEl.textContent = data.line_subtotal;
-            });
-            const input = lineEl.querySelector("[data-counter-input]");
-            if (input && data.product_quantity !== undefined) {
-                input.value = data.product_quantity;
-            }
-        }
-
 
         if (data.cart_total !== undefined) {
             totalEls.forEach(el => {
@@ -64,8 +47,23 @@ window.Cart = (function () {
                 el.dataset.lines_number = data.lines_count;
                 el.textContent = `(${data.lines_count} ${label})`;
             });
+        }
 
-            
+        if(data.line_id) {
+            const cartPage = document.querySelector("#cart-page-lines");
+            if (cartPage) {
+            const lineEl = cartPage.querySelector(
+            `[data-cart-line-id="${data.line_id}"]`
+            );
+            const priceEls = lineEl.querySelectorAll("[data-price]");
+            priceEls.forEach(priceEl => {
+                priceEl.dataset.price = data.line_subtotal;
+                priceEl.textContent = data.line_subtotal;
+            });
+            const input = lineEl.querySelector("[data-counter-input]");
+            if (input && data.product_quantity !== undefined) {
+                input.value = data.product_quantity;
+            }}
         }
         formatPrices()
     }

@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
@@ -23,7 +23,6 @@ def cart_page(request):
         "lines": lines,
         "total": cart.total,
     })
-
 
 
 @require_POST
@@ -116,5 +115,39 @@ def remove_from_cart(request):
         "product_name": productName
     })
 
+def checkout_page(request):
+    if not request.META.get("HTTP_REFERER"):
+        return redirect("cart:cart_page")
+    
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
+    if not cart_id:
+        return redirect("cart:cart_page")
+
+    cart = get_object_or_404(Cart, id=cart_id)
+
+    return render(request, "Cart/checkout_page.html", {
+        "cart": cart,
+        "total": cart.total,
+        "disable_cart_dropdown": True
+    })
+
+def summary_page(request):
+    if not request.META.get("HTTP_REFERER"):
+        return redirect("cart:cart_page")
+
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
+    if not cart_id:
+        return redirect("cart:cart_page")
+
+    cart = get_object_or_404(Cart, id=cart_id)
+    lines = cart.lines.select_related("product").all()
+
+
+    return render(request, "Cart/summary_page.html", {
+        "cart": cart,
+        "lines": lines,
+        "total": cart.total,
+        "disable_cart_dropdown": True
+    })
 
 
