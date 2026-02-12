@@ -15,6 +15,7 @@ Default superuser:
 
 Usage:
     uv run manage.py seed
+    uv run manage.py seed --local  # Use only local seed media files (no URL fallback)
     uv run manage.py seed --fast  # Skip history/media checks for faster local reset
     uv run manage.py seed --skip-users  # Skip superuser creation
 """
@@ -66,6 +67,10 @@ from apps.homepage.models import (
 from apps.media.models import MediaStorageSettings
 from apps.media.storage import DynamicMediaStorage
 from apps.users.models import CustomUser, SocialAppSettings
+from apps.web.management.seed_media import (
+    collect_seed_media_paths_from_generated_data,
+    resolve_local_seed_media_path,
+)
 from apps.web.models import (
     BottomBar,
     BottomBarLink,
@@ -250,6 +255,7 @@ CATEGORY_RECOMMENDED_PRODUCTS_DATA = _load_generated_seed_list("category_recomme
 MEDIA_STORAGE_SETTINGS_DATA = _load_generated_seed_dict("media_storage_settings_data.json")
 MEDIA_STORAGE_SETTINGS_DATA["cdn_enabled"] = bool(_MEDIA_CDN_DOMAIN_URL)
 MEDIA_STORAGE_SETTINGS_DATA["cdn_domain"] = _MEDIA_CDN_DOMAIN_URL
+ALL_SEED_MEDIA_FILES = collect_seed_media_paths_from_generated_data()
 
 # =============================================================================
 # COMMAND
@@ -286,20 +292,34 @@ class Command(BaseCommand):
             action="store_true",
             help="Skip creating the default superuser",
         )
+        parser.add_argument(
+            "--local",
+            action="store_true",
+            help="Use only local seed media files (assets/seeds/generated/media), disable URL fallback",
+        )
 
     def handle(self, *args, **options):
         skip_users = options["skip_users"]
         fast_mode = options["fast"]
         with_history = options["with_history"]
+        local_only = options["local"]
 
         self._skip_media_checks = fast_mode
         self._skip_history = fast_mode and not with_history
+        self._local_only_media = local_only
         self._storage_exists_cache = {}
         self._warned_missing_paths = set()
+        self._warned_seed_sync_failures = set()
+        self._synced_local_paths = set()
+        self._synced_remote_paths = set()
+        self._logged_sync_paths = set()
+        self._active_media_provider = "local"
 
         self.stdout.write(self.style.NOTICE("Seeding database with predefined data..."))
         if fast_mode:
             self.stdout.write("  Fast mode: enabled")
+        if local_only:
+            self.stdout.write("  Local media mode: enabled (URL fallback disabled)")
 
         with transaction.atomic():
             with _disable_simple_history():
@@ -342,30 +362,99 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Database seeded successfully!"))
 
-    def _upload_if_missing(self, instance, field_name, relative_path, warn_if_missing=True):
-        """Ensure referenced media file exists in active storage (S3-first mode)."""
+    def _is_s3_storage(self, storage):
+        return hasattr(storage, "bucket") or storage.__class__.__name__ == "S3Boto3Storage"
+
+    def _ensure_public_acl(self, storage, relative_path):
+        if not self._is_s3_storage(storage):
+            return
+
+        try:
+            from apps.media.storage import _build_s3_key
+
+            media_settings = MediaStorageSettings.get_settings()
+            key = _build_s3_key(relative_path, media_settings)
+            storage.bucket.Object(key).Acl().put(ACL="public-read")
+        except Exception:
+            pass
+
+    def _sync_from_local_seed_media(self, storage, relative_path, replace_existing=False):
+        local_path = resolve_local_seed_media_path(relative_path)
+        if not local_path or not local_path.exists() or not local_path.is_file():
+            return False
+
+        try:
+            if replace_existing:
+                try:
+                    storage.delete(relative_path)
+                except Exception:
+                    pass
+
+            with open(local_path, "rb") as local_file:
+                storage.save(relative_path, ContentFile(local_file.read()))
+
+            self._storage_exists_cache[relative_path] = True
+            self._synced_local_paths.add(relative_path)
+            self._ensure_public_acl(storage, relative_path)
+
+            if relative_path not in self._logged_sync_paths:
+                self._logged_sync_paths.add(relative_path)
+                self.stdout.write(f"    Synced media from local seed: {relative_path}")
+
+            return True
+        except Exception as exc:
+            if relative_path not in self._warned_seed_sync_failures:
+                self._warned_seed_sync_failures.add(relative_path)
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"    Warning: Failed local media sync for {relative_path}: {exc}"
+                    )
+                )
+            return False
+
+    def _sync_from_remote_seed_source(self, storage, relative_path, replace_existing=False):
+        if getattr(self, "_local_only_media", False):
+            return False
+
+        source_url = STATIC_MEDIA_SEED_SOURCES.get(relative_path)
+        if not source_url:
+            return False
+
+        try:
+            content = self._download_static_seed_asset(source_url)
+            if replace_existing:
+                try:
+                    storage.delete(relative_path)
+                except Exception:
+                    pass
+
+            storage.save(relative_path, ContentFile(content))
+            self._storage_exists_cache[relative_path] = True
+            self._synced_remote_paths.add(relative_path)
+            self._ensure_public_acl(storage, relative_path)
+
+            if relative_path not in self._logged_sync_paths:
+                self._logged_sync_paths.add(relative_path)
+                self.stdout.write(f"    Synced media from URL source: {relative_path}")
+
+            return True
+        except (HTTPError, URLError, OSError, TimeoutError) as exc:
+            if relative_path not in self._warned_seed_sync_failures:
+                self._warned_seed_sync_failures.add(relative_path)
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"    Warning: Failed URL media sync for {relative_path}: {exc}"
+                    )
+                )
+            return False
+
+    def _ensure_media_in_storage(self, storage, relative_path, warn_if_missing=True, force_sync=False):
         if getattr(self, "_skip_media_checks", False):
             return
 
         if not relative_path:
             return
 
-        image_field = getattr(instance, field_name)
-        storage = image_field.storage
-
-        def ensure_public_acl():
-            try:
-                from apps.media.models import MediaStorageSettings
-                from apps.media.storage import _build_s3_key
-
-                if hasattr(storage, "bucket"):
-                    settings = MediaStorageSettings.get_settings()
-                    key = _build_s3_key(relative_path, settings)
-                    storage.bucket.Object(key).Acl().put(ACL="public-read")
-            except Exception:
-                pass
-
-        # Check if file exists on storage
         exists = self._storage_exists_cache.get(relative_path)
         if exists is None:
             try:
@@ -374,13 +463,38 @@ class Command(BaseCommand):
                 exists = False
             self._storage_exists_cache[relative_path] = exists
 
-        if exists:
-            ensure_public_acl()
+        if exists and not force_sync:
+            self._ensure_public_acl(storage, relative_path)
+            return
+
+        if not getattr(self, "_local_only_media", False) and getattr(self, "_active_media_provider", "local") == "s3":
+            if warn_if_missing and relative_path not in self._warned_missing_paths:
+                self._warned_missing_paths.add(relative_path)
+                self.stdout.write(self.style.WARNING(f"    Warning: Missing in storage: {relative_path}"))
+            return
+
+        if self._sync_from_local_seed_media(storage, relative_path, replace_existing=bool(exists and force_sync)):
+            return
+
+        try:
+            exists_now = storage.exists(relative_path)
+        except Exception:
+            exists_now = False
+        self._storage_exists_cache[relative_path] = exists_now
+
+        if exists_now:
+            self._ensure_public_acl(storage, relative_path)
             return
 
         if warn_if_missing and relative_path not in self._warned_missing_paths:
             self._warned_missing_paths.add(relative_path)
             self.stdout.write(self.style.WARNING(f"    Warning: Missing in storage: {relative_path}"))
+
+    def _upload_if_missing(self, instance, field_name, relative_path, warn_if_missing=True):
+        """Ensure referenced media file exists in active storage according to active provider mode."""
+        image_field = getattr(instance, field_name)
+        storage = image_field.storage
+        self._ensure_media_in_storage(storage, relative_path, warn_if_missing=warn_if_missing)
 
     def _bulk_upsert_by_id(self, model, rows, update_fields, batch_size=1000):
         """Bulk upsert by explicit id with fallback for DB backends without conflict updates."""
@@ -413,55 +527,32 @@ class Command(BaseCommand):
             return response.read()
 
     def _seed_static_media_assets(self):
-        """Ensure static media files required by templates exist in active storage."""
+        """Ensure all seed media files exist in active storage."""
         if getattr(self, "_skip_media_checks", False):
-            self.stdout.write("  Static media assets: skipped (fast mode)")
+            self.stdout.write("  Seed media assets: skipped (fast mode)")
             return
 
         storage = DynamicMediaStorage()
         missing = 0
-        uploaded = 0
-
-        for relative_path in STATIC_MEDIA_SEED_FILES:
-            exists = False
-            try:
-                if storage.exists(relative_path):
-                    exists = True
-            except Exception:
-                pass
-
-            source_url = STATIC_MEDIA_SEED_SOURCES.get(relative_path)
+        for relative_path in ALL_SEED_MEDIA_FILES:
             force_sync = relative_path in STATIC_MEDIA_FORCE_SYNC_FILES
-
-            if exists and not force_sync:
+            self._ensure_media_in_storage(
+                storage,
+                relative_path,
+                warn_if_missing=True,
+                force_sync=force_sync,
+            )
+            if self._storage_exists_cache.get(relative_path):
                 continue
+            missing += 1
 
-            if source_url:
-                try:
-                    content = self._download_static_seed_asset(source_url)
-                    if exists:
-                        try:
-                            storage.delete(relative_path)
-                        except Exception:
-                            pass
-                    storage.save(relative_path, ContentFile(content))
-                    uploaded += 1
-                    self.stdout.write(f"    Synced static media: {relative_path}")
-                    continue
-                except (HTTPError, URLError, OSError, TimeoutError) as exc:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f"    Warning: Failed to sync {relative_path} from {source_url}: {exc}"
-                        )
-                    )
-
-            if not exists:
-                missing += 1
-                self.stdout.write(self.style.WARNING(f"    Warning: Missing in storage: {relative_path}"))
-
-        available = len(STATIC_MEDIA_SEED_FILES) - missing
+        available = len(ALL_SEED_MEDIA_FILES) - missing
         self.stdout.write(
-            f"  Static media assets: {len(STATIC_MEDIA_SEED_FILES)} records ({available} available, {missing} missing, {uploaded} synced)"
+            "  Seed media assets: "
+            f"{len(ALL_SEED_MEDIA_FILES)} records "
+            f"({available} available, {missing} missing, "
+            f"{len(self._synced_local_paths)} synced from local, "
+            f"{len(self._synced_remote_paths)} synced from URL)"
         )
 
     def _seed_sites(self):
@@ -1242,25 +1333,54 @@ class Command(BaseCommand):
         self.stdout.write("  StorefrontHeroSection: skipped (using section type instead)")
 
     def _seed_media_storage_settings(self):
-        """Seed MediaStorageSettings with AWS keys from environment variables."""
+        """Seed MediaStorageSettings; provider comes from env (or forced local mode)."""
         if MEDIA_STORAGE_SETTINGS_DATA:
+            settings_existed = MediaStorageSettings.objects.filter(pk=1).exists()
             settings_obj = MediaStorageSettings.get_settings()
-            settings_obj.provider_type = MEDIA_STORAGE_SETTINGS_DATA["provider_type"]
-            settings_obj.aws_bucket_name = MEDIA_STORAGE_SETTINGS_DATA["aws_bucket_name"]
-            settings_obj.aws_region = MEDIA_STORAGE_SETTINGS_DATA["aws_region"]
-            settings_obj.aws_location = MEDIA_STORAGE_SETTINGS_DATA["aws_location"]
+
+            aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "").strip()
+            aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "").strip()
+            aws_bucket_name = os.environ.get("AWS_STORAGE_BUCKET_NAME", "").strip()
+            default_bucket_name = str(MEDIA_STORAGE_SETTINGS_DATA.get("aws_bucket_name", "")).strip()
+            resolved_bucket_name = aws_bucket_name or default_bucket_name
+            s3_env_ready = bool(aws_access_key and aws_secret_key and resolved_bucket_name)
+
+            if getattr(self, "_local_only_media", False):
+                settings_obj.provider_type = "local"
+            else:
+                settings_obj.provider_type = "s3" if s3_env_ready else "local"
+
+            if settings_obj.provider_type not in {"local", "s3"}:
+                settings_obj.provider_type = "s3" if s3_env_ready else "local"
+
+            if not settings_existed:
+                settings_obj.aws_bucket_name = MEDIA_STORAGE_SETTINGS_DATA.get("aws_bucket_name", "")
+                settings_obj.aws_region = MEDIA_STORAGE_SETTINGS_DATA.get("aws_region", settings_obj.aws_region)
+                settings_obj.aws_location = MEDIA_STORAGE_SETTINGS_DATA.get("aws_location", settings_obj.aws_location)
+
             settings_obj.cdn_enabled = MEDIA_STORAGE_SETTINGS_DATA["cdn_enabled"]
             settings_obj.cdn_domain = MEDIA_STORAGE_SETTINGS_DATA["cdn_domain"]
-            # Read AWS keys from environment variables
-            aws_access_key = os.environ.get("AWS_ACCESS_KEY_ID", "")
-            aws_secret_key = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
-            settings_obj.aws_access_key_id = aws_access_key
-            settings_obj.aws_secret_access_key = aws_secret_key
+
+            if resolved_bucket_name:
+                settings_obj.aws_bucket_name = resolved_bucket_name
+
+            if aws_access_key:
+                settings_obj.aws_access_key_id = aws_access_key
+            if aws_secret_key:
+                settings_obj.aws_secret_access_key = aws_secret_key
+
             settings_obj.save()
-            if aws_access_key and aws_secret_key:
-                self.stdout.write("  MediaStorageSettings: configured with AWS keys from env")
+            self._active_media_provider = settings_obj.provider_type
+
+            if settings_obj.provider_type == "s3":
+                if aws_access_key and aws_secret_key:
+                    self.stdout.write("  MediaStorageSettings: provider=s3 (AWS keys loaded from env)")
+                else:
+                    self.stdout.write(
+                        self.style.WARNING("  MediaStorageSettings: provider=s3 (AWS keys missing in env)")
+                    )
             else:
-                self.stdout.write(self.style.WARNING("  MediaStorageSettings: configured (AWS keys not found in env)"))
+                self.stdout.write("  MediaStorageSettings: provider=local (default)")
 
     def _seed_social_apps(self):
         """Seed SocialApp for Google OAuth with credentials from environment variables."""

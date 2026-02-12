@@ -4,6 +4,7 @@ Selects storage backend based on MediaStorageSettings configuration.
 """
 
 import logging
+import time
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
@@ -15,6 +16,49 @@ logger = logging.getLogger(__name__)
 # Cache for storage backend instances and S3 client
 _storage_cache = {}
 _s3_client_cache = {}
+_settings_signature_cache = {"signature": None, "checked_at": 0.0}
+
+
+def _build_settings_signature(media_settings):
+    return (
+        media_settings.provider_type,
+        media_settings.aws_access_key_id,
+        media_settings.aws_secret_access_key,
+        media_settings.aws_bucket_name,
+        media_settings.aws_region,
+        media_settings.aws_location,
+        media_settings.cdn_enabled,
+        media_settings.cdn_domain,
+    )
+
+
+def _refresh_cache_if_settings_changed():
+    """
+    Cross-process cache safety: periodically compare DB-backed media settings and
+    clear in-process caches when provider/config changes.
+    """
+    now = time.monotonic()
+    if now - _settings_signature_cache["checked_at"] < 1.0:
+        return
+
+    _settings_signature_cache["checked_at"] = now
+
+    try:
+        from apps.media.models import MediaStorageSettings
+
+        media_settings = MediaStorageSettings.get_settings()
+        current_signature = _build_settings_signature(media_settings)
+    except Exception:
+        current_signature = None
+
+    previous_signature = _settings_signature_cache["signature"]
+    if previous_signature is None:
+        _settings_signature_cache["signature"] = current_signature
+        return
+
+    if previous_signature != current_signature:
+        clear_storage_cache()
+        _settings_signature_cache["signature"] = current_signature
 
 
 def clear_storage_cache():
@@ -30,6 +74,8 @@ def _get_cached_s3_client():
     Get a cached S3 client. Creating boto3 sessions is expensive (~100-200ms),
     so we cache the client for reuse.
     """
+    _refresh_cache_if_settings_changed()
+
     cache_key = "s3_client"
     if cache_key in _s3_client_cache:
         return _s3_client_cache[cache_key]
@@ -121,18 +167,9 @@ def get_active_storage():
     Returns:
         Storage backend instance (S3Boto3Storage or FileSystemStorage)
     """
+    _refresh_cache_if_settings_changed()
+
     from apps.media.models import MediaStorageSettings
-
-    def _get_env_configured_storage():
-        """Return Django's default storage when env-based S3 is enabled."""
-        if not getattr(settings, "USE_S3_MEDIA", False):
-            return None
-        try:
-            from django.core.files.storage import storages
-
-            return storages["default"]
-        except Exception:
-            return None
 
     # Check cache first
     cache_key = "active_storage"
@@ -142,42 +179,24 @@ def get_active_storage():
     try:
         media_settings = MediaStorageSettings.get_settings()
 
-        # Prefer DB-configured storage when fully configured
         if media_settings.provider_type == "s3":
             storage = media_settings.get_storage_backend()
-            if storage is None:
-                # S3 selected but not fully configured yet (e.g. initial setup)
-                # If env-based S3 is enabled, prefer it over local filesystem.
-                storage = _get_env_configured_storage()
-                if storage is None:
-                    storage = FileSystemStorage(
-                        location=str(settings.MEDIA_ROOT),
-                        base_url=settings.MEDIA_URL,
-                    )
-        elif media_settings.provider_type == "local":
-            # If env-based S3 is enabled, use it even if DB is still at defaults.
-            storage = _get_env_configured_storage()
             if storage is None:
                 storage = FileSystemStorage(
                     location=str(settings.MEDIA_ROOT),
                     base_url=settings.MEDIA_URL,
                 )
         else:
-            storage = _get_env_configured_storage()
-            if storage is None:
-                storage = FileSystemStorage(
-                    location=str(settings.MEDIA_ROOT),
-                    base_url=settings.MEDIA_URL,
-                )
+            storage = FileSystemStorage(
+                location=str(settings.MEDIA_ROOT),
+                base_url=settings.MEDIA_URL,
+            )
 
         _storage_cache[cache_key] = storage
         return storage
 
     except Exception as e:
         logger.error(f"Error getting active storage: {e}")
-        env_storage = _get_env_configured_storage()
-        if env_storage is not None:
-            return env_storage
         return FileSystemStorage(
             location=str(settings.MEDIA_ROOT),
             base_url=settings.MEDIA_URL,
