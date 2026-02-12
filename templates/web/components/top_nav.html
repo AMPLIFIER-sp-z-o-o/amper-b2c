@@ -366,7 +366,10 @@ body.nav-scroll-locked {
             </a>
 
             {# Cart Button #}
-            <div class="relative nav-category-trigger" data-dropdown-target="cartDropdown">
+            <div class="relative {% if not disable_cart_dropdown %}nav-category-trigger{% endif %}"
+              {% if not disable_cart_dropdown %}
+              data-dropdown-target="cartDropdown"
+              {% endif %}>
               <a
                 href="/cart/"
                 id="cartDropdownButton"
@@ -384,6 +387,7 @@ body.nav-scroll-locked {
 
 
             {# Cart Dropdown #}
+            {% if not disable_cart_dropdown %}
             <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-80 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
               <div class="p-4 bg-gray-50 dark:bg-gray-800">
                 <dl class="flex items-center gap-2">
@@ -416,6 +420,7 @@ body.nav-scroll-locked {
                 </a>
               </div>
             </div>
+            {% endif %}
           </div>
 
           {# Account Button & Dropdown #}
