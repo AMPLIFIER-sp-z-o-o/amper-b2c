@@ -5851,7 +5851,7 @@ CATEGORY_RECOMMENDED_PRODUCTS_DATA = [
 
 MEDIA_STORAGE_SETTINGS_DATA = {
     "provider_type": "s3",
-    "aws_bucket_name": "amper-b2c-qa-eu",
+    "aws_bucket_name": "amper-b2c-demo",
     "aws_region": "eu-central-1",
     "aws_location": "media",
     "cdn_enabled": False,
