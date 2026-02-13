@@ -298,78 +298,54 @@
             </div>
           </div>
         </div>
-
+        <form id="checkout-form">
         <div class="space-y-4">
           <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Payment</h3>
-
           <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="credit-card" aria-describedby="credit-card-text" type="radio" name="payment-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" checked />
-                </div>
+            {% for payment in payment_methods %}
+                <label for="payment-{{ payment.id }}" class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
+                    <div class="flex items-start">
+                      <div class="flex h-5 items-center">
+                          <input
+                          id="payment-{{ payment.id }}"
+                          aria-describedby="payment-{{ payment.id }}-text"
+                          type="radio"
+                          name="payment-method"
+                          value="{{ payment.id }}"
+                          class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600"
+                          {% if selected_payment and payment.id == selected_payment.id %} checked {% endif %}
+                          />
+                      </div>
 
-                <div class="ms-4 text-sm">
-                  <label for="credit-card" class="font-medium leading-none text-gray-900 dark:text-white"> Credit Card </label>
-                  <p id="credit-card-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">Pay with your credit card</p>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-center gap-2">
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Delete</button>
-
-                <div class="h-3 w-px shrink-0 bg-gray-200 dark:bg-gray-700"></div>
-
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Edit</button>
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="pay-on-delivery" aria-describedby="pay-on-delivery-text" type="radio" name="payment-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" />
-                </div>
-
-                <div class="ms-4 text-sm">
-                  <label for="pay-on-delivery" class="font-medium leading-none text-gray-900 dark:text-white"> Payment on delivery </label>
-                  <p id="pay-on-delivery-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">+$15 payment processing fee</p>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-center gap-2">
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Delete</button>
-
-                <div class="h-3 w-px shrink-0 bg-gray-200 dark:bg-gray-700"></div>
-
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Edit</button>
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="paypal-2" aria-describedby="paypal-text" type="radio" name="payment-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" />
-                </div>
-
-                <div class="ms-4 text-sm">
-                  <label for="paypal-2" class="font-medium leading-none text-gray-900 dark:text-white"> Paypal account </label>
-                  <p id="paypal-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">Connect to your account</p>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-center gap-2">
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Delete</button>
-
-                <div class="h-3 w-px shrink-0 bg-gray-200 dark:bg-gray-700"></div>
-
-                <button type="button" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Edit</button>
-              </div>
-            </div>
+                    <div class="ms-4 text-sm">
+                        <span for="payment-{{ payment.id }}" class="font-medium leading-none text-gray-900 dark:text-white">
+                        {{ payment.name }}
+                        </span>
+                        {% if payment.additional_fees > 0 %}
+                           <p class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                              +<span 
+                                  data-price="{{ payment.additional_fees }}" 
+                                  data-currency="{{ site_currency }}"
+                              >
+                                  {{ payment.additional_fees }}
+                              </span>
+                              payment fee
+                            </p>
+                        {% endif %}
+                        {% if payment.default_payment_time %}
+                           <p class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                              Payment in days: {{ payment.default_payment_time }}
+                            </p>
+                        {% endif %}
+                    </div>
+                    </div>
+                </label>
+            {% endfor %}
           </div>
         </div>
 
-        <form id="delivery-form" class="space-y-4">
-          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Delivery Methods</h3>
+        <div class="space-y-4">
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white mt-4">Delivery Methods</h3>
 
           <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             {% for method in delivery_methods %}
@@ -409,6 +385,7 @@
                 </label>
             {% endfor %}
           </div>
+        </div>
         </form>
       </div>
 
@@ -424,6 +401,11 @@
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Delivery Costs</dt>
               <dd class="text-base font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
             </dl>
+
+              <dl class="flex items-center justify-between gap-4 py-3">
+                <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Payment Fee</dt>
+                <dd class="text-base font-medium text-gray-900 dark:text-white" data-payment-cost data-price="{{ payment_cost }}" data-currency="{{ site_currency }}">{{ payment_cost }}</dd>
+              </dl>
 
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Savings</dt>
