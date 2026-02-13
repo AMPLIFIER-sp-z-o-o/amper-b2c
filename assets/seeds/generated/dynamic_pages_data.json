@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "name": "Privacy Policy",
+    "slug": "privacy-policy",
+    "meta_title": "Privacy Policy",
+    "meta_description": "Read our privacy policy for details on data processing.",
+    "is_active": true,
+    "exclude_from_sitemap": false,
+    "seo_noindex": false,
+    "content": "<p>Privacy policy content goes here.</p>"
+  },
+  {
+    "id": 2,
+    "name": "Promotions",
+    "slug": "promotions",
+    "meta_title": "Promotions",
+    "meta_description": "Browse the latest promotions and special offers.",
+    "is_active": true,
+    "exclude_from_sitemap": false,
+    "seo_noindex": false,
+    "content": "<p>Promotions content goes here.</p>"
+  }
+]

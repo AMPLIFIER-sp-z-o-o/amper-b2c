@@ -146,10 +146,10 @@ function detectAndSyncTimezone() {
 
 /**
  * Format all elements with data-price attribute using Intl.NumberFormat.
- * Locale is determined by currency: PLN→pl-PL, EUR→de-DE, USD→en-US.
+ * Locale is determined by currency: USD→en-US, EUR→de-DE, PLN→pl-PL.
  *
  * Usage in templates:
- *   <span data-price="12.99" data-currency="PLN">12.99</span>
+ *   <span data-price="12.99" data-currency="USD">12.99</span>
  */
 function formatPrices() {
   if (typeof Intl === "undefined" || !Intl.NumberFormat) {
@@ -160,8 +160,8 @@ function formatPrices() {
 
   priceElements.forEach((el) => {
     const value = parseFloat(el.dataset.price);
-    const currency = el.dataset.currency || "PLN";
-    const locale = CURRENCY_LOCALES[currency] || "pl-PL";
+    const currency = el.dataset.currency || "USD";
+    const locale = CURRENCY_LOCALES[currency] || "en-US";
 
     if (isNaN(value)) return;
 
@@ -1413,12 +1413,12 @@ function updateFavouritesHeaderStats(itemCount, totalValue) {
   const headerDiv = document.querySelector("#wishlist-content .text-subtitle");
   if (!headerDiv) return;
 
-  // Get currency from existing price display or default to PLN
+  // Get currency from existing price display or default to USD
   const priceElement = headerDiv.querySelector("[data-price]");
-  const currency = priceElement?.dataset.currency || "PLN";
+  const currency = priceElement?.dataset.currency || "USD";
 
   // Format the total value
-  const locale = CURRENCY_LOCALES[currency] || "pl-PL";
+  const locale = CURRENCY_LOCALES[currency] || "en-US";
   let formattedTotal;
   try {
     formattedTotal = new Intl.NumberFormat(locale, {

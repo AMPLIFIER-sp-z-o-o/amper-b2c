@@ -62,7 +62,8 @@ reset-db: ## Drop and recreate database, run migrations
 	@uv run manage.py migrate
 	@echo "Database reset complete."
 
-reset-db-seed: reset-db seed ## Reset database and seed with default data
+reset-db-seed: reset-db ## Reset database and seed with default data
+	@uv run manage.py seed ${ARGS}
 
 test: ## Run tests with pytest
 	@uv run pytest ${ARGS}

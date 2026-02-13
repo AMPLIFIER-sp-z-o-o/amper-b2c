@@ -1,4 +1,6 @@
 {% extends "web/base.html" %}
+{% load static %}
+{% load media_tags %}
 
 {% block body %}
 
@@ -93,7 +95,7 @@
               <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Payment method</dt>
                 <dd class="mt-2 flex items-center gap-2 sm:mt-0 sm:justify-end">
-                  <img class="h-auto w-5" src="https://flowbite.s3.amazonaws.com/blocks/e-commerce/brand-logos/mastercard.svg" alt="" />
+                  <img class="h-auto w-5" src="{% media_file_url 'site/seed/mastercard.svg' %}" alt="" />
                   <span class="text-right text-gray-500 dark:text-gray-400"> Credit Card </span>
                 </dd>
               </dl>

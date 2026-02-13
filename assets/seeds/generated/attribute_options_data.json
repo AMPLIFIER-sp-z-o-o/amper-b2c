@@ -1,0 +1,2372 @@
+[
+  {
+    "id": 80,
+    "attribute_id": 44,
+    "value": "Beauty"
+  },
+  {
+    "id": 81,
+    "attribute_id": 45,
+    "value": "Beauty"
+  },
+  {
+    "id": 82,
+    "attribute_id": 46,
+    "value": "Velvet Touch"
+  },
+  {
+    "id": 83,
+    "attribute_id": 47,
+    "value": "Composite"
+  },
+  {
+    "id": 84,
+    "attribute_id": 48,
+    "value": "Beauty"
+  },
+  {
+    "id": 85,
+    "attribute_id": 44,
+    "value": "Featured Beauty"
+  },
+  {
+    "id": 86,
+    "attribute_id": 46,
+    "value": "Chic Cosmetics"
+  },
+  {
+    "id": 87,
+    "attribute_id": 44,
+    "value": "New Beauty"
+  },
+  {
+    "id": 88,
+    "attribute_id": 46,
+    "value": "Nail Couture"
+  },
+  {
+    "id": 89,
+    "attribute_id": 44,
+    "value": "Popular Beauty"
+  },
+  {
+    "id": 90,
+    "attribute_id": 46,
+    "value": "Glamour Beauty"
+  },
+  {
+    "id": 91,
+    "attribute_id": 44,
+    "value": "Budget Beauty"
+  },
+  {
+    "id": 92,
+    "attribute_id": 46,
+    "value": "Essence"
+  },
+  {
+    "id": 93,
+    "attribute_id": 44,
+    "value": "Premium Beauty"
+  },
+  {
+    "id": 94,
+    "attribute_id": 44,
+    "value": "Essentials Beauty"
+  },
+  {
+    "id": 95,
+    "attribute_id": 44,
+    "value": "Seasonal Beauty"
+  },
+  {
+    "id": 96,
+    "attribute_id": 44,
+    "value": "Top Rated Beauty"
+  },
+  {
+    "id": 97,
+    "attribute_id": 44,
+    "value": "Staff Picks Beauty"
+  },
+  {
+    "id": 98,
+    "attribute_id": 44,
+    "value": "Just Arrived Beauty"
+  },
+  {
+    "id": 99,
+    "attribute_id": 44,
+    "value": "Fresh Picks Beauty"
+  },
+  {
+    "id": 100,
+    "attribute_id": 44,
+    "value": "Best Sellers Beauty"
+  },
+  {
+    "id": 101,
+    "attribute_id": 44,
+    "value": "Everyday Picks Beauty"
+  },
+  {
+    "id": 102,
+    "attribute_id": 44,
+    "value": "Fragrances"
+  },
+  {
+    "id": 103,
+    "attribute_id": 45,
+    "value": "Fragrances"
+  },
+  {
+    "id": 104,
+    "attribute_id": 46,
+    "value": "Calvin Klein"
+  },
+  {
+    "id": 105,
+    "attribute_id": 47,
+    "value": "Glass"
+  },
+  {
+    "id": 106,
+    "attribute_id": 48,
+    "value": "Fragrances"
+  },
+  {
+    "id": 107,
+    "attribute_id": 44,
+    "value": "Featured Fragrances"
+  },
+  {
+    "id": 108,
+    "attribute_id": 46,
+    "value": "Chanel"
+  },
+  {
+    "id": 109,
+    "attribute_id": 44,
+    "value": "New Fragrances"
+  },
+  {
+    "id": 110,
+    "attribute_id": 46,
+    "value": "Dolce & Gabbana"
+  },
+  {
+    "id": 111,
+    "attribute_id": 44,
+    "value": "Popular Fragrances"
+  },
+  {
+    "id": 112,
+    "attribute_id": 46,
+    "value": "Dior"
+  },
+  {
+    "id": 113,
+    "attribute_id": 44,
+    "value": "Budget Fragrances"
+  },
+  {
+    "id": 114,
+    "attribute_id": 46,
+    "value": "Gucci"
+  },
+  {
+    "id": 115,
+    "attribute_id": 44,
+    "value": "Premium Fragrances"
+  },
+  {
+    "id": 116,
+    "attribute_id": 44,
+    "value": "Essentials Fragrances"
+  },
+  {
+    "id": 117,
+    "attribute_id": 44,
+    "value": "Seasonal Fragrances"
+  },
+  {
+    "id": 118,
+    "attribute_id": 44,
+    "value": "Top Rated Fragrances"
+  },
+  {
+    "id": 119,
+    "attribute_id": 44,
+    "value": "Staff Picks Fragrances"
+  },
+  {
+    "id": 120,
+    "attribute_id": 44,
+    "value": "Just Arrived Fragrances"
+  },
+  {
+    "id": 121,
+    "attribute_id": 44,
+    "value": "Fresh Picks Fragrances"
+  },
+  {
+    "id": 122,
+    "attribute_id": 44,
+    "value": "Best Sellers Fragrances"
+  },
+  {
+    "id": 123,
+    "attribute_id": 44,
+    "value": "Everyday Picks Fragrances"
+  },
+  {
+    "id": 124,
+    "attribute_id": 44,
+    "value": "Furniture"
+  },
+  {
+    "id": 125,
+    "attribute_id": 45,
+    "value": "Furniture"
+  },
+  {
+    "id": 126,
+    "attribute_id": 46,
+    "value": "Knoll"
+  },
+  {
+    "id": 127,
+    "attribute_id": 47,
+    "value": "Wood"
+  },
+  {
+    "id": 128,
+    "attribute_id": 48,
+    "value": "Furniture"
+  },
+  {
+    "id": 129,
+    "attribute_id": 44,
+    "value": "Featured Furniture"
+  },
+  {
+    "id": 130,
+    "attribute_id": 46,
+    "value": "Annibale Colombo"
+  },
+  {
+    "id": 131,
+    "attribute_id": 44,
+    "value": "New Furniture"
+  },
+  {
+    "id": 132,
+    "attribute_id": 44,
+    "value": "Popular Furniture"
+  },
+  {
+    "id": 133,
+    "attribute_id": 46,
+    "value": "Bath Trends"
+  },
+  {
+    "id": 134,
+    "attribute_id": 44,
+    "value": "Budget Furniture"
+  },
+  {
+    "id": 135,
+    "attribute_id": 46,
+    "value": "Furniture Co."
+  },
+  {
+    "id": 136,
+    "attribute_id": 44,
+    "value": "Premium Furniture"
+  },
+  {
+    "id": 137,
+    "attribute_id": 44,
+    "value": "Essentials Furniture"
+  },
+  {
+    "id": 138,
+    "attribute_id": 44,
+    "value": "Seasonal Furniture"
+  },
+  {
+    "id": 139,
+    "attribute_id": 44,
+    "value": "Top Rated Furniture"
+  },
+  {
+    "id": 140,
+    "attribute_id": 44,
+    "value": "Staff Picks Furniture"
+  },
+  {
+    "id": 141,
+    "attribute_id": 44,
+    "value": "Just Arrived Furniture"
+  },
+  {
+    "id": 142,
+    "attribute_id": 44,
+    "value": "Fresh Picks Furniture"
+  },
+  {
+    "id": 143,
+    "attribute_id": 44,
+    "value": "Best Sellers Furniture"
+  },
+  {
+    "id": 144,
+    "attribute_id": 44,
+    "value": "Everyday Picks Furniture"
+  },
+  {
+    "id": 145,
+    "attribute_id": 44,
+    "value": "Groceries"
+  },
+  {
+    "id": 146,
+    "attribute_id": 45,
+    "value": "Groceries"
+  },
+  {
+    "id": 147,
+    "attribute_id": 46,
+    "value": "Generic"
+  },
+  {
+    "id": 148,
+    "attribute_id": 47,
+    "value": "Food Grade"
+  },
+  {
+    "id": 149,
+    "attribute_id": 48,
+    "value": "Beverages"
+  },
+  {
+    "id": 150,
+    "attribute_id": 44,
+    "value": "Featured Groceries"
+  },
+  {
+    "id": 151,
+    "attribute_id": 48,
+    "value": "Fruits"
+  },
+  {
+    "id": 152,
+    "attribute_id": 44,
+    "value": "New Groceries"
+  },
+  {
+    "id": 153,
+    "attribute_id": 44,
+    "value": "Popular Groceries"
+  },
+  {
+    "id": 154,
+    "attribute_id": 44,
+    "value": "Budget Groceries"
+  },
+  {
+    "id": 155,
+    "attribute_id": 48,
+    "value": "Vegetables"
+  },
+  {
+    "id": 156,
+    "attribute_id": 44,
+    "value": "Premium Groceries"
+  },
+  {
+    "id": 157,
+    "attribute_id": 48,
+    "value": "Cooking Essentials"
+  },
+  {
+    "id": 158,
+    "attribute_id": 44,
+    "value": "Essentials Groceries"
+  },
+  {
+    "id": 159,
+    "attribute_id": 44,
+    "value": "Seasonal Groceries"
+  },
+  {
+    "id": 160,
+    "attribute_id": 48,
+    "value": "Pet Supplies"
+  },
+  {
+    "id": 161,
+    "attribute_id": 44,
+    "value": "Top Rated Groceries"
+  },
+  {
+    "id": 162,
+    "attribute_id": 48,
+    "value": "Meat"
+  },
+  {
+    "id": 163,
+    "attribute_id": 44,
+    "value": "Staff Picks Groceries"
+  },
+  {
+    "id": 164,
+    "attribute_id": 44,
+    "value": "Just Arrived Groceries"
+  },
+  {
+    "id": 165,
+    "attribute_id": 44,
+    "value": "Fresh Picks Groceries"
+  },
+  {
+    "id": 166,
+    "attribute_id": 48,
+    "value": "Health Supplements"
+  },
+  {
+    "id": 167,
+    "attribute_id": 44,
+    "value": "Best Sellers Groceries"
+  },
+  {
+    "id": 168,
+    "attribute_id": 44,
+    "value": "Everyday Picks Groceries"
+  },
+  {
+    "id": 169,
+    "attribute_id": 48,
+    "value": "Condiments"
+  },
+  {
+    "id": 170,
+    "attribute_id": 48,
+    "value": "Seafood"
+  },
+  {
+    "id": 171,
+    "attribute_id": 48,
+    "value": "Desserts"
+  },
+  {
+    "id": 172,
+    "attribute_id": 48,
+    "value": "Grains"
+  },
+  {
+    "id": 173,
+    "attribute_id": 48,
+    "value": "Household Essentials"
+  },
+  {
+    "id": 174,
+    "attribute_id": 48,
+    "value": "Dairy"
+  },
+  {
+    "id": 175,
+    "attribute_id": 44,
+    "value": "Home Decoration"
+  },
+  {
+    "id": 176,
+    "attribute_id": 45,
+    "value": "Home Decoration"
+  },
+  {
+    "id": 177,
+    "attribute_id": 48,
+    "value": "Home Decor"
+  },
+  {
+    "id": 178,
+    "attribute_id": 44,
+    "value": "Featured Home Decoration"
+  },
+  {
+    "id": 179,
+    "attribute_id": 44,
+    "value": "New Home Decoration"
+  },
+  {
+    "id": 180,
+    "attribute_id": 44,
+    "value": "Popular Home Decoration"
+  },
+  {
+    "id": 181,
+    "attribute_id": 44,
+    "value": "Budget Home Decoration"
+  },
+  {
+    "id": 182,
+    "attribute_id": 44,
+    "value": "Premium Home Decoration"
+  },
+  {
+    "id": 183,
+    "attribute_id": 44,
+    "value": "Essentials Home Decoration"
+  },
+  {
+    "id": 184,
+    "attribute_id": 44,
+    "value": "Seasonal Home Decoration"
+  },
+  {
+    "id": 185,
+    "attribute_id": 44,
+    "value": "Top Rated Home Decoration"
+  },
+  {
+    "id": 186,
+    "attribute_id": 44,
+    "value": "Staff Picks Home Decoration"
+  },
+  {
+    "id": 187,
+    "attribute_id": 44,
+    "value": "Just Arrived Home Decoration"
+  },
+  {
+    "id": 188,
+    "attribute_id": 44,
+    "value": "Fresh Picks Home Decoration"
+  },
+  {
+    "id": 189,
+    "attribute_id": 44,
+    "value": "Best Sellers Home Decoration"
+  },
+  {
+    "id": 190,
+    "attribute_id": 44,
+    "value": "Everyday Picks Home Decoration"
+  },
+  {
+    "id": 191,
+    "attribute_id": 44,
+    "value": "Kitchen Accessories"
+  },
+  {
+    "id": 192,
+    "attribute_id": 45,
+    "value": "Kitchen Accessories"
+  },
+  {
+    "id": 193,
+    "attribute_id": 47,
+    "value": "Steel"
+  },
+  {
+    "id": 194,
+    "attribute_id": 48,
+    "value": "Kitchen Tools"
+  },
+  {
+    "id": 195,
+    "attribute_id": 44,
+    "value": "Featured Kitchen Accessories"
+  },
+  {
+    "id": 196,
+    "attribute_id": 44,
+    "value": "New Kitchen Accessories"
+  },
+  {
+    "id": 197,
+    "attribute_id": 48,
+    "value": "Kitchen Appliances"
+  },
+  {
+    "id": 198,
+    "attribute_id": 44,
+    "value": "Popular Kitchen Accessories"
+  },
+  {
+    "id": 199,
+    "attribute_id": 44,
+    "value": "Budget Kitchen Accessories"
+  },
+  {
+    "id": 200,
+    "attribute_id": 44,
+    "value": "Premium Kitchen Accessories"
+  },
+  {
+    "id": 201,
+    "attribute_id": 48,
+    "value": "Serveware"
+  },
+  {
+    "id": 202,
+    "attribute_id": 44,
+    "value": "Essentials Kitchen Accessories"
+  },
+  {
+    "id": 203,
+    "attribute_id": 44,
+    "value": "Seasonal Kitchen Accessories"
+  },
+  {
+    "id": 204,
+    "attribute_id": 48,
+    "value": "Drinkware"
+  },
+  {
+    "id": 205,
+    "attribute_id": 44,
+    "value": "Top Rated Kitchen Accessories"
+  },
+  {
+    "id": 206,
+    "attribute_id": 44,
+    "value": "Staff Picks Kitchen Accessories"
+  },
+  {
+    "id": 207,
+    "attribute_id": 44,
+    "value": "Just Arrived Kitchen Accessories"
+  },
+  {
+    "id": 208,
+    "attribute_id": 44,
+    "value": "Fresh Picks Kitchen Accessories"
+  },
+  {
+    "id": 209,
+    "attribute_id": 48,
+    "value": "Cookware"
+  },
+  {
+    "id": 210,
+    "attribute_id": 44,
+    "value": "Best Sellers Kitchen Accessories"
+  },
+  {
+    "id": 211,
+    "attribute_id": 44,
+    "value": "Everyday Picks Kitchen Accessories"
+  },
+  {
+    "id": 212,
+    "attribute_id": 48,
+    "value": "Dinnerware"
+  },
+  {
+    "id": 213,
+    "attribute_id": 44,
+    "value": "Laptops"
+  },
+  {
+    "id": 214,
+    "attribute_id": 45,
+    "value": "Laptops"
+  },
+  {
+    "id": 215,
+    "attribute_id": 46,
+    "value": "Huawei"
+  },
+  {
+    "id": 216,
+    "attribute_id": 47,
+    "value": "Aluminum"
+  },
+  {
+    "id": 217,
+    "attribute_id": 48,
+    "value": "Laptops"
+  },
+  {
+    "id": 218,
+    "attribute_id": 44,
+    "value": "Featured Laptops"
+  },
+  {
+    "id": 219,
+    "attribute_id": 46,
+    "value": "Asus"
+  },
+  {
+    "id": 220,
+    "attribute_id": 44,
+    "value": "New Laptops"
+  },
+  {
+    "id": 221,
+    "attribute_id": 46,
+    "value": "Apple"
+  },
+  {
+    "id": 222,
+    "attribute_id": 44,
+    "value": "Popular Laptops"
+  },
+  {
+    "id": 223,
+    "attribute_id": 46,
+    "value": "Lenovo"
+  },
+  {
+    "id": 224,
+    "attribute_id": 44,
+    "value": "Budget Laptops"
+  },
+  {
+    "id": 225,
+    "attribute_id": 46,
+    "value": "Dell"
+  },
+  {
+    "id": 226,
+    "attribute_id": 44,
+    "value": "Premium Laptops"
+  },
+  {
+    "id": 227,
+    "attribute_id": 44,
+    "value": "Essentials Laptops"
+  },
+  {
+    "id": 228,
+    "attribute_id": 44,
+    "value": "Seasonal Laptops"
+  },
+  {
+    "id": 229,
+    "attribute_id": 44,
+    "value": "Top Rated Laptops"
+  },
+  {
+    "id": 230,
+    "attribute_id": 44,
+    "value": "Staff Picks Laptops"
+  },
+  {
+    "id": 231,
+    "attribute_id": 44,
+    "value": "Just Arrived Laptops"
+  },
+  {
+    "id": 232,
+    "attribute_id": 44,
+    "value": "Fresh Picks Laptops"
+  },
+  {
+    "id": 233,
+    "attribute_id": 44,
+    "value": "Best Sellers Laptops"
+  },
+  {
+    "id": 234,
+    "attribute_id": 44,
+    "value": "Everyday Picks Laptops"
+  },
+  {
+    "id": 235,
+    "attribute_id": 44,
+    "value": "Mens Shirts"
+  },
+  {
+    "id": 236,
+    "attribute_id": 45,
+    "value": "Mens Shirts"
+  },
+  {
+    "id": 237,
+    "attribute_id": 46,
+    "value": "Fashion Trends"
+  },
+  {
+    "id": 238,
+    "attribute_id": 47,
+    "value": "Cotton"
+  },
+  {
+    "id": 239,
+    "attribute_id": 48,
+    "value": "Clothing"
+  },
+  {
+    "id": 240,
+    "attribute_id": 44,
+    "value": "Featured Mens Shirts"
+  },
+  {
+    "id": 241,
+    "attribute_id": 46,
+    "value": "Classic Wear"
+  },
+  {
+    "id": 242,
+    "attribute_id": 44,
+    "value": "New Mens Shirts"
+  },
+  {
+    "id": 243,
+    "attribute_id": 46,
+    "value": "Gigabyte"
+  },
+  {
+    "id": 244,
+    "attribute_id": 44,
+    "value": "Popular Mens Shirts"
+  },
+  {
+    "id": 245,
+    "attribute_id": 46,
+    "value": "Casual Comfort"
+  },
+  {
+    "id": 246,
+    "attribute_id": 44,
+    "value": "Budget Mens Shirts"
+  },
+  {
+    "id": 247,
+    "attribute_id": 46,
+    "value": "Urban Chic"
+  },
+  {
+    "id": 248,
+    "attribute_id": 44,
+    "value": "Premium Mens Shirts"
+  },
+  {
+    "id": 249,
+    "attribute_id": 44,
+    "value": "Essentials Mens Shirts"
+  },
+  {
+    "id": 250,
+    "attribute_id": 44,
+    "value": "Seasonal Mens Shirts"
+  },
+  {
+    "id": 251,
+    "attribute_id": 44,
+    "value": "Top Rated Mens Shirts"
+  },
+  {
+    "id": 252,
+    "attribute_id": 44,
+    "value": "Staff Picks Mens Shirts"
+  },
+  {
+    "id": 253,
+    "attribute_id": 44,
+    "value": "Just Arrived Mens Shirts"
+  },
+  {
+    "id": 254,
+    "attribute_id": 44,
+    "value": "Fresh Picks Mens Shirts"
+  },
+  {
+    "id": 255,
+    "attribute_id": 44,
+    "value": "Best Sellers Mens Shirts"
+  },
+  {
+    "id": 256,
+    "attribute_id": 44,
+    "value": "Everyday Picks Mens Shirts"
+  },
+  {
+    "id": 257,
+    "attribute_id": 44,
+    "value": "Mens Shoes"
+  },
+  {
+    "id": 258,
+    "attribute_id": 45,
+    "value": "Mens Shoes"
+  },
+  {
+    "id": 259,
+    "attribute_id": 46,
+    "value": "Puma"
+  },
+  {
+    "id": 260,
+    "attribute_id": 47,
+    "value": "Leather"
+  },
+  {
+    "id": 261,
+    "attribute_id": 48,
+    "value": "Footwear"
+  },
+  {
+    "id": 262,
+    "attribute_id": 44,
+    "value": "Featured Mens Shoes"
+  },
+  {
+    "id": 263,
+    "attribute_id": 46,
+    "value": "Nike"
+  },
+  {
+    "id": 264,
+    "attribute_id": 44,
+    "value": "New Mens Shoes"
+  },
+  {
+    "id": 265,
+    "attribute_id": 46,
+    "value": "Off White"
+  },
+  {
+    "id": 266,
+    "attribute_id": 44,
+    "value": "Popular Mens Shoes"
+  },
+  {
+    "id": 267,
+    "attribute_id": 44,
+    "value": "Budget Mens Shoes"
+  },
+  {
+    "id": 268,
+    "attribute_id": 44,
+    "value": "Premium Mens Shoes"
+  },
+  {
+    "id": 269,
+    "attribute_id": 44,
+    "value": "Essentials Mens Shoes"
+  },
+  {
+    "id": 270,
+    "attribute_id": 44,
+    "value": "Seasonal Mens Shoes"
+  },
+  {
+    "id": 271,
+    "attribute_id": 44,
+    "value": "Top Rated Mens Shoes"
+  },
+  {
+    "id": 272,
+    "attribute_id": 44,
+    "value": "Staff Picks Mens Shoes"
+  },
+  {
+    "id": 273,
+    "attribute_id": 44,
+    "value": "Just Arrived Mens Shoes"
+  },
+  {
+    "id": 274,
+    "attribute_id": 44,
+    "value": "Fresh Picks Mens Shoes"
+  },
+  {
+    "id": 275,
+    "attribute_id": 44,
+    "value": "Best Sellers Mens Shoes"
+  },
+  {
+    "id": 276,
+    "attribute_id": 44,
+    "value": "Everyday Picks Mens Shoes"
+  },
+  {
+    "id": 277,
+    "attribute_id": 44,
+    "value": "Mens Watches"
+  },
+  {
+    "id": 278,
+    "attribute_id": 45,
+    "value": "Mens Watches"
+  },
+  {
+    "id": 279,
+    "attribute_id": 46,
+    "value": "Rolex"
+  },
+  {
+    "id": 280,
+    "attribute_id": 47,
+    "value": "Mixed"
+  },
+  {
+    "id": 281,
+    "attribute_id": 48,
+    "value": "Watches"
+  },
+  {
+    "id": 282,
+    "attribute_id": 44,
+    "value": "Featured Mens Watches"
+  },
+  {
+    "id": 283,
+    "attribute_id": 46,
+    "value": "Fashion Timepieces"
+  },
+  {
+    "id": 284,
+    "attribute_id": 44,
+    "value": "New Mens Watches"
+  },
+  {
+    "id": 285,
+    "attribute_id": 46,
+    "value": "Longines"
+  },
+  {
+    "id": 286,
+    "attribute_id": 44,
+    "value": "Popular Mens Watches"
+  },
+  {
+    "id": 287,
+    "attribute_id": 44,
+    "value": "Budget Mens Watches"
+  },
+  {
+    "id": 288,
+    "attribute_id": 44,
+    "value": "Premium Mens Watches"
+  },
+  {
+    "id": 289,
+    "attribute_id": 44,
+    "value": "Essentials Mens Watches"
+  },
+  {
+    "id": 290,
+    "attribute_id": 44,
+    "value": "Seasonal Mens Watches"
+  },
+  {
+    "id": 291,
+    "attribute_id": 44,
+    "value": "Top Rated Mens Watches"
+  },
+  {
+    "id": 292,
+    "attribute_id": 44,
+    "value": "Staff Picks Mens Watches"
+  },
+  {
+    "id": 293,
+    "attribute_id": 44,
+    "value": "Just Arrived Mens Watches"
+  },
+  {
+    "id": 294,
+    "attribute_id": 44,
+    "value": "Fresh Picks Mens Watches"
+  },
+  {
+    "id": 295,
+    "attribute_id": 44,
+    "value": "Best Sellers Mens Watches"
+  },
+  {
+    "id": 296,
+    "attribute_id": 44,
+    "value": "Everyday Picks Mens Watches"
+  },
+  {
+    "id": 297,
+    "attribute_id": 44,
+    "value": "Mobile Accessories"
+  },
+  {
+    "id": 298,
+    "attribute_id": 45,
+    "value": "Mobile Accessories"
+  },
+  {
+    "id": 299,
+    "attribute_id": 46,
+    "value": "Amazon"
+  },
+  {
+    "id": 300,
+    "attribute_id": 47,
+    "value": "Polymer"
+  },
+  {
+    "id": 301,
+    "attribute_id": 48,
+    "value": "Electronics"
+  },
+  {
+    "id": 302,
+    "attribute_id": 44,
+    "value": "Featured Mobile Accessories"
+  },
+  {
+    "id": 303,
+    "attribute_id": 44,
+    "value": "New Mobile Accessories"
+  },
+  {
+    "id": 304,
+    "attribute_id": 46,
+    "value": "TechGear"
+  },
+  {
+    "id": 305,
+    "attribute_id": 44,
+    "value": "Popular Mobile Accessories"
+  },
+  {
+    "id": 306,
+    "attribute_id": 46,
+    "value": "Beats"
+  },
+  {
+    "id": 307,
+    "attribute_id": 44,
+    "value": "Budget Mobile Accessories"
+  },
+  {
+    "id": 308,
+    "attribute_id": 44,
+    "value": "Premium Mobile Accessories"
+  },
+  {
+    "id": 309,
+    "attribute_id": 44,
+    "value": "Essentials Mobile Accessories"
+  },
+  {
+    "id": 310,
+    "attribute_id": 46,
+    "value": "SnapTech"
+  },
+  {
+    "id": 311,
+    "attribute_id": 44,
+    "value": "Seasonal Mobile Accessories"
+  },
+  {
+    "id": 312,
+    "attribute_id": 44,
+    "value": "Top Rated Mobile Accessories"
+  },
+  {
+    "id": 313,
+    "attribute_id": 44,
+    "value": "Staff Picks Mobile Accessories"
+  },
+  {
+    "id": 314,
+    "attribute_id": 44,
+    "value": "Just Arrived Mobile Accessories"
+  },
+  {
+    "id": 315,
+    "attribute_id": 46,
+    "value": "GadgetMaster"
+  },
+  {
+    "id": 316,
+    "attribute_id": 44,
+    "value": "Fresh Picks Mobile Accessories"
+  },
+  {
+    "id": 317,
+    "attribute_id": 44,
+    "value": "Best Sellers Mobile Accessories"
+  },
+  {
+    "id": 318,
+    "attribute_id": 46,
+    "value": "ProVision"
+  },
+  {
+    "id": 319,
+    "attribute_id": 44,
+    "value": "Everyday Picks Mobile Accessories"
+  },
+  {
+    "id": 320,
+    "attribute_id": 44,
+    "value": "Motorcycle"
+  },
+  {
+    "id": 321,
+    "attribute_id": 45,
+    "value": "Motorcycle"
+  },
+  {
+    "id": 322,
+    "attribute_id": 46,
+    "value": "Generic Motors"
+  },
+  {
+    "id": 323,
+    "attribute_id": 47,
+    "value": "Metal"
+  },
+  {
+    "id": 324,
+    "attribute_id": 48,
+    "value": "Motorcycles"
+  },
+  {
+    "id": 325,
+    "attribute_id": 44,
+    "value": "Featured Motorcycle"
+  },
+  {
+    "id": 326,
+    "attribute_id": 46,
+    "value": "Kawasaki"
+  },
+  {
+    "id": 327,
+    "attribute_id": 44,
+    "value": "New Motorcycle"
+  },
+  {
+    "id": 328,
+    "attribute_id": 46,
+    "value": "SpeedMaster"
+  },
+  {
+    "id": 329,
+    "attribute_id": 44,
+    "value": "Popular Motorcycle"
+  },
+  {
+    "id": 330,
+    "attribute_id": 46,
+    "value": "MotoGP"
+  },
+  {
+    "id": 331,
+    "attribute_id": 44,
+    "value": "Budget Motorcycle"
+  },
+  {
+    "id": 332,
+    "attribute_id": 46,
+    "value": "ScootMaster"
+  },
+  {
+    "id": 333,
+    "attribute_id": 44,
+    "value": "Premium Motorcycle"
+  },
+  {
+    "id": 334,
+    "attribute_id": 44,
+    "value": "Essentials Motorcycle"
+  },
+  {
+    "id": 335,
+    "attribute_id": 44,
+    "value": "Seasonal Motorcycle"
+  },
+  {
+    "id": 336,
+    "attribute_id": 44,
+    "value": "Top Rated Motorcycle"
+  },
+  {
+    "id": 337,
+    "attribute_id": 44,
+    "value": "Staff Picks Motorcycle"
+  },
+  {
+    "id": 338,
+    "attribute_id": 44,
+    "value": "Just Arrived Motorcycle"
+  },
+  {
+    "id": 339,
+    "attribute_id": 44,
+    "value": "Fresh Picks Motorcycle"
+  },
+  {
+    "id": 340,
+    "attribute_id": 44,
+    "value": "Best Sellers Motorcycle"
+  },
+  {
+    "id": 341,
+    "attribute_id": 44,
+    "value": "Everyday Picks Motorcycle"
+  },
+  {
+    "id": 342,
+    "attribute_id": 44,
+    "value": "Skin Care"
+  },
+  {
+    "id": 343,
+    "attribute_id": 45,
+    "value": "Skin Care"
+  },
+  {
+    "id": 344,
+    "attribute_id": 46,
+    "value": "Olay"
+  },
+  {
+    "id": 345,
+    "attribute_id": 48,
+    "value": "Personal Care"
+  },
+  {
+    "id": 346,
+    "attribute_id": 44,
+    "value": "Featured Skin Care"
+  },
+  {
+    "id": 347,
+    "attribute_id": 46,
+    "value": "Attitude"
+  },
+  {
+    "id": 348,
+    "attribute_id": 44,
+    "value": "New Skin Care"
+  },
+  {
+    "id": 349,
+    "attribute_id": 46,
+    "value": "Vaseline"
+  },
+  {
+    "id": 350,
+    "attribute_id": 44,
+    "value": "Popular Skin Care"
+  },
+  {
+    "id": 351,
+    "attribute_id": 44,
+    "value": "Budget Skin Care"
+  },
+  {
+    "id": 352,
+    "attribute_id": 44,
+    "value": "Premium Skin Care"
+  },
+  {
+    "id": 353,
+    "attribute_id": 44,
+    "value": "Essentials Skin Care"
+  },
+  {
+    "id": 354,
+    "attribute_id": 44,
+    "value": "Seasonal Skin Care"
+  },
+  {
+    "id": 355,
+    "attribute_id": 44,
+    "value": "Top Rated Skin Care"
+  },
+  {
+    "id": 356,
+    "attribute_id": 44,
+    "value": "Staff Picks Skin Care"
+  },
+  {
+    "id": 357,
+    "attribute_id": 44,
+    "value": "Just Arrived Skin Care"
+  },
+  {
+    "id": 358,
+    "attribute_id": 44,
+    "value": "Fresh Picks Skin Care"
+  },
+  {
+    "id": 359,
+    "attribute_id": 44,
+    "value": "Best Sellers Skin Care"
+  },
+  {
+    "id": 360,
+    "attribute_id": 44,
+    "value": "Everyday Picks Skin Care"
+  },
+  {
+    "id": 361,
+    "attribute_id": 44,
+    "value": "Smartphones"
+  },
+  {
+    "id": 362,
+    "attribute_id": 45,
+    "value": "Smartphones"
+  },
+  {
+    "id": 363,
+    "attribute_id": 46,
+    "value": "Realme"
+  },
+  {
+    "id": 364,
+    "attribute_id": 48,
+    "value": "Smartphones"
+  },
+  {
+    "id": 365,
+    "attribute_id": 44,
+    "value": "Featured Smartphones"
+  },
+  {
+    "id": 366,
+    "attribute_id": 46,
+    "value": "Samsung"
+  },
+  {
+    "id": 367,
+    "attribute_id": 44,
+    "value": "New Smartphones"
+  },
+  {
+    "id": 368,
+    "attribute_id": 46,
+    "value": "Vivo"
+  },
+  {
+    "id": 369,
+    "attribute_id": 44,
+    "value": "Popular Smartphones"
+  },
+  {
+    "id": 370,
+    "attribute_id": 46,
+    "value": "Oppo"
+  },
+  {
+    "id": 371,
+    "attribute_id": 44,
+    "value": "Budget Smartphones"
+  },
+  {
+    "id": 372,
+    "attribute_id": 44,
+    "value": "Premium Smartphones"
+  },
+  {
+    "id": 373,
+    "attribute_id": 44,
+    "value": "Essentials Smartphones"
+  },
+  {
+    "id": 374,
+    "attribute_id": 44,
+    "value": "Seasonal Smartphones"
+  },
+  {
+    "id": 375,
+    "attribute_id": 44,
+    "value": "Top Rated Smartphones"
+  },
+  {
+    "id": 376,
+    "attribute_id": 44,
+    "value": "Staff Picks Smartphones"
+  },
+  {
+    "id": 377,
+    "attribute_id": 44,
+    "value": "Just Arrived Smartphones"
+  },
+  {
+    "id": 378,
+    "attribute_id": 44,
+    "value": "Fresh Picks Smartphones"
+  },
+  {
+    "id": 379,
+    "attribute_id": 44,
+    "value": "Best Sellers Smartphones"
+  },
+  {
+    "id": 380,
+    "attribute_id": 44,
+    "value": "Everyday Picks Smartphones"
+  },
+  {
+    "id": 381,
+    "attribute_id": 44,
+    "value": "Sports Accessories"
+  },
+  {
+    "id": 382,
+    "attribute_id": 45,
+    "value": "Sports Accessories"
+  },
+  {
+    "id": 383,
+    "attribute_id": 48,
+    "value": "Sports Equipment"
+  },
+  {
+    "id": 384,
+    "attribute_id": 44,
+    "value": "Featured Sports Accessories"
+  },
+  {
+    "id": 385,
+    "attribute_id": 44,
+    "value": "New Sports Accessories"
+  },
+  {
+    "id": 386,
+    "attribute_id": 44,
+    "value": "Popular Sports Accessories"
+  },
+  {
+    "id": 387,
+    "attribute_id": 44,
+    "value": "Budget Sports Accessories"
+  },
+  {
+    "id": 388,
+    "attribute_id": 44,
+    "value": "Premium Sports Accessories"
+  },
+  {
+    "id": 389,
+    "attribute_id": 44,
+    "value": "Essentials Sports Accessories"
+  },
+  {
+    "id": 390,
+    "attribute_id": 44,
+    "value": "Seasonal Sports Accessories"
+  },
+  {
+    "id": 391,
+    "attribute_id": 44,
+    "value": "Top Rated Sports Accessories"
+  },
+  {
+    "id": 392,
+    "attribute_id": 44,
+    "value": "Staff Picks Sports Accessories"
+  },
+  {
+    "id": 393,
+    "attribute_id": 44,
+    "value": "Just Arrived Sports Accessories"
+  },
+  {
+    "id": 394,
+    "attribute_id": 44,
+    "value": "Fresh Picks Sports Accessories"
+  },
+  {
+    "id": 395,
+    "attribute_id": 44,
+    "value": "Best Sellers Sports Accessories"
+  },
+  {
+    "id": 396,
+    "attribute_id": 44,
+    "value": "Everyday Picks Sports Accessories"
+  },
+  {
+    "id": 397,
+    "attribute_id": 44,
+    "value": "Sunglasses"
+  },
+  {
+    "id": 398,
+    "attribute_id": 45,
+    "value": "Sunglasses"
+  },
+  {
+    "id": 399,
+    "attribute_id": 46,
+    "value": "Fashion Shades"
+  },
+  {
+    "id": 400,
+    "attribute_id": 48,
+    "value": "Eyewear"
+  },
+  {
+    "id": 401,
+    "attribute_id": 44,
+    "value": "Featured Sunglasses"
+  },
+  {
+    "id": 402,
+    "attribute_id": 44,
+    "value": "New Sunglasses"
+  },
+  {
+    "id": 403,
+    "attribute_id": 44,
+    "value": "Popular Sunglasses"
+  },
+  {
+    "id": 404,
+    "attribute_id": 44,
+    "value": "Budget Sunglasses"
+  },
+  {
+    "id": 405,
+    "attribute_id": 46,
+    "value": "Fashion Fun"
+  },
+  {
+    "id": 406,
+    "attribute_id": 44,
+    "value": "Premium Sunglasses"
+  },
+  {
+    "id": 407,
+    "attribute_id": 44,
+    "value": "Essentials Sunglasses"
+  },
+  {
+    "id": 408,
+    "attribute_id": 44,
+    "value": "Seasonal Sunglasses"
+  },
+  {
+    "id": 409,
+    "attribute_id": 44,
+    "value": "Top Rated Sunglasses"
+  },
+  {
+    "id": 410,
+    "attribute_id": 44,
+    "value": "Staff Picks Sunglasses"
+  },
+  {
+    "id": 411,
+    "attribute_id": 44,
+    "value": "Just Arrived Sunglasses"
+  },
+  {
+    "id": 412,
+    "attribute_id": 44,
+    "value": "Fresh Picks Sunglasses"
+  },
+  {
+    "id": 413,
+    "attribute_id": 44,
+    "value": "Best Sellers Sunglasses"
+  },
+  {
+    "id": 414,
+    "attribute_id": 44,
+    "value": "Everyday Picks Sunglasses"
+  },
+  {
+    "id": 415,
+    "attribute_id": 44,
+    "value": "Tablets"
+  },
+  {
+    "id": 416,
+    "attribute_id": 45,
+    "value": "Tablets"
+  },
+  {
+    "id": 417,
+    "attribute_id": 44,
+    "value": "Featured Tablets"
+  },
+  {
+    "id": 418,
+    "attribute_id": 44,
+    "value": "New Tablets"
+  },
+  {
+    "id": 419,
+    "attribute_id": 44,
+    "value": "Popular Tablets"
+  },
+  {
+    "id": 420,
+    "attribute_id": 44,
+    "value": "Budget Tablets"
+  },
+  {
+    "id": 421,
+    "attribute_id": 44,
+    "value": "Premium Tablets"
+  },
+  {
+    "id": 422,
+    "attribute_id": 44,
+    "value": "Essentials Tablets"
+  },
+  {
+    "id": 423,
+    "attribute_id": 44,
+    "value": "Seasonal Tablets"
+  },
+  {
+    "id": 424,
+    "attribute_id": 44,
+    "value": "Top Rated Tablets"
+  },
+  {
+    "id": 425,
+    "attribute_id": 44,
+    "value": "Staff Picks Tablets"
+  },
+  {
+    "id": 426,
+    "attribute_id": 44,
+    "value": "Just Arrived Tablets"
+  },
+  {
+    "id": 427,
+    "attribute_id": 44,
+    "value": "Fresh Picks Tablets"
+  },
+  {
+    "id": 428,
+    "attribute_id": 44,
+    "value": "Best Sellers Tablets"
+  },
+  {
+    "id": 429,
+    "attribute_id": 44,
+    "value": "Everyday Picks Tablets"
+  },
+  {
+    "id": 430,
+    "attribute_id": 44,
+    "value": "Tops"
+  },
+  {
+    "id": 431,
+    "attribute_id": 45,
+    "value": "Tops"
+  },
+  {
+    "id": 432,
+    "attribute_id": 44,
+    "value": "Featured Tops"
+  },
+  {
+    "id": 433,
+    "attribute_id": 44,
+    "value": "New Tops"
+  },
+  {
+    "id": 434,
+    "attribute_id": 44,
+    "value": "Popular Tops"
+  },
+  {
+    "id": 435,
+    "attribute_id": 44,
+    "value": "Budget Tops"
+  },
+  {
+    "id": 436,
+    "attribute_id": 44,
+    "value": "Premium Tops"
+  },
+  {
+    "id": 437,
+    "attribute_id": 44,
+    "value": "Essentials Tops"
+  },
+  {
+    "id": 438,
+    "attribute_id": 44,
+    "value": "Seasonal Tops"
+  },
+  {
+    "id": 439,
+    "attribute_id": 44,
+    "value": "Top Rated Tops"
+  },
+  {
+    "id": 440,
+    "attribute_id": 44,
+    "value": "Staff Picks Tops"
+  },
+  {
+    "id": 441,
+    "attribute_id": 44,
+    "value": "Just Arrived Tops"
+  },
+  {
+    "id": 442,
+    "attribute_id": 44,
+    "value": "Fresh Picks Tops"
+  },
+  {
+    "id": 443,
+    "attribute_id": 44,
+    "value": "Best Sellers Tops"
+  },
+  {
+    "id": 444,
+    "attribute_id": 44,
+    "value": "Everyday Picks Tops"
+  },
+  {
+    "id": 445,
+    "attribute_id": 44,
+    "value": "Vehicle"
+  },
+  {
+    "id": 446,
+    "attribute_id": 45,
+    "value": "Vehicle"
+  },
+  {
+    "id": 447,
+    "attribute_id": 46,
+    "value": "Dodge"
+  },
+  {
+    "id": 448,
+    "attribute_id": 48,
+    "value": "Suvs"
+  },
+  {
+    "id": 449,
+    "attribute_id": 44,
+    "value": "Featured Vehicle"
+  },
+  {
+    "id": 450,
+    "attribute_id": 46,
+    "value": "Chrysler"
+  },
+  {
+    "id": 451,
+    "attribute_id": 48,
+    "value": "Sedans"
+  },
+  {
+    "id": 452,
+    "attribute_id": 44,
+    "value": "New Vehicle"
+  },
+  {
+    "id": 453,
+    "attribute_id": 48,
+    "value": "Minivans"
+  },
+  {
+    "id": 454,
+    "attribute_id": 44,
+    "value": "Popular Vehicle"
+  },
+  {
+    "id": 455,
+    "attribute_id": 48,
+    "value": "Hatchbacks"
+  },
+  {
+    "id": 456,
+    "attribute_id": 44,
+    "value": "Budget Vehicle"
+  },
+  {
+    "id": 457,
+    "attribute_id": 44,
+    "value": "Premium Vehicle"
+  },
+  {
+    "id": 458,
+    "attribute_id": 44,
+    "value": "Essentials Vehicle"
+  },
+  {
+    "id": 459,
+    "attribute_id": 44,
+    "value": "Seasonal Vehicle"
+  },
+  {
+    "id": 460,
+    "attribute_id": 44,
+    "value": "Top Rated Vehicle"
+  },
+  {
+    "id": 461,
+    "attribute_id": 44,
+    "value": "Staff Picks Vehicle"
+  },
+  {
+    "id": 462,
+    "attribute_id": 44,
+    "value": "Just Arrived Vehicle"
+  },
+  {
+    "id": 463,
+    "attribute_id": 44,
+    "value": "Fresh Picks Vehicle"
+  },
+  {
+    "id": 464,
+    "attribute_id": 44,
+    "value": "Best Sellers Vehicle"
+  },
+  {
+    "id": 465,
+    "attribute_id": 44,
+    "value": "Everyday Picks Vehicle"
+  },
+  {
+    "id": 466,
+    "attribute_id": 44,
+    "value": "Womens Bags"
+  },
+  {
+    "id": 467,
+    "attribute_id": 45,
+    "value": "Womens Bags"
+  },
+  {
+    "id": 468,
+    "attribute_id": 46,
+    "value": "Heshe"
+  },
+  {
+    "id": 469,
+    "attribute_id": 48,
+    "value": "Fashion Accessories"
+  },
+  {
+    "id": 470,
+    "attribute_id": 44,
+    "value": "Featured Womens Bags"
+  },
+  {
+    "id": 471,
+    "attribute_id": 44,
+    "value": "New Womens Bags"
+  },
+  {
+    "id": 472,
+    "attribute_id": 46,
+    "value": "Fashionista"
+  },
+  {
+    "id": 473,
+    "attribute_id": 44,
+    "value": "Popular Womens Bags"
+  },
+  {
+    "id": 474,
+    "attribute_id": 46,
+    "value": "Elegance Collection"
+  },
+  {
+    "id": 475,
+    "attribute_id": 44,
+    "value": "Budget Womens Bags"
+  },
+  {
+    "id": 476,
+    "attribute_id": 46,
+    "value": "Prada"
+  },
+  {
+    "id": 477,
+    "attribute_id": 44,
+    "value": "Premium Womens Bags"
+  },
+  {
+    "id": 478,
+    "attribute_id": 44,
+    "value": "Essentials Womens Bags"
+  },
+  {
+    "id": 479,
+    "attribute_id": 44,
+    "value": "Seasonal Womens Bags"
+  },
+  {
+    "id": 480,
+    "attribute_id": 44,
+    "value": "Top Rated Womens Bags"
+  },
+  {
+    "id": 481,
+    "attribute_id": 44,
+    "value": "Staff Picks Womens Bags"
+  },
+  {
+    "id": 482,
+    "attribute_id": 44,
+    "value": "Just Arrived Womens Bags"
+  },
+  {
+    "id": 483,
+    "attribute_id": 44,
+    "value": "Fresh Picks Womens Bags"
+  },
+  {
+    "id": 484,
+    "attribute_id": 44,
+    "value": "Best Sellers Womens Bags"
+  },
+  {
+    "id": 485,
+    "attribute_id": 44,
+    "value": "Everyday Picks Womens Bags"
+  },
+  {
+    "id": 486,
+    "attribute_id": 44,
+    "value": "Womens Dresses"
+  },
+  {
+    "id": 487,
+    "attribute_id": 45,
+    "value": "Womens Dresses"
+  },
+  {
+    "id": 488,
+    "attribute_id": 47,
+    "value": "Fabric"
+  },
+  {
+    "id": 489,
+    "attribute_id": 44,
+    "value": "Featured Womens Dresses"
+  },
+  {
+    "id": 490,
+    "attribute_id": 44,
+    "value": "New Womens Dresses"
+  },
+  {
+    "id": 491,
+    "attribute_id": 44,
+    "value": "Popular Womens Dresses"
+  },
+  {
+    "id": 492,
+    "attribute_id": 44,
+    "value": "Budget Womens Dresses"
+  },
+  {
+    "id": 493,
+    "attribute_id": 44,
+    "value": "Premium Womens Dresses"
+  },
+  {
+    "id": 494,
+    "attribute_id": 44,
+    "value": "Essentials Womens Dresses"
+  },
+  {
+    "id": 495,
+    "attribute_id": 44,
+    "value": "Seasonal Womens Dresses"
+  },
+  {
+    "id": 496,
+    "attribute_id": 44,
+    "value": "Top Rated Womens Dresses"
+  },
+  {
+    "id": 497,
+    "attribute_id": 44,
+    "value": "Staff Picks Womens Dresses"
+  },
+  {
+    "id": 498,
+    "attribute_id": 44,
+    "value": "Just Arrived Womens Dresses"
+  },
+  {
+    "id": 499,
+    "attribute_id": 44,
+    "value": "Fresh Picks Womens Dresses"
+  },
+  {
+    "id": 500,
+    "attribute_id": 44,
+    "value": "Best Sellers Womens Dresses"
+  },
+  {
+    "id": 501,
+    "attribute_id": 44,
+    "value": "Everyday Picks Womens Dresses"
+  },
+  {
+    "id": 502,
+    "attribute_id": 44,
+    "value": "Womens Jewellery"
+  },
+  {
+    "id": 503,
+    "attribute_id": 45,
+    "value": "Womens Jewellery"
+  },
+  {
+    "id": 504,
+    "attribute_id": 44,
+    "value": "Featured Womens Jewellery"
+  },
+  {
+    "id": 505,
+    "attribute_id": 44,
+    "value": "New Womens Jewellery"
+  },
+  {
+    "id": 506,
+    "attribute_id": 44,
+    "value": "Popular Womens Jewellery"
+  },
+  {
+    "id": 507,
+    "attribute_id": 44,
+    "value": "Budget Womens Jewellery"
+  },
+  {
+    "id": 508,
+    "attribute_id": 44,
+    "value": "Premium Womens Jewellery"
+  },
+  {
+    "id": 509,
+    "attribute_id": 44,
+    "value": "Essentials Womens Jewellery"
+  },
+  {
+    "id": 510,
+    "attribute_id": 44,
+    "value": "Seasonal Womens Jewellery"
+  },
+  {
+    "id": 511,
+    "attribute_id": 44,
+    "value": "Top Rated Womens Jewellery"
+  },
+  {
+    "id": 512,
+    "attribute_id": 44,
+    "value": "Staff Picks Womens Jewellery"
+  },
+  {
+    "id": 513,
+    "attribute_id": 44,
+    "value": "Just Arrived Womens Jewellery"
+  },
+  {
+    "id": 514,
+    "attribute_id": 44,
+    "value": "Fresh Picks Womens Jewellery"
+  },
+  {
+    "id": 515,
+    "attribute_id": 44,
+    "value": "Best Sellers Womens Jewellery"
+  },
+  {
+    "id": 516,
+    "attribute_id": 44,
+    "value": "Everyday Picks Womens Jewellery"
+  },
+  {
+    "id": 517,
+    "attribute_id": 44,
+    "value": "Womens Shoes"
+  },
+  {
+    "id": 518,
+    "attribute_id": 45,
+    "value": "Womens Shoes"
+  },
+  {
+    "id": 519,
+    "attribute_id": 44,
+    "value": "Featured Womens Shoes"
+  },
+  {
+    "id": 520,
+    "attribute_id": 46,
+    "value": "Fashion Diva"
+  },
+  {
+    "id": 521,
+    "attribute_id": 44,
+    "value": "New Womens Shoes"
+  },
+  {
+    "id": 522,
+    "attribute_id": 46,
+    "value": "Fashion Express"
+  },
+  {
+    "id": 523,
+    "attribute_id": 44,
+    "value": "Popular Womens Shoes"
+  },
+  {
+    "id": 524,
+    "attribute_id": 46,
+    "value": "Pampi"
+  },
+  {
+    "id": 525,
+    "attribute_id": 44,
+    "value": "Budget Womens Shoes"
+  },
+  {
+    "id": 526,
+    "attribute_id": 46,
+    "value": "Comfort Trends"
+  },
+  {
+    "id": 527,
+    "attribute_id": 44,
+    "value": "Premium Womens Shoes"
+  },
+  {
+    "id": 528,
+    "attribute_id": 44,
+    "value": "Essentials Womens Shoes"
+  },
+  {
+    "id": 529,
+    "attribute_id": 44,
+    "value": "Seasonal Womens Shoes"
+  },
+  {
+    "id": 530,
+    "attribute_id": 44,
+    "value": "Top Rated Womens Shoes"
+  },
+  {
+    "id": 531,
+    "attribute_id": 44,
+    "value": "Staff Picks Womens Shoes"
+  },
+  {
+    "id": 532,
+    "attribute_id": 44,
+    "value": "Just Arrived Womens Shoes"
+  },
+  {
+    "id": 533,
+    "attribute_id": 44,
+    "value": "Fresh Picks Womens Shoes"
+  },
+  {
+    "id": 534,
+    "attribute_id": 44,
+    "value": "Best Sellers Womens Shoes"
+  },
+  {
+    "id": 535,
+    "attribute_id": 44,
+    "value": "Everyday Picks Womens Shoes"
+  },
+  {
+    "id": 536,
+    "attribute_id": 44,
+    "value": "Womens Watches"
+  },
+  {
+    "id": 537,
+    "attribute_id": 45,
+    "value": "Womens Watches"
+  },
+  {
+    "id": 538,
+    "attribute_id": 46,
+    "value": "Fashion Gold"
+  },
+  {
+    "id": 539,
+    "attribute_id": 44,
+    "value": "Featured Womens Watches"
+  },
+  {
+    "id": 540,
+    "attribute_id": 44,
+    "value": "New Womens Watches"
+  },
+  {
+    "id": 541,
+    "attribute_id": 46,
+    "value": "Fashion Co."
+  },
+  {
+    "id": 542,
+    "attribute_id": 44,
+    "value": "Popular Womens Watches"
+  },
+  {
+    "id": 543,
+    "attribute_id": 46,
+    "value": "IWC"
+  },
+  {
+    "id": 544,
+    "attribute_id": 44,
+    "value": "Budget Womens Watches"
+  },
+  {
+    "id": 545,
+    "attribute_id": 44,
+    "value": "Premium Womens Watches"
+  },
+  {
+    "id": 546,
+    "attribute_id": 44,
+    "value": "Essentials Womens Watches"
+  },
+  {
+    "id": 547,
+    "attribute_id": 44,
+    "value": "Seasonal Womens Watches"
+  },
+  {
+    "id": 548,
+    "attribute_id": 44,
+    "value": "Top Rated Womens Watches"
+  },
+  {
+    "id": 549,
+    "attribute_id": 44,
+    "value": "Staff Picks Womens Watches"
+  },
+  {
+    "id": 550,
+    "attribute_id": 44,
+    "value": "Just Arrived Womens Watches"
+  },
+  {
+    "id": 551,
+    "attribute_id": 44,
+    "value": "Fresh Picks Womens Watches"
+  },
+  {
+    "id": 552,
+    "attribute_id": 44,
+    "value": "Best Sellers Womens Watches"
+  },
+  {
+    "id": 553,
+    "attribute_id": 44,
+    "value": "Everyday Picks Womens Watches"
+  }
+]

@@ -389,10 +389,16 @@
 
                     <div class="ms-4 text-sm">
                         <span for="delivery-{{ method.id }}" class="font-medium leading-none text-gray-900 dark:text-white">
-                        {% if method.free_from and cart.subtotal >= method.free_from %}
+                        {% if method.price == 0 or method.free_from and cart.subtotal >= method.free_from %}
                             Free Delivery - {{ method.name }}
                         {% else %}
-                            {{ method.price }} zł - {{ method.name }}
+                            <span 
+                                data-price="{{ method.price }}" 
+                                data-currency="{{ site_currency }}"
+                            >
+                                {{ method.price }}
+                            </span>
+                            - {{ method.name }}
                         {% endif %}
                         </span>
                         <p id="delivery-{{ method.id }}-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">

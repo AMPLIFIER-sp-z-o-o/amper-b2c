@@ -1,0 +1,47 @@
+[
+  {
+    "id": 1,
+    "footer_id": 1,
+    "platform": "facebook",
+    "label": "Facebook",
+    "url": "https://facebook.com",
+    "is_active": true,
+    "order": 0
+  },
+  {
+    "id": 2,
+    "footer_id": 1,
+    "platform": "youtube",
+    "label": "YouTube",
+    "url": "https://youtube.com",
+    "is_active": true,
+    "order": 1
+  },
+  {
+    "id": 3,
+    "footer_id": 1,
+    "platform": "instagram",
+    "label": "Instagram",
+    "url": "https://instagram.com",
+    "is_active": true,
+    "order": 2
+  },
+  {
+    "id": 4,
+    "footer_id": 1,
+    "platform": "twitter",
+    "label": "Twitter",
+    "url": "https://twitter.com",
+    "is_active": true,
+    "order": 3
+  },
+  {
+    "id": 5,
+    "footer_id": 1,
+    "platform": "tiktok",
+    "label": "TikTok",
+    "url": "https://tiktok.com",
+    "is_active": true,
+    "order": 4
+  }
+]

@@ -502,6 +502,11 @@ STORAGES = {
 
 MEDIA_ROOT = BASE_DIR / "media"
 MEDIA_URL = "/media/"
+MEDIA_PRESIGNED_URL_EXPIRES = env.int("MEDIA_PRESIGNED_URL_EXPIRES", default=3600)
+MEDIA_CDN_DOMAIN_URL = env("MEDIA_CDN_DOMAIN_URL", default="").strip()
+if MEDIA_CDN_DOMAIN_URL.startswith(("http://", "https://")):
+    MEDIA_CDN_DOMAIN_URL = MEDIA_CDN_DOMAIN_URL.split("://", 1)[1]
+MEDIA_CDN_DOMAIN_URL = MEDIA_CDN_DOMAIN_URL.strip("/")
 
 USE_S3_MEDIA = env.bool("USE_S3_MEDIA", default=False)
 if USE_S3_MEDIA:
@@ -510,7 +515,7 @@ if USE_S3_MEDIA:
     AWS_ACCESS_KEY_ID = env("AWS_ACCESS_KEY_ID", default="")
     AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY")
     AWS_STORAGE_BUCKET_NAME = env("AWS_STORAGE_BUCKET_NAME", default="amplifier-media")
-    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+    AWS_S3_CUSTOM_DOMAIN = MEDIA_CDN_DOMAIN_URL or f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
     PUBLIC_MEDIA_LOCATION = "media"
     MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{PUBLIC_MEDIA_LOCATION}/"
     STORAGES["default"] = {

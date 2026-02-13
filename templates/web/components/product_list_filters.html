@@ -6,7 +6,7 @@
   <div class="mb-6">
     <!-- Parent Category Link -->
     {% if current_category.parent %}
-    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
       <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
@@ -25,7 +25,7 @@
     <ul class="space-y-0.5 mt-1 {% if is_mobile %}-mx-3{% else %}-mx-4{% endif %}">
       {% for subcategory in subcategories_nav %}
       <li>
-        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}ps-8 pe-3{% else %}ps-10 pe-4{% endif %} text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}ps-8 pe-3{% else %}ps-10 pe-4{% endif %} text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
           {{ subcategory.name }}
           {% if subcategory.total_product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ subcategory.total_product_count }})</span>{% endif %}
         </a>
@@ -37,7 +37,7 @@
 
   <!-- Parent Category Navigation (when no subcategories) -->
   {% if current_category and current_category.parent and not subcategories_nav %}
-  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
     <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
     </svg>
@@ -117,7 +117,7 @@
                    min="0"
                    step="0.01"
                    class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">zł</span>
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{{ site_currency }}</span>
           </div>
           <!-- Separator -->
           <span class="text-gray-400 dark:text-gray-500">—</span>
@@ -131,7 +131,7 @@
                    min="0"
                    step="0.01"
                    class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">zł</span>
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{{ site_currency }}</span>
           </div>
         </div>
       </div>
@@ -170,7 +170,7 @@
                    type="checkbox" 
                    {% if option.id in selected_attributes %}checked{% endif %}
                    class="h-4 w-4 rounded border-gray-300 bg-gray-100 text-primary-600 focus:ring-0 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-0 cursor-pointer shrink-0 transition-all ring-0" />
-            <span class="flex-1 ms-2 text-sm text-gray-900 dark:text-gray-300">
+            <span class="flex-1 ms-2 text-subtitle">
               {{ option.value }}
               {% if option.product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ option.product_count }})</span>{% endif %}
             </span>
@@ -262,6 +262,15 @@ function buildFilterQueryString() {
   return params.toString();
 }
 
+function getCurrencyLocale(currency) {
+  const currencyLocales = {
+    USD: 'en-US',
+    EUR: 'de-DE',
+    PLN: 'pl-PL'
+  };
+  return currencyLocales[currency] || 'en-US';
+}
+
 // Update Clear all link state immediately on filter changes
 function updateClearAllLinkState() {
   const clearLink = document.getElementById('clear-filters-link');
@@ -284,10 +293,7 @@ function updateClearAllLinkState() {
   clearLink.setAttribute('aria-disabled', String(!isActive));
 }
 
-// Scroll to the top of the page smoothly
-function scrollToListTopIfNeeded() {
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+let productsLoadingFailsafeTimer;
 
 // Show loading overlay on products container
 function showProductsLoading(options = {}) {
@@ -325,9 +331,14 @@ function showProductsLoading(options = {}) {
   productsContainer.appendChild(overlay);
   document.body.appendChild(spinner);
 
+  if (productsLoadingFailsafeTimer) {
+    clearTimeout(productsLoadingFailsafeTimer);
+  }
+  productsLoadingFailsafeTimer = setTimeout(hideProductsLoading, 12000);
+
   // Scroll to top first if requested (so spinner position calculation uses correct viewport)
   if (scrollToTop) {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }
 
   // Position spinner centered on visible portion of products container
@@ -374,6 +385,11 @@ function showProductsLoading(options = {}) {
 
 // Hide loading overlay and spinner
 function hideProductsLoading() {
+  if (productsLoadingFailsafeTimer) {
+    clearTimeout(productsLoadingFailsafeTimer);
+    productsLoadingFailsafeTimer = null;
+  }
+
   const overlay = document.getElementById('products-loading-overlay');
   if (overlay) {
     overlay.remove();
@@ -437,10 +453,15 @@ function applyFiltersWithHtmx(options = {}) {
   const productsContainer = document.getElementById('products-container');
   if (productsContainer) {
     if (window.htmx && typeof window.htmx.ajax === 'function') {
-      window.htmx.ajax('GET', newUrl, {
+      const request = window.htmx.ajax('GET', newUrl, {
         target: '#products-container',
         swap: 'innerHTML'
       });
+      if (request && typeof request.catch === 'function') {
+        request.catch(function() {
+          hideProductsLoading();
+        });
+      }
     } else {
       fetch(newUrl, {
         headers: {
@@ -454,9 +475,10 @@ function applyFiltersWithHtmx(options = {}) {
         // Re-trigger price formatting
         document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
           const price = parseFloat(el.dataset.price);
-          const currency = el.dataset.currency || 'PLN';
+          const currency = el.dataset.currency || '{{ site_currency|default:"USD" }}';
+          const locale = getCurrencyLocale(currency);
           if (!isNaN(price)) {
-            el.textContent = new Intl.NumberFormat('pl-PL', {
+            el.textContent = new Intl.NumberFormat(locale, {
               style: 'currency',
               currency: currency
             }).format(price);
@@ -500,13 +522,21 @@ function navigateToPage(url, options = {}) {
   const productsContainer = document.getElementById('products-container');
   if (productsContainer) {
     if (window.htmx && typeof window.htmx.ajax === 'function') {
-      window.htmx.ajax('GET', url, {
+      const request = window.htmx.ajax('GET', url, {
         target: '#products-container',
         swap: 'innerHTML'
-      }).then(function() {
-        // Ensure counts are updated after HTMX swap
-        updateProductCounts();
       });
+      if (request && typeof request.then === 'function') {
+        request.then(function() {
+          // Ensure counts are updated after HTMX swap
+          updateProductCounts();
+        });
+      }
+      if (request && typeof request.catch === 'function') {
+        request.catch(function() {
+          hideProductsLoading();
+        });
+      }
     } else {
       fetch(url, {
         headers: {
@@ -520,9 +550,10 @@ function navigateToPage(url, options = {}) {
         // Re-trigger price formatting
         document.querySelectorAll('#products-container [data-price]').forEach(function(el) {
           const price = parseFloat(el.dataset.price);
-          const currency = el.dataset.currency || 'PLN';
+          const currency = el.dataset.currency || '{{ site_currency|default:"USD" }}';
+          const locale = getCurrencyLocale(currency);
           if (!isNaN(price)) {
-            el.textContent = new Intl.NumberFormat('pl-PL', {
+            el.textContent = new Intl.NumberFormat(locale, {
               style: 'currency',
               currency: currency
             }).format(price);
@@ -1051,11 +1082,13 @@ document.addEventListener('DOMContentLoaded', function() {
       const trigger = e.detail.elt;
       if (!trigger) return;
       const targetId = e.detail.target && e.detail.target.id;
+      const isPaginationOrSort =
+        (typeof trigger.matches === 'function' && trigger.matches('[data-pagination-link], [data-sort-link]')) ||
+        (typeof trigger.closest === 'function' && !!trigger.closest('[data-pagination-link], [data-sort-link]'));
       
       // Show loader for any request targeting products-container
       if (targetId === 'products-container') {
-        if (trigger.matches('[data-pagination-link], [data-sort-link]')) {
-          scrollToListTopIfNeeded();
+        if (isPaginationOrSort) {
           showProductsLoading({ scrollToTop: true, positionMode: 'visible-center' });
         } else {
           showProductsLoading({ scrollToTop: false, positionMode: 'visible-center' });
@@ -1091,6 +1124,38 @@ document.addEventListener('DOMContentLoaded', function() {
       if (e.target && e.target.id === 'products-container') {
         hideProductsLoading();
       }
+    });
+
+    document.addEventListener('htmx:afterRequest', function(e) {
+      const targetId = e.detail && e.detail.target && e.detail.target.id;
+      if (targetId === 'products-container') {
+        hideProductsLoading();
+      }
+    });
+
+    document.addEventListener('htmx:sendError', function(e) {
+      const targetId = e.detail && e.detail.target && e.detail.target.id;
+      if (targetId === 'products-container') {
+        hideProductsLoading();
+      }
+    });
+
+    document.addEventListener('htmx:timeout', function(e) {
+      const targetId = e.detail && e.detail.target && e.detail.target.id;
+      if (targetId === 'products-container') {
+        hideProductsLoading();
+      }
+    });
+
+    document.addEventListener('htmx:historyRestore', function() {
+      hideProductsLoading();
+      initActiveFilterChips();
+      updateClearAllLinkState();
+      updateProductCounts();
+    });
+
+    window.addEventListener('popstate', function() {
+      hideProductsLoading();
     });
   }
 

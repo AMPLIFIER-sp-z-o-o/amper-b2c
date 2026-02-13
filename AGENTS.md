@@ -250,7 +250,7 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 
 **Purpose**: For descriptive text that provides immediate context for a heading or title. This text must have high readability and good contrast.
 
-- **Style**: `text-sm font-medium text-gray-600 dark:text-gray-300`
+- **Style**: `text-sm font-medium text-gray-700 dark:text-gray-200`
 - **When to use**: Page descriptions directly under titles, summary info (e.g., "10 products · 200,00 zł total"), category descriptions.
 - **Markup**: `<p class="text-subtitle mt-1">Manage your lists</p>`
 
@@ -267,7 +267,15 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 All secondary/descriptive text under main headings (like "Start your shopping in seconds" on login or "Manage your lists" on favourites) MUST use the `.text-subtitle` utility class. This ensures a consistent look across the app with:
 
 - **Font**: `text-sm font-medium`
-- **Color**: `text-gray-600 dark:text-gray-300`
+- **Color**: `text-gray-700 dark:text-gray-200`
+
+### Global Text Color Baseline (Default)
+
+For the entire B2C UI, the **default** color for regular readable text (labels, menu items, subcategory names, list items, and standard interactive text) must use the darker baseline:
+
+- `text-gray-700 dark:text-gray-200`
+
+Use lighter tones only for intentionally de-emphasized helper text (e.g., `.text-muted`) or explicitly defined secondary metadata.
 
 #### ❌ Anti-Patterns
 
@@ -521,6 +529,14 @@ btn.classList.add("bg-gray-400", "pointer-events-none");
 
 All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `font-medium` (`text-sm font-medium`) for their text. Never use the default `font-normal` weight for dropdown items — thin text reduces readability and looks inconsistent with the rest of the UI.
 
+### Dropdown & Subcategory Text Color (Default)
+
+For dropdowns and subcategory lists, the **default** text color must be the darker baseline:
+
+- `text-gray-700 dark:text-gray-200`
+
+This follows the global baseline. Do **NOT** use lighter defaults like `text-gray-600 dark:text-gray-300` for primary menu labels in dropdowns/subcategory navigation. Keep stronger emphasis states (e.g., selected/active items with `font-semibold` and `text-gray-900 dark:text-white`) only where they are intentionally required.
+
 ### Typography Constraints
 
 - **Font Size Restriction**: Never use `text-xs` for primary or interactive labels. `text-xs` is strictly reserved for secondary metadata or very small secondary hint text. For user identification (like email in dropdowns), use at least `text-sm` or ensure higher weight if `text-xs` must be used for layout reasons.
@@ -529,7 +545,7 @@ All dropdown menu items (context menus, sort dropdowns, action menus) MUST use `
 **Example:**
 
 ```html
-<button class="text-sm font-medium text-gray-700 dark:text-gray-300 ...">
+<button class="text-sm font-medium text-gray-700 dark:text-gray-200 ...">
   Share list
 </button>
 ```
@@ -541,7 +557,7 @@ Labels for checkboxes and agreement/consent text (e.g., "I agree to the Terms an
 **Correct:**
 
 ```html
-<label class="font-normal text-gray-600 dark:text-gray-300 cursor-pointer">
+<label class="font-normal text-gray-700 dark:text-gray-200 cursor-pointer">
   I agree to the Terms and Conditions
 </label>
 ```

@@ -24,7 +24,7 @@
         {% endwith %}
     </ul>
     {% else %}
-    <a href="{{ item.get_absolute_url }}" class="flex items-center w-full p-2 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-200 dark:text-white dark:hover:bg-gray-700 {{ font_size|default:'text-base' }}" style="padding-left: {{ padding }}rem">
+    <a href="{{ item.get_absolute_url }}" class="flex items-center w-full p-2 text-gray-700 transition duration-75 rounded-lg group hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-700 font-medium {{ font_size|default:'text-base' }}" style="padding-left: {{ padding }}rem">
         <span class="flex-1 text-left rtl:text-right whitespace-nowrap">{{ item.name }}</span>
     </a>
     {% endif %}

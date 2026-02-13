@@ -169,8 +169,8 @@
 
     priceElements.forEach((el) => {
       const value = parseFloat(el.dataset.price);
-      const currency = el.dataset.currency || "PLN";
-      const locale = CURRENCY_LOCALES[currency] || "pl-PL";
+      const currency = el.dataset.currency || "USD";
+      const locale = CURRENCY_LOCALES[currency] || "en-US";
       if (isNaN(value)) return;
 
       try {

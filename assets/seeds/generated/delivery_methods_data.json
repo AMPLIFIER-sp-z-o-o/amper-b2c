@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "DHL Fast Delivery",
+    "price": "10.00",
+    "delivery_time": 3,
+    "free_from": null,
+    "is_active": true
+  },
+  {
+    "id": 2,
+    "name": "FedEx",
+    "price": "12.00",
+    "delivery_time": 2,
+    "free_from": "200.00",
+    "is_active": true
+  },
+  {
+    "id": 3,
+    "name": "In-store pickup",
+    "price": "0.00",
+    "delivery_time": 0,
+    "free_from": null,
+    "is_active": true
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "section_id": 4,
+    "name": "Flowbite Section Banner 1",
+    "image": "banners/seed/flowbite-carousel-1.jpg",
+    "url": "/products/",
+    "order": 0
+  },
+  {
+    "id": 2,
+    "section_id": 4,
+    "name": "Flowbite Section Banner 2",
+    "image": "banners/seed/flowbite-carousel-2.jpg",
+    "url": "/products/",
+    "order": 1
+  },
+  {
+    "id": 3,
+    "section_id": 4,
+    "name": "Flowbite Section Banner 3",
+    "image": "banners/seed/flowbite-carousel-3.jpg",
+    "url": "/products/",
+    "order": 2
+  }
+]

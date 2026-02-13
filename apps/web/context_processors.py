@@ -16,16 +16,22 @@ def _safe_call(callback, default=None):
 
 def _category_has_products(category, category_ids_with_products):
     """
-    Recursively check if a category or any of its descendants has active products.
-    Uses a pre-computed set of category IDs with products for efficiency.
+    Recursively check if a category or any of its descendants has visible products.
+
+    While traversing, this also prunes the category tree by replacing the
+    prefetched ``children`` cache with only visible descendants so templates
+    using ``category.children.all`` receive filtered data.
     """
-    if category.id in category_ids_with_products:
-        return True
-    # Check children recursively (use prefetched children if available)
+    visible_children = []
     for child in category.children.all():
         if _category_has_products(child, category_ids_with_products):
-            return True
-    return False
+            visible_children.append(child)
+
+    prefetched_cache = getattr(category, "_prefetched_objects_cache", {})
+    prefetched_cache["children"] = visible_children
+    category._prefetched_objects_cache = prefetched_cache
+
+    return category.id in category_ids_with_products or bool(visible_children)
 
 
 def _filter_categories_with_products(categories):
@@ -57,7 +63,7 @@ def project_meta(request):
         "KEYWORDS": settings.PROJECT_METADATA.get("KEYWORDS", ""),
     }
 
-    site_currency = "PLN"  # default
+    site_currency = "USD"  # default
     site_settings_obj = _safe_call(SiteSettings.get_settings)
     if site_settings_obj:
         if site_settings_obj.store_name:
@@ -68,7 +74,7 @@ def project_meta(request):
             project_data["DESCRIPTION"] = site_settings_obj.description
         if site_settings_obj.keywords:
             project_data["KEYWORDS"] = site_settings_obj.keywords
-        site_currency = site_settings_obj.currency or "PLN"
+        site_currency = site_settings_obj.currency or "USD"
         if site_settings_obj.default_image:
             project_data["IMAGE"] = site_settings_obj.default_image.url
 
@@ -305,11 +311,62 @@ def navigation_categories(request):
 
         custom_navbar_items = _safe_call(_get_items, default=[])
 
+    # Shared icon for category preview pane in dropdown (same icon for all categories)
+    # Priority:
+    # 1) First icon from rendered custom navbar items
+    # 2) First icon from any active navbar item in CMS (also in standard mode)
+    # 3) First non-default icon from category model
+    nav_category_preview_icon = ""
+
+    for item in custom_navbar_items:
+        if item.icon and item.icon.strip():
+            nav_category_preview_icon = item.icon.strip()
+            break
+
+    if not nav_category_preview_icon and navbar:
+
+        def _get_navbar_items_for_icon():
+            items_query = navbar.items.select_related("dynamic_page").order_by("order", "id")
+            if not draft_preview_enabled:
+                items_query = items_query.filter(is_active=True).filter(
+                    Q(item_type=NavbarItem.ItemType.DYNAMIC_PAGE, dynamic_page__is_active=True)
+                    | ~Q(item_type=NavbarItem.ItemType.DYNAMIC_PAGE)
+                )
+
+            items = list(items_query)
+
+            if draft_preview_enabled and items:
+                from apps.support.draft_utils import apply_drafts_to_context
+
+                draft_changes_map = getattr(request, "draft_changes_map", {})
+                items = apply_drafts_to_context(items, draft_changes_map)
+                if not isinstance(items, list):
+                    items = list(items)
+                items = [item for item in items if item.is_active]
+                for item in items:
+                    item._draft_inline_applied = True
+
+            return items
+
+        navbar_items_for_icon = _safe_call(_get_navbar_items_for_icon, default=[])
+        for item in navbar_items_for_icon:
+            if item.icon and item.icon.strip():
+                nav_category_preview_icon = item.icon.strip()
+                break
+
+    if not nav_category_preview_icon:
+        for category in parent_categories:
+            category_icon = (category.icon or "").strip()
+            if category_icon and category_icon.lower() != "circle":
+                nav_category_preview_icon = category_icon
+                break
+
     return {
         "nav_categories": parent_categories,
         "navbar": navbar,
         "navbar_mode": navbar_mode,
         "custom_navbar_items": custom_navbar_items,
+        "nav_category_preview_icon": nav_category_preview_icon,
     }
 
 

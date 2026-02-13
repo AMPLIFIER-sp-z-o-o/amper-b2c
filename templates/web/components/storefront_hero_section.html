@@ -25,12 +25,12 @@
     {% if category_boxes %}
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:mt-8 xl:col-span-7 xl:mt-0 xl:gap-8">
       {% for box in category_boxes %}
-      <div class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
+      <div class="flex h-full flex-col space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ box.title }}</h2>
         
         {% with items=box.draft_items|default:box.items.all %}
         {% if items %}
-        <div class="grid grid-cols-2 text-gray-900 dark:text-white">
+        <div class="grid flex-1 grid-cols-2 text-gray-900 dark:text-white">
           {% for item in items|slice:":4" %}
           <div class="relative flex flex-col items-center p-4 text-center {% if forloop.counter0 == 0 %}border-b border-r border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 1 %}border-b border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 2 %}border-r border-gray-200 dark:border-gray-700{% endif %}">
             <a href="{{ item.url|default:'#' }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}>
@@ -44,7 +44,7 @@
         {% endwith %}
         
         {% if box.shop_link_text %}
-        <a href="{{ box.shop_link_url|default:'#' }}" {% if box.shop_link_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ box.shop_link_text }}" class="flex items-center gap-1 font-medium text-primary-700 hover:text-primary-600 hover:underline dark:text-primary-500 dark:hover:text-primary-400">
+        <a href="{{ box.shop_link_url|default:'#' }}" {% if box.shop_link_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} title="{{ box.shop_link_text }}" class="mt-auto flex items-center gap-1 font-medium text-primary-700 hover:text-primary-600 hover:underline dark:text-primary-500 dark:hover:text-primary-400">
           {{ box.shop_link_text }}
           <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4"></path>

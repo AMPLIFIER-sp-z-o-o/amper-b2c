@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "store_name": "AMPER",
+    "site_url": "http://localhost:8000",
+    "description": "Your one-stop shop for quality products.",
+    "keywords": "e-commerce, amper, shop",
+    "default_image": "",
+    "currency": "USD",
+    "logo": "site/amper-b2c-logo.png"
+  }
+]

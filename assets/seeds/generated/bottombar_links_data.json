@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "bottom_bar_id": 1,
+    "label": "Legal Notice",
+    "url": "/legal/",
+    "order": 0
+  },
+  {
+    "id": 2,
+    "bottom_bar_id": 1,
+    "label": "Privacy Policy",
+    "url": "/terms/",
+    "order": 1
+  },
+  {
+    "id": 3,
+    "bottom_bar_id": 1,
+    "label": "Terms of Use",
+    "url": "/terms/",
+    "order": 2
+  },
+  {
+    "id": 4,
+    "bottom_bar_id": 1,
+    "label": "Cookie Settings",
+    "url": "#",
+    "order": 3
+  },
+  {
+    "id": 5,
+    "bottom_bar_id": 1,
+    "label": "Accessibility",
+    "url": "#",
+    "order": 4
+  }
+]

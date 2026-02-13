@@ -208,7 +208,7 @@ class SiteSettings(SingletonModel):
     currency = models.CharField(
         max_length=3,
         choices=Currency.choices,
-        default=Currency.PLN,
+        default=Currency.USD,
         verbose_name=_("Currency"),
         help_text=_("Currency symbol displayed on prices. No conversion is performed - this is display only."),
     )
