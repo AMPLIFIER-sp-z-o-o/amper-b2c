@@ -88,22 +88,17 @@
           <div class="-my-3 divide-y divide-gray-200 dark:divide-gray-700 mb-1">
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Subtotal</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
+              <dd class="text-base font-medium text-gray-900 dark:text-white" data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
+            </dl>
+
+            <dl class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Delivery Costs</dt>
+              <dd class="text-base font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
             </dl>
 
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Savings</dt>
               <dd class="text-base font-medium text-green-500">0</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Store Pickup</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Tax</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
             </dl>
 
             <dl class="flex items-center justify-between gap-4 py-3">

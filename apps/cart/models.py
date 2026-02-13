@@ -10,15 +10,29 @@ class Cart(models.Model):
         blank=True,
         on_delete=models.SET_NULL
     )
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    
+    delivery_method = models.ForeignKey(
+        "DeliveryMethod",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+
     def recalculate(self):
-        total = sum(
+        subtotal = sum(
             (line.subtotal for line in self.lines.all()),
             Decimal("0.00")
         )
-        self.total = total.quantize(Decimal("0.01"))
-        self.save(update_fields=["total"])
+        self.subtotal = subtotal.quantize(Decimal("0.01"))
+
+        delivery_cost = Decimal("0.00")
+        if self.delivery_method:
+            delivery_cost = self.delivery_method.get_cost_for_cart(subtotal)
+
+        self.total = (subtotal + delivery_cost).quantize(Decimal("0.01"))
+
+        self.save(update_fields=["subtotal", "total"])
 
     def __str__(self):
         return f"Cart {self.id}"
@@ -51,3 +65,29 @@ class CartLine(models.Model):
             Decimal("0.01"),
             rounding=ROUND_HALF_UP
         )
+    
+class DeliveryMethod(models.Model):
+    name = models.CharField(max_length=120)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    delivery_time = models.PositiveIntegerField(
+        help_text="Delivery time in days"
+    )
+    free_from = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Free delivery from this cart amount"
+    )
+    is_active = models.BooleanField(default=True)
+
+    def get_cost_for_cart(self, cart_total: Decimal) -> Decimal:
+        """
+        Returns final delivery cost depending on cart value.
+        """
+        if self.free_from is not None and cart_total >= self.free_from:
+            return Decimal("0.00")
+        return self.price
+
+    def __str__(self):
+        return f"{self.name} ({self.price})"

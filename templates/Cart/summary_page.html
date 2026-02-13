@@ -88,6 +88,11 @@
               </dl>
 
               <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">Delivery method</dt>
+                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">{{ delivery_name }}</dd>
+              </dl>
+
+              <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Payment method</dt>
                 <dd class="mt-2 flex items-center gap-2 sm:mt-0 sm:justify-end">
                   <img class="h-auto w-5" src="{% media_file_url 'site/seed/mastercard.svg' %}" alt="" />
@@ -110,22 +115,17 @@
             <div class="space-y-2">
               <dl class="flex items-center justify-between gap-4">
                 <dt class="text-gray-500 dark:text-gray-400">Original price</dt>
-                <dd class="font-medium text-gray-900 dark:text-white">0</dd>
+                <dd class="font-medium text-gray-900 dark:text-white"  data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
+              </dl>
+
+              <dl class="flex items-center justify-between gap-4">
+                <dt class="text-gray-500 dark:text-gray-400">Delivery Costs</dt>
+                <dd class="font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
               </dl>
 
               <dl class="flex items-center justify-between gap-4">
                 <dt class="text-gray-500 dark:text-gray-400">Savings</dt>
                 <dd class="font-medium text-green-500">0</dd>
-              </dl>
-
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Store Pickup</dt>
-                <dd class="font-medium text-gray-900 dark:text-white">0</dd>
-              </dl>
-
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Tax</dt>
-                <dd class="font-medium text-gray-900 dark:text-white">0</dd>
               </dl>
             </div>
 

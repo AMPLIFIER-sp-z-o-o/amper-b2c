@@ -6,6 +6,8 @@ window.Cart = (function () {
 
     function updateCartSummary(data) {
         const totalEls = document.querySelectorAll('[data-cart-total]');
+        const subtotalEls = document.querySelectorAll('[data-cart-subtotal]');
+        const deliveryEls = document.querySelectorAll('[data-delivery-cost]');
         const cartLinesNumber =  document.querySelectorAll('[data-cart-lines-number]');
         const navCartLinesContainer = document.querySelector('#nav-cart-lines')
         if (!totalEls.length) return;
@@ -40,6 +42,14 @@ window.Cart = (function () {
             totalEls.forEach(el => {
                 el.dataset.price = data.cart_total;
                 el.textContent = data.cart_total;
+            });
+            subtotalEls.forEach(el => {
+                el.dataset.price = data.cart_subtotal;
+                el.textContent = data.cart_subtotal;
+            });
+            deliveryEls.forEach(el => {
+                el.dataset.price = data.delivery_cost;
+                el.textContent = data.cart_subtotal;
             });
             cartLinesNumber.forEach(el => {
                 const label = el.dataset.labelItems || "items";
@@ -206,6 +216,41 @@ window.Cart = (function () {
         }
 
     }, true);
+
+    // Select delivery method
+    document.addEventListener("change", function (e) {
+        const input = e.target;
+        if (!input.matches('input[name="delivery-method"]')) return;
+
+        const methodId = input.value;
+        const form = input.closest("form");
+
+        fetch(form.action || window.location.href, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken(),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: new URLSearchParams({
+                "delivery-method": methodId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+
+            document.querySelectorAll("[data-cart-total]").forEach(el => {
+                el.textContent = data.total;
+                el.dataset.price = data.total;
+            });
+            document.querySelectorAll("[data-delivery-cost]").forEach(el => {
+                el.textContent = data.delivery_cost;
+                el.dataset.price = data.delivery_cost;
+            });
+            formatPrices()
+        })
+        .catch(console.error);
+    });
 
     return {
         addToCart,

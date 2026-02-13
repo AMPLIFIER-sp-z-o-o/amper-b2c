@@ -3,7 +3,7 @@
 {% block body %}
 
 <section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
-  <form action="#" class="mx-auto max-w-7xl px-2 2xl:px-0">
+  <div class="mx-auto max-w-7xl px-2 2xl:px-0">
     <ol class="items-center flex w-full max-w-2xl text-center text-sm font-medium text-gray-500 dark:text-gray-400 sm:text-base">
         <li class="flex items-center text-primary-600 after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 dark:text-primary-500 dark:after:border-gray-700 md:w-full md:after:inline-block md:after:content-[''] xl:after:mx-10">
             <span class="flex items-center after:mx-2 after:text-gray-200 after:content-['/'] dark:after:text-gray-500 md:after:hidden">
@@ -368,50 +368,48 @@
           </div>
         </div>
 
-        <div class="space-y-4">
+        <form id="delivery-form" class="space-y-4">
           <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Delivery Methods</h3>
 
           <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="dhl" aria-describedby="dhl-text" type="radio" name="delivery-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" checked />
-                </div>
+            {% for method in delivery_methods %}
+                <label for="delivery-{{ method.id }}" class="cursor-pointer rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
+                    <div class="flex items-start">
+                    <div class="flex h-5 items-center">
+                        <input
+                        id="delivery-{{ method.id }}"
+                        aria-describedby="delivery-{{ method.id }}-text"
+                        type="radio"
+                        name="delivery-method"
+                        value="{{ method.id }}"
+                        class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600"
+                        {% if selected_delivery and method.id == selected_delivery.id %} checked {% endif %}
+                        />
+                    </div>
 
-                <div class="ms-4 text-sm">
-                  <label for="dhl" class="font-medium leading-none text-gray-900 dark:text-white"> $15 - DHL Fast Delivery </label>
-                  <p id="dhl-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">Get it by Tommorow</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="fedex" aria-describedby="fedex-text" type="radio" name="delivery-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" />
-                </div>
-
-                <div class="ms-4 text-sm">
-                  <label for="fedex" class="font-medium leading-none text-gray-900 dark:text-white"> Free Delivery - FedEx </label>
-                  <p id="fedex-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">Get it by Friday, 13 Dec 2023</p>
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 ps-4 dark:border-gray-700 dark:bg-gray-800">
-              <div class="flex items-start">
-                <div class="flex h-5 items-center">
-                  <input id="express" aria-describedby="express-text" type="radio" name="delivery-method" value="" class="h-4 w-4 border-gray-300 bg-white text-primary-600 focus:ring-2 focus:ring-primary-600 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800 dark:focus:ring-primary-600" />
-                </div>
-
-                <div class="ms-4 text-sm">
-                  <label for="express" class="font-medium leading-none text-gray-900 dark:text-white"> $49 - Express Delivery </label>
-                  <p id="express-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">Get it today</p>
-                </div>
-              </div>
-            </div>
+                    <div class="ms-4 text-sm">
+                        <span for="delivery-{{ method.id }}" class="font-medium leading-none text-gray-900 dark:text-white">
+                        {% if method.price == 0 or method.free_from and cart.subtotal >= method.free_from %}
+                            Free Delivery - {{ method.name }}
+                        {% else %}
+                            <span 
+                                data-price="{{ method.price }}" 
+                                data-currency="{{ site_currency }}"
+                            >
+                                {{ method.price }}
+                            </span>
+                            - {{ method.name }}
+                        {% endif %}
+                        </span>
+                        <p id="delivery-{{ method.id }}-text" class="mt-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                        {{ method.delivery_time }} days
+                        </p>
+                    </div>
+                    </div>
+                </label>
+            {% endfor %}
           </div>
-        </div>
+        </form>
       </div>
 
       <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
@@ -419,24 +417,19 @@
           <div class="-my-3 divide-y divide-gray-200 dark:divide-gray-800">
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Subtotal</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
+              <dd class="text-base font-medium text-gray-900 dark:text-white"  data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
+            </dl>
+
+            <dl class="flex items-center justify-between gap-4 py-3">
+              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Delivery Costs</dt>
+              <dd class="text-base font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
             </dl>
 
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Savings</dt>
               <dd class="text-base font-medium text-green-500">0</dd>
             </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Store Pickup</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Tax</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white">0</dd>
-            </dl>
-
+            
             <dl class="flex items-center justify-between gap-4 py-3">
               <dt class="text-base font-bold text-gray-900 dark:text-white">Total</dt>
               <dd class="text-base font-bold text-gray-900 dark:text-white" data-cart-total data-price="{{ total }}" data-currency="{{ site_currency }}">{{ total }}</dd>
@@ -457,6 +450,6 @@
         </div>
       </div>
     </div>
-  </form>
+  </div>
 </section>
 {% endblock %}

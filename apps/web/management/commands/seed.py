@@ -86,6 +86,7 @@ from apps.web.models import (
     SystemSettings,
     TopBar,
 )
+from apps.cart.models import DeliveryMethod 
 
 # Site domain is read from SITE_DOMAIN env var (default: localhost:8000).
 # On QA/production, set e.g. SITE_DOMAIN=amper-b2c.ampliapps.com
@@ -206,6 +207,8 @@ ATTRIBUTE_DEFINITIONS_DATA = _load_generated_seed_list("attribute_definitions_da
 ATTRIBUTE_OPTIONS_DATA = _load_generated_seed_list("attribute_options_data.json")
 
 PRODUCTS_DATA = _load_generated_seed_list("products_data.json")
+
+DELIVERY_METHODS_DATA = _load_generated_seed_list("delivery_methods_data.json")
 
 
 def _build_product_images_data():
@@ -342,6 +345,7 @@ class Command(BaseCommand):
                 self._seed_banners()
                 self._seed_homepage_sections()
                 self._seed_storefront_hero_section()
+                self._seed_delivery_methods()
                 # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
                 self._seed_social_apps()
 
@@ -1481,6 +1485,7 @@ class Command(BaseCommand):
             "homepage_storefrontherosection",
             "homepage_storefrontcategorybox",
             "homepage_storefrontcategoryitem",
+            "cart_deliverymethod",
         ]
 
         fixed_count = 0
@@ -1528,3 +1533,33 @@ class Command(BaseCommand):
             self.stdout.write("  History: initial records created")
         except Exception as exc:
             self.stdout.write(self.style.WARNING(f"  History: skipped ({exc})"))
+
+    def _seed_delivery_methods(self):
+        """Seed DeliveryMethod model."""
+        if not DELIVERY_METHODS_DATA:
+            self.stdout.write("  DeliveryMethod: 0 records (no data)")
+            return
+
+        self._bulk_upsert_by_id(
+            DeliveryMethod,
+            [
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "price": Decimal(item["price"]),
+                    "delivery_time": int(item["delivery_time"]),
+                    "free_from": Decimal(item["free_from"]) if item.get("free_from") else None,
+                    "is_active": item.get("is_active", True),
+                }
+                for item in DELIVERY_METHODS_DATA
+            ],
+            update_fields=[
+                "name",
+                "price",
+                "delivery_time",
+                "free_from",
+                "is_active",
+            ],
+        )
+
+        self.stdout.write(f"  DeliveryMethod: {len(DELIVERY_METHODS_DATA)} records")
