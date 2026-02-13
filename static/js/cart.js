@@ -49,7 +49,7 @@ window.Cart = (function () {
             });
             deliveryEls.forEach(el => {
                 el.dataset.price = data.delivery_cost;
-                el.textContent = data.cart_subtotal;
+                el.textContent = data.delivery_cost;
             });
             cartLinesNumber.forEach(el => {
                 const label = el.dataset.labelItems || "items";
@@ -251,6 +251,49 @@ window.Cart = (function () {
         })
         .catch(console.error);
     });
+
+    // Select payment method
+    document.addEventListener("change", function (e) {
+        const input = e.target;
+        if (!input.matches('input[name="payment-method"]')) return;
+
+        const paymentId = input.value;
+        const form = input.closest("form");
+
+        fetch(form.action || window.location.href, {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": getCSRFToken(),
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: new URLSearchParams({
+                "payment-method": paymentId
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (!data.success) return;
+
+            document.querySelectorAll("[data-cart-total]").forEach(el => {
+                el.textContent = data.total;
+                el.dataset.price = data.total;
+            });
+
+            document.querySelectorAll("[data-delivery-cost]").forEach(el => {
+                el.textContent = data.delivery_cost;
+                el.dataset.price = data.delivery_cost;
+            });
+
+            document.querySelectorAll("[data-payment-cost]").forEach(el => {
+                el.textContent = data.payment_cost;
+                el.dataset.price = data.payment_cost;
+            });
+
+            formatPrices()
+        })
+        .catch(console.error);
+    });
+
 
     return {
         addToCart,
