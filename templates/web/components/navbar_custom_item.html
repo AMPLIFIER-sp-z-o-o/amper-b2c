@@ -3,11 +3,11 @@
 {# Variables: item (NavbarItem), loop_index #}
 
 {% if item.item_type == 'separator' %}
-<div class="shrink-0 px-1 flex items-center">
+<div class="shrink-0 px-0.5 flex items-center">
   <span class="w-px h-6 bg-gray-300 dark:bg-gray-600"></span>
 </div>
 {% elif item.item_type == 'custom_link' %}
-<div class="shrink-0 nav-priority-item px-1 flex items-center nav-category-trigger">
+<div class="shrink-0 nav-priority-item px-0.5 flex items-center nav-category-trigger">
   <a 
     href="{{ item.url }}"
     {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
@@ -21,7 +21,7 @@
   </a>
 </div>
 {% elif item.item_type == 'dynamic_page' and item.dynamic_page %}
-<div class="shrink-0 nav-priority-item px-1 flex items-center nav-category-trigger">
+<div class="shrink-0 nav-priority-item px-0.5 flex items-center nav-category-trigger">
   <a 
     href="{{ item.get_url }}"
     {% if item.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}
@@ -36,7 +36,7 @@
 </div>
 {% elif item.item_type == 'category' and item.category %}
 {# Category item - dropdown is handled by the shared #category-dropdowns-container #}
-<div class="shrink-0 nav-category-trigger nav-priority-item px-1 flex items-center {% if item.has_children %}has-children{% endif %}" 
+<div class="shrink-0 nav-category-trigger nav-priority-item px-0.5 flex items-center {% if item.has_children %}has-children{% endif %}" 
      data-category-id="{{ item.category.id }}" 
      data-dropdown-target="categoryDropdown{{ item.category.id }}">
   <a href="{{ item.category.get_absolute_url }}" class="nav-category-btn inline-flex items-center gap-1 text-sm font-medium cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200 {% if item.label_color %}{% else %}text-gray-900 dark:text-white{% endif %}"

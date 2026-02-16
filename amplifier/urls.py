@@ -17,25 +17,33 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
+from django.contrib.auth import logout
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path, re_path
+from django.shortcuts import redirect
 from django.views.generic import RedirectView
 from django.views.i18n import JavaScriptCatalog
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
-from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView, CustomPasswordChangeView
+from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView, CustomLogoutView, CustomPasswordChangeView
 
 sitemaps = {
     "static": StaticViewSitemap(),
     "dynamic_pages": DynamicPageSitemap(),
 }
 
+
+def admin_logout_redirect(request):
+    logout(request)
+    return redirect("web:home")
+
 urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
     # redirect Django admin login to main login page
     path("admin/login/", RedirectView.as_view(pattern_name="account_login")),
+    path("admin/logout/", admin_logout_redirect, name="admin_logout_redirect"),
     path("admin/", admin.site.urls),
     path("ckeditor5/", include("django_ckeditor_5.urls")),
     path("i18n/", include("django.conf.urls.i18n")),
@@ -46,6 +54,11 @@ urlpatterns = [
         "accounts/password/change/",
         CustomPasswordChangeView.as_view(),
         name="account_change_password",
+    ),
+    path(
+        "accounts/logout/",
+        CustomLogoutView.as_view(),
+        name="account_logout",
     ),
     path(
         "accounts/confirm-email/<str:key>/",

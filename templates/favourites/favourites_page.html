@@ -581,6 +581,7 @@ const FavouritesPage = {
   activeWishlistPk: '{{ active_wishlist.id }}',
   csrfToken: '{{ csrf_token }}',
   searchTimeout: null,
+  _isLoading: false,
 
   init: function() {
     this.bindGlobalEvents();
@@ -620,6 +621,7 @@ const FavouritesPage = {
     // Re-bind only swapped content after HTMX swaps
     document.addEventListener('htmx:afterSwap', (event) => {
       if (event.detail.target.id === 'wishlist-items-container') {
+        this._isLoading = false;
         this.hideItemsLoading();
         this.bindItemCheckboxes();  // checkboxes inside swapped content
         this.bindItemActions();     // buttons inside swapped content
@@ -628,6 +630,19 @@ const FavouritesPage = {
         if (window.formatPrices) window.formatPrices();
       }
     });
+
+    const resetWishlistLoading = (event) => {
+      const targetId = event.detail && event.detail.target ? event.detail.target.id : null;
+      if (targetId === 'wishlist-items-container') {
+        this._isLoading = false;
+        this.hideItemsLoading();
+      }
+    };
+
+    document.addEventListener('htmx:responseError', resetWishlistLoading);
+    document.addEventListener('htmx:sendError', resetWishlistLoading);
+    document.addEventListener('htmx:timeout', resetWishlistLoading);
+    document.addEventListener('htmx:afterRequest', resetWishlistLoading);
 
     // Global click listener to close dropdowns/menus
     document.addEventListener('click', (e) => {
@@ -958,7 +973,17 @@ const FavouritesPage = {
     document.getElementById('wishlist-loading-spinner')?.remove();
   },
 
+  clearSearch: function() {
+    const searchInput = document.getElementById('wishlist-search-input');
+    const clearButton = document.getElementById('wishlist-search-clear');
+    if (searchInput) searchInput.value = '';
+    if (clearButton) clearButton.classList.add('hidden');
+    this.reloadItems();
+  },
+
   reloadItems: function(params = {}) {
+    if (this._isLoading) return;
+
     const searchInput = document.getElementById('wishlist-search-input');
     const availableToggle = document.getElementById('wishlist-available-toggle');
     const sortLabel = document.getElementById('wishlist-sort-label');
@@ -973,14 +998,20 @@ const FavouritesPage = {
     if (sortVal && sortVal !== 'recent') query.set('sort', sortVal);
 
     // Show loading overlay on the products container
+    this._isLoading = true;
     this.showItemsLoading();
 
     const url = `{% url "favourites:wishlist_items_partial" %}?${query.toString()}`;
-    
-    htmx.ajax('GET', url, {
-      target: '#wishlist-items-container',
-      swap: 'innerHTML'
-    });
+
+    try {
+      htmx.ajax('GET', url, {
+        target: '#wishlist-items-container',
+        swap: 'innerHTML'
+      });
+    } catch (_error) {
+      this._isLoading = false;
+      this.hideItemsLoading();
+    }
 
     // Update URL
     window.history.replaceState({}, '', `${window.location.pathname}?${query.toString()}`);

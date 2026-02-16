@@ -85,6 +85,17 @@
   width: 100%;
 }
 
+/* Keep card shadow identical to product list cards */
+.category-recommended-swiper [data-product-card] {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@media (hover: hover) {
+  .category-recommended-swiper [data-product-card]:hover {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
 /* Disabled navigation buttons */
 .swiper-button-disabled {
   opacity: 0.4;

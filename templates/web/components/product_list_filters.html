@@ -117,7 +117,7 @@
                    min="0"
                    step="0.01"
                    class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{{ site_currency }}</span>
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{% if site_currency == 'USD' %}${% else %}{{ site_currency }}{% endif %}</span>
           </div>
           <!-- Separator -->
           <span class="text-gray-400 dark:text-gray-500">—</span>
@@ -131,7 +131,7 @@
                    min="0"
                    step="0.01"
                    class="w-full border-0 bg-transparent p-0 text-sm text-gray-900 dark:text-white text-center placeholder:text-center placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-0 focus:outline-none appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
-            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{{ site_currency }}</span>
+            <span class="text-sm text-gray-400 dark:text-gray-500 ml-1 shrink-0">{% if site_currency == 'USD' %}${% else %}{{ site_currency }}{% endif %}</span>
           </div>
         </div>
       </div>

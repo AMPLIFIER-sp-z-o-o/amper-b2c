@@ -1,5 +1,142 @@
 import "../css/site.css";
 
+const TAB_PARAM = "__tab";
+const TAB_HEADER = "X-Tab-ID";
+
+function normalizeTabId(rawValue) {
+  if (!rawValue) return null;
+  const value = String(rawValue).trim();
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(value)) return null;
+  return value;
+}
+
+function getActiveTabId() {
+  const fromUrl = normalizeTabId(
+    new URLSearchParams(window.location.search).get(TAB_PARAM),
+  );
+  if (fromUrl) return fromUrl;
+  return null;
+}
+
+function withTabParam(rawUrl, tabId) {
+  if (!tabId) return rawUrl;
+  const url = new URL(rawUrl, window.location.href);
+  if (url.origin !== window.location.origin) return rawUrl;
+  url.searchParams.set(TAB_PARAM, tabId);
+  return `${url.pathname}${url.search}${url.hash}`;
+}
+
+function setTabHintCookie(tabId) {
+  if (!tabId) return;
+  document.cookie = `amper_tab_id=${encodeURIComponent(tabId)}; path=/; samesite=lax`;
+}
+
+function applyTabParamToAnchors(tabId, root = document) {
+  if (!tabId || !root || !root.querySelectorAll) return;
+  root.querySelectorAll("a[href]").forEach((anchor) => {
+    const href = anchor.getAttribute("href");
+    if (!href || href.startsWith("#") || href.startsWith("javascript:")) return;
+    if (anchor.hasAttribute("data-tab-scoped")) return;
+
+    const scopedHref = withTabParam(href, tabId);
+    if (scopedHref !== href) {
+      anchor.setAttribute("href", scopedHref);
+    }
+    anchor.setAttribute("data-tab-scoped", "1");
+  });
+}
+
+function applyTabParamToForms(tabId, root = document) {
+  if (!tabId || !root || !root.querySelectorAll) return;
+  root.querySelectorAll("form[action]").forEach((form) => {
+    const action = form.getAttribute("action");
+    if (!action || action.startsWith("javascript:")) return;
+    if (form.hasAttribute("data-tab-scoped")) return;
+
+    const scopedAction = withTabParam(action, tabId);
+    if (scopedAction !== action) {
+      form.setAttribute("action", scopedAction);
+    }
+    form.setAttribute("data-tab-scoped", "1");
+  });
+}
+
+function initTabScopedNavigation() {
+  const tabId = getActiveTabId();
+  if (!tabId) {
+    sessionStorage.removeItem("amper_tab_id");
+    return;
+  }
+
+  window.__AMPER_TAB_ID = tabId;
+  setTabHintCookie(tabId);
+
+  applyTabParamToAnchors(tabId, document);
+  applyTabParamToForms(tabId, document);
+
+  const originalFetch = window.fetch;
+  if (typeof originalFetch === "function" && !window.__amperTabFetchWrapped) {
+    window.fetch = function (input, init = {}) {
+      const currentTabId = window.__AMPER_TAB_ID;
+      if (!currentTabId) return originalFetch(input, init);
+
+      const nextInit = { ...init };
+      const headers = new Headers(nextInit.headers || {});
+      headers.set(TAB_HEADER, currentTabId);
+      nextInit.headers = headers;
+
+      setTabHintCookie(currentTabId);
+      return originalFetch(input, nextInit);
+    };
+    window.__amperTabFetchWrapped = true;
+  }
+
+  document.body?.addEventListener(
+    "click",
+    (event) => {
+      const anchor = event.target.closest("a[href]");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("javascript:"))
+        return;
+      const scopedHref = withTabParam(href, tabId);
+      if (scopedHref !== href) {
+        anchor.setAttribute("href", scopedHref);
+      }
+      setTabHintCookie(tabId);
+    },
+    true,
+  );
+
+  document.body?.addEventListener(
+    "submit",
+    (event) => {
+      const form = event.target;
+      if (!(form instanceof HTMLFormElement)) return;
+      const action = form.getAttribute("action");
+      if (action) {
+        form.setAttribute("action", withTabParam(action, tabId));
+      }
+      setTabHintCookie(tabId);
+    },
+    true,
+  );
+
+  document.addEventListener("htmx:configRequest", (event) => {
+    if (!window.__AMPER_TAB_ID) return;
+    event.detail.headers = event.detail.headers || {};
+    event.detail.headers[TAB_HEADER] = window.__AMPER_TAB_ID;
+    setTabHintCookie(window.__AMPER_TAB_ID);
+  });
+
+  document.addEventListener("htmx:afterSwap", (event) => {
+    applyTabParamToAnchors(tabId, event.target || document);
+    applyTabParamToForms(tabId, event.target || document);
+  });
+}
+
+initTabScopedNavigation();
+
 document.addEventListener("DOMContentLoaded", function () {
   // Format prices using browser locale with Intl.NumberFormat
   formatPrices();
@@ -701,7 +838,7 @@ function showWishlistPicker(btn, productId, wishlists) {
     .join("");
 
   const loginHintHtml = !isLoggedIn
-    ? `<p class="text-sm text-gray-500 dark:text-gray-400 mt-1.5 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
+    ? `<p class="text-sm font-medium text-gray-600 dark:text-gray-300 mt-1.5 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
     : "";
 
   picker.innerHTML = `<div>
@@ -1196,7 +1333,7 @@ function showToast(message, type = "success") {
   toast.id = toastId;
   toast.setAttribute("role", "alert");
   toast.className =
-    "flex items-center w-full max-w-xs p-4 mb-4 text-gray-900 bg-white rounded-lg shadow-sm dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
+    "flex items-center w-full max-w-xs p-4 mb-4 text-gray-900 bg-white rounded-lg shadow-lg dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
   toast.innerHTML = `
     <div class="${iconWrapperClass}">
       <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">

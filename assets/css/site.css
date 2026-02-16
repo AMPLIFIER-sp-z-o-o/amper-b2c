@@ -202,7 +202,7 @@ button[disabled]:hover,
  * Use for: page subtitles, section descriptions, summary info under titles.
  */
 .text-subtitle {
-  @apply text-sm font-medium text-gray-600 dark:text-gray-300;
+  @apply text-sm font-medium text-gray-700 dark:text-gray-200;
 }
 
 /*

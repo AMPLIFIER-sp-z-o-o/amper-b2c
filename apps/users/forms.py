@@ -12,7 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.utils.timezones import get_timezones_display
 
-from .helpers import validate_profile_picture
+
 from .models import CustomUser
 
 
@@ -82,8 +82,7 @@ class CustomUserChangeForm(UserChangeForm):
             self.fields.pop("language")
 
 
-class UploadAvatarForm(forms.Form):
-    avatar = forms.FileField(validators=[validate_profile_picture])
+
 
 
 class AccountDetailsForm(forms.ModelForm):
@@ -164,6 +163,12 @@ class TermsSignupForm(TurnstileSignupForm):
 class CustomSocialSignupForm(SocialSignupForm):
     """Custom social signup form to work around this issue:
     https://github.com/pennersr/django-allauth/issues/3266."""
+
+    first_name = forms.CharField(
+        label=_("First Name"),
+        max_length=150,
+        required=True,
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

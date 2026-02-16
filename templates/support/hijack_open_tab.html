@@ -1,0 +1,26 @@
+{% load i18n %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% translate "Opening impersonation" %}</title>
+  </head>
+  <body>
+    <form id="hijack-acquire-form" method="post" action="{{ bridge_action_url }}" class="hidden">
+      {% csrf_token %}
+      <input type="hidden" name="user_pk" value="{{ hijack_user_pk }}" />
+      <input id="hijack-next-value" type="hidden" name="next" value="{{ hijack_next }}" />
+      <noscript>
+        <button type="submit">{% translate "Continue" %}</button>
+      </noscript>
+    </form>
+    <script>
+      (function () {
+        const form = document.getElementById("hijack-acquire-form");
+        if (!form) return;
+        form.submit();
+      })();
+    </script>
+  </body>
+</html>

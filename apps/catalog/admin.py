@@ -239,7 +239,12 @@ class CategoryProductInline(TabularInline):
     def price_display(self, obj):
         """Display price with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "USD"
-        return mark_safe(f'<span data-price="{obj.price}" data-currency="{currency}">{obj.price}</span>')
+        return format_html(
+            '<span data-price="{}" data-currency="{}">{}</span>',
+            obj.price,
+            currency,
+            obj.price,
+        )
 
     price_display.short_description = _("Price")
 
@@ -363,7 +368,12 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     def price_display(self, obj):
         """Display price with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "USD"
-        return mark_safe(f'<span data-price="{obj.price}" data-currency="{currency}">{obj.price}</span>')
+        return format_html(
+            '<span data-price="{}" data-currency="{}">{}</span>',
+            obj.price,
+            currency,
+            obj.price,
+        )
 
     def image_preview(self, obj):
         """Display product's primary image in list view."""
@@ -390,8 +400,11 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     def revenue_display(self, obj):
         """Display revenue with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "USD"
-        return mark_safe(
-            f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
+        return format_html(
+            '<span data-price="{}" data-currency="{}">{}</span>',
+            obj.revenue_total,
+            currency,
+            obj.revenue_total,
         )
 
     @admin.display(description=_("Sales"), ordering="sales_total")
@@ -406,8 +419,11 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     def revenue_total_display(self, obj):
         """Display revenue with data-price for JS formatting."""
         currency = SiteSettings.get_settings().currency or "USD"
-        return mark_safe(
-            f'<span data-price="{obj.revenue_total}" data-currency="{currency}">{obj.revenue_total}</span>'
+        return format_html(
+            '<span data-price="{}" data-currency="{}">{}</span>',
+            obj.revenue_total,
+            currency,
+            obj.revenue_total,
         )
 
     @admin.display(description=_("Units sold (daily avg)"))
@@ -460,7 +476,7 @@ class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     ordering = ("name",)
     autocomplete_fields = ["parent"]
     inlines = [CategoryBannerInline, CategoryRecommendedProductInline, CategoryProductInline]
-    readonly_fields = ["image_preview", "product_count_detail"]
+    readonly_fields = ["product_count_detail"]
 
     class Media:
         css = {
@@ -481,12 +497,6 @@ class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         if isinstance(db_field, models.ImageField):
             formfield.widget.attrs["data-product-image-upload"] = "true"
         return formfield
-
-    def image_preview(self, obj):
-        """Display thumbnail preview with filename tooltip."""
-        return make_image_preview_html(obj.image if obj else None)
-
-    image_preview.short_description = _("Preview")
 
     def get_queryset(self, request):
         """Annotate counts using Subquery for better performance."""

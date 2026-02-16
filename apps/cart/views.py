@@ -88,9 +88,9 @@ def add_to_cart(request):
 @require_POST
 def remove_from_cart(request):
     product_id = request.POST.get("product_id")
-    cart_id = request.session.get("cart_id")
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
 
-    if not product_id:
+    if not product_id or not cart_id:
         return JsonResponse({"success": False}, status=400)
 
     line = CartLine.objects.filter(
@@ -98,20 +98,19 @@ def remove_from_cart(request):
         product_id=product_id
     ).first()
 
-    lineId = line.id
-    productName = line.product.name
-
     if not line:
         return JsonResponse({"success": False}, status=404)
 
     cart = line.cart
 
     if request.user.is_authenticated:
-        if cart.customer != request.user:
+        if cart.customer_id and cart.customer_id != request.user.id:
             return JsonResponse({"success": False}, status=403)
-    else:
-        if request.session.get("cart_id") != cart.id:
-            return JsonResponse({"success": False}, status=403)
+    elif cart.customer_id:
+        return JsonResponse({"success": False}, status=403)
+
+    line_id = line.id
+    product_name = line.product.name
 
     line.delete()
     cart.recalculate()
@@ -124,15 +123,15 @@ def remove_from_cart(request):
         "cart_total": str(cart.total),
         "cart_subtotal": str(cart.subtotal),
         "lines_count": cart.lines.count(),
-        "removed_line_id": lineId,
-        "product_name": productName,
+        "removed_line_id": line_id,
+        "product_name": product_name,
         "delivery_cost": delivery_cost
     })
 
 def checkout_page(request):
     if not request.META.get("HTTP_REFERER"):
         return redirect("cart:cart_page")
-    
+        
     cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
     if not cart_id:
         return redirect("cart:cart_page")

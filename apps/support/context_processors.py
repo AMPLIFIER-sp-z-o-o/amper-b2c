@@ -7,7 +7,7 @@ def _get_admin_draft_links(request) -> list[dict[str, str]]:
     if not request or not request.path.startswith("/admin/"):
         return []
     user = getattr(request, "user", None)
-    if not user or not user.is_staff or not user.is_superuser:
+    if not user or not user.is_staff:
         return []
     session_key = getattr(getattr(request, "session", None), "session_key", None)
     if not session_key:

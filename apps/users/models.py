@@ -1,10 +1,10 @@
 import hashlib
-import uuid
 from functools import cached_property
 
 from allauth.account.models import EmailAddress
 from allauth.socialaccount.models import SocialApp
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -12,13 +12,15 @@ from django.utils import timezone as tz
 from django.utils.translation import gettext_lazy as _
 from simple_history.models import HistoricalRecords
 
-from apps.users.helpers import validate_profile_picture
 from apps.utils.models import BaseModel
 
 
 def _get_avatar_filename(instance, filename):
-    """Use random filename prevent overwriting existing files & to fix caching issues."""
-    return f"profile-pictures/{uuid.uuid4()}.{filename.split('.')[-1]}"
+    """DEPRECATED: Kept only for migration compatibility."""
+    return f"profile-pictures/{filename}"
+
+
+
 
 
 class CustomUser(AbstractUser):
@@ -26,8 +28,10 @@ class CustomUser(AbstractUser):
     Add additional fields to the user model here.
     """
 
+    REQUIRED_FIELDS = ["email", "first_name"]
+
+    first_name = models.CharField(_("first name"), max_length=150, blank=False)
     history = HistoricalRecords()
-    avatar = models.FileField(upload_to=_get_avatar_filename, blank=True, validators=[validate_profile_picture])
     language = models.CharField(max_length=10, blank=True, null=True)
     timezone = models.CharField(max_length=100, blank=True, default="")
     password_changed_at = models.DateTimeField(
@@ -40,6 +44,13 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return f"{self.get_full_name()} <{self.email or self.username}>"
 
+    def clean(self):
+        super().clean()
+        first_name = (self.first_name or "").strip()
+        if not first_name:
+            raise ValidationError({"first_name": _("First name is required.")})
+        self.first_name = first_name
+
     def get_display_name(self) -> str:
         if self.get_full_name().strip():
             return self.get_full_name()
@@ -47,10 +58,7 @@ class CustomUser(AbstractUser):
 
     @property
     def avatar_url(self) -> str:
-        if self.avatar:
-            return self.avatar.url
-        else:
-            return f"https://www.gravatar.com/avatar/{self.gravatar_id}?s=128&d=identicon"
+        return f"https://www.gravatar.com/avatar/{self.gravatar_id}?s=128&d=identicon"
 
     @property
     def gravatar_id(self) -> str:

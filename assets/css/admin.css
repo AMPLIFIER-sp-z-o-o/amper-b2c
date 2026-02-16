@@ -199,16 +199,42 @@ textarea[id$="_custom_js"],
 }
 
 /* =====================================================================
-   Admin form "Change" link hover underline
+   Admin targeted link hover styles
    ===================================================================== */
 
-/* Django admin related widget "Change" links */
-a.change-related:hover,
-.change-related:hover,
-a.related-widget-wrapper-link.change-related:hover,
-a.inlinechangelink:hover,
-.inlinechangelink:hover {
-  text-decoration: underline;
+/* Only links explicitly marked by admin_custom.js (Change / View on site) */
+a.admin-link-underline-hover:hover {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+/* Pagination numbers in changelist footer */
+.flex.flex-row.grow.items-center.lg\:h-\[64px\].container.mx-auto
+  a[href*="?p="] {
+  font-size: 1.125rem !important;
+  line-height: 1.5rem !important;
+  font-weight: 500;
+}
+
+.flex.flex-row.grow.items-center.lg\:h-\[64px\].container.mx-auto
+  a[href*="?p="]:hover {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
+.flex.flex-row.grow.items-center.lg\:h-\[64px\].container.mx-auto
+  > div
+  > span.font-medium.text-primary-600 {
+  font-size: 1.125rem !important;
+  line-height: 1.5rem !important;
+}
+
+/* Category Image: keep one inline preview (chip), hide default top thumbnail block */
+body.app-catalog.model-category.change-form
+  .field-image
+  .grow.relative
+  > .mb-4.max-w-48 {
+  display: none !important;
 }
 
 #nav-sidebar-apps:hover::-webkit-scrollbar-thumb {
@@ -316,9 +342,11 @@ select,
   cursor: pointer !important;
 }
 
-/* Readonly and disabled controls should communicate they are not interactive */
-.readonly,
-.readonly *,
+/* Disabled controls should communicate they are not interactive */
+.readonly {
+  cursor: default !important;
+}
+
 input[disabled],
 select[disabled],
 textarea[disabled],
@@ -333,6 +361,62 @@ button[disabled],
 .readonly button,
 .readonly [role="button"] {
   cursor: pointer !important;
+}
+
+td.field-hijack_field {
+  overflow: visible !important;
+  padding: 1.25rem 1.5rem !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+}
+
+.column-hijack_field div {
+  justify-content: center !important;
+}
+
+.column-hijack_field a {
+  justify-content: center !important;
+  width: 100%;
+}
+
+.hijack-user-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.5rem;
+  background-color: rgb(var(--color-primary-600-rgb, 37, 99, 235));
+  color: #ffffff !important;
+  border: 1px solid transparent;
+  cursor: pointer !important;
+  transition:
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.1s ease;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.hijack-user-btn:hover,
+.hijack-user-btn:focus-visible {
+  background-color: rgb(var(--color-primary-700-rgb, 29, 78, 216));
+  box-shadow: 0 4px 12px -2px
+    rgba(var(--color-primary-600-rgb, 37, 99, 235), 0.5);
+}
+
+.hijack-user-btn:active {
+  transform: scale(0.98);
+}
+
+.dark .hijack-user-btn {
+  background-color: rgb(var(--color-primary-500-rgb, 59, 130, 246));
+}
+
+.dark .hijack-user-btn:hover {
+  background-color: rgb(var(--color-primary-600-rgb, 37, 99, 235));
 }
 
 /* ==========================================================================

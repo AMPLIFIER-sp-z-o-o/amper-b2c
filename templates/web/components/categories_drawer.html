@@ -2,7 +2,7 @@
 
 <!-- More Categories Drawer -->
 <div id="categoriesDrawer" class="fixed top-0 left-0 z-50 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700" tabindex="-1" aria-labelledby="drawer-label">
-  <h5 id="drawer-label" class="inline-flex items-center mb-6 text-base font-semibold text-gray-500 dark:text-gray-400 uppercase">
+   <h5 id="drawer-label" class="inline-flex items-center mb-6 text-base font-semibold text-gray-700 dark:text-gray-200 uppercase">
     <svg class="w-4 h-4 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
       <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
     </svg>
@@ -30,7 +30,7 @@
          </a>
       </li>
       {% empty %}
-      <li class="p-2 text-gray-500 dark:text-gray-400">
+      <li class="p-2 text-gray-700 dark:text-gray-200">
          {% translate "No categories available." %}
       </li>
       {% endfor %}

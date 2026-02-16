@@ -12,10 +12,19 @@
       if (!tr || !tr.parentElement || tr.parentElement.tagName !== "TBODY")
         return;
 
+      if (
+        event.target.closest(".field-hijack_field") ||
+        event.target.closest(".hijack-user-btn") ||
+        event.target.closest('form[action*="/hijack/"]')
+      ) {
+        return;
+      }
+
       const forbiddenTags = [
         "A",
         "INPUT",
         "BUTTON",
+        "FORM",
         "LABEL",
         "SELECT",
         "TEXTAREA",
@@ -70,6 +79,101 @@
 
   if (document.readyState !== "loading") {
     initClickableRows();
+  }
+})();
+
+(function () {
+  const TAB_PARAM = "__tab";
+
+  function normalizeTabId(rawValue) {
+    if (!rawValue) return null;
+    const value = String(rawValue).trim();
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(value)) return null;
+    return value;
+  }
+
+  function getCurrentRequestTabId() {
+    const fromUrl = normalizeTabId(new URLSearchParams(window.location.search).get(TAB_PARAM));
+    if (fromUrl) return fromUrl;
+
+    const pageTab = normalizeTabId(document.getElementById("page")?.dataset?.tabId || "");
+    if (pageTab) return pageTab;
+
+    return null;
+  }
+
+  function withTabParam(rawUrl, tabId) {
+    if (!rawUrl || !tabId) return rawUrl;
+    const url = new URL(rawUrl, window.location.origin);
+    if (url.origin !== window.location.origin) return rawUrl;
+    url.searchParams.set(TAB_PARAM, tabId);
+    return `${url.pathname}${url.search}${url.hash}`;
+  }
+
+  function prepareHijackAction(button) {
+    const hijackUrl = button.dataset.hijackUrl || button.getAttribute("formaction") || "/hijack/acquire/";
+    const nextBase = button.dataset.hijackNext || "/";
+    const tabId = getCurrentRequestTabId();
+
+    const scopedNext = withTabParam(nextBase, tabId);
+    const scopedHijackUrl = withTabParam(hijackUrl, tabId);
+
+    button.dataset.hijackUrl = scopedHijackUrl;
+    button.dataset.hijackNext = scopedNext;
+
+    const action = new URL(scopedHijackUrl, window.location.origin);
+    action.searchParams.set("next", scopedNext);
+
+    button.setAttribute("formaction", `${action.pathname}${action.search}`);
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const button = event.target.closest(".hijack-user-btn[data-hijack-url]");
+      if (!button) return;
+      prepareHijackAction(button);
+    },
+    true,
+  );
+})();
+
+// Targeted admin link styling hooks
+(function () {
+  const TARGET_LINK_TEXTS = new Set([
+    "change",
+    "view on site",
+    "zmień",
+    "zobacz na stronie",
+  ]);
+
+  function isPaginationLink(link) {
+    if (!link || !link.getAttribute) return false;
+    const href = link.getAttribute("href") || "";
+    return href.includes("?p=");
+  }
+
+  function decorateLinks(root = document) {
+    const links = root.querySelectorAll("a[href]");
+
+    links.forEach((link) => {
+      const text = (link.textContent || "").trim().toLowerCase();
+
+      if (TARGET_LINK_TEXTS.has(text)) {
+        link.classList.add("admin-link-underline-hover");
+      }
+
+      if (isPaginationLink(link)) {
+        link.classList.add("admin-pagination-link");
+      }
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", () => decorateLinks(document));
+  document.addEventListener("htmx:afterSwap", (event) => decorateLinks(event.target || document));
+
+  if (document.readyState !== "loading") {
+    decorateLinks(document);
   }
 })();
 
@@ -954,13 +1058,6 @@ window.closeFullscreen = closeFullscreen;
     clearDraft(draftToken, csrfToken);
     sessionStorage.removeItem(serializedKey);
 
-    function handlePageHide() {
-      // clearDraft(draftToken, csrfToken, { keepalive: true });
-      // sessionStorage.removeItem(serializedKey);
-    }
-
-    window.addEventListener("pagehide", handlePageHide);
-
     function updateClearCheckboxes() {
       const clearCheckboxes = form.querySelectorAll("input[type='checkbox'][name$='-clear']");
       clearCheckboxes.forEach((checkbox) => {
@@ -1001,6 +1098,8 @@ window.closeFullscreen = closeFullscreen;
       const fieldName = input.name;
       if (!fieldName) return;
 
+      if (input.dataset.draftUploadInProgress === "true") return;
+
       if (!file) {
         if (draftFileMap[fieldName]) {
           draftFileMap[fieldName] = null;
@@ -1021,6 +1120,8 @@ window.closeFullscreen = closeFullscreen;
       data.append("object_repr", objectRepr.trim());
       data.append("admin_change_url", adminChangeUrl);
 
+      input.dataset.draftUploadInProgress = "true";
+
       fetch("/support/drafts/upload/", {
         method: "POST",
         headers: {
@@ -1036,7 +1137,10 @@ window.closeFullscreen = closeFullscreen;
             handleChange();
           }
         })
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => {
+          input.dataset.draftUploadInProgress = "false";
+        });
     }
 
     const fileInputs = form.querySelectorAll("input[type='file']");
@@ -1980,9 +2084,15 @@ window.closeFullscreen = closeFullscreen;
 
 // Immediate save for Boolean toggles in the changelist (list_editable)
 (function () {
+  if (window.__adminImmediateSaveTogglesInitialized) {
+    return;
+  }
+  window.__adminImmediateSaveTogglesInitialized = true;
+
   function initChangelistToggles() {
     const changelistForm = document.getElementById("changelist-form");
     if (!changelistForm) return;
+    let pendingSubmitTimeout = null;
 
     // Target checkboxes that are part of list_editable (their name starts with "form-")
     // and are used for activation (is_active, is_enabled).
@@ -1994,21 +2104,33 @@ window.closeFullscreen = closeFullscreen;
       toggle.dataset.immediateSaveBound = "true";
 
       toggle.addEventListener("change", function () {
-        // Find the save button (might be outside the form in Unfold)
-        const saveBtn = document.querySelector(`button[name="_save"][form="${changelistForm.id}"], input[name="_save"][form="${changelistForm.id}"]`) || 
-                       changelistForm.querySelector('button[name="_save"], input[name="_save"]');
-        
-        if (saveBtn) {
-          // Provide visual feedback that saving is in progress
-          const container = toggle.closest("label") || toggle.parentElement;
-          if (container) {
-            container.style.opacity = "0.5";
-            container.style.pointerEvents = "none";
-          }
-          
-          // Submit the form by clicking the save button
-          saveBtn.click();
+        if (changelistForm.dataset.immediateSaveSubmitting === "true") {
+          return;
         }
+
+        if (pendingSubmitTimeout) {
+          clearTimeout(pendingSubmitTimeout);
+        }
+
+        // Find the save button (might be outside the form in Unfold)
+        pendingSubmitTimeout = setTimeout(() => {
+          const saveBtn = document.querySelector(`button[name="_save"][form="${changelistForm.id}"], input[name="_save"][form="${changelistForm.id}"]`) ||
+                        changelistForm.querySelector('button[name="_save"], input[name="_save"]');
+
+          if (saveBtn) {
+            // Provide visual feedback that saving is in progress
+            const container = toggle.closest("label") || toggle.parentElement;
+            if (container) {
+              container.style.opacity = "0.5";
+              container.style.pointerEvents = "none";
+            }
+
+            changelistForm.dataset.immediateSaveSubmitting = "true";
+
+            // Submit the form by clicking the save button
+            saveBtn.click();
+          }
+        }, 120);
       });
     });
   }

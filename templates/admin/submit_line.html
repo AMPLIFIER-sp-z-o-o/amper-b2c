@@ -46,7 +46,7 @@
 
                 <div class="flex flex-col gap-3 mr-auto w-full lg:flex-row lg:w-auto lg:items-center">
                     {# Draft Preview Links - moved here from sidebar #}
-                    {% if request.user.is_authenticated and request.user.is_staff and request.user.is_superuser %}
+                    {% if request.user.is_authenticated and request.user.is_staff %}
                         <div id="draft-preview-wrapper" class="{% if not draft_preview_links %}hidden{% endif %}" x-on:click.stop>
                             <div id="draft-preview-links" data-preview-links-url="{% url 'support:draft_preview_links' %}" class="flex flex-col gap-2">
                                 {% include "admin/components/draft_preview_links.html" %}

@@ -1,0 +1,124 @@
+[data-share-id-copy] {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+[data-share-id-copy] .share-id-value {
+    user-select: text !important;
+}
+
+[data-share-id-copy] .share-id-link-box,
+[data-share-id-copy] .share-id-link-box * {
+    cursor: pointer !important;
+}
+
+[data-share-id-copy] .share-id-link-box {
+    width: 100%;
+    max-width: none;
+    text-decoration: none !important;
+}
+
+[data-share-id-copy] .share-id-link-box .share-id-value {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app-favourites.model-wishlist.change-form .field-share_id_copy .readonly,
+.app-favourites.model-wishlist.change-form .field-share_id_copy .readonly * {
+    cursor: pointer !important;
+}
+
+.app-favourites.model-wishlist.change-form .field-share_id_copy,
+.app-favourites.model-wishlist.change-form .field-share_id_copy *,
+.app-favourites.model-wishlist.change-form td.field-share_id_copy,
+.app-favourites.model-wishlist.change-form td.field-share_id_copy * {
+    cursor: pointer !important;
+}
+
+[data-share-id-copy] .share-id-copy-btn,
+[data-share-id-copy] .share-id-copy-btn * {
+    cursor: pointer !important;
+}
+
+[data-share-id-copy] .share-id-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+[data-share-id-copy] .share-id-copy-btn.is-copied {
+    border-color: var(--color-primary-600, #7c3aed) !important;
+    color: var(--color-primary-600, #7c3aed) !important;
+    background: var(--color-primary-50, #f5f3ff) !important;
+}
+
+.app-favourites.model-wishlist.change-list #result_list tbody tr {
+    cursor: pointer;
+}
+
+.app-favourites.model-wishlist.change-list #result_list td.field-user_display a {
+    color: #111827 !important;
+    font-weight: 400 !important;
+}
+
+.dark .app-favourites.model-wishlist.change-list #result_list td.field-user_display a {
+    color: #e5e7eb !important;
+}
+
+.app-favourites.model-wishlist #items-group table.unfold-table tbody td,
+.app-favourites.model-wishlist #items-group table.unfold-table tbody th,
+.app-favourites.model-wishlist #items-group table.unfold-table tbody tr {
+    vertical-align: middle !important;
+}
+
+.app-favourites.model-wishlist #items-group td.field-product_image_display .readonly {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 72px;
+}
+
+.app-favourites.model-wishlist #items-group td.field-product_link .readonly {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 72px;
+}
+
+.app-favourites.model-wishlist #items-group td.field-product_link .readonly,
+.app-favourites.model-wishlist #items-group td.field-product_link .readonly * {
+    cursor: pointer !important;
+}
+
+.app-favourites.model-wishlist #items-group td.field-price_when_added_display .readonly,
+.app-favourites.model-wishlist #items-group td.field-current_price_display .readonly,
+.app-favourites.model-wishlist #items-group td.field-created_at .readonly {
+    min-height: 72px;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.app-favourites.model-wishlist #items-group td.field-notes > div {
+    display: flex !important;
+    align-items: center !important;
+    min-height: 72px;
+}
+
+.app-favourites.model-wishlist #items-group td.field-notes textarea {
+    margin: 0 !important;
+}
+
+.app-favourites.model-wishlist #items-group .product-image-upload img,
+.app-favourites.model-wishlist #items-group .product-image-upload a,
+.app-favourites.model-wishlist #items-group .product-image-upload a * {
+    cursor: pointer !important;
+}

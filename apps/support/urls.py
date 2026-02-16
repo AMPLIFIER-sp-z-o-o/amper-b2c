@@ -5,6 +5,7 @@ from . import views
 app_name = "support"
 
 urlpatterns = [
+    path("hijack/open/<int:user_pk>/", views.open_hijack_in_new_tab, name="hijack_open_tab"),
     path("", views.hijack_user, name="hijack_user"),
     path("drafts/save/", views.save_admin_draft, name="draft_save"),
     path("drafts/clear/", views.clear_admin_draft, name="draft_clear"),

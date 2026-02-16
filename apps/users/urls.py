@@ -5,7 +5,7 @@ from . import views
 app_name = "users"
 urlpatterns = [
     path("profile/", views.profile, name="user_profile"),
-    path("profile/upload-image/", views.upload_profile_image, name="upload_profile_image"),
+
     path("account/", views.account_details, name="account_details"),
     path("account/orders/", views.account_orders, name="account_orders"),
     path("account/delete/", views.account_delete, name="account_delete"),

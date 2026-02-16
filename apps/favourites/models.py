@@ -29,7 +29,7 @@ class WishList(BaseModel):
     name = models.CharField(
         max_length=100,
         verbose_name=_("Name"),
-        help_text=_("Name of the wishlist"),
+        help_text=_("Name of the shopping list"),
     )
     share_id = models.CharField(
         max_length=10,
@@ -59,7 +59,7 @@ class WishList(BaseModel):
     is_default = models.BooleanField(
         default=False,
         verbose_name=_("Default"),
-        help_text=_("Whether this is the default wishlist (Favourites)"),
+        help_text=_("Whether this is the default shopping list (Favourites)"),
     )
     description = models.TextField(
         blank=True,
@@ -68,8 +68,8 @@ class WishList(BaseModel):
     )
 
     class Meta:
-        verbose_name = _("Wishlist")
-        verbose_name_plural = _("Wishlists")
+        verbose_name = _("Shopping list")
+        verbose_name_plural = _("Shopping lists")
         ordering = ["-is_default", "-updated_at"]
         constraints = [
             # Each user can only have one default wishlist
@@ -108,7 +108,7 @@ class WishList(BaseModel):
     @classmethod
     def get_or_create_default(cls, user=None, session_key=None) -> "WishList":
         """
-        Get or create the default 'Favourites' wishlist for a user or session.
+        Get or create the default shopping list for a user or session.
         """
         if user and user.is_authenticated:
             wishlist, created = cls.objects.get_or_create(
@@ -187,7 +187,7 @@ class WishListItem(BaseModel):
         WishList,
         on_delete=models.CASCADE,
         related_name="items",
-        verbose_name=_("Wishlist"),
+        verbose_name=_("Shopping list"),
     )
     product = models.ForeignKey(
         Product,
@@ -199,7 +199,7 @@ class WishListItem(BaseModel):
         max_digits=15,
         decimal_places=2,
         verbose_name=_("Price when added"),
-        help_text=_("The price of the product when it was added to the wishlist"),
+        help_text=_("The price of the product when it was added to the shopping list"),
     )
     notes = models.TextField(
         blank=True,
@@ -213,8 +213,8 @@ class WishListItem(BaseModel):
     )
 
     class Meta:
-        verbose_name = _("Wishlist Item")
-        verbose_name_plural = _("Wishlist Items")
+        verbose_name = _("Shopping list item")
+        verbose_name_plural = _("Shopping list items")
         ordering = ["sort_order", "-created_at"]
         constraints = [
             # Each product can only appear once in a wishlist

@@ -1,4 +1,5 @@
 import json
+from uuid import uuid4
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from django.conf import settings
@@ -9,7 +10,9 @@ from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from hijack.views import AcquireUserView
 
 from .draft_preview_links import build_preview_links
 from .draft_utils import (
@@ -72,7 +75,39 @@ def hijack_user(request):
     )
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
+@staff_member_required
+def open_hijack_in_new_tab(request, user_pk: int):
+    if request.method == "POST":
+        next_url = request.POST.get("next") or "/"
+        if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+            next_url = "/"
+
+        post_data = request.POST.copy()
+        post_data["user_pk"] = str(user_pk)
+        post_data["next"] = next_url
+        request._post = post_data
+        return AcquireUserView.as_view()(request)
+
+    next_url = request.GET.get("next") or "/"
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        next_url = "/"
+
+    tab_id = uuid4().hex
+    scoped_next = _append_query_param(next_url, "__tab", tab_id)
+
+    bridge_action = _append_query_param(reverse("support:hijack_open_tab", args=[user_pk]), "__tab", tab_id)
+
+    return render(
+        request,
+        "support/hijack_open_tab.html",
+        {
+            "hijack_user_pk": user_pk,
+            "bridge_action_url": bridge_action,
+            "hijack_next": scoped_next,
+        },
+    )
+
+
 @staff_member_required
 @require_POST
 def save_admin_draft(request):
@@ -135,7 +170,6 @@ def save_admin_draft(request):
     return JsonResponse({"ok": True})
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
 @staff_member_required
 @require_POST
 def clear_admin_draft(request):
@@ -159,7 +193,6 @@ def clear_admin_draft(request):
     return JsonResponse({"ok": True})
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
 @staff_member_required
 @require_POST
 def upload_admin_draft_file(request):
@@ -216,7 +249,6 @@ def upload_admin_draft_file(request):
     return JsonResponse({"ok": True, "file": temp_info})
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
 @staff_member_required
 def enable_draft_preview(request):
     if not request.session.session_key:
@@ -231,7 +263,6 @@ def enable_draft_preview(request):
     return redirect(preview_url)
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
 @staff_member_required
 def draft_preview_links(request):
     draft_links = []
@@ -254,7 +285,6 @@ def draft_preview_links(request):
     return HttpResponse(html)
 
 
-@user_passes_test(lambda u: u.is_superuser, login_url="/404")
 @staff_member_required
 def disable_draft_preview(request):
     request.session["draft_preview_enabled"] = False

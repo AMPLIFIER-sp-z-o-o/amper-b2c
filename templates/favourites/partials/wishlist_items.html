@@ -19,7 +19,7 @@
         class="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-700 border-none rounded-lg text-sm text-gray-900 dark:text-white placeholder:font-medium placeholder-gray-500 dark:placeholder-gray-400 focus:ring-0 focus:bg-white dark:focus:bg-gray-600 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all"
         data-wishlist-id="{{ wishlist.id }}"
       >
-      <button type="button" id="wishlist-search-clear" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover-bg transition-colors cursor-pointer {% if not search_query %}hidden{% endif %}" onclick="document.getElementById('wishlist-search-input').value=''; this.classList.add('hidden'); FavouritesPage.reloadItems();">
+      <button type="button" id="wishlist-search-clear" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover-bg transition-colors cursor-pointer {% if not search_query %}hidden{% endif %}" onclick="FavouritesPage.clearSearch();">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>
@@ -64,7 +64,7 @@
 
       {# Availability Toggle #}
       <label class="inline-flex items-center gap-2 select-none {% if not has_unavailable %}opacity-40 cursor-not-allowed{% else %}cursor-pointer{% endif %}">
-        <span class="text-sm font-medium text-gray-600 dark:text-gray-300">{% translate "Show only available products" %}</span>
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Show only available products" %}</span>
         <div class="relative">
           <input type="checkbox" id="wishlist-available-toggle" class="sr-only peer" data-wishlist-id="{{ wishlist.id }}" {% if available_only %}checked{% endif %} {% if not has_unavailable %}disabled{% endif %}>
           <div class="w-9 h-5 bg-gray-200 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>

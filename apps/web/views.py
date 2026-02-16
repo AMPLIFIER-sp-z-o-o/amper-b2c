@@ -354,24 +354,11 @@ def search_suggestions(request):
     products = Product.objects.filter(status__in=VISIBLE_STATUSES)
 
     # Apply category filter if specified
+    descendant_ids = None
     if category_id:
         try:
             category = Category.objects.get(id=int(category_id))
-            # Get all descendant category IDs (including the category itself)
-            descendant_ids = [category.id]
-            descendants = category.get_descendants() if hasattr(category, "get_descendants") else []
-            # Fallback: manually get children recursively
-            if not descendants:
-
-                def get_all_children(cat):
-                    children = list(cat.children.all())
-                    all_children = children[:]
-                    for child in children:
-                        all_children.extend(get_all_children(child))
-                    return all_children
-
-                descendants = get_all_children(category)
-            descendant_ids.extend([d.id for d in descendants])
+            descendant_ids = _get_descendant_category_ids(category)
             products = products.filter(category_id__in=descendant_ids)
         except (ValueError, Category.DoesNotExist):
             pass
@@ -381,23 +368,8 @@ def search_suggestions(request):
 
     # Get total count for "See all results" link
     total_products = Product.objects.filter(status__in=VISIBLE_STATUSES)
-    if category_id:
-        try:
-            category = Category.objects.get(id=int(category_id))
-            descendant_ids = [category.id]
-
-            def get_all_children(cat):
-                children = list(cat.children.all())
-                all_children = children[:]
-                for child in children:
-                    all_children.extend(get_all_children(child))
-                return all_children
-
-            descendants = get_all_children(category)
-            descendant_ids.extend([d.id for d in descendants])
-            total_products = total_products.filter(category_id__in=descendant_ids)
-        except (ValueError, Category.DoesNotExist):
-            pass
+    if descendant_ids:
+        total_products = total_products.filter(category_id__in=descendant_ids)
     total_count = total_products.filter(Q(name__icontains=query)).count()
 
     suggestions = []

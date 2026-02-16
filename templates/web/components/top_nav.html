@@ -337,9 +337,100 @@ body.nav-scroll-locked {
             </div>
           </div>
 
-          {# Right side buttons: Cart, Account, Mobile Menu #}
-          <div class="flex items-center justify-end md:order-3 gap-0 md:gap-1">
-            {% if user.is_superuser %}
+          {# Right side buttons: Account, Cart, Favourites, CMS #}
+          <div class="flex items-center justify-end md:order-3 gap-1">
+            {# Account Button & Dropdown #}
+            {% if user.is_authenticated %}
+            <div class="relative nav-category-trigger" data-dropdown-target="accountDropdown">
+              <a href="{% url 'users:account_details' %}" id="accountDropdownButton" title="{% translate 'Account' %}" class="nav-icon-btn inline-flex items-center justify-center w-11 h-11 gap-0 px-0 md:w-auto md:gap-1.5 md:pl-4.5 md:pr-1.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer transition-all duration-200">
+                {% if request.session.hijack_history %}
+                {% with impersonated_display_name=user.email|default:user.get_username %}
+                <span class="hidden md:inline text-right leading-tight" data-user-first-name>
+                  <span class="block text-2.5 font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">{% translate "Impersonation" %}</span>
+                  <span class="block text-xs font-medium text-amber-700 dark:text-amber-300 normal-case tracking-normal">({{ impersonated_display_name }})</span>
+                </span>
+                {% endwith %}
+                {% else %}
+                <span class="hidden md:inline text-base font-medium text-right" data-user-first-name>{{ user.first_name }}</span>
+                {% endif %}
+                <span class="sr-only md:hidden">{% translate "Account" %}</span>
+                <span class="relative">
+                  <svg class="w-9 h-9 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M6 18v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4Zm9-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+                  </svg>
+                  {% if request.session.hijack_history %}
+                  <span class="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 border-2 border-white dark:border-gray-800">
+                    <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4m0 4h.01"/>
+                    </svg>
+                  </span>
+                  {% endif %}
+                </span>
+              </a>
+
+              <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-fit min-w-64 max-w-[90vw] divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-xl bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
+                {# User display name header #}
+                <div class="px-4 py-3 cursor-text select-text">
+                  <p class="text-sm font-medium text-gray-900 dark:text-white whitespace-nowrap" data-user-display-name>{{ user.email }}</p>
+                </div>
+
+                {% if request.session.hijack_history %}
+                <div class="px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border-y border-amber-200 dark:border-amber-800 cursor-text select-text">
+                  <p class="text-xs font-semibold uppercase tracking-wide text-amber-800 dark:text-amber-300">{% translate "Impersonation active" %}</p>
+                  <p class="mt-1 text-sm font-medium text-amber-900 dark:text-amber-100">
+                    {% blocktranslate with email=user.email %}You are browsing in {{ email }} context.{% endblocktranslate %}
+                  </p>
+                  <form method="post" action="{% url 'hijack:release' %}" class="mt-2" target="_blank">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{% url 'admin:users_customuser_change' user.id %}">
+                    <button type="submit" class="inline-flex items-center gap-1.5 text-sm font-medium text-amber-900 dark:text-amber-200 hover:underline cursor-pointer">
+                      <svg class="w-4 h-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 9 2 2 4-4"/>
+                      </svg>
+                      <span>{% translate "Open this user in Admin" %}</span>
+                    </button>
+                  </form>
+                </div>
+                {% endif %}
+
+                <ul class="p-1.5 text-start text-sm font-medium text-gray-900 dark:text-white">
+                  <li>
+                    <a href="{% url 'users:account_details' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-150">
+                      <svg class="h-5 w-5 text-gray-700 group-hover:text-gray-900 dark:text-gray-200 dark:group-hover:text-white transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-width="1.5" d="M7 17v1c0 .6.4 1 1 1h8c.6 0 1-.4 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+                      </svg>
+                      <span class="text-sm font-medium">{% translate "My Account" %}</span>
+                    </a>
+                  </li>
+                </ul>
+
+                <div class="p-1.5">
+                  <a href="{% url 'account_logout' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gray-200 dark:text-red-400 dark:hover:bg-gray-600 transition-colors duration-150">
+                    <svg class="h-5 w-5 transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H8m12 0-4 4m4-4-4-4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2"></path>
+                    </svg>
+                    <span class="text-sm font-medium">{% translate "Sign Out" %}</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <a
+              id="nav-sign-in-link"
+              href="{% url 'account_login' %}"
+              data-login-url="{% url 'account_login' %}"
+              title="{% translate 'Sign In' %}"
+              class="nav-icon-btn inline-flex items-center justify-center w-11 h-11 gap-0 px-0 md:w-auto md:gap-1.5 md:pl-4.5 md:pr-1.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200"
+            >
+              <span class="hidden md:inline text-base font-medium">{% translate "Sign In" %}</span>
+              <span class="sr-only md:hidden">{% translate "Sign In" %}</span>
+              <svg class="w-9 h-9 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M6 18v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-1a4 4 0 0 0-4-4h-4a4 4 0 0 0-4 4Zm9-10a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+              </svg>
+            </a>
+            {% endif %}
+
+            {% if user.is_staff %}
             <a
               href="{% url 'admin:index' %}"
               title="CMS"
@@ -433,64 +524,7 @@ body.nav-scroll-locked {
             </div>
             {% endif %}
           </div>
-
-          {# Account Button & Dropdown #}
-          {% if user.is_authenticated %}
-          <div class="relative nav-category-trigger ml-0.5 md:ml-1.5" data-dropdown-target="accountDropdown">
-            <a href="{% url 'users:account_details' %}" id="accountDropdownButton" title="{% translate 'Account' %}" class="nav-icon-btn inline-flex items-center justify-center gap-1.5 h-11 pl-3 pr-4.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer transition-all duration-200">
-              <svg class="w-8 h-8 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-width="1.5" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
-              </svg>
-              <span class="hidden md:inline text-base font-medium truncate max-w-28" data-user-first-name>{{ user.first_name }}</span>
-              <span class="sr-only md:hidden">{% translate "Account" %}</span>
-            </a>
-
-            <div id="accountDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-64 divide-y divide-gray-100 overflow-hidden overflow-y-auto rounded-xl bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
-              {# User display name header #}
-              <div class="px-4 py-3 cursor-text select-text">
-                <p class="text-base font-medium text-gray-900 dark:text-white truncate" data-user-display-name>{{ user.get_display_name }}</p>
-                {% if user.get_full_name %}
-                <p class="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
-                {% endif %}
-              </div>
-
-              <ul class="p-1.5 text-start text-sm font-medium text-gray-900 dark:text-white">
-                <li>
-                  <a href="{% url 'users:account_details' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-150">
-                    <svg class="h-5 w-5 text-gray-700 group-hover:text-gray-900 dark:text-gray-200 dark:group-hover:text-white transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <path stroke="currentColor" stroke-width="1.5" d="M7 17v1c0 .6.4 1 1 1h8c.6 0 1-.4 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
-                    </svg>
-                    <span class="text-sm font-medium">{% translate "My Account" %}</span>
-                  </a>
-                </li>
-              </ul>
-
-              <div class="p-1.5">
-                <a href="{% url 'account_logout' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gray-200 dark:text-red-400 dark:hover:bg-gray-600 transition-colors duration-150">
-                  <svg class="h-5 w-5 transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H8m12 0-4 4m4-4-4-4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2"></path>
-                  </svg>
-                  <span class="text-sm font-medium">{% translate "Sign Out" %}</span>
-                </a>
-              </div>
-            </div>
-          </div>
-          {% else %}
-          <a
-            id="nav-sign-in-link"
-            href="{% url 'account_login' %}"
-            data-login-url="{% url 'account_login' %}"
-            title="{% translate 'Sign In' %}"
-            class="nav-icon-btn ml-0.5 md:ml-1.5 inline-flex items-center justify-center gap-1.5 h-11 pl-3 pr-4.5 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-all duration-200"
-          >
-            <svg class="w-8 h-8 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" stroke-width="1.5" d="M7 17v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
-            </svg>
-            <span class="hidden md:inline text-base font-medium">{% translate "Sign In" %}</span>
-            <span class="sr-only md:hidden">{% translate "Sign In" %}</span>
-          </a>
-          {% endif %}
-        </div>
+      </div>
       </div>
 
         {# Search Bar with Category Dropdown #}
@@ -722,10 +756,10 @@ body.nav-scroll-locked {
   <div class="hidden md:block relative w-full z-40" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
     {# Categories Navigation Bar #}
     <div class="py-3 w-full bg-white dark:bg-gray-800 shadow-md" id="categories-nav-wrapper">
-    <div id="categories-nav-container" class="px-4 relative mx-auto 2xl:px-0 max-w-7xl">
+    <div id="categories-nav-container" class="px-3 relative mx-auto 2xl:px-0 max-w-7xl">
       <div class="flex gap-0 items-center overflow-hidden" id="categories-nav" data-navbar-mode="{{ navbar_mode }}" data-total-categories="{% if navbar_mode == 'custom' %}{{ custom_navbar_items|length }}{% else %}{{ nav_categories|slice:':10'|length }}{% endif %}">
         {# More Categories Drawer Trigger - Fixed at the beginning #}
-        <div id="moreCategoriesWrapper" class="shrink-0 flex items-center px-1 border-r border-gray-200 dark:border-gray-700 mr-1 h-full">
+        <div id="moreCategoriesWrapper" class="shrink-0 flex items-center px-0.5 border-r border-gray-200 dark:border-gray-700 mr-0.5 h-full">
           <button id="moreCategoriesButton" type="button" data-drawer-target="categoriesDrawer" data-drawer-show="categoriesDrawer" aria-controls="categoriesDrawer" class="nav-category-btn inline-flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
             <svg class="w-4 h-4 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h18M3 12h18M3 19h18"></path>
@@ -742,7 +776,7 @@ body.nav-scroll-locked {
         {% else %}
         {# Default navbar mode - show categories alphabetically #}
         {% for category in nav_categories|slice:':10' %}
-        <div class="shrink-0 nav-category-trigger nav-priority-item px-1 flex items-center {% if category.children.all %}has-children{% endif %}" data-category-id="{{ category.id }}" data-dropdown-target="categoryDropdown{{ category.id }}">
+        <div class="shrink-0 nav-category-trigger nav-priority-item px-0.5 flex items-center {% if category.children.all %}has-children{% endif %}" data-category-id="{{ category.id }}" data-dropdown-target="categoryDropdown{{ category.id }}">
           {# Category name is always a clickable link #}
           <a href="{{ category.get_absolute_url }}" class="nav-category-btn inline-flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white cursor-pointer whitespace-nowrap px-3 py-2.5 rounded-lg border border-transparent transition-colors duration-200">
             <span>{{ category.name }}</span>
@@ -764,7 +798,7 @@ body.nav-scroll-locked {
   {# Categories Drawer #}
   <div id="categoriesDrawer" class="fixed top-0 left-0 z-80 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white w-80 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-2xl" tabindex="-1" aria-labelledby="drawer-label" data-drawer-body-scrolling="true" data-drawer-backdrop="false">
     <div class="flex items-center justify-between mb-4">
-        <h5 id="drawer-label" class="text-base font-semibold text-gray-500 uppercase dark:text-gray-400">{% translate "All Categories" %}</h5>
+        <h5 id="drawer-label" class="text-base font-semibold text-gray-700 uppercase dark:text-gray-200">{% translate "All Categories" %}</h5>
         <button type="button" data-drawer-hide="categoriesDrawer" aria-controls="categoriesDrawer" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex items-center justify-center dark:hover:bg-gray-700 dark:hover:text-white cursor-pointer">
             <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
@@ -826,10 +860,14 @@ body.nav-scroll-locked {
           </div>
           
           <!-- Right Column: Previews -->
-          <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview">
+          <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview" data-category-icon-url="{% if category.image %}{{ category.image.url }}{% endif %}">
              <!-- Default State -->
              <div id="preview-default-{{ category.id }}" class="subcategory-preview-default p-6 transition-all duration-300 transform scale-100 opacity-100 z-10 flex flex-col items-center">
-               {% if nav_category_preview_icon %}
+               {% if category.image %}
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
+                  <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-10 h-10 object-contain" loading="lazy">
+                </div>
+               {% elif nav_category_preview_icon %}
                 <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
                   <span class="text-3xl leading-none">{{ nav_category_preview_icon }}</span>
                 </div>
@@ -876,7 +914,16 @@ document.addEventListener('DOMContentLoaded', function() {
       .replace(/'/g, '&#39;');
   }
 
-  function getCategoryPreviewBadgeHtml() {
+  function getCategoryPreviewBadgeHtml(iconUrl = '') {
+    const normalizedIconUrl = String(iconUrl || '').trim();
+    if (normalizedIconUrl) {
+      return `
+      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
+        <img src="${escapeHtml(normalizedIconUrl)}" alt="" class="w-10 h-10 object-contain" loading="lazy">
+      </div>
+      `;
+    }
+
     if (navCategoryPreviewIcon) {
       return `
       <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
@@ -1596,6 +1643,7 @@ document.addEventListener('DOMContentLoaded', function() {
           const previewPane = document.getElementById(`previewPane${parentId}`);
           
           if (previewPane) {
+            const parentIconUrl = previewPane.dataset.categoryIconUrl || '';
             // Prepare subchildren HTML if they exist
             let subchildrenHtml = '';
             const dataContainer = subItem.querySelector('.sub-children-data');
@@ -1621,7 +1669,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Empty state / Generic state
                 contentHtml = `
                     <div class="h-full flex flex-col items-center justify-center p-6 text-center">
-                      ${getCategoryPreviewBadgeHtml()}
+                      ${getCategoryPreviewBadgeHtml(parentIconUrl)}
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">${previewTitle}</h3>
                         <a href="${previewUrl}" class="inline-flex items-center justify-center w-auto px-6 py-2.5 bg-primary-700 text-white hover:bg-primary-800 text-sm font-bold rounded-lg transition-colors duration-300 shadow-sm">
                           {% translate "Go to" %} ${previewTitle}
@@ -1708,6 +1756,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // Mobile cart click behavior: let it navigate
         if (targetId === 'cartDropdown' && window.innerWidth < 768) {
           return; // Let the link be followed
+        }
+
+        // Keep native interactions inside dropdown content (forms, links, buttons).
+        if (e.target.closest('.category-dropdown')) {
+          return;
         }
 
         // If clicking a button inside, prevent default and open dropdown

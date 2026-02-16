@@ -526,6 +526,8 @@ def move_item(request: HttpRequest) -> HttpResponse:
 @require_POST
 def add_all_to_cart(request: HttpRequest) -> HttpResponse:
     """Add all items from a wishlist to the cart."""
+    from apps.cart.models import Cart, CartLine
+
     wishlist_id = request.POST.get("wishlist_id")
 
     if not wishlist_id:
@@ -538,22 +540,19 @@ def add_all_to_cart(request: HttpRequest) -> HttpResponse:
     added_count = 0
     unavailable_count = 0
 
+    # Get or create cart ONCE before the loop
+    cart_id = request.session.get("cart_id")
+    cart = None
+    if cart_id:
+        cart = Cart.objects.filter(id=cart_id).first()
+    if not cart:
+        cart = Cart.objects.create(
+            customer=request.user if request.user.is_authenticated else None
+        )
+        request.session["cart_id"] = cart.id
+
     for item in items:
         if item.product.stock > 0:
-            # Import cart logic
-            from apps.cart.models import Cart, CartLine
-
-            # Get or create cart
-            cart_id = request.session.get("cart_id")
-            cart = None
-            if cart_id:
-                cart = Cart.objects.filter(id=cart_id).first()
-            if not cart:
-                cart = Cart.objects.create(
-                    customer=request.user if request.user.is_authenticated else None
-                )
-                request.session["cart_id"] = cart.id
-
             # Add to cart
             line, created = CartLine.objects.get_or_create(
                 cart=cart,

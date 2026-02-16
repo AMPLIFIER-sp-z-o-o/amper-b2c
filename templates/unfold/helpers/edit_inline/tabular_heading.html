@@ -10,6 +10,8 @@
 
                         {% if field.help_text %}
                             <span class="cursor-help material-symbols-outlined ml-2 text-base-400 dark:text-base-500" title="{{ field.help_text|striptags }}">help</span>
+                        {% elif field.name == "price_when_added_display" %}
+                            <span class="cursor-help material-symbols-outlined ml-2 text-base-400 dark:text-base-500" title="{% trans 'The price of the product when it was added to the shopping list' %}">help</span>
                         {% endif %}
                     </span>
                 </th>

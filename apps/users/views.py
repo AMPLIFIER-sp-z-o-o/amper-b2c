@@ -1,6 +1,6 @@
 from allauth.account.internal.flows import password_reset as password_reset_flow
 from allauth.account.models import EmailAddress
-from allauth.account.views import ConfirmEmailView, PasswordChangeView, PasswordResetFromKeyView
+from allauth.account.views import ConfirmEmailView, LogoutView, PasswordChangeView, PasswordResetFromKeyView
 from allauth.socialaccount.models import SocialAccount
 from django.contrib import messages
 from django.contrib.messages import get_messages
@@ -19,7 +19,7 @@ from apps.api.models import UserAPIKey
 from apps.utils.timezones import is_valid_timezone
 
 from .adapter import user_has_valid_totp_device
-from .forms import AccountDetailsForm, CustomUserChangeForm, DeleteAccountForm, EmailChangeForm, UploadAvatarForm
+from .forms import AccountDetailsForm, CustomUserChangeForm, DeleteAccountForm, EmailChangeForm
 from .helpers import require_email_confirmation, user_has_confirmed_email_address
 from .models import CustomUser, PendingEmailChange
 
@@ -77,18 +77,7 @@ def profile(request):
     )
 
 
-@login_required
-@require_POST
-def upload_profile_image(request):
-    user = request.user
-    form = UploadAvatarForm(request.POST, request.FILES)
-    if form.is_valid():
-        user.avatar = request.FILES["avatar"]
-        user.save()
-        return HttpResponse(_("Success!"))
-    else:
-        readable_errors = ", ".join(str(error) for key, errors in form.errors.items() for error in errors)
-        return JsonResponse(status=403, data={"errors": readable_errors})
+
 
 
 @login_required
@@ -110,7 +99,11 @@ def create_api_key(request):
 @require_POST
 def revoke_api_key(request):
     key_id = request.POST.get("key_id")
-    api_key = request.user.api_keys.get(id=key_id)
+    try:
+        api_key = request.user.api_keys.get(id=key_id)
+    except (UserAPIKey.DoesNotExist, ValueError, TypeError):
+        messages.error(request, _("API Key not found."))
+        return HttpResponseRedirect(reverse("users:user_profile"))
     api_key.revoked = True
     api_key.save()
     messages.success(
@@ -357,9 +350,10 @@ def account_confirm_email_change(request, token):
         defaults={"verified": True, "primary": True},
     )
 
+    confirmed_email = pending.new_email
     pending.delete()
 
-    email_html = format_html("<strong>{}</strong>", pending.new_email)
+    email_html = format_html("<strong>{}</strong>", confirmed_email)
     messages.success(request, format_html(_("Your email has been changed to {email}."), email=email_html))
     return redirect("users:account_details")
 
@@ -422,6 +416,23 @@ class CustomPasswordChangeView(PasswordChangeView):
         if next_url:
             return next_url
         return reverse("users:account_details") + "#security-section"
+
+
+class CustomLogoutView(LogoutView):
+    """Log out both tab-scoped and default sessions to prevent session fallback."""
+
+    def logout(self):
+        super().logout()
+
+        if not getattr(self.request, "_session_is_tab_scoped", False):
+            return
+
+        default_session = getattr(self.request, "_default_session", None)
+        if default_session is not None:
+            default_session.flush()
+
+    def get_redirect_url(self):
+        return super().get_redirect_url()
 
 
 # ── Custom Email Confirmation View (auto-login) ──────────────────────
