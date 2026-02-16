@@ -527,6 +527,7 @@ def move_item(request: HttpRequest) -> HttpResponse:
 def add_all_to_cart(request: HttpRequest) -> HttpResponse:
     """Add all items from a wishlist to the cart."""
     from apps.cart.models import Cart, CartLine
+    from apps.catalog.models import ProductStatus
 
     wishlist_id = request.POST.get("wishlist_id")
 
@@ -552,21 +553,37 @@ def add_all_to_cart(request: HttpRequest) -> HttpResponse:
         request.session["cart_id"] = cart.id
 
     for item in items:
-        if item.product.stock > 0:
-            # Add to cart
-            line, created = CartLine.objects.get_or_create(
-                cart=cart,
-                product=item.product,
-                defaults={"quantity": 1, "price": item.product.price},
-            )
-            if not created:
-                line.quantity += 1
-                line.save(update_fields=["quantity"])
-
-            cart.recalculate()
-            added_count += 1
-        else:
+        product = item.product
+        is_purchasable = product.status == ProductStatus.ACTIVE and product.stock > 0
+        if not is_purchasable:
             unavailable_count += 1
+            continue
+
+        line, created = CartLine.objects.get_or_create(
+            cart=cart,
+            product=product,
+            defaults={"quantity": 1, "price": product.price},
+        )
+
+        if created:
+            added_count += 1
+            continue
+
+        current_quantity = line.quantity
+        if current_quantity >= product.stock:
+            unavailable_count += 1
+            # Keep price fresh even when we cannot increase quantity.
+            if line.price != product.price:
+                line.price = product.price
+                line.save(update_fields=["price"])
+            continue
+
+        line.quantity = min(current_quantity + 1, product.stock)
+        line.price = product.price
+        line.save(update_fields=["quantity", "price"])
+        added_count += 1
+
+    cart.recalculate()
 
     message = _("{count} item(s) added to cart.").format(count=added_count)
     if unavailable_count > 0:

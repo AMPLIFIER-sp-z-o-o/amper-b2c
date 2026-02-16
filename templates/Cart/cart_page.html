@@ -1,134 +1,54 @@
 {% extends "web/base.html" %}
+{% load i18n %}
 
 {% block body %}
-<section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
+<section class="bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
-    <ol class="flex w-full max-w-2xl items-center text-center text-sm font-medium text-gray-500 dark:text-gray-400 sm:text-base">
-      <li class="flex items-center text-primary-600 after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 dark:text-primary-500 dark:after:border-gray-700 md:w-full md:after:inline-block md:after:content-[''] xl:after:mx-10">
-        <span class="flex items-center after:mx-2 after:text-gray-200 after:content-['/'] dark:after:text-gray-500 md:after:hidden">
-          <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    {% include "Cart/includes/cart_stepper.html" with active_step="cart" %}
+
+    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white underline decoration-primary-600 underline-offset-8 decoration-2 dark:decoration-primary-500 sm:mt-8 sm:text-2xl">{% translate "Your Cart" %}</h2>
+
+    {% if requires_cart_fix %}
+      <div class="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+        <div class="flex items-start gap-3">
+          <svg class="h-5 w-5 shrink-0 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.29 3.86l-8.02 14A2 2 0 004 21h16a2 2 0 001.73-3.14l-8.02-14a2 2 0 00-3.46 0z" />
           </svg>
-          Cart
-        </span>
-      </li>
-
-      <li class="flex items-center after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 after:content-[''] dark:after:border-gray-700 md:w-full md:after:inline-block xl:after:mx-10">
-        <span class="flex items-center after:mx-2 after:text-gray-200 after:content-['/'] dark:after:text-gray-500 md:after:hidden">
-          <svg class="me-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-          Checkout
-        </span>
-      </li>
-
-      <li class="flex shrink-0 items-center">
-        <svg class="me-2 h-4 w-4 shrink-0 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-          <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-        </svg>
-        Order summary
-      </li>
-    </ol>
-
-    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">Your Cart</h2>
+          <div class="min-w-0">
+            <p class="text-sm font-semibold text-orange-900 dark:text-orange-200">{% translate "Please adjust your cart to continue" %}</p>
+            <p class="mt-1 text-sm text-orange-900/90 dark:text-orange-200/90">{% translate "Some items exceed current stock or are no longer available." %}</p>
+          </div>
+        </div>
+      </div>
+    {% endif %}
 
     <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12 xl:gap-16">
-      <div id="cart-page-lines" class="min-w-0 flex-1 divide-y divide-gray-200 border-b border-gray-200 dark:divide-gray-800 dark:border-gray-800">
-        {% for line in lines %}
-        <div data-cart-line data-cart-line-id="{{ line.id }}" class="flex items-start gap-4 py-4" data-cart-line>
-            <a href="{{ line.product.get_absolute_url }}" class="h-10 w-10 shrink-0">
-                {% with line.product.images.all|first as img %}
-                {% if img %}
-                    <img class="h-full w-full object-contain"
-                        src="{{ img.image.url }}"
-                        alt="{{ line.product.name }}">
-                {% else %}
-                    <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
-                {% endif %}
-                {% endwith %}
-            </a>
+      {% include "Cart/partials/cart_lines_list.html" with lines=lines container_id="cart-page-lines" show_stock_validation=True %}
 
-            <div class="min-w-0 flex-1 space-y-3">
-                <a href="{{ line.product.get_absolute_url }}"
-                class="text-base font-medium text-gray-900 hover:underline dark:text-white">
-                {{ line.product.name }}
-                </a>
-
-                <div class="flex items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    {% include "Cart/cart_line_input.html" with quantity=line.quantity product_id=line.product.id %}
-
-                    <button data-product-id="{{ line.product.id }}" type="button" class="remove-cart-line inline-flex items-center gap-1.5 text-sm font-medium text-red-600 hover:underline dark:text-red-500">
-                        <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6" />
-                        </svg>
-                        Remove
-                    </button>
-                </div>
-
-                <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="w-24 shrink-0 text-end text-base font-bold text-gray-900 dark:text-white sm:hidden">
-                    {{ line.subtotal|floatformat:2 }}
-                </p>
-                </div>
-            </div>
-
-            <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="hidden w-24 shrink-0 text-end text-base font-bold text-gray-900 dark:text-white sm:block">
-                {{ line.subtotal|floatformat:2 }}
-            </p>
-        </div>
-        {% empty %}
-        <p class="py-6 text-sm text-gray-500 dark:text-gray-400">
-        Your cart is empty.
-        </p>
-        {% endfor %}
-      </div>
-
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
-        <div class="flow-root">
-          <div class="-my-3 divide-y divide-gray-200 dark:divide-gray-700 mb-1">
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Subtotal</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white" data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Delivery Costs</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Payment Fee</dt>
-              <dd class="text-base font-medium text-gray-900 dark:text-white" data-payment-cost data-price="{{ payment_cost }}" data-currency="{{ site_currency }}">{{ payment_cost }}</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-normal text-gray-500 dark:text-gray-400">Savings</dt>
-              <dd class="text-base font-medium text-green-500">0</dd>
-            </dl>
-
-            <dl class="flex items-center justify-between gap-4 py-3">
-              <dt class="text-base font-bold text-gray-900 dark:text-white">Total</dt>
-              <dd class="text-base font-bold text-gray-900 dark:text-white" data-cart-total data-price="{{ total }}" data-currency="{{ site_currency }}">{{ total }}</dd>
-              
-            </dl>
-        </div>
-
-        <div class="space-y-3">
-            <a href="/cart/checkout/"
-                class="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-                Proceed to Checkout
-            </a>
-            <p class="text-sm font-normal text-gray-500 dark:text-gray-400">One or more items in your cart require an account. <a href="#" title="" class="font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">Sign in or create an account now</a>.</p>
-        </div>
-
-        <form class="flex items-end gap-4">
-          <div class="flex-1">
-            <label for="voucher" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white"> Do you have a voucher or gift card? </label>
-            <input type="text" id="voucher" class="block w-full rounded-lg border border-gray-300 bg-white p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500" placeholder="" required />
+      {% if lines %}
+        <div data-cart-summary-card class="ml-auto mt-6 w-full space-y-6 rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md lg:sticky lg:top-32 lg:self-start">
+          <div class="mb-1">
+            {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal total=total payment_cost=payment_cost show_delivery_cost=False show_payment_cost=True %}
           </div>
-          <button type="submit" class="flex items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Apply</button>
-        </form>
-      </div>
+
+          <div class="space-y-3 pt-3">
+              <a href="/cart/checkout/" data-nav-loading-btn
+                  {% if requires_cart_fix %}aria-disabled="true" tabindex="-1"{% endif %}
+                  class="relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer{% if requires_cart_fix %} opacity-60 pointer-events-none{% endif %}">
+                  <span class="pr-7">{% translate "Proceed to Checkout" %}</span>
+                  <svg class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+                  </svg>
+              </a>
+            <p class="text-muted{% if not requires_cart_fix %} hidden{% endif %}">{% translate "Fix the highlighted cart items above to continue." %}</p>
+            <p class="text-subtitle">
+                {% translate "Want faster checkout and order tracking?" %}
+                <a href="{% url 'account_login' %}" class="font-semibold text-primary-700 underline underline-offset-2 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 cursor-pointer">{% translate "Sign in or create an account" %}</a>.
+                {% translate "You can also continue as a guest." %}
+              </p>
+          </div>
+        </div>
+      {% endif %}
     </div>
   </div>
 </section>

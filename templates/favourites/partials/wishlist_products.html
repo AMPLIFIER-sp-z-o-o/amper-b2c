@@ -30,7 +30,7 @@
       <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
     </div>
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "No results found" %}</h3>
-    <p class="text-gray-500 mt-2">{% translate "Try adjusting your search or filters." %}</p>
+    <p class="text-subtitle mt-2">{% translate "Try adjusting your search or filters." %}</p>
     {% if search_query %}
     <button type="button" onclick="document.getElementById('wishlist-search-input').value=''; FavouritesPage.reloadItems();" class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 underline cursor-pointer">
       {% translate "Clear search" %}
@@ -55,12 +55,12 @@
       {% endif %}
     </div>
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">{% translate "This list is empty" %}</h3>
-    <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Start adding products to fill this list." %}</p>
+    <p class="text-subtitle mb-6">{% translate "Start adding products to fill this list." %}</p>
     <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
       </svg>
-      {% translate "Browse Products" %}
+      {% translate "Continue shopping" %}
     </a>
   </div>
 </div>

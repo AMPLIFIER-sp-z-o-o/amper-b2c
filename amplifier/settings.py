@@ -111,6 +111,7 @@ PROJECT_APPS = [
     "apps.support.apps.SupportConfig",
     "apps.cart.apps.CartConfig",
     "apps.favourites.apps.FavouritesConfig",
+    "apps.orders.apps.OrdersConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS

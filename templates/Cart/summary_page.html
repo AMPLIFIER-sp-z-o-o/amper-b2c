@@ -1,152 +1,119 @@
 {% extends "web/base.html" %}
 {% load static %}
 {% load media_tags %}
+{% load i18n %}
 
 {% block body %}
 
-<section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
-  <form action="#" class="mx-auto max-w-7xl px-2 2xl:px-0">
-    <ol class="flex w-full max-w-2xl items-center text-center text-sm font-medium text-gray-500 dark:text-gray-400 sm:text-base">
-        <li class="flex items-center text-primary-700 after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 dark:text-primary-500 dark:after:border-gray-700 sm:w-full sm:after:inline-block sm:after:content-[''] xl:after:mx-10">
-            <span class="flex items-center after:mx-2 after:text-gray-200 after:content-['/'] dark:after:text-gray-500 sm:after:hidden">
-            <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            Cart
-            </span>
-        </li>
+<section class="bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+  <form action="{% url 'orders:place' %}" method="post" class="max-w-7xl mx-auto px-2">
+  {% csrf_token %}
+    {% include "Cart/includes/cart_stepper.html" with active_step="summary" %}
+    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">{% translate "Order Summary" %}</h2>
 
-        <li class="flex items-center text-primary-700 after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 dark:text-primary-500 dark:after:border-gray-700 sm:w-full sm:after:inline-block sm:after:content-[''] xl:after:mx-10">
-            <span class="flex items-center after:mx-2 after:text-gray-200 after:content-['/'] dark:after:text-gray-500 sm:after:hidden">
-            <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            Checkout
-            </span>
-        </li>
+    <div class="mt-6 sm:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
+      <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+        <div class="min-w-0 divide-y divide-gray-200 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:divide-gray-700 dark:bg-gray-800">
+          {% for line in lines %}
+          <div data-cart-line data-cart-line-id="{{ line.id }}" class="flex flex-wrap items-center gap-4 p-6 sm:flex-nowrap sm:gap-6 md:justify-between">
+              <div class="w-full items-center gap-4 sm:flex sm:gap-6 md:max-w-md lg:max-w-lg">
+                  <a href="{{ line.product.get_absolute_url }}" class="block aspect-square w-20 shrink-0">
+                      {% with line.product.images.all|first as img %}
+                      {% if img %}
+                          <img class="h-full w-full object-contain"
+                              src="{{ img.image.url }}"
+                              alt="{{ line.product.name }}">
+                      {% else %}
+                          <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
+                      {% endif %}
+                      {% endwith %}
+                  </a>
 
-        <li class="flex shrink-0 items-center text-primary-700 dark:text-primary-500">
-            <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            Order summary
-        </li>
-    </ol>
-    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">Order Summary</h2>
+                  <div class="w-full min-w-0 md:max-w-sm lg:max-w-md">
+                      <a href="{{ line.product.get_absolute_url }}" class="block font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">{{ line.product.name }}</a>
+                  </div>
+              </div>
+              <div class="w-10 shrink-0">
+                  <p class="text-base font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
+              </div>
 
-    <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-8">
-      <div class="min-w-0 flex-1 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white shadow-sm dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800">
-        {% for line in lines %}
-        <div data-cart-line data-cart-line-id="{{ line.id }}" class="flex flex-wrap items-center space-y-4 p-6 sm:gap-6 sm:space-y-0 md:justify-between">
-            <div class="w-full items-center space-y-4 sm:flex sm:space-x-6 sm:space-y-0 md:max-w-md lg:max-w-lg">
-                <a href="{{ line.product.get_absolute_url }}" class="block aspect-square w-20 shrink-0">
-                    {% with line.product.images.all|first as img %}
-                    {% if img %}
-                        <img class="h-full w-full object-contain"
-                            src="{{ img.image.url }}"
-                            alt="{{ line.product.name }}">
-                    {% else %}
-                        <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
-                    {% endif %}
-                    {% endwith %}
-                </a>
-
-                <div class="w-full md:max-w-sm lg:max-w-md">
-                    <a href="{{ line.product.get_absolute_url }}" class="font-medium text-gray-900 hover:underline dark:text-white">{{ line.product.name }}</a>
-                </div>
-            </div>
-            <div class="w-8 shrink-0">
-                <p class="text-base font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
-            </div>
-
-            <div class="md:w-24 md:text-right">
-                <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
-            </div>
+              <div class="sm:w-24 sm:text-right">
+                  <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
+              </div>
+          </div>
+          {% endfor %}
         </div>
-        {% endfor %}
+
+        <div class="w-full rounded-lg bg-white p-4 dark:bg-gray-800 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          <div class="space-y-4 p-2 sm:p-4">
+            <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
+
+            <div class="space-y-2">
+              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
+            </div>
+
+            <button type="submit" data-nav-loading-btn class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
+              <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <span>{% translate "Place your order" %}</span>
+            </button>
+            
+            <a href="/cart/checkout/" class="btn-press mt-2 flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
+              {% translate "Return to Checkout" %}
+            </a>
+
+            <p class="text-muted">
+              {% translate "By placing your order, you agree to Flowbite's" %}
+              <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "privacy note" %}</a>
+              {% translate "and" %}
+              <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "terms of use" %}</a>.
+            </p>
+          </div>
+        </div>
       </div>
 
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
-        <div class="p-6">
-          <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">Order Details</h4>
+      <div class="lg:col-span-5 xl:col-span-4 mt-6 lg:mt-0 w-full rounded-lg bg-white p-4 dark:bg-gray-800 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+        <div class="p-2 sm:p-4">
+          <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order Details" %}</h4>
 
           <div class="flow-root">
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
-              <dl class="pb-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Order date</dt>
-                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">24 November 2023</dd>
+              <dl class="pb-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Order date" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ now|date:"Y-m-d H:i" }}</dd>
               </dl>
 
-              <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Email</dt>
-                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">name@example.com</dd>
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Email" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ checkout_details.email }}</dd>
               </dl>
 
-              <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">Phone</dt>
-                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">+123 456 7890</dd>
-              </dl>
-
-              <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">Delivery method</dt>
-                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">{{ delivery_name }}</dd>
-              </dl>
-
-              <dl class="py-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Payment method</dt>
-                <dd class="mt-2 flex items-center gap-2 sm:mt-0 sm:justify-end">
-                  <span class="text-right text-gray-500 dark:text-gray-400">{{ payment_name }}</span>
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Phone" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">
+                  {% if checkout_details.phone %}{{ checkout_details.phone }}{% else %}—{% endif %}
                 </dd>
               </dl>
 
-              <dl class="pt-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">Shipping address</dt>
-                <dd class="mt-2 text-gray-500 dark:text-gray-400 sm:mt-0 sm:text-right">62 Miles Drive St, Newark, NJ 07103, California,</dd>
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Delivery method" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ delivery_name|default:"—" }}</dd>
+              </dl>
+
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Payment method" %}</dt>
+                <dd class="mt-2 sm:mt-0 sm:text-right sm:max-w-xs">
+                  <span class="text-subtitle wrap-break-word">{{ payment_name|default:"—" }}</span>
+                </dd>
+              </dl>
+
+              <dl class="pt-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ checkout_details.shipping_address }}, {{ checkout_details.shipping_city }}, {{ checkout_details.shipping_country }}</dd>
               </dl>
             </div>
           </div>
-        </div>
-
-        <div class="space-y-4 p-6">
-          <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Order amount</h4>
-
-          <div class="space-y-4">
-            <div class="space-y-2">
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Original price</dt>
-                <dd class="font-medium text-gray-900 dark:text-white"  data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
-              </dl>
-
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Delivery Costs</dt>
-                <dd class="font-medium text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
-              </dl>
-
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Payment Fee</dt>
-                <dd class="font-medium text-gray-900 dark:text-white" data-payment-cost data-price="{{ payment_cost }}" data-currency="{{ site_currency }}">{{ payment_cost }}</dd>
-              </dl>
-              
-              <dl class="flex items-center justify-between gap-4">
-                <dt class="text-gray-500 dark:text-gray-400">Savings</dt>
-                <dd class="font-medium text-green-500">0</dd>
-              </dl>
-            </div>
-
-            <dl class="flex items-center justify-between gap-4 border-t border-gray-200 pt-2 dark:border-gray-700">
-              <dt class="font-bold text-gray-900 dark:text-white">Total</dt>
-              <dd class="font-bold text-gray-900 dark:text-white" data-cart-total data-price="{{ total }}" data-currency="{{ site_currency }}">{{ total }}</dd>
-            </dl>
-          </div>
-
-            <button type="submit" class="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5  py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4   focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">Place your order</button>
-          
-            <a href="/cart/checkout/"
-                class="flex w-full items-center justify-center rounded-lg border px-5 py-2.5 text-sm font-medium  hover:bg-primary-700 hover:text-white hover:border-primary-700 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-                Return to Checkout
-            </a>
-
-          <p class="max-w-xs text-sm font-normal text-gray-500 dark:text-gray-400">By placing your order, you agree to Flowbite's <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">privacy note</a> and <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">terms of use</a>.</p>
         </div>
       </div>
     </div>

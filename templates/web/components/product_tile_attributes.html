@@ -10,8 +10,11 @@
 {% if attrs %}
 <div id="product-attributes-{{ product.id }}" class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
   {% for attr in attrs %}
+  {% if exclude_category_attribute and attr.attribute_name == 'Category' %}
+    {# Category is rendered separately in some contexts (e.g. product detail) #}
+  {% else %}
   <div class="product-tile-attribute flex items-baseline py-0.5 min-w-0">
-    <a class="pointer-events-auto relative z-[1] inline-flex items-baseline gap-1.5 cursor-pointer min-w-0 max-w-full border-b-2 border-transparent hover:border-primary-500/90 transition-none"
+    <a class="pointer-events-auto relative z-1 inline-flex items-baseline gap-1.5 cursor-pointer min-w-0 max-w-full {% if use_underline %}hover:underline underline-offset-4{% else %}border-b-2 border-transparent hover:border-primary-500/90 transition-none{% endif %}"
        href="{{ product.category.get_absolute_url }}?attr_{{ attr.attribute_id }}={{ attr.option_slug|urlencode }}"
        data-attr-id="{{ attr.attribute_id }}"
        data-option-slug="{{ attr.option_slug }}">
@@ -32,6 +35,7 @@
     </div>
     {% endif %}
   </div>
+  {% endif %}
   {% endfor %}
 </div>
 {% endif %}

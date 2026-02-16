@@ -1,6 +1,11 @@
-<div class="p-4 flex gap-4 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer"
-     data-cart-line
-     data-cart-line-id="{{ line.id }}">
+{% load i18n %}
+
+<div
+  class="p-4 flex gap-4 cursor-pointer"
+  data-cart-line
+  data-cart-line-id="{{ line.id }}"
+  data-product-url="{{ line.product.get_absolute_url }}"
+>
   <a href="{{ line.product.get_absolute_url }}"
      class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
     {% with line.product.images.all|first as img %}
@@ -12,24 +17,48 @@
     {% endwith %}
   </a>
 
-  <div class="flex-1 min-w-0">
-    <a href="{{ line.product.get_absolute_url }}"
-       class="block w-full text-sm font-bold text-gray-900 dark:text-white truncate">
+  <div class="min-w-0 flex-1">
+    <a
+      href="{{ line.product.get_absolute_url }}"
+      class="block min-w-0 text-base font-bold text-gray-900 dark:text-white line-clamp-2 wrap-break-word hover:underline underline-offset-2"
+      title="{{ line.product.name }}"
+    >
       {{ line.product.name }}
     </a>
 
-    <p class="text-sm text-gray-500 dark:text-gray-400" data-cart-line-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">
-      {{ line.price }}
-    </p>
+    <div class="mt-1 flex items-baseline justify-between gap-3">
+      <p
+        class="text-base font-semibold text-gray-900 dark:text-white"
+        data-price="{{ line.subtotal }}"
+        data-currency="{{ site_currency }}"
+      >
+        {{ line.subtotal }}
+      </p>
 
-    <div class="flex items-center gap-2 mt-2">
-       {% include "Cart/cart_line_input.html" with quantity=line.quantity product_id=line.product.id %}
-        <button data-product-id="{{ line.product.id }}" class="remove-cart-line text-red-600 hover:text-red-700 p-1 cursor-pointer">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-            </svg>
-        </button>
+      {% if line.quantity > 1 %}
+        <p class="text-sm font-semibold text-gray-700 dark:text-gray-200 text-end">
+          {% translate "Per item" %}:
+          <span data-cart-line-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price }}</span>
+        </p>
+      {% endif %}
+    </div>
+
+    <div class="mt-2 flex items-center gap-2">
+      {% include "Cart/cart_line_input.html" with quantity=line.quantity product_id=line.product.id readonly=True max_quantity=line.product.stock %}
+      <button
+        data-product-id="{{ line.product.id }}"
+        type="button"
+        class="remove-cart-line inline-flex h-9 w-9 items-center justify-center rounded-full hover-bg btn-press text-red-600 hover:text-red-700 cursor-pointer"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+          ></path>
+        </svg>
+      </button>
     </div>
   </div>
 </div>

@@ -9,6 +9,11 @@
 - **HTMX enabled**: Middleware + `hx-headers` in body; use HTMX patterns for partial updates.
 - **API layer**: DRF in `apps/api/`; hybrid permission `IsAuthenticatedOrHasUserAPIKey` for session/API key auth (see [apps/api/permissions.py](../apps/api/permissions.py)).
 
+## Safety & Preservation Rules (CRITICAL)
+
+- **NEVER use `git restore`** (or `git checkout --`) on files that were modified in the working tree but were NOT changed by your current task. These files may contain the user's intentional, uncommitted work. If you see "unrelated" modified files in `git status`, **IGNORE THEM** and do not attempt to clean them up.
+- **NEVER use `open_simple_browser`** for any testing, debugging, or visual verification. It is deprecated and unreliable for this environment. **ALWAYS use Chrome MCP tools** (`mcp_chrome-devtoo_...`) for all browser-based interactions and inspections.
+
 ## Model Patterns & Base Classes
 
 - **Always extend `BaseModel`** from [apps/utils/models.py](../apps/utils/models.py) – provides `created_at`/`updated_at` timestamps.
@@ -269,6 +274,8 @@ All secondary/descriptive text under main headings (like "Start your shopping in
 - **Font**: `text-sm font-medium`
 - **Color**: `text-gray-700 dark:text-gray-200`
 
+**Product detail exception / rule**: The storefront product page `Description` content (rendered from CKEditor) MUST default to the `.text-subtitle` baseline (even when wrapped in Flowbite Typography classes like `format`).
+
 ### Global Text Color Baseline (Default)
 
 For the entire B2C UI, the **default** color for regular readable text (labels, menu items, subcategory names, list items, and standard interactive text) must use the darker baseline:
@@ -276,6 +283,8 @@ For the entire B2C UI, the **default** color for regular readable text (labels, 
 - `text-gray-700 dark:text-gray-200`
 
 Use lighter tones only for intentionally de-emphasized helper text (e.g., `.text-muted`) or explicitly defined secondary metadata.
+
+**Cart/checkout labels**: Labels like "Subtotal" and "Payment Fee" MUST use the baseline readable text color (`text-gray-700 dark:text-gray-200`) — the same default used for desktop navbar category names. Do NOT render these labels with `.text-muted`.
 
 #### ❌ Anti-Patterns
 

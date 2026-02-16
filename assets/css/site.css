@@ -179,6 +179,63 @@ html {
 }
 
 /* ===========================================
+   Elevated Inputs (White + Shadow)
+   Used where inputs should look like cards.
+   =========================================== */
+
+.input-elevated-wrap {
+  @apply rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all;
+}
+
+.input-elevated-wrap:focus-within {
+  box-shadow:
+    0 0 0 1px oklch(92.8% 0.006 264.531),
+    0 4px 8px 0 rgba(0, 0, 0, 0.16),
+    0 0 2px 1px rgba(0, 0, 0, 0.08);
+}
+
+.dark .input-elevated-wrap:focus-within {
+  box-shadow:
+    0 0 0 1px rgb(75 85 99),
+    0 4px 8px 0 rgba(0, 0, 0, 0.5),
+    0 0 2px 1px rgba(0, 0, 0, 0.3);
+}
+
+.input-elevated {
+  @apply block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0;
+}
+
+/* Direct elevated input (no wrapper needed) */
+.input-elevated-field {
+  @apply block w-full rounded-lg bg-white border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:bg-gray-700 dark:placeholder:text-gray-400 focus:ring-0 transition-all;
+  box-shadow:
+    0 0 0 1px rgb(229 231 235),
+    0 1px 3px 0 rgba(0, 0, 0, 0.1),
+    0 1px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+.input-elevated-field:focus {
+  box-shadow:
+    0 0 0 1px rgb(229 231 235),
+    0 4px 8px 0 rgba(0, 0, 0, 0.16),
+    0 0 2px 1px rgba(0, 0, 0, 0.08);
+}
+
+.dark .input-elevated-field {
+  box-shadow:
+    0 0 0 1px rgb(75 85 99),
+    0 1px 3px 0 rgba(0, 0, 0, 0.35),
+    0 1px 2px -1px rgba(0, 0, 0, 0.25);
+}
+
+.dark .input-elevated-field:focus {
+  box-shadow:
+    0 0 0 1px rgb(75 85 99),
+    0 4px 8px 0 rgba(0, 0, 0, 0.5),
+    0 0 2px 1px rgba(0, 0, 0, 0.3);
+}
+
+/* ===========================================
    Disabled Button Hover Fix
    Buttons with disabled + cursor-not-allowed must NOT
    change background or text color on hover.
@@ -238,8 +295,12 @@ button[disabled]:hover,
    =========================================== */
 
 .btn-loading {
-  pointer-events: none;
   opacity: 0.6;
+  pointer-events: none;
+}
+
+.btn-loading * {
+  pointer-events: none;
 }
 
 .btn-spinner {
@@ -283,6 +344,14 @@ button[disabled]:hover,
   animation: favouritePulse 0.4s ease-in-out;
 }
 
+/* 
+ * Active Favourite Button State
+ * When a product is in a wishlist, the button highlights with a subtle rose tint.
+ */
+.favourite-btn.is-favourited {
+  @apply bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800/50 dark:text-rose-400;
+}
+
 /* Utilities */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
@@ -302,4 +371,10 @@ button[disabled]:hover,
 
 .product-slider-swiper {
   overflow: visible !important;
+}
+
+.wrap-break-word {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }

@@ -26,19 +26,20 @@ class Cart(models.Model):
     )
 
     def recalculate(self):
-        subtotal = sum(
-            (line.subtotal for line in self.lines.all()),
-            Decimal("0.00")
-        )
+        lines = list(self.lines.all())
+        subtotal = sum((line.subtotal for line in lines), Decimal("0.00"))
         self.subtotal = subtotal.quantize(Decimal("0.01"))
 
         delivery_cost = Decimal("0.00")
-        if self.delivery_method:
-            delivery_cost = self.delivery_method.get_cost_for_cart(subtotal)
-        
         payment_cost = Decimal("0.00")
-        if self.payment_method:
-            payment_cost = Decimal(self.payment_method.additional_fees or 0)
+
+        # When the cart has no items, fees must not persist.
+        if lines:
+            if self.delivery_method:
+                delivery_cost = self.delivery_method.get_cost_for_cart(subtotal)
+
+            if self.payment_method:
+                payment_cost = Decimal(self.payment_method.additional_fees or 0)
 
         self.total = (subtotal + delivery_cost + payment_cost).quantize(Decimal("0.01"))
 

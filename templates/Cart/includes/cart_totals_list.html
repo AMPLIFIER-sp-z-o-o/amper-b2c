@@ -1,0 +1,29 @@
+{% load i18n %}
+
+<div class="flow-root">
+  <div class="-my-3 divide-y divide-gray-200 dark:divide-gray-800">
+    <dl class="flex items-center justify-between gap-4 py-3">
+      <dt class="text-subtitle">{% translate "Subtotal" %}</dt>
+      <dd class="text-base font-semibold text-gray-900 dark:text-white" data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
+    </dl>
+
+    {% if show_delivery_cost %}
+      <dl class="flex items-center justify-between gap-4 py-3">
+        <dt class="text-subtitle">{% translate "Delivery Costs" %}</dt>
+        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
+      </dl>
+    {% endif %}
+
+    {% if show_payment_cost %}
+      <dl class="flex items-center justify-between gap-4 py-3">
+        <dt class="text-subtitle">{% translate "Payment Fee" %}</dt>
+        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-payment-cost data-price="{{ payment_cost }}" data-currency="{{ site_currency }}">{{ payment_cost }}</dd>
+      </dl>
+    {% endif %}
+
+    <dl class="flex items-center justify-between gap-4 py-3">
+      <dt class="text-base font-bold text-gray-900 dark:text-white">{% translate "Total" %}</dt>
+      <dd class="text-base font-bold text-gray-900 dark:text-white" data-cart-total data-price="{{ total }}" data-currency="{{ site_currency }}">{{ total }}</dd>
+    </dl>
+  </div>
+</div>

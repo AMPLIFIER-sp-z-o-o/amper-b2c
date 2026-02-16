@@ -80,6 +80,7 @@ urlpatterns = [
     path("products/", include("apps.catalog.urls")),
     path("cart/", include("apps.cart.urls")),
     path("favourites/", include("apps.favourites.urls")),
+    path("orders/", include("apps.orders.urls")),
     # API docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Optional UI - you may wish to remove one of these depending on your preference

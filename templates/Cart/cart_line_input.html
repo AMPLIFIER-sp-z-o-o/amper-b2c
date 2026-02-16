@@ -1,9 +1,9 @@
-<div class="flex items-center" data-counter="product-{{ product_id }}">
+<div class="flex items-center {% if readonly %}cursor-default{% endif %}" data-counter="product-{{ product_id }}">
     <button type="button"
         data-action='decrement'
         data-input-counter-decrement="counter-input-{{ product_id }}"
-        class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
-        <svg class="h-2.5 w-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 2">
+        class="inline-flex {% if size == 'lg' %}h-11 w-11{% else %}h-9 w-9{% endif %} shrink-0 items-center justify-center rounded-full hover-bg btn-press text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer">
+        <svg class="{% if size == 'lg' %}h-5 w-5{% else %}h-4 w-4{% endif %}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 2">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M1 1h16" />
         </svg>
     </button>
@@ -11,16 +11,18 @@
     <input type="number"
         id="counter-input-{{ product_id }}"
         data-counter-input
-        class="no-spinner w-12 shrink-0 border-0 bg-transparent text-center text-sm font-medium text-gray-900 focus:outline-none focus:ring-0 dark:text-white"
-        value="{{ line.quantity }}"
+        {% if readonly %}data-readonly="true" readonly inputmode="none" tabindex="-1" aria-readonly="true"{% endif %}
+        class="no-spinner {% if size == 'lg' %}w-14{% else %}w-12{% endif %} shrink-0 border-0 bg-transparent text-center text-base font-bold text-gray-900 focus:outline-none focus:ring-0 dark:text-white {% if readonly %}pointer-events-none cursor-default select-none{% endif %}"
+        value="{{ quantity }}"
         min="0"
+        max="{{ max_quantity }}"
         required />
 
     <button type="button"
             data-action='increment'
             data-input-counter-increment="counter-input-{{ product_id }}"
-            class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-gray-300 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600 dark:focus:ring-gray-700">
-        <svg class="h-2.5 w-2.5 text-gray-900 dark:text-white" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
+            class="inline-flex {% if size == 'lg' %}h-11 w-11{% else %}h-9 w-9{% endif %} shrink-0 items-center justify-center rounded-full hover-bg btn-press text-gray-700 dark:text-gray-200 focus:outline-none cursor-pointer">
+        <svg class="{% if size == 'lg' %}h-5 w-5{% else %}h-4 w-4{% endif %}" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 18 18">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 1v16M1 9h16" />
         </svg>
     </button>

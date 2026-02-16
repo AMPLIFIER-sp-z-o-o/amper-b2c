@@ -2,16 +2,17 @@
 {% load i18n %}
 
 {% block body %}
-<section class="py-8 bg-white md:py-16 xl:py-24 dark:bg-gray-900 antialiased">
-  <div class="max-w-screen-xl mx-auto">
-    <div class="flex flex-col lg:grid lg:grid-cols-[1fr_28rem] xl:grid-cols-[1fr_32rem]">
-      <div class="order-1 px-4 lg:col-start-1 lg:row-start-1">
-        <div class="max-w-md lg:max-w-none mx-auto flex flex-col lg:flex-row justify-center mb-4">
-          <ul class="grid grid-cols-4 lg:block gap-4 order-2 lg:order-1 lg:space-y-4 mt-8 lg:mt-0" id="product-2-tab" data-tabs-toggle="#product-2-tab-content" data-tabs-active-classes="border-gray-200 dark:border-gray-700" data-tabs-inactive-classes="border-transparent hover:border-gray-200 dark:hover:dark:border-gray-700 dark:border-transparent" role="tablist">
+<section class="pt-4 pb-8 bg-gray-50 md:pt-8 md:pb-16 xl:pt-10 xl:pb-24 dark:bg-gray-900 antialiased">
+  <div class="max-w-7xl mx-auto px-2 sm:px-4">
+    <div class="flex flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[1fr_28rem] xl:grid-cols-[1fr_32rem]">
+      <div class="order-1 lg:col-start-1 lg:row-start-1">
+        <div class="rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 dark:bg-gray-800 sm:p-6">
+          <div class="max-w-md lg:max-w-none mx-auto flex flex-col lg:flex-row justify-center">
+          <ul class="grid grid-cols-4 lg:block gap-4 order-2 lg:order-1 lg:space-y-4 mt-8 lg:mt-0" id="product-2-tab" data-tabs-toggle="#product-2-tab-content" data-tabs-active-classes="shadow-[0_12px_28px_rgba(0,0,0,0.16)]" data-tabs-inactive-classes="hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]" role="tablist">
             {% for img in product.images.all %}
               <li class="me-2" role="presentation">
                 <button
-                  class="h-20 w-20 overflow-hidden border-2 rounded-lg sm:h-20 sm:w-20 md:h-24 md:w-24 p-2 cursor-pointer mx-auto"
+                  class="h-20 w-20 overflow-hidden rounded-xl bg-white p-2 shadow-sm transition-shadow duration-300 cursor-pointer mx-auto hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                   id="product-2-image-{{ forloop.counter }}-tab"
                   data-tabs-target="#product-2-image-{{ forloop.counter }}"
                   type="button"
@@ -25,7 +26,7 @@
               </li>
             {% empty %}
               <li class="me-2" role="presentation">
-                <button class="h-20 w-20 overflow-hidden border-2 rounded-lg sm:h-20 sm:w-20 md:h-24 md:w-24 p-2 cursor-pointer mx-auto"
+                <button class="h-20 w-20 overflow-hidden rounded-xl bg-white p-2 shadow-sm transition-shadow duration-300 cursor-pointer mx-auto hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500 dark:bg-gray-800"
                         id="product-2-image-1-tab"
                         data-tabs-target="#product-2-image-1"
                         type="button"
@@ -43,12 +44,25 @@
           <div id="product-2-tab-content" class="order-1 lg:order-2 flex-1 min-w-0">
             {% for img in product.images.all %}
               <div class="{% if forloop.first %}block{% else %}hidden{% endif %}
-                        w-full h-full px-4 rounded-lg bg-white dark:bg-gray-900
-                        flex items-center justify-center aspect-square lg:aspect-4/3"
+                        w-full h-full rounded-xl bg-gray-50 p-4
+                        relative flex items-center justify-center aspect-square lg:aspect-4/3 dark:bg-gray-700"
                     id="product-2-image-{{ forloop.counter }}"
                     role="tabpanel"
                     aria-labelledby="product-2-image-{{ forloop.counter }}-tab"
                     >
+                    <button
+                      type="button"
+                      class="product-image-fullscreen-btn absolute top-3 right-3 z-10 p-2 rounded-full bg-white shadow-sm hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                      data-fullscreen-src="{{ img.image.url }}"
+                      data-fullscreen-alt="{{ img.alt_text|default:product.name }}"
+                      aria-label="{% translate 'View image full screen' %}"
+                      title="{% translate 'View image full screen' %}"
+                    >
+                      {# Flowbite / Heroicons style: arrows-expand #}
+                      <svg class="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l6 6m10-2V4m0 0h-4m4 0l-6 6M4 16v4m0 0h4m-4 0l6-6m10 6l-6-6m6 6v4m0 0h-4" />
+                      </svg>
+                    </button>
                     <img
                         src="{{ img.image.url }}"
                         alt="{{ img.alt_text|default:product.name }}"
@@ -56,7 +70,7 @@
                     />
                 </div>
             {% empty %}
-              <div class="block px-4 rounded-lg bg-white dark:bg-gray-900"
+              <div class="block rounded-xl bg-gray-50 p-4 dark:bg-gray-700"
                    id="product-2-image-1"
                    role="tabpanel"
                    aria-labelledby="product-2-image-1-tab">
@@ -67,342 +81,151 @@
             {% endfor %}
           </div>
         </div>
+        </div>
       </div>
 
-      <div class="order-3 px-4 lg:col-start-1 lg:row-start-2">
-        <div id="accordion-flush" data-accordion="collapse" data-active-classes="bg-white dark:bg-gray-900 text-gray-900 dark:text-white" data-inactive-classes="text-gray-500 dark:text-gray-400">
-          <h2 id="accordion-flush-heading-1">
-            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-1" aria-expanded="true" aria-controls="accordion-flush-body-1">
-              <span>{% translate "Product Details" %}</span>
-              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
-              </svg>
-            </button>
-          </h2>
-          <div id="accordion-flush-body-1" class="hidden" aria-labelledby="accordion-flush-heading-1">
-            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
-              <p class="mb-2 text-gray-500 dark:text-gray-400">{{ product.description|default:"No description available."|safe }}</p>
-            </div>
-          </div>
-          <h2 id="accordion-flush-heading-2">
-            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-2" aria-expanded="false" aria-controls="accordion-flush-body-2">
-              <span>{% translate "Specifications" %}</span>
-              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
-              </svg>
-            </button>
-          </h2>
-          <div id="accordion-flush-body-2" class="hidden" aria-labelledby="accordion-flush-heading-2">
-            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
-              <p class="mb-2 text-gray-500 dark:text-gray-400">Specifications include advanced processor capabilities, extensive storage options, and seamless connectivity. The product is designed to handle demanding tasks efficiently.</p>
-              <p class="text-gray-500 dark:text-gray-400">Additional features include high-resolution display, long-lasting battery life, and intuitive user interface for enhanced productivity.</p>
-            </div>
-          </div>
-          <h2 id="accordion-flush-heading-3">
-            <button type="button" class="flex items-center justify-between w-full py-5 font-medium rtl:text-right text-gray-500 border-b border-gray-200 dark:border-gray-700 dark:text-gray-400 gap-3" data-accordion-target="#accordion-flush-body-3" aria-expanded="false" aria-controls="accordion-flush-body-3">
-              <span>{% translate "Warranty" %}</span>
-              <svg data-accordion-icon class="w-5 h-5 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7"/>
-              </svg>
-            </button>
-          </h2>
-          <div id="accordion-flush-body-3" class="hidden" aria-labelledby="accordion-flush-heading-3">
-            <div class="py-5 border-b border-gray-200 dark:border-gray-700">
-              <p class="mb-2 text-gray-500 dark:text-gray-400">The product comes with a comprehensive warranty that covers manufacturing defects and malfunctions. It provides peace of mind and assurance of product quality.</p>
-              <p class="mb-2 text-gray-500 dark:text-gray-400">Customers can enjoy reliable support and prompt assistance for any issues related to the product during the warranty period.</p>
+      <div class="order-3 lg:col-start-1 lg:row-start-2">
+        <div class="rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:p-6">
+          <div id="product-description-accordion" data-accordion="collapse" data-active-classes="text-gray-900 dark:text-white" data-inactive-classes="text-gray-500 dark:text-gray-400">
+            <h2 id="product-description-heading">
+              <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 dark:text-white rtl:text-right cursor-pointer transition-colors hover:text-gray-900 dark:hover:text-white focus:outline-none" data-accordion-target="#product-description-body" aria-expanded="true" aria-controls="product-description-body">
+                <span class="text-lg">{% translate "Description" %}</span>
+                <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
+                </svg>
+              </button>
+            </h2>
+            <div id="product-description-body" class="mt-3" aria-labelledby="product-description-heading">
+              <div class="format format-sm sm:format-base dark:format-invert max-w-none text-subtitle">
+                {{ product.description|default:"No description available."|safe }}
+              </div>
             </div>
           </div>
         </div>
-        
       </div>
 
-      <div class="order-2 mt-6 lg:mt-0 px-4 lg:col-start-2 lg:row-start-1 lg:row-span-2">
-        <div
-          class="p-4 border border-gray-200 rounded-lg sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800 dark:border-gray-700"
-        >
-          <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
-            {{ product.name }}
-          </h1>
+      <div class="order-2 lg:mt-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+        <div class="space-y-4">
+          <div data-product-detail-card class="relative rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 dark:bg-gray-800 sm:p-6 lg:p-8">
+            <div class="absolute top-4 right-4 z-10">
+              {% include "web/components/product_share_button.html" with product=product wrapper_class="contents" button_class="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover-bg btn-press transition-colors cursor-pointer" %}
+            </div>
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+              {{ product.name }}
+            </h1>
 
-          {% if product.is_unavailable %}
-          <div class="mt-3 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 dark:bg-red-900/30">
-            <svg class="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/>
-            </svg>
-            <span class="text-sm font-semibold text-red-700 dark:text-red-300">{% translate "Temporarily unavailable" %}</span>
-          </div>
-          {% endif %}
+            {% if product.is_unavailable %}
+            <div class="mt-3 flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 dark:bg-red-900/30">
+              <svg class="h-5 w-5 shrink-0 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/>
+              </svg>
+              <span class="text-sm font-semibold text-red-700 dark:text-red-300">{% translate "Temporarily unavailable" %}</span>
+            </div>
+            {% endif %}
 
-          <div class="mt-4 sm:gap-4 sm:items-center sm:flex">
-            <span
-              class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300"
-            >
-              the last 2 products
-            </span>
-
-            <div class="flex items-center gap-2 mt-4 sm:mt-0">
-              <div class="flex items-center gap-1">
-                <svg
-                  class="w-4 h-4 text-yellow-300"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
-                  />
-                </svg>
-                <svg
-                  class="w-4 h-4 text-yellow-300"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
-                  />
-                </svg>
-                <svg
-                  class="w-4 h-4 text-yellow-300"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
-                  />
-                </svg>
-                <svg
-                  class="w-4 h-4 text-yellow-300"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
-                  />
-                </svg>
-                <svg
-                  class="w-4 h-4 text-yellow-300"
-                  aria-hidden="true"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    d="M13.849 4.22c-.684-1.626-3.014-1.626-3.698 0L8.397 8.387l-4.552.361c-1.775.14-2.495 2.331-1.142 3.477l3.468 2.937-1.06 4.392c-.413 1.713 1.472 3.067 2.992 2.149L12 19.35l3.897 2.354c1.52.918 3.405-.436 2.992-2.15l-1.06-4.39 3.468-2.938c1.353-1.146.633-3.336-1.142-3.477l-4.552-.36-1.754-4.17Z"
-                  />
-                </svg>
-              </div>
-              <a
-                href="#"
-                class="text-sm font-medium leading-none text-gray-900 underline hover:no-underline dark:text-white"
+            <div class="gap-4 mt-4 md:mt-6 flex items-center justify-between">
+              <p
+                class="text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white"
+                data-price="{{ product.price }}" data-currency="{{ site_currency }}"
               >
-                345 Reviews
-              </a>
+                {{ product.price|floatformat:2 }}
+              </p>
+
+              <div class="flex items-center gap-3">
+                <div class="inline-flex items-center bg-white dark:bg-gray-700 rounded-full shadow-sm ring-1 ring-gray-200 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
+                  {% include "Cart/cart_line_input.html" with quantity=1 product_id=product.id sync=False size='lg' max_quantity=product.stock %}
+                </div>
+                <span class="text-muted whitespace-nowrap">
+                  {% blocktranslate with stock=product.stock %}of {{ stock }} available{% endblocktranslate %}
+                </span>
+              </div>
+            </div>
+
+            <div class="gap-4 mt-4 md:mt-6 sm:flex sm:items-center lg:flex-col">
+              <button
+                type="button"
+                class="favourite-btn group flex items-center w-full justify-center py-2.5 px-5 text-sm font-medium text-gray-700 bg-gray-100 hover-bg btn-press rounded-lg shadow-sm transition-colors dark:bg-gray-700 dark:text-gray-200 cursor-pointer"
+                data-product-id="{{ product.id }}"
+                data-product-name="{{ product.name }}"
+                data-product-price="{{ product.price }}"
+              >
+                <svg class="favourite-icon w-5 h-5 -ms-2 me-2 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                </svg>
+                <svg class="favourite-icon-filled w-5 h-5 -ms-2 me-2 text-rose-500 hidden" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                </svg>
+                {% translate "Add to favorites" %}
+              </button>
+
+              {% if product.is_unavailable %}
+              <button
+                type="button"
+                disabled
+                class="w-full mt-4 sm:mt-0 bg-primary-700 text-white font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-primary-600 flex items-center justify-center opacity-60 pointer-events-none"
+              >
+                <svg
+                  class="w-5 h-5 -ms-2 me-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
+                  />
+                </svg>
+                {% translate "Temporarily unavailable" %}
+              </button>
+              {% else %}
+              <button
+                type="button"
+                data-product-id="{{ product.id }}"
+                data-quantity-input="counter-input-{{ product.id }}"
+                class="add-to-cart-btn text-white w-full mt-4 sm:mt-0 bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800 flex items-center justify-center cursor-pointer"
+              >
+                <svg
+                  class="w-5 h-5 -ms-2 me-2"
+                  aria-hidden="true"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
+                  />
+                </svg>
+                {% translate "Add to cart" %}
+              </button>
+              {% endif %}
             </div>
           </div>
 
-          <div class="flex items-center gap-1 mt-4">
-            <svg
-              class="w-5 h-5 text-primary-700 dark:text-primary-500"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-              />
-              <path
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M17.8 13.938h-.011a7 7 0 1 0-11.464.144h-.016l.14.171c.1.127.2.251.3.371L12 21l5.13-6.248c.194-.209.374-.429.54-.659l.13-.155Z"
-              />
-            </svg>
-            <p
-              class="text-sm font-medium text-primary-700 dark:text-primary-500"
-            >
-              Deliver to Bonnie Green- Sacramento 23647
-            </p>
-          </div>
+          <div class="rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:p-6">
+            <h2 class="text-base font-bold text-gray-900 dark:text-white">{% translate "Product details" %}</h2>
 
-          <div
-            class="gap-4 mt-4 md:mt-6 flex items-center justify-between"
-          >
-            <p
-              class="text-2xl font-extrabold text-gray-900 sm:text-3xl dark:text-white"
-              data-price="{{ product.price }}" data-currency="{{ site_currency }}"
-            >
-              {{ product.price|floatformat:2 }}
-            </p>
+            <div class="mt-4">
+              <p class="text-subtitle">{% translate "Category" %}</p>
+              <a href="{{ product.category.get_absolute_url }}" class="mt-1 inline-flex items-baseline gap-2 cursor-pointer min-w-0 max-w-full border-b-2 border-transparent hover:border-primary-500/90 transition-none">
+                <span class="min-w-0 truncate text-base font-semibold text-gray-900 dark:text-white">{{ product.category.name }}</span>
+              </a>
+            </div>
 
-            <form class="flex items-center gap-2 mt-0">
-              <div class="flex items-center gap-1">
-                <label
-                  for="quantity"
-                  class="text-sm font-medium text-gray-900 dark:text-white"
-                  >{% translate "Quantity" %}</label
-                >
-                <button
-                  data-tooltip-target="quantity-desc-3"
-                  data-tooltip-trigger="hover"
-                  class="text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                >
-                  <svg
-                    class="w-4 h-4"
-                    aria-hidden="true"
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12Zm9.408-5.5a1 1 0 1 0 0 2h.01a1 1 0 1 0 0-2h-.01ZM10 10a1 1 0 1 0 0 2h1v3h-1a1 1 0 1 0 0 2h4a1 1 0 1 0 0-2h-1v-4a1 1 0 0 0-1-1h-2Z"
-                      clip-rule="evenodd"
-                    />
-                  </svg>
-                </button>
-                <div
-                  id="quantity-desc-3"
-                  role="tooltip"
-                  class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700"
-                >
-                Quantity: Number of units to purchase.
-                  <div class="tooltip-arrow" data-popper-arrow></div>
-                </div>
-              </div>
-              <select
-                id="quantity"
-                class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-16 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-              >
-                <option selected>0</option>
-                <option value="1" selected>1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-              </select>
-            </form>
-          </div>
-
-          <div class="gap-4 mt-4 md:mt-6 sm:flex sm:items-center lg:flex-col">
-            <button
-              type="button"
-              class="favourite-btn flex items-center w-full justify-center py-2.5 px-5 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-200 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700 cursor-pointer"
-              data-product-id="{{ product.id }}"
-              data-product-name="{{ product.name }}"
-              data-product-price="{{ product.price }}"
-            >
-              <svg class="favourite-icon w-5 h-5 -ms-2 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-              </svg>
-              <svg class="favourite-icon-filled w-5 h-5 -ms-2 me-2 text-rose-500 hidden" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
-              </svg>
-              {% load i18n %}{% translate "Add to favorites" %}
-            </button>
-
-            {% if product.is_unavailable %}
-            <button
-              type="button"
-              disabled
-              class="w-full mt-4 sm:mt-0 bg-gray-300 text-gray-500 cursor-not-allowed font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-gray-600 dark:text-gray-400 flex items-center justify-center"
-            >
-              <svg
-                class="w-5 h-5 -ms-2 me-2"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
-                />
-              </svg>
-
-              {% translate "Temporarily unavailable" %}
-            </button>
-            {% else %}
-            <a
-              href="#"
-              title=""
-              class="text-white w-full mt-4 sm:mt-0 bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-primary-600 dark:hover:bg-primary-700 focus:outline-none dark:focus:ring-primary-800 flex items-center justify-center"
-              role="button"
-            >
-              <svg
-                class="w-5 h-5 -ms-2 me-2"
-                aria-hidden="true"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke="currentColor"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6"
-                />
-              </svg>
-
-              {% translate "Add to cart" %}
-            </a>
-            {% endif %}
-          </div>
-
-          <p class="mt-4 md:mt-6 text-sm font-normal text-gray-500 dark:text-gray-400">
-            Also available at competitive prices from
-            <a href="#" title="" class="font-medium underline text-primary-700 hover:no-underline dark:text-primary-500">authorized retailers</a>,
-            with optional Premium delivery for expedited shipping.
-          </p>
-
-          <div
-            class="pt-8 mt-8 space-y-6 border-t border-gray-200 dark:border-gray-700"
-          >
-            <div class="product-tile-attributes mt-1.5 flex flex-col space-y-0.5">
-              {% for attr in attributes %}
-                <div class="flex items-baseline py-0.5 min-w-0">
-                  <span class="shrink-0 text-sm font-normal text-gray-500">
-                    {{ attr.attribute_name }}:
-                  </span>
-                  <span class="ml-1 min-w-0 text-sm font-bold text-gray-900">
-                    {{ attr.full_value }}
-                  </span>
-                </div>
-              {% endfor %}
+            <div class="mt-4">
+              <p class="text-subtitle">{% translate "Attributes" %}</p>
+              {% include "web/components/product_tile_attributes.html" with product=product exclude_category_attribute=True %}
             </div>
           </div>
         </div>

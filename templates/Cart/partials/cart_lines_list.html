@@ -1,0 +1,113 @@
+{% load i18n %}
+
+<div
+  id="{{ container_id|default:'cart-page-lines' }}"
+  class="min-w-0 flex-1 space-y-4"
+  {% if show_stock_validation %}data-checkout-stock-validation{% endif %}
+>
+  {% if lines %}
+    {% for line in lines %}
+      <div
+        data-cart-line
+        data-cart-line-id="{{ line.id }}"
+        data-product-url="{{ line.product.get_absolute_url }}"
+        class="relative flex items-start gap-4 overflow-hidden rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 cursor-pointer sm:gap-5"
+      >
+        <a
+          href="{{ line.product.get_absolute_url }}"
+          class="absolute inset-0 z-0"
+          aria-label="{% blocktranslate with name=line.product.name %}View {{ name }}{% endblocktranslate %}"
+        ></a>
+
+        <div class="relative z-10 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg shrink-0 flex items-center justify-center pointer-events-none">
+          {% with line.product.images.all|first as img %}
+            {% if img %}
+              <img class="h-12 w-12 object-contain" src="{{ img.image.url }}" alt="{{ line.product.name }}">
+            {% else %}
+              <div class="h-full w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+            {% endif %}
+          {% endwith %}
+        </div>
+
+        <div class="relative z-10 min-w-0 flex-1 space-y-3 pointer-events-none">
+          <p class="text-base font-bold text-gray-900 dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">
+            {{ line.product.name }}
+          </p>
+
+          <p class="text-subtitle">
+            {% translate "Per item" %}: <span data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price }}</span>
+          </p>
+
+          <div class="flex items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div
+                data-qty-wrap
+                class="pointer-events-auto inline-flex items-center bg-white dark:bg-gray-700 rounded-full shadow-sm ring-1 ring-gray-200 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]{% if show_stock_validation and line.checkout_stock_issue %} ring-red-500 dark:ring-red-500{% endif %}"
+              >
+                {% include "Cart/cart_line_input.html" with quantity=line.quantity product_id=line.product.id size='lg' max_quantity=line.product.stock %}
+              </div>
+
+              <button
+                data-product-id="{{ line.product.id }}"
+                type="button"
+                class="pointer-events-auto remove-cart-line inline-flex h-11 items-center gap-1 rounded-full px-3 text-sm font-medium text-red-600 hover-bg btn-press dark:text-red-500 cursor-pointer"
+              >
+                <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 17.94 6M18 18 6.06 6" />
+                </svg>
+                {% translate "Remove" %}
+              </button>
+            </div>
+
+            <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:hidden">
+              {{ line.subtotal|floatformat:2 }}
+            </p>
+          </div>
+
+          {% if show_stock_validation and line.checkout_stock_issue %}
+            <div data-stock-issue="1" data-stock-issue-available="{{ line.checkout_stock_available }}" class="pointer-events-none rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-200">
+              {% if line.checkout_stock_available > 0 %}
+                <p class="font-semibold">
+                  {% blocktranslate with available=line.checkout_stock_available %}Only {{ available }} items are available for this product.{% endblocktranslate %}
+                </p>
+                <p class="mt-1">{% translate "Change the quantity to continue checkout." %}</p>
+                <button
+                  type="button"
+                  data-product-id="{{ line.product.id }}"
+                  data-quantity="{{ line.checkout_stock_available }}"
+                  data-add-to-cart-mode="set"
+                  class="pointer-events-auto add-to-cart-btn mt-3 inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+                >
+                  {% blocktranslate with available=line.checkout_stock_available %}Set {{ available }} items{% endblocktranslate %}
+                </button>
+              {% else %}
+                <p class="font-semibold">{% translate "This product is currently unavailable." %}</p>
+                <p class="mt-1">{% translate "Remove it from your cart to continue checkout." %}</p>
+              {% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="relative z-10 hidden w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:block pointer-events-none">
+          {{ line.subtotal|floatformat:2 }}
+        </p>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div
+      data-cart-page-empty-state
+      class="rounded-xl bg-white dark:bg-gray-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] p-6 sm:p-8"
+    >
+      <div class="flex min-h-44 flex-col items-center justify-center text-center">
+        <p class="text-base font-semibold text-gray-700 dark:text-gray-200">{% translate "Your cart is empty" %}</p>
+        <p class="mt-1 text-subtitle">{% translate "Continue shopping and add items to start checkout." %}</p>
+        <a
+          href="/"
+          class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+        >
+          {% translate "Continue shopping" %}
+        </a>
+      </div>
+    </div>
+  {% endif %}
+</div>

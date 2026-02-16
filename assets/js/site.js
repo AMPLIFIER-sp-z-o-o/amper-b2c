@@ -157,8 +157,293 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize favourites
   initFavourites();
 
+  // Initialize product compare buttons state
+  syncCompareButtons(document);
+
   // Initialize relative time labels (auto-refresh every 30s)
   initRelativeTimes();
+});
+
+/* ============================================
+   PRODUCT SHARE / COMPARE / IMAGE FULLSCREEN
+   ============================================ */
+
+const COMPARE_STORAGE_KEY = "amper_compare_products";
+
+function isPolishUi() {
+  return (document.documentElement.lang || "").toLowerCase().startsWith("pl");
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+async function copyTextToClipboard(text) {
+  if (!text) return false;
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch {
+    // fall back
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "readonly");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function getCompareList() {
+  try {
+    const raw = localStorage.getItem(COMPARE_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((v) => parseInt(v, 10)).filter((n) => Number.isFinite(n));
+  } catch {
+    return [];
+  }
+}
+
+function setCompareList(list) {
+  try {
+    localStorage.setItem(COMPARE_STORAGE_KEY, JSON.stringify(list));
+  } catch {
+    // ignore (private mode / storage denied)
+  }
+}
+
+function toggleComparedProduct(productId) {
+  const list = getCompareList();
+  const idx = list.indexOf(productId);
+  if (idx >= 0) {
+    list.splice(idx, 1);
+    setCompareList(list);
+    return { compared: false, list };
+  }
+  list.push(productId);
+  setCompareList(list);
+  return { compared: true, list };
+}
+
+function syncCompareButtons(root = document) {
+  const comparedSet = new Set(getCompareList());
+  root
+    .querySelectorAll(".product-compare-btn[data-product-id]")
+    .forEach((btn) => {
+      const productId = parseInt(btn.dataset.productId, 10);
+      if (!Number.isFinite(productId)) return;
+
+      const isCompared = comparedSet.has(productId);
+      btn.setAttribute("aria-pressed", isCompared ? "true" : "false");
+      btn.classList.toggle("is-compared", isCompared);
+
+      const usesHoverOpacity =
+        btn.classList.contains("opacity-0") ||
+        btn.classList.contains("group-hover:opacity-100");
+      if (usesHoverOpacity) {
+        if (isCompared) {
+          btn.classList.remove("opacity-0");
+          btn.classList.add("opacity-100");
+        } else {
+          btn.classList.remove("opacity-100");
+          btn.classList.add("opacity-0");
+        }
+      }
+
+      const icon = btn.querySelector(".compare-icon");
+      if (icon) {
+        icon.classList.toggle("text-gray-400", !isCompared);
+        icon.classList.toggle("text-primary-600", isCompared);
+        icon.classList.toggle("dark:text-primary-500", isCompared);
+      }
+
+      if (isCompared) {
+        btn.title = isPolishUi()
+          ? "Usuń z porównania"
+          : "Remove from comparison";
+      } else {
+        btn.title = isPolishUi() ? "Dodaj do porównania" : "Add to comparison";
+      }
+    });
+}
+
+function ensureProductImageFullscreenOverlay() {
+  let overlay = document.getElementById("product-image-fullscreen-overlay");
+  if (overlay) return overlay;
+
+  overlay = document.createElement("div");
+  overlay.id = "product-image-fullscreen-overlay";
+  overlay.className =
+    "fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 p-4";
+  overlay.innerHTML = `
+    <div class="absolute inset-0" data-fullscreen-backdrop></div>
+    <div class="relative w-full max-w-5xl">
+      <button type="button" class="absolute -top-2 -right-2 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors" data-fullscreen-close aria-label="Close" title="Close">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+      <img data-fullscreen-img class="w-full max-h-[85vh] object-contain rounded-xl" alt="" src="" />
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const close = () => {
+    overlay.classList.add("hidden");
+    overlay.classList.remove("flex");
+    document.body.classList.remove("overflow-hidden");
+    const img = overlay.querySelector("[data-fullscreen-img]");
+    if (img) {
+      img.removeAttribute("src");
+      img.setAttribute("alt", "");
+    }
+  };
+
+  overlay
+    .querySelector("[data-fullscreen-close]")
+    ?.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      close();
+    });
+  overlay
+    .querySelector("[data-fullscreen-backdrop]")
+    ?.addEventListener("click", (e) => {
+      e.preventDefault();
+      close();
+    });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    if (!overlay.classList.contains("hidden")) close();
+  });
+
+  overlay._close = close;
+  return overlay;
+}
+
+async function handleProductShare(btn) {
+  const rawUrl = btn.dataset.shareUrl || window.location.href;
+  const url = /^https?:\/\//i.test(rawUrl)
+    ? rawUrl
+    : new URL(rawUrl, window.location.origin).toString();
+  const title = btn.dataset.shareTitle || document.title;
+
+  if (navigator.share) {
+    try {
+      // Fire-and-forget: on many platforms the returned Promise resolves only
+      // after the share sheet closes. We don't want to keep the button in a
+      // loading state for that long.
+      navigator.share({ title, url }).catch(() => {});
+      return;
+    } catch {
+      // fall back to copy
+    }
+  }
+
+  const ok = await copyTextToClipboard(url);
+  if (ok) {
+    window.showToast?.(
+      isPolishUi() ? "Link skopiowany do schowka" : "Link copied to clipboard",
+      "success",
+    );
+  } else {
+    window.showToast?.(
+      isPolishUi()
+        ? "Nie udało się skopiować linku"
+        : "Could not copy the link",
+      "error",
+    );
+  }
+}
+
+// Event delegation for product actions
+document.addEventListener("click", async (e) => {
+  const shareBtn = e.target.closest?.(".product-share-btn");
+  if (shareBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (shareBtn.classList.contains("btn-loading")) return;
+    try {
+      window.btnLoading?.(shareBtn);
+      await handleProductShare(shareBtn);
+    } finally {
+      window.btnReset?.(shareBtn);
+    }
+    return;
+  }
+
+  const compareBtn = e.target.closest?.(".product-compare-btn");
+  if (compareBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const productId = parseInt(compareBtn.dataset.productId, 10);
+    if (!Number.isFinite(productId)) return;
+
+    const productName = compareBtn.dataset.productName || "";
+    const nameEsc = escapeHtml(productName);
+
+    const { compared } = toggleComparedProduct(productId);
+    syncCompareButtons(document);
+
+    if (window.showToast) {
+      if (compared) {
+        window.showToast(
+          isPolishUi()
+            ? `Dodano <strong>${nameEsc}</strong> do porównania`
+            : `Added <strong>${nameEsc}</strong> to comparison`,
+          "success",
+        );
+      } else {
+        window.showToast(
+          isPolishUi()
+            ? `Usunięto <strong>${nameEsc}</strong> z porównania`
+            : `Removed <strong>${nameEsc}</strong> from comparison`,
+          "success",
+        );
+      }
+    }
+    return;
+  }
+
+  const fsBtn = e.target.closest?.(".product-image-fullscreen-btn");
+  if (fsBtn) {
+    e.preventDefault();
+    e.stopPropagation();
+    const src = fsBtn.dataset.fullscreenSrc;
+    if (!src) return;
+
+    const alt = fsBtn.dataset.fullscreenAlt || "";
+    const overlay = ensureProductImageFullscreenOverlay();
+    const img = overlay.querySelector("[data-fullscreen-img]");
+    if (img) {
+      img.setAttribute("src", src);
+      img.setAttribute("alt", alt);
+    }
+    overlay.classList.remove("hidden");
+    overlay.classList.add("flex");
+    document.body.classList.add("overflow-hidden");
+  }
 });
 
 /* ============================================
@@ -168,13 +453,58 @@ document.addEventListener("DOMContentLoaded", function () {
 const SPINNER_SVG =
   '<svg fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
 
+// Prevent unpleasant flicker when requests finish very fast.
+// Keep the loading state visible for at least this many milliseconds.
+const BTN_LOADING_MIN_DURATION_MS = 350;
+
+function resetBtnNow(btn) {
+  if (!btn) return;
+  btn.classList.remove("btn-loading");
+  btn.removeAttribute("aria-disabled");
+  btn.querySelector(".btn-spinner")?.remove();
+  // Restore hidden SVG icon
+  const hiddenIcon = btn.querySelector(":scope > svg[data-btn-hidden]");
+  if (hiddenIcon) {
+    delete hiddenIcon.dataset.btnHidden;
+    hiddenIcon.style.display = "";
+  }
+  // Remove temporarily added flex classes
+  if (btn.dataset.btnFlexAdded) {
+    btn.classList.remove(
+      "inline-flex",
+      "items-center",
+      "justify-center",
+      "gap-2",
+    );
+    delete btn.dataset.btnFlexAdded;
+  }
+  if (btn.dataset.btnGapAdded) {
+    btn.classList.remove("gap-2");
+    delete btn.dataset.btnGapAdded;
+  }
+  delete btn._btnLoadingStartedAt;
+}
+
 /**
  * Set a button into loading state: disable it, dim it, show a spinner.
  * @param {HTMLButtonElement} btn
  */
 function btnLoading(btn) {
   if (!btn || btn.classList.contains("btn-loading")) return;
+
+  // If a reset was scheduled (min-duration), cancel it.
+  if (btn._btnLoadingResetTimeoutId) {
+    clearTimeout(btn._btnLoadingResetTimeoutId);
+    delete btn._btnLoadingResetTimeoutId;
+  }
+
+  btn._btnLoadingStartedAt =
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+
   btn.classList.add("btn-loading");
+  btn.setAttribute("aria-disabled", "true");
   // Ensure button has flex layout for proper spinner + text alignment
   if (
     !btn.classList.contains("inline-flex") &&
@@ -208,32 +538,60 @@ function btnLoading(btn) {
  */
 function btnReset(btn) {
   if (!btn) return;
-  btn.classList.remove("btn-loading");
-  btn.querySelector(".btn-spinner")?.remove();
-  // Restore hidden SVG icon
-  const hiddenIcon = btn.querySelector(":scope > svg[data-btn-hidden]");
-  if (hiddenIcon) {
-    delete hiddenIcon.dataset.btnHidden;
-    hiddenIcon.style.display = "";
+
+  const startedAt = btn._btnLoadingStartedAt;
+  if (typeof startedAt === "number") {
+    const now =
+      typeof performance !== "undefined" &&
+      typeof performance.now === "function"
+        ? performance.now()
+        : Date.now();
+    const elapsed = now - startedAt;
+    const remaining = BTN_LOADING_MIN_DURATION_MS - elapsed;
+
+    if (remaining > 0) {
+      if (btn._btnLoadingResetTimeoutId) {
+        clearTimeout(btn._btnLoadingResetTimeoutId);
+      }
+      btn._btnLoadingResetTimeoutId = setTimeout(() => {
+        // Button might have been removed from DOM; in that case this is harmless.
+        delete btn._btnLoadingResetTimeoutId;
+        resetBtnNow(btn);
+      }, remaining);
+      return;
+    }
   }
-  // Remove temporarily added flex classes
-  if (btn.dataset.btnFlexAdded) {
-    btn.classList.remove(
-      "inline-flex",
-      "items-center",
-      "justify-center",
-      "gap-2",
-    );
-    delete btn.dataset.btnFlexAdded;
-  }
-  if (btn.dataset.btnGapAdded) {
-    btn.classList.remove("gap-2");
-    delete btn.dataset.btnGapAdded;
-  }
+
+  resetBtnNow(btn);
 }
 
 window.btnLoading = btnLoading;
 window.btnReset = btnReset;
+
+// Global guard: while a control is in loading state, prevent any click/keyboard re-activation.
+// This keeps UX consistent across the whole storefront, even if some handlers forget to check btn-loading.
+document.addEventListener(
+  "click",
+  function (e) {
+    const el = e.target.closest(".btn-loading");
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+  },
+  true,
+);
+
+document.addEventListener(
+  "keydown",
+  function (e) {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const el = e.target.closest?.(".btn-loading");
+    if (!el) return;
+    e.preventDefault();
+    e.stopPropagation();
+  },
+  true,
+);
 
 const CURRENCY_LOCALES = {
   PLN: "pl-PL",
@@ -1307,7 +1665,7 @@ function updateAllFavouriteButtons(productId, isFavourited) {
 /**
  * Show a toast notification.
  * @param {string} message - The message to display
- * @param {string} type - The type of toast: 'success' or 'error'
+ * @param {string} type - The type of toast: 'success', 'warning' or 'error'
  */
 function showToast(message, type = "success") {
   // Check if there's an existing toast container
@@ -1321,14 +1679,24 @@ function showToast(message, type = "success") {
   toastContainer.classList.add("bottom-4");
 
   const toastId = `toast-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  const isSuccess = type === "success";
+  const normalizedType =
+    type === "success" || type === "warning" || type === "error"
+      ? type
+      : "success";
+
+  const isSuccess = normalizedType === "success";
+  const isWarning = normalizedType === "warning";
   const toast = document.createElement("div");
   const iconWrapperClass = isSuccess
     ? "inline-flex items-center justify-center shrink-0 w-8 h-8 text-green-500 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-200"
-    : "inline-flex items-center justify-center shrink-0 w-8 h-8 text-red-500 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-200";
+    : isWarning
+      ? "inline-flex items-center justify-center shrink-0 w-8 h-8 text-orange-500 bg-orange-100 rounded-lg dark:bg-orange-800 dark:text-orange-200"
+      : "inline-flex items-center justify-center shrink-0 w-8 h-8 text-red-500 bg-red-100 rounded-lg dark:bg-red-800 dark:text-red-200";
   const iconPath = isSuccess
     ? "M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 8.207-4 4a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L9 10.586l3.293-3.293a1 1 0 0 1 1.414 1.414Z"
-    : "M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z";
+    : isWarning
+      ? "M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm0 12a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-9a1 1 0 0 0-2 0v5a1 1 0 0 0 2 0v-5Z"
+      : "M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5Zm3.707 11.793a1 1 0 1 1-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 0 1-1.414-1.414L8.586 10 6.293 7.707a1 1 0 0 1 1.414-1.414L10 8.586l2.293-2.293a1 1 0 0 1 1.414 1.414L11.414 10l2.293 2.293Z";
 
   toast.id = toastId;
   toast.setAttribute("role", "alert");
@@ -1339,7 +1707,7 @@ function showToast(message, type = "success") {
       <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
         <path d="${iconPath}" />
       </svg>
-      <span class="sr-only">${isSuccess ? "Check icon" : "Error icon"}</span>
+      <span class="sr-only">${isSuccess ? "Check icon" : isWarning ? "Warning icon" : "Error icon"}</span>
     </div>
     <div class="ms-3 text-sm font-medium">${message}</div>
   `;
@@ -1397,6 +1765,7 @@ function getCsrfToken() {
 document.addEventListener("htmx:afterSwap", () => {
   attachFavouriteHandlers();
   loadFavouriteStatus();
+  syncCompareButtons(document);
   initRelativeTimes();
 });
 

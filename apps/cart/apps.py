@@ -6,3 +6,6 @@ class CartConfig(AppConfig):
     name = "apps.cart"
     label = "cart"
     verbose_name = "Cart"
+
+    def ready(self):
+        import apps.cart.signals  # noqa: F401
