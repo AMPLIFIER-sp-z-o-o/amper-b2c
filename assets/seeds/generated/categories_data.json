@@ -108,7 +108,7 @@
     "name": "Beauty",
     "slug": "beauty",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/beauty_xwC7HyV.svg",
     "icon": "circle"
   },
   {
@@ -220,7 +220,7 @@
     "name": "Fragrances",
     "slug": "fragrances",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/fragrances_sKU1eER.svg",
     "icon": "circle"
   },
   {
@@ -332,7 +332,7 @@
     "name": "Furniture",
     "slug": "furniture",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/furniture_D2fv7s8.svg",
     "icon": "circle"
   },
   {
@@ -444,7 +444,7 @@
     "name": "Groceries",
     "slug": "groceries",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/groceries_ZTcgZ3I.svg",
     "icon": "circle"
   },
   {
@@ -556,7 +556,7 @@
     "name": "Home Decoration",
     "slug": "home-decoration",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/home-decoration_meb2iMp.svg",
     "icon": "circle"
   },
   {
@@ -668,7 +668,7 @@
     "name": "Kitchen Accessories",
     "slug": "kitchen-accessories",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/kitchen-accessories_GjkpLsr.svg",
     "icon": "circle"
   },
   {
@@ -780,7 +780,7 @@
     "name": "Laptops",
     "slug": "laptops",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/laptops_5XRixfN.svg",
     "icon": "circle"
   },
   {
@@ -892,7 +892,7 @@
     "name": "Mens Shirts",
     "slug": "mens-shirts",
     "parent_id": null,
-    "image": "",
+    "image": "category-images/mens-shirts_T2vHJSS.svg",
     "icon": "circle"
   },
   {
