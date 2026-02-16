@@ -86,7 +86,7 @@ from apps.web.models import (
     SystemSettings,
     TopBar,
 )
-from apps.cart.models import DeliveryMethod 
+from apps.cart.models import DeliveryMethod, PaymentMethod
 
 # Site domain is read from SITE_DOMAIN env var (default: localhost:8000).
 # On QA/production, set e.g. SITE_DOMAIN=amper-b2c.ampliapps.com
@@ -209,6 +209,9 @@ ATTRIBUTE_OPTIONS_DATA = _load_generated_seed_list("attribute_options_data.json"
 PRODUCTS_DATA = _load_generated_seed_list("products_data.json")
 
 DELIVERY_METHODS_DATA = _load_generated_seed_list("delivery_methods_data.json")
+
+PAYMENT_METHODS_DATA = _load_generated_seed_list("payment_methods_data.json")
+
 
 
 def _build_product_images_data():
@@ -346,6 +349,7 @@ class Command(BaseCommand):
                 self._seed_homepage_sections()
                 self._seed_storefront_hero_section()
                 self._seed_delivery_methods()
+                self._seed_payment_methods()
                 # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
                 self._seed_social_apps()
 
@@ -1486,6 +1490,7 @@ class Command(BaseCommand):
             "homepage_storefrontcategorybox",
             "homepage_storefrontcategoryitem",
             "cart_deliverymethod",
+            "cart_paymentmethod"
         ]
 
         fixed_count = 0
@@ -1563,3 +1568,31 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(f"  DeliveryMethod: {len(DELIVERY_METHODS_DATA)} records")
+
+    def _seed_payment_methods(self):
+        """Seed PaymentMethod model."""
+        if not PAYMENT_METHODS_DATA:
+            self.stdout.write("  PaymentMethod: 0 records (no data)")
+            return
+
+        self._bulk_upsert_by_id(
+            PaymentMethod,
+            [
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "default_payment_time": int(item["default_payment_time"]) if item.get("default_payment_time") else None,
+                    "additional_fees": Decimal(item["additional_fees"]) if item.get("additional_fees") is not None else None,
+                    "is_active": item.get("is_active", True),
+                }
+                for item in PAYMENT_METHODS_DATA
+            ],
+            update_fields=[
+                "name",
+                "default_payment_time",
+                "additional_fees",
+                "is_active",
+            ],
+        )
+
+        self.stdout.write(f"  PaymentMethod: {len(PAYMENT_METHODS_DATA)} records")

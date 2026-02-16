@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.shortcuts import get_object_or_404
 from apps.catalog.models import Product
-from .models import Cart, CartLine, DeliveryMethod
+from .models import Cart, CartLine, DeliveryMethod, PaymentMethod
 from django.template.loader import render_to_string
 from decimal import Decimal
 
@@ -20,13 +20,15 @@ def cart_page(request):
     request.session["cart_id"] = cart.id
 
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
+    payment_cost = cart.payment_method.additional_fees if cart.payment_method.additional_fees else "0.00"
 
     return render(request, "Cart/cart_page.html", {
         "cart": cart,
         "lines": lines,
         "total": cart.total,
         "subtotal": cart.subtotal,
-        "delivery_cost": delivery_cost
+        "delivery_cost": delivery_cost,
+        "payment_cost": payment_cost
     })
 
 
@@ -137,25 +139,38 @@ def checkout_page(request):
         return redirect("cart:cart_page")
 
     cart = get_object_or_404(Cart, id=cart_id)
-    delivery_methods = DeliveryMethod.objects.filter(is_active=True).order_by("name")
 
+    delivery_methods = DeliveryMethod.objects.filter(is_active=True).order_by("name")
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
+
+    payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("name")
+    payment_cost = cart.payment_method.additional_fees if cart.payment_method.additional_fees else "0.00"
 
     if request.method == "POST":
         method_id = request.POST.get("delivery-method")
+        payment_id = request.POST.get("payment-method")
         if method_id:
             method = get_object_or_404(DeliveryMethod, id=method_id)
             cart.delivery_method = method
-            cart.recalculate()
-            cart.save(update_fields=["delivery_method", "subtotal", "total"])
-            delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
 
+        if payment_id:
+            payment = get_object_or_404(PaymentMethod, id=payment_id)
+            cart.payment_method = payment
+
+        cart.save()
+        cart.recalculate()
+
+        delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
+        payment_cost = cart.payment_method.additional_fees if cart.payment_method.additional_fees else "0.00"
+        
         return JsonResponse({
             "success": True,
             "delivery_method_id": cart.delivery_method.id if cart.delivery_method else None,
+            "payment_method_id": cart.payment_method.id if cart.payment_method else None,
             "total": str(cart.total),
             "subtotal": str(cart.subtotal),
-            "delivery_cost": str(delivery_cost)
+            "delivery_cost": str(delivery_cost),
+            "payment_cost": payment_cost
         })
 
     return render(request, "Cart/checkout_page.html", {
@@ -165,7 +180,10 @@ def checkout_page(request):
         "disable_cart_dropdown": True,
         "delivery_methods": delivery_methods,
         "selected_delivery": cart.delivery_method,
-        "delivery_cost": str(delivery_cost)
+        "delivery_cost": str(delivery_cost),
+        "payment_methods": payment_methods,
+        "payment_cost": payment_cost,
+        "selected_payment": cart.payment_method,
     })
 
 def summary_page(request):
@@ -182,6 +200,9 @@ def summary_page(request):
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
     delivery_name = cart.delivery_method.name
 
+    payment_cost = cart.payment_method.additional_fees if cart.payment_method.additional_fees else "0.00"
+    payment_name = cart.payment_method.name
+
     return render(request, "Cart/summary_page.html", {
         "cart": cart,
         "lines": lines,
@@ -190,7 +211,10 @@ def summary_page(request):
         "disable_cart_dropdown": True,
         "selected_delivery": cart.delivery_method,
         "delivery_cost": delivery_cost,
-        "delivery_name": delivery_name
+        "delivery_name": delivery_name,
+        "selected_payment": cart.payment_method,
+        "payment_cost": payment_cost,
+        "payment_name": payment_name
     })
 
 
