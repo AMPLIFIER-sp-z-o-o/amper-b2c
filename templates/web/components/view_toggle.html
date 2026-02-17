@@ -2,7 +2,7 @@
 {# Reusable View Toggle Component #}
 {# Usage: {% include "web/components/view_toggle.html" with toggle_id="favourites" toggle_function="toggleFavouritesViewMode" current_view=view_mode %} #}
 
-<div class="flex items-center shrink-0">
+<div id="view-toggle-{{ toggle_id|default:'default' }}" class="flex items-center shrink-0">
   <button type="button"
      data-view-toggle="grid"
      data-toggle-id="{{ toggle_id|default:'default' }}"

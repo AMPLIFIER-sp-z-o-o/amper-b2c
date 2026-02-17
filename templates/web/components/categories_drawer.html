@@ -18,8 +18,8 @@
   <div class="py-4 overflow-y-auto">
     <ul class="space-y-2 font-medium">
       {% for category in nav_categories %}
-      <li>
-         <a href="{{ category.get_absolute_url }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 group transition-colors duration-200">
+      <li id="categories-drawer-item-{{ category.id }}">
+         <a id="categories-drawer-link-{{ category.id }}" href="{{ category.get_absolute_url }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700 group transition-colors duration-200">
             {% if category.image %}
             <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-6 h-6 object-contain mr-3 rounded-full">
             {% endif %}

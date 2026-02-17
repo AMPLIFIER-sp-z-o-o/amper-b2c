@@ -2,20 +2,22 @@
 
 {% block body %}
 
-    {% if homepage_sections %}
-        {% for section in homepage_sections %}
-            {% if section.section_type == "product_list" %}
-                {% include "web/components/homepage_product_section.html" with section=section %}
-            {% elif section.section_type == "product_slider" %}
-                {% include "web/components/homepage_product_slider_section.html" with section=section %}
-            {% elif section.section_type == "banner_section" %}
-                {% include "web/components/homepage_banner_section.html" with section=section %}
-            {% elif section.section_type == "custom_section" %}
-                {% include "web/components/homepage_custom_section.html" with section=section %}
-            {% elif section.section_type == "storefront_hero" %}
-                {% include "web/components/homepage_storefront_hero_section.html" with section=section %}
-            {% endif %}
-        {% endfor %}
-        {% include "web/components/homepage_product_sections_assets.html" %}
-    {% endif %}
+  <main id="storefront-homepage">
+      {% if homepage_sections %}
+          {% for section in homepage_sections %}
+              {% if section.section_type == "product_list" %}
+                  {% include "web/components/homepage_product_section.html" with section=section %}
+              {% elif section.section_type == "product_slider" %}
+                  {% include "web/components/homepage_product_slider_section.html" with section=section %}
+              {% elif section.section_type == "banner_section" %}
+                  {% include "web/components/homepage_banner_section.html" with section=section %}
+              {% elif section.section_type == "custom_section" %}
+                  {% include "web/components/homepage_custom_section.html" with section=section %}
+              {% elif section.section_type == "storefront_hero" %}
+                  {% include "web/components/homepage_storefront_hero_section.html" with section=section %}
+              {% endif %}
+          {% endfor %}
+          {% include "web/components/homepage_product_sections_assets.html" %}
+      {% endif %}
+  </main>
 {% endblock %}

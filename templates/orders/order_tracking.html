@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block body %}
-<section class="order-flow-enter bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+<section id="order-tracking-page-{{ order.id }}" class="order-flow-enter bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
     <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
       {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}

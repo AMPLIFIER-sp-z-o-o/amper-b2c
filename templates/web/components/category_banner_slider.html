@@ -1,25 +1,27 @@
 {% load i18n %}
 {% if category_banners %}
-<div id="category-banner-slider-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="category-banner-slider {% if not header_position %}mb-4{% endif %} overflow-hidden {% if header_position %}header-position{% endif %}">
-  <div class="relative">
+<div id="category-banner-slider-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="category-banner-slider storefront-category-banner-slider storefront-category-banner-slider-{{ current_category.id }} {% if not header_position %}mb-4{% endif %} overflow-hidden {% if header_position %}header-position{% endif %}">
+  <div id="category-banner-slider-inner-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="relative">
     {# Banner Carousel #}
-    <div class="relative rounded-xl overflow-hidden">
+    <div id="category-banner-carousel-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="relative rounded-xl overflow-hidden">
       <div 
+        id="category-banner-swiper-{{ current_category.id }}{% if header_position %}-header{% endif %}"
         class="swiper category-banner-swiper overflow-hidden"
         data-category-id="{{ current_category.id }}"
         data-banner-count="{{ category_banners|length }}"
       >
         <div class="swiper-wrapper">
           {% for banner in category_banners %}
-          <div class="swiper-slide">
+            <div id="category-banner-slide-{{ current_category.id }}-{{ banner.id|default:forloop.counter }}{% if header_position %}-header{% endif %}" class="swiper-slide category-banner-slide category-banner-slide-{{ banner.id|default:'draft' }} storefront-category-banner-slide storefront-category-banner-slide-{{ banner.id|default:'draft' }}">
             {% if banner.url %}
-            <a href="{{ banner.url }}" class="block w-full h-full">
+            <a id="category-banner-link-{{ current_category.id }}-{{ banner.id|default:forloop.counter }}{% if header_position %}-header{% endif %}" href="{{ banner.url }}" class="block w-full h-full">
             {% endif %}
-              <picture class="block w-full h-full">
+              <picture id="category-banner-picture-{{ current_category.id }}-{{ banner.id|default:forloop.counter }}{% if header_position %}-header{% endif %}" class="block w-full h-full">
                 {% if banner.mobile_image %}
                 <source media="(max-width: 768px)" srcset="{{ banner.mobile_image.url }}">
                 {% endif %}
                 <img 
+                  id="category-banner-img-{{ current_category.id }}-{{ banner.id|default:forloop.counter }}{% if header_position %}-header{% endif %}"
                   src="{{ banner.image.url }}" 
                   alt="{{ banner.name }}"
                   class="category-banner-img w-full h-full object-cover object-center"
@@ -37,6 +39,7 @@
       {# Navigation buttons - only show if more than one banner #}
       {% if category_banners|length > 1 %}
       <button 
+        id="category-banner-prev-{{ current_category.id }}{% if header_position %}-header{% endif %}"
         type="button" 
         class="category-banner-prev absolute left-3 md:left-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
         data-category-id="{{ current_category.id }}"
@@ -47,6 +50,7 @@
         </svg>
       </button>
       <button 
+        id="category-banner-next-{{ current_category.id }}{% if header_position %}-header{% endif %}"
         type="button" 
         class="category-banner-next absolute right-3 md:right-4 top-1/2 z-10 flex h-9 w-9 -translate-y-1/2 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600"
         data-category-id="{{ current_category.id }}"
@@ -61,10 +65,11 @@
 
     {# Pagination tabs underneath the slider - only show if multiple banners and at least one has a tab_title #}
     {% if category_banners|length > 1 %}
-    <div class="category-banner-pagination flex justify-center gap-2 relative z-20 pt-2 pb-1" data-category-id="{{ current_category.id }}">
+    <div id="category-banner-pagination-{{ current_category.id }}{% if header_position %}-header{% endif %}" class="category-banner-pagination flex justify-center gap-2 relative z-20 pt-2 pb-1" data-category-id="{{ current_category.id }}">
       {% for banner in category_banners %}
       {% if banner.tab_title %}
       <button 
+        id="category-banner-tab-{{ current_category.id }}-{{ banner.id|default:forloop.counter }}{% if header_position %}-header{% endif %}"
         type="button"
         class="category-banner-tab group relative px-4 py-2 text-center text-base transition-all duration-200 whitespace-nowrap cursor-pointer rounded-lg border-t-2 hover:bg-gray-200 dark:hover:bg-gray-700
                {% if forloop.first %}border-primary-600 dark:border-primary-500 text-primary-600 dark:text-primary-500 font-semibold active{% else %}border-transparent text-gray-500 dark:text-gray-400 font-medium{% endif %}"

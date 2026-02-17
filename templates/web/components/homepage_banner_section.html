@@ -1,9 +1,9 @@
 {% with banners=section.section_banners.all|slice:":3" %}
   {% if banners %}
-    <section id="banner-section-{{ section.id }}" class="homepage-section section-banners bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
+    <section id="banner-section-{{ section.css_hook }}" class="homepage-section section-banners storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-banner-section storefront-banner-section-{{ section.id }} bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
       <div class="mx-auto max-w-7xl px-4 2xl:px-0">
         {% if section.title %}
-          <div class="mb-6 flex items-center gap-3 sm:mb-8">
+          <div id="banner-section-title-{{ section.css_hook }}" class="mb-6 flex items-center gap-3 sm:mb-8">
             <div class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></div>
             <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">{{ section.title }}</h2>
             <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
@@ -11,12 +11,13 @@
         {% endif %}
 
         <div class="flex justify-center">
-          <div class="banner-section-grid banner-section-grid-{{ banners|length }} w-full flex flex-wrap justify-center gap-4">
+          <div id="banner-section-grid-{{ section.css_hook }}" class="banner-section-grid banner-section-grid-{{ banners|length }} w-full flex flex-wrap justify-center gap-4">
             {% for banner in banners %}
-              <div class="banner-section-item banner-section-item-{{ banners|length }}">
+              <div id="banner-section-item-{{ section.css_hook }}-{{ banner.css_hook|default:forloop.counter }}" class="banner-section-item banner-section-item-{{ banners|length }}">
                 {% if banner.url %}
-                  <a href="{{ banner.url }}" class="block w-full h-full">
+                  <a id="banner-section-link-{{ section.css_hook }}-{{ banner.css_hook|default:forloop.counter }}" href="{{ banner.url }}" class="block w-full h-full">
                     <img 
+                      id="banner-section-img-{{ section.css_hook }}-{{ banner.css_hook|default:forloop.counter }}"
                       src="{{ banner.image.url }}" 
                       alt="{{ banner.name }}"
                       class="banner-section-img w-full h-full object-cover rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
@@ -24,8 +25,9 @@
                     />
                   </a>
                 {% else %}
-                  <div class="w-full h-full">
+                  <div id="banner-section-media-{{ section.css_hook }}-{{ banner.css_hook|default:forloop.counter }}" class="w-full h-full">
                     <img 
+                      id="banner-section-img-{{ section.css_hook }}-{{ banner.css_hook|default:forloop.counter }}"
                       src="{{ banner.image.url }}" 
                       alt="{{ banner.name }}"
                       class="banner-section-img w-full h-full object-cover rounded-lg shadow-md"

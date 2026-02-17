@@ -3,12 +3,12 @@
 {% with first_banner=banners.0 %}
 {% if first_banner.banner_type == 'content' %}
 {# Content Banner Carousel - Flowbite style with text overlay #}
-<section id="hero-banner-{{ first_banner.id|default:'draft' }}" class="hero-banner-section section-hero-banner bg-gray-900 antialiased w-full overflow-hidden">
+<section id="hero-banner-{{ first_banner.css_hook|default:'draft' }}" class="hero-banner-section hero-banner-section-{{ first_banner.id|default:'draft' }} storefront-hero-banner storefront-hero-banner-{{ first_banner.id|default:'draft' }} section-hero-banner bg-gray-900 antialiased w-full overflow-hidden">
     <div class="mx-auto banner-carousel-container">
         <div id="content-carousel" class="swiper content-banner-swiper relative w-full h-screen">
             <div class="swiper-wrapper">
                 {% for banner in banners %}
-                <div id="hero-banner-slide-{{ banner.id|default:'draft' }}" class="swiper-slide hero-banner-slide hero-banner-slide-{{ banner.id|default:'draft' }} relative overflow-hidden">
+                <div id="hero-banner-slide-{{ banner.css_hook|default:'draft' }}" class="swiper-slide hero-banner-slide hero-banner-slide-{{ banner.id|default:'draft' }} storefront-hero-banner-slide storefront-hero-banner-slide-{{ banner.id|default:'draft' }} relative overflow-hidden">
                     {# Background image #}
                     <picture class="absolute inset-0 w-full h-full">
                         {% if banner.mobile_image %}
@@ -526,7 +526,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% else %}
 {# Simple Banner Carousel - Original style (image only) #}
-<section id="hero-banner-{{ first_banner.id|default:'draft' }}" class="hero-banner-section section-hero-banner bg-gray-900 dark:bg-gray-900">
+<section id="hero-banner-{{ first_banner.css_hook|default:'draft' }}" class="hero-banner-section section-hero-banner bg-gray-900 dark:bg-gray-900">
     <div class="mx-auto banner-carousel-container">
         <div class="swiper banner-swiper relative">
             <div class="swiper-wrapper">

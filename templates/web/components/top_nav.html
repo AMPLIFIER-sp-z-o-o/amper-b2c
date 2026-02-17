@@ -296,7 +296,7 @@ body.nav-scroll-locked {
 {# Backdrop overlay for dropdowns #}
 <div id="nav-backdrop" class="fixed inset-0 bg-black/40 z-45 transition-opacity duration-200 opacity-0 pointer-events-none" aria-hidden="true"></div>
 
-<nav class="top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-60 bg-white dark:bg-gray-800 antialiased relative transition-shadow duration-300">
+<nav id="storefront-top-nav-{{ navbar.css_hook|default:'draft' }}" class="storefront-top-nav storefront-top-nav-{{ navbar.id|default:'draft' }} top-nav-standard sticky {% if draft_preview_enabled %}top-9{% else %}top-0{% endif %} z-60 bg-white dark:bg-gray-800 antialiased relative transition-shadow duration-300">
   {# Top row: Logo, Search, Cart, Account #}
   <div class="py-2.5 md:py-4 relative z-30 bg-white dark:bg-gray-800">
     <div class="max-w-7xl px-4 mx-auto 2xl:px-0">

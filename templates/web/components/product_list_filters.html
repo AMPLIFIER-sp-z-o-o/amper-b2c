@@ -6,7 +6,7 @@
   <div class="mb-6">
     <!-- Parent Category Link -->
     {% if current_category.parent %}
-    <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+    <a id="filters-parent-category-link-{{ current_category.parent.id }}{% if is_mobile %}-mobile{% endif %}" href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-1 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
       <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
       </svg>
@@ -16,7 +16,7 @@
     {% endif %}
     
     <!-- Current Category Name -->
-    <div class="mb-2">
+    <div id="filters-current-category-{{ current_category.id }}{% if is_mobile %}-mobile{% endif %}" class="mb-2">
       <span class="text-base font-bold text-gray-900 dark:text-white">{{ current_category.name }}</span>
       <span id="{% if is_mobile %}category-product-count-mobile{% else %}category-product-count{% endif %}" class="text-sm text-gray-600 dark:text-gray-400 ml-1 font-medium">({{ total_count }})</span>
     </div>
@@ -24,8 +24,8 @@
     <!-- Subcategories List -->
     <ul class="space-y-0.5 mt-1 {% if is_mobile %}-mx-3{% else %}-mx-4{% endif %}">
       {% for subcategory in subcategories_nav %}
-      <li>
-        <a href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}ps-8 pe-3{% else %}ps-10 pe-4{% endif %} text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+      <li id="filters-subcategory-item-{{ subcategory.id }}{% if is_mobile %}-mobile{% endif %}">
+        <a id="filters-subcategory-link-{{ subcategory.id }}{% if is_mobile %}-mobile{% endif %}" href="{{ subcategory.get_absolute_url }}" class="block py-1.5 {% if is_mobile %}ps-8 pe-3{% else %}ps-10 pe-4{% endif %} text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
           {{ subcategory.name }}
           {% if subcategory.total_product_count %}<span class="text-gray-600 dark:text-gray-400 font-medium">({{ subcategory.total_product_count }})</span>{% endif %}
         </a>
@@ -37,7 +37,7 @@
 
   <!-- Parent Category Navigation (when no subcategories) -->
   {% if current_category and current_category.parent and not subcategories_nav %}
-  <a href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
+  <a id="filters-parent-category-link-{{ current_category.parent.id }}{% if is_mobile %}-mobile{% endif %}" href="{{ current_category.parent.get_absolute_url }}" class="flex items-center gap-2 mb-4 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg px-3 py-2 transition-colors cursor-pointer group">
     <svg class="w-4 h-4 transition-transform group-hover:-translate-x-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
     </svg>

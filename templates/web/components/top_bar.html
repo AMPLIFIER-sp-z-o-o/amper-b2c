@@ -1,6 +1,6 @@
 {% if top_bar %}
   {% if top_bar.content_type == "custom" and top_bar.custom_html %}
-    <div id="top-bar-custom" class="relative z-50 cms-content">
+    <div id="top-bar-{{ top_bar.css_hook|default:'draft' }}" class="storefront-top-bar storefront-top-bar-{{ top_bar.id|default:'draft' }} relative z-50 cms-content">
       {{ top_bar.custom_html|safe }}
     </div>
     {% if top_bar.custom_css %}
@@ -14,7 +14,7 @@
       </script>
     {% endif %}
   {% elif top_bar.text %}
-    <div style="background: {{ top_bar.background_color|default:'#1A56DB' }}; color: white;" class="text-white relative z-50">
+    <div id="top-bar-{{ top_bar.css_hook|default:'draft' }}" style="background: {{ top_bar.background_color|default:'#1A56DB' }}; color: white;" class="storefront-top-bar storefront-top-bar-{{ top_bar.id|default:'draft' }} text-white relative z-50">
       <div class="mx-auto max-w-7xl px-4">
         <div class="flex w-full flex-wrap items-center justify-center gap-x-3 gap-y-1 py-1.5 text-xs sm:grid sm:py-2.5 sm:text-sm sm:grid-cols-[1fr_auto_1fr] sm:gap-2">
           <div class="hidden sm:block"></div>

@@ -1,3 +1,5 @@
+import uuid
+
 from autoslug import AutoSlugField
 from colorfield.fields import ColorField
 from django.db import models
@@ -20,6 +22,8 @@ class TopBar(BaseModel):
     class ContentType(models.TextChoices):
         STANDARD = "standard", _("Standard")
         CUSTOM = "custom", _("Custom")
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     name = models.CharField(
         max_length=120,
@@ -236,6 +240,8 @@ class SiteSettings(SingletonModel):
 class DynamicPage(BaseModel):
     """CMS-managed dynamic page."""
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     name = models.CharField(
         max_length=200,
         verbose_name=_("Name"),
@@ -301,6 +307,8 @@ class Footer(SingletonModel):
         STANDARD = "standard", _("Standard")
         CUSTOM = "custom", _("Custom")
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     singleton_key = models.PositiveSmallIntegerField(
         default=1,
         unique=True,
@@ -350,6 +358,8 @@ class Footer(SingletonModel):
 class FooterSection(BaseModel):
     """A section in the footer (e.g., About, Orders & Purchases)."""
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     footer = models.ForeignKey(
         Footer,
         on_delete=models.CASCADE,
@@ -381,6 +391,8 @@ class FooterSectionLink(BaseModel):
     class LinkType(models.TextChoices):
         CUSTOM_URL = "custom_url", _("Custom URL")
         DYNAMIC_PAGE = "dynamic_page", _("Dynamic page")
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     section = models.ForeignKey(
         FooterSection,
@@ -448,6 +460,8 @@ class FooterSocialMedia(BaseModel):
         TWITTER = "twitter", _("Twitter")
         TIKTOK = "tiktok", _("TikTok")
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     footer = models.ForeignKey(
         Footer,
         on_delete=models.CASCADE,
@@ -500,6 +514,8 @@ class BottomBar(SingletonModel):
         unique=True,
         editable=False,
     )
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     is_active = models.BooleanField(
         default=True,
         verbose_name=_("Active"),
@@ -516,6 +532,8 @@ class BottomBar(SingletonModel):
 
 class BottomBarLink(BaseModel):
     """A link in the bottom bar (e.g., Legal Notice, Terms of Use)."""
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     bottom_bar = models.ForeignKey(
         BottomBar,
@@ -557,6 +575,8 @@ class Navbar(SingletonModel):
         STANDARD = "standard", _("Standard (categories alphabetically)")
         CUSTOM = "custom", _("Custom navigation")
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     singleton_key = models.PositiveSmallIntegerField(
         default=1,
         unique=True,
@@ -589,6 +609,8 @@ class NavbarItem(BaseModel):
         CUSTOM_LINK = "custom_link", _("Custom link")
         DYNAMIC_PAGE = "dynamic_page", _("Dynamic page")
         SEPARATOR = "separator", _("Separator")
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     navbar = models.ForeignKey(
         Navbar,

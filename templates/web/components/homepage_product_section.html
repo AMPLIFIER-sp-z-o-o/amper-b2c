@@ -1,24 +1,25 @@
 {% with products=section.section_products.all|slice:":8" %}
   {% if products %}
-    <section id="product-section-{{ section.id }}" class="homepage-section section-product-list bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
+    <section id="product-section-{{ section.css_hook }}" class="homepage-section section-product-list storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-product-list-section storefront-product-list-section-{{ section.id }} bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
       <div class="mx-auto max-w-7xl px-4 2xl:px-0">
         {% if section.title %}
-          <div class="mb-6 flex items-center gap-3 sm:mb-8">
+          <div id="product-section-title-{{ section.css_hook }}" class="mb-6 flex items-center gap-3 sm:mb-8">
             <div class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></div>
             <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">{{ section.title }}</h2>
             <div class="h-px flex-1 bg-gray-200 dark:bg-gray-700"></div>
           </div>
         {% endif %}
 
-        <div class="hidden grid-cols-2 gap-4 md:grid-cols-3 lg:grid lg:grid-cols-4">
+        <div id="product-section-grid-{{ section.css_hook }}" class="hidden grid-cols-2 gap-4 md:grid-cols-3 lg:grid lg:grid-cols-4">
           {% for item in products %}
             {% include "web/components/homepage_product_card.html" with product=item.product %}
           {% endfor %}
         </div>
 
-        <div class="lg:hidden">
-          <div class="relative">
+        <div id="product-section-mobile-{{ section.css_hook }}" class="lg:hidden">
+          <div id="product-section-mobile-inner-{{ section.css_hook }}" class="relative">
             <div
+              id="product-section-swiper-{{ section.css_hook }}"
               class="swiper homepage-products-swiper overflow-hidden"
               data-section-id="{{ section.id }}"
               data-product-count="{{ products|length }}"
@@ -33,6 +34,7 @@
             </div>
             {% if products|length >= 3 %}
               <button
+                id="product-section-prev-{{ section.css_hook }}"
                 type="button"
                 class="homepage-products-prev absolute left-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-none bg-white/50 text-gray-800 shadow-sm ring-1 ring-gray-300 transition-all duration-200 hover:bg-white focus:bg-white/60 focus:ring-2 focus:ring-gray-400 focus:outline-none active:scale-95 active:bg-gray-200 dark:bg-gray-800/50 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-400"
                 data-section-id="{{ section.id }}"
@@ -43,6 +45,7 @@
                 </svg>
               </button>
               <button
+                id="product-section-next-{{ section.css_hook }}"
                 type="button"
                 class="homepage-products-next absolute right-1 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-none bg-white/50 text-gray-800 shadow-sm ring-1 ring-gray-300 transition-all duration-200 hover:bg-white focus:bg-white/60 focus:ring-2 focus:ring-gray-400 focus:outline-none active:scale-95 active:bg-gray-200 dark:bg-gray-800/50 dark:text-white dark:ring-gray-600 dark:hover:bg-gray-800 dark:focus:ring-gray-400"
                 data-section-id="{{ section.id }}"

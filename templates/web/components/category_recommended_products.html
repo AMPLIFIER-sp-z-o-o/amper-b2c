@@ -1,7 +1,7 @@
 {% load i18n %}
 {% if recommended_products %}
-<div id="category-recommended-products-{{ current_category.id }}" class="category-recommended-products mb-4">
-  <div class="mb-4 flex items-center justify-between lg:min-h-14 lg:items-end">
+<div id="category-recommended-products-{{ current_category.id }}" class="category-recommended-products category-recommended-products-{{ current_category.id }} storefront-category-recommended-products storefront-category-recommended-products-{{ current_category.id }} mb-4">
+  <div id="category-recommended-products-header-{{ current_category.id }}" class="mb-4 flex items-center justify-between lg:min-h-14 lg:items-end">
     <h3 class="text-lg font-bold text-gray-900 dark:text-white sm:text-xl">
       {% translate "Recommended in category" %}
     </h3>
@@ -9,6 +9,7 @@
     {% if recommended_products|length >= 2 %}
     <div class="flex items-center gap-2">
       <button 
+        id="category-recommended-prev-{{ current_category.id }}"
         type="button" 
         class="category-recommended-prev flex h-9 w-9 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/95 disabled:hover:shadow-md disabled:active:scale-100 dark:disabled:hover:bg-gray-800/95"
         data-category-id="{{ current_category.id }}"
@@ -19,6 +20,7 @@
         </svg>
       </button>
       <button 
+        id="category-recommended-next-{{ current_category.id }}"
         type="button" 
         class="category-recommended-next flex h-9 w-9 items-center justify-center cursor-pointer rounded-md bg-white/95 text-gray-800 shadow-md transition-all duration-200 hover:bg-gray-200 hover:shadow-lg active:scale-95 dark:bg-gray-800/95 dark:text-white dark:hover:bg-gray-700 dark:active:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/95 disabled:hover:shadow-md disabled:active:scale-100 dark:disabled:hover:bg-gray-800/95"
         data-category-id="{{ current_category.id }}"
@@ -33,8 +35,9 @@
   </div>
 
   {# Product Slider Container #}
-  <div class="category-recommended-carousel relative">
+  <div id="category-recommended-carousel-{{ current_category.id }}" class="category-recommended-carousel relative">
     <div 
+      id="category-recommended-swiper-{{ current_category.id }}"
       class="swiper category-recommended-swiper"
       data-category-id="{{ current_category.id }}"
       data-product-count="{{ recommended_products|length }}"

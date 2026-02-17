@@ -65,7 +65,8 @@
     </style>
   </head>
 <body
-  class="bg-base-100 no-transitions"
+  id="storefront-body"
+  class="bg-base-100 no-transitions storefront-body"
   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
   data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
   style="opacity: 0;"

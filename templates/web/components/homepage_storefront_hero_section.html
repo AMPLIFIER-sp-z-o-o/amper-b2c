@@ -1,11 +1,11 @@
 {% if section %}
-<section id="storefront-hero-section-{{ section.id }}" class="storefront-hero-section homepage-section section-storefront-hero bg-white pt-8 pb-4 antialiased dark:bg-gray-900 md:pt-16 md:pb-8">
+<section id="storefront-hero-section-{{ section.css_hook }}" class="storefront-hero-section storefront-hero-section-{{ section.id }} homepage-section section-storefront-hero storefront-homepage-section storefront-homepage-section-{{ section.id }} bg-white pt-8 pb-4 antialiased dark:bg-gray-900 md:pt-16 md:pb-8">
   <div class="mx-auto grid max-w-7xl px-4 xl:grid-cols-12 xl:gap-16 2xl:px-0">
     <!-- Left Side Content -->
-    <div class="mx-auto content-center text-center xl:col-span-5 xl:justify-self-start xl:text-start">
+    <div id="homepage-storefront-hero-content-{{ section.css_hook }}" class="mx-auto content-center text-center xl:col-span-5 xl:justify-self-start xl:text-start">
       <h1 class="mb-4 text-4xl font-extrabold leading-[1.1] tracking-tight text-gray-900 dark:text-white md:max-w-2xl md:text-5xl xl:text-6xl">{{ section.title }}</h1>
       <p class="mb-4 max-w-2xl text-gray-900 dark:text-white md:text-lg xl:mb-8 xl:text-xl">{{ section.subtitle }}</p>
-      <div class="mb-6 flex items-center justify-center space-x-4 md:mb-0 xl:justify-start">
+      <div id="homepage-storefront-hero-actions-{{ section.css_hook }}" class="mb-6 flex items-center justify-center space-x-4 md:mb-0 xl:justify-start">
         {% if section.primary_button_text %}
         <a href="{{ section.primary_button_url|default:'#' }}" {% if section.primary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="rounded-lg bg-primary-700 px-6 py-3.5 text-center font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{{ section.primary_button_text }}</a>
         {% endif %}
@@ -23,16 +23,16 @@
     <!-- Right Side - Category Boxes -->
     {% with category_boxes=section.category_boxes.all %}
     {% if category_boxes %}
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:mt-8 xl:col-span-7 xl:mt-0 xl:gap-8">
+    <div id="homepage-storefront-hero-category-boxes-{{ section.css_hook }}" class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:mt-8 xl:col-span-7 xl:mt-0 xl:gap-8">
       {% for box in category_boxes %}
-      <div class="flex h-full flex-col space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
+      <div id="homepage-storefront-hero-category-box-{{ section.css_hook }}-{{ box.css_hook|default:forloop.counter }}" class="flex h-full flex-col space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ box.title }}</h2>
         
         {% with items=box.draft_items|default:box.items.all %}
         {% if items %}
-        <div class="grid flex-1 grid-cols-2 text-gray-900 dark:text-white">
+        <div id="homepage-storefront-hero-category-box-items-{{ section.css_hook }}-{{ box.css_hook|default:forloop.counter }}" class="grid flex-1 grid-cols-2 text-gray-900 dark:text-white">
           {% for item in items|slice:":4" %}
-          <div class="relative flex flex-col items-center p-4 text-center {% if forloop.counter0 == 0 %}border-b border-r border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 1 %}border-b border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 2 %}border-r border-gray-200 dark:border-gray-700{% endif %}">
+          <div id="homepage-storefront-hero-category-item-{{ section.css_hook }}-{{ box.css_hook|default:forloop.parentloop.counter }}-{{ item.css_hook|default:forloop.counter }}" class="relative flex flex-col items-center p-4 text-center {% if forloop.counter0 == 0 %}border-b border-r border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 1 %}border-b border-gray-200 dark:border-gray-700{% elif forloop.counter0 == 2 %}border-r border-gray-200 dark:border-gray-700{% endif %}">
             <a href="{{ item.url|default:'#' }}" {% if item.open_in_new_tab %}target="_blank" rel="noopener"{% endif %}>
               <img class="mx-auto mb-4 h-20 w-auto object-contain" src="{{ item.image.url }}" alt="{{ item.name }}" loading="lazy" />
             </a>

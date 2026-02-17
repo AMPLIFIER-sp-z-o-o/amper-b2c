@@ -154,6 +154,8 @@ class Banner(BaseModel):
     Maximum image width: 1920px. Images will scale responsively for smaller screens.
     """
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     group = models.ForeignKey(
         BannerGroup,
         on_delete=models.CASCADE,
@@ -399,6 +401,8 @@ class HomepageSectionType(models.TextChoices):
 
 
 class HomepageSection(BaseModel):
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     section_type = models.CharField(
         max_length=50,
         choices=HomepageSectionType.choices,
@@ -591,6 +595,8 @@ class HomepageSectionBanner(BaseModel):
     Maximum combined width of all banners in a section: 1920px.
     """
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     section = models.ForeignKey(
         HomepageSection,
         related_name="section_banners",
@@ -664,6 +670,8 @@ class HomepageSectionCategoryBox(BaseModel):
     Contains customizable title, items, and shop link.
     """
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     section = models.ForeignKey(
         HomepageSection,
         related_name="category_boxes",
@@ -722,6 +730,8 @@ class HomepageSectionCategoryItem(BaseModel):
     Individual item within a Homepage Section Category Box.
     Contains image, name, and optional URL.
     """
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     category_box = models.ForeignKey(
         HomepageSectionCategoryBox,
@@ -794,6 +804,8 @@ class StorefrontHeroSection(SingletonModel):
     Storefront Hero Section - displays below Hero Banner.
     Contains promotional text, CTA buttons, category boxes, and brand logos.
     """
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     # Left side content - Title and CTA
     title = models.CharField(
@@ -908,6 +920,8 @@ class StorefrontCategoryBox(BaseModel):
     Contains customizable title, items, and shop link.
     """
 
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+
     section = models.ForeignKey(
         StorefrontHeroSection,
         related_name="category_boxes",
@@ -966,6 +980,8 @@ class StorefrontCategoryItem(BaseModel):
     Individual item within a Storefront Category Box.
     Contains image, name, and optional URL.
     """
+
+    css_hook = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
 
     category_box = models.ForeignKey(
         StorefrontCategoryBox,

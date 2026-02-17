@@ -1,5 +1,5 @@
 {% load i18n %}
-<footer class="footer-standard bg-white antialiased dark:bg-gray-800">
+<footer id="storefront-footer-{{ footer.css_hook|default:'draft' }}" class="storefront-footer storefront-footer-{{ footer.id|default:'draft' }} footer-standard bg-white antialiased dark:bg-gray-800">
   <div class="mx-auto max-w-7xl px-4 2xl:px-0">
     {% if footer and footer.is_active %}
       {% if footer.content_type == 'custom' and footer.custom_html %}
@@ -24,7 +24,7 @@
             <div class="grid min-w-0 flex-1 grid-cols-2 gap-6 md:gap-8 lg:grid-cols-4 xl:grid-cols-5">
               {# Footer sections #}
               {% for section in footer_sections %}
-                <div>
+                <div id="storefront-footer-section-{{ section.css_hook|default:'draft' }}" class="storefront-footer-section storefront-footer-section-{{ section.id|default:'draft' }}">
                   <h6 class="mb-4 text-sm font-semibold uppercase text-gray-900 dark:text-white">{{ section.name }}</h6>
                   {% if section.links.all %}
                     <ul class="space-y-3">
@@ -32,7 +32,7 @@
                         <li>
                           {% with link_url=link.get_url link_label=link.get_label %}
                             {% if link_url %}
-                              <a href="{{ link_url }}" class="text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link_label }}</a>
+                              <a href="{{ link_url }}" class="storefront-footer-link storefront-footer-link-{{ link.id|default:'draft' }} text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">{{ link_label }}</a>
                             {% endif %}
                           {% endwith %}
                         </li>
@@ -44,12 +44,12 @@
 
               {# Social Media section #}
               {% if footer_social_media %}
-                <div>
+                <div id="storefront-footer-social-{{ footer.css_hook|default:'draft' }}" class="storefront-footer-social storefront-footer-social-{{ footer.id|default:'draft' }}">
                   <h6 class="mb-4 text-sm font-semibold uppercase text-gray-900 dark:text-white">{% translate "Social Media" %}</h6>
                   <ul class="space-y-3">
                     {% for social in footer_social_media %}
                       <li>
-                        <a href="{{ social.url }}" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
+                        <a href="{{ social.url }}" target="_blank" rel="noopener noreferrer" class="storefront-footer-social-link storefront-footer-social-link-{{ social.id|default:'draft' }} flex items-center gap-2 text-gray-500 transition-colors duration-200 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
                           {# Platform icons #}
                           {% if social.platform == 'facebook' %}
                             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -86,7 +86,7 @@
     {% endif %}
 
     {# Bottom bar with logo, links, and copyright #}
-    <div class="py-6 md:py-8">
+    <div id="storefront-bottom-bar-{{ bottom_bar.css_hook|default:'draft' }}" class="storefront-bottom-bar storefront-bottom-bar-{{ bottom_bar.id|default:'draft' }} py-6 md:py-8">
       <div class="gap-4 space-y-5 xl:flex xl:items-center xl:justify-between xl:space-y-0">
         <a href="{% url 'web:home' %}" title="" class="block">
             {% if site_logo %}
@@ -100,7 +100,7 @@
         {% if bottom_bar_links %}
           <ul class="flex flex-wrap items-center gap-4 text-sm text-gray-900 dark:text-white xl:justify-center">
             {% for link in bottom_bar_links %}
-              <li><a href="{{ link.url }}" title="" class="font-medium transition-colors duration-200 hover:underline hover:text-primary-600 dark:hover:text-primary-500">{{ link.label }}</a></li>
+              <li class="storefront-bottom-bar-link-item storefront-bottom-bar-link-item-{{ link.id|default:'draft' }}"><a href="{{ link.url }}" title="" class="storefront-bottom-bar-link storefront-bottom-bar-link-{{ link.id|default:'draft' }} font-medium transition-colors duration-200 hover:underline hover:text-primary-600 dark:hover:text-primary-500">{{ link.label }}</a></li>
             {% endfor %}
           </ul>
         {% endif %}
