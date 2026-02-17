@@ -1,6 +1,6 @@
 {% load i18n %}
 <footer class="footer-standard bg-white antialiased dark:bg-gray-800">
-  <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+  <div class="mx-auto max-w-7xl px-4 2xl:px-0">
     {% if footer and footer.is_active %}
       {% if footer.content_type == 'custom' and footer.custom_html %}
         {# Custom HTML footer #}
@@ -105,7 +105,7 @@
           </ul>
         {% endif %}
 
-        <p class="text-sm text-gray-500 dark:text-gray-400">{{project_meta.NAME}} &mdash; {% translate "Copyright" %} <span id="copyright-year">2024</span> {% blocktranslate trimmed %}Built with <a class="link" href="https://amplifier.pl/" target="_blank">AMPLIFIER sp. z o.o.</a>{% endblocktranslate %}</p>
+        <p class="text-sm text-gray-900 dark:text-white opacity-70">{{project_meta.NAME}} &mdash; {% translate "Copyright" %} <span id="copyright-year">2024</span> {% blocktranslate trimmed %}Built with <a class="link" href="https://amplifier.pl/" target="_blank">AMPLIFIER sp. z o.o.</a>{% endblocktranslate %}</p>
       </div>
     </div>
   </div>

@@ -19,15 +19,24 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.auth import logout
 from django.contrib.sitemaps.views import sitemap
-from django.urls import include, path, re_path
 from django.shortcuts import redirect
+from django.urls import include, path, re_path
 from django.views.generic import RedirectView
 from django.views.i18n import JavaScriptCatalog
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
+from apps.users.views import (
+    AutoLoginConfirmEmailView,
+    AutoLoginPasswordResetFromKeyView,
+    CustomLogoutView,
+    CustomPasswordChangeView,
+    CustomPasswordResetView,
+)
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
-from apps.users.views import AutoLoginConfirmEmailView, AutoLoginPasswordResetFromKeyView, CustomLogoutView, CustomPasswordChangeView
+
+# Ensure error pages render with RequestContext (so base.html context processors are available).
+handler500 = "apps.web.views.server_error"
 
 sitemaps = {
     "static": StaticViewSitemap(),
@@ -38,6 +47,7 @@ sitemaps = {
 def admin_logout_redirect(request):
     logout(request)
     return redirect("web:home")
+
 
 urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
@@ -54,6 +64,11 @@ urlpatterns = [
         "accounts/password/change/",
         CustomPasswordChangeView.as_view(),
         name="account_change_password",
+    ),
+    path(
+        "accounts/password/reset/",
+        CustomPasswordResetView.as_view(),
+        name="account_reset_password",
     ),
     path(
         "accounts/logout/",

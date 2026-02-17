@@ -65,7 +65,9 @@ class Product(BaseModel):
         max_length=20,
         choices=ProductStatus.choices,
         default=ProductStatus.HIDDEN,
-        help_text=_("Controls product visibility and availability. 'Disabled' products are shown but marked as temporarily unavailable."),
+        help_text=_(
+            "Controls product visibility and availability. 'Disabled' products are shown but marked as temporarily unavailable."
+        ),
     )
     price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     stock = models.PositiveIntegerField(default=0)

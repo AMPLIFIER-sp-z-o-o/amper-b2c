@@ -12,7 +12,7 @@
 {% endblock %}
 {% block body %}
 <section class="bg-gray-50 dark:bg-gray-900">
-  <div class="grid max-w-screen-xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+    <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
       <div class="w-full place-self-center lg:col-span-6">
           <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card">
               <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
@@ -27,8 +27,14 @@
               <p class="text-subtitle mt-1">
                   {% translate "Start your shopping in seconds." %}
               </p>
-              {{ form.non_field_errors }}
-              <form class="mt-4 space-y-6 sm:mt-6" method="post" action="{% url 'account_signup' %}" autocomplete="off">
+              {% if form.non_field_errors %}
+              <div class="mt-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
+                {% for error in form.non_field_errors %}
+                  <p>{{ error }}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
+              <form class="mt-4 space-y-6 sm:mt-6" method="post" action="{% url 'account_signup' %}">
                   {% csrf_token %}
                   {% if redirect_field_value %}
                   <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
@@ -37,12 +43,16 @@
                       <div>
                           <label for="{{ form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Email" %} <span class="text-red-500">*</span></label>
                           <input type="email" name="email" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" autocomplete="email" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" placeholder="{% translate 'Enter your email' %}" required="">
-                          {{ form.email.errors }}
+                          {% if form.email.errors %}
+                          <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
+                          {% endif %}
                       </div>
                       <div>
                           <label for="{{ form.first_name.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "First Name" %} <span class="text-red-500">*</span></label>
                           <input type="text" name="first_name" id="{{ form.first_name.id_for_label }}" value="{{ form.first_name.value|default:'' }}" autocomplete="given-name" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" placeholder="{% translate 'Enter your first name' %}" required="">
-                          {{ form.first_name.errors }}
+                          {% if form.first_name.errors %}
+                          <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+                          {% endif %}
                       </div>
                       <div>
                           <label for="{{ form.password1.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Password" %} <span class="text-red-500">*</span></label>
@@ -51,37 +61,43 @@
                             {% include "account/includes/eye_toggle.html" with input_id=form.password1.id_for_label toggle_id="toggle-password" eye_id="eye-icon" eye_off_id="eye-off-icon" %}
                           </div>
                           {% include "account/includes/password_strength.html" with password_input_id=form.password1.id_for_label email_input_id=form.email.id_for_label %}
-                          {{ form.password1.errors }}
+                          {% if form.password1.errors %}
+                          <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.password1.errors.0 }}</p>
+                          {% endif %}
                       </div>
                   </div>
                   <div class="flex items-start">
                       <div class="flex items-center h-5">
-                          <input id="{{ form.terms_agreement.id_for_label }}" name="terms_agreement" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800 accent-primary-600 cursor-pointer" {% if form.terms_agreement.value %}checked{% endif %} required="">
+                          <input id="{{ form.terms_agreement.id_for_label }}" name="terms_agreement" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-100 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800 accent-primary-600 cursor-pointer" {% if form.terms_agreement.value %}checked{% endif %} required="">
                       </div>
                       <div class="ml-3 text-sm">
-                          <label for="{{ form.terms_agreement.id_for_label }}" class="font-medium text-gray-600 dark:text-gray-300 cursor-pointer">
+                          <label for="{{ form.terms_agreement.id_for_label }}" class="font-normal text-gray-700 dark:text-gray-200 cursor-pointer">
                               {{ form.terms_agreement.label }} <span class="text-red-500">*</span>
                           </label>
                       </div>
                   </div>
-                  {{ form.terms_agreement.errors }}
+                  {% if form.terms_agreement.errors %}
+                  <p class="-mt-4 text-sm text-red-600 dark:text-red-400">{{ form.terms_agreement.errors.0 }}</p>
+                  {% endif %}
                   <button id="signup-submit-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200 mt-4">
                       <svg id="signup-btn-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                       <span>{% translate "Sign Up" %}</span>
                   </button>
 
-                  <div style="position: absolute; left: -9999px; overflow: hidden;">
+                  <div style="position: absolute; left: -9999px; overflow: hidden;" aria-hidden="true">
                       <input type="text" name="phone_number_x" id="{{ form.phone_number_x.id_for_label }}" tabindex="-1" autocomplete="off">
                   </div>
                   {% if turnstile_key %}
                   <div class="cf-turnstile" data-sitekey="{{ turnstile_key }}" data-response-field-name="turnstile_token"></div>
-                  {{ form.turnstile_token.errors }}
+                  {% if form.turnstile_token.errors %}
+                  <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.turnstile_token.errors.0 }}</p>
+                  {% endif %}
                   {% endif %}
                   {% get_socialapps as social_providers %}
                   {% if social_providers %}
                   <div class="flex items-center">
                       <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
-                      <div class="px-5 text-center text-gray-500 dark:text-gray-400">{% translate "or" %}</div>
+                      <div class="px-5 text-center text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "or" %}</div>
                       <div class="w-full h-0.5 bg-gray-200 dark:bg-gray-700"></div>
                   </div>
                   <div class="space-y-3">
@@ -110,7 +126,7 @@
                   </div>
                   {% endif %}
 
-                  <p class="text-sm font-normal text-gray-500 dark:text-gray-400 text-center mt-6">
+                  <p class="text-subtitle text-center mt-6">
                       {% translate "Already have an account?" %} <a href="{% url 'account_login' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">{% translate "Sign in" %}</a>.
                   </p>
               </form>

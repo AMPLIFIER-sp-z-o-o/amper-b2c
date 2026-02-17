@@ -11,6 +11,7 @@ from django.utils.translation import gettext_lazy as _
 from health_check.views import MainView
 
 from apps.catalog.models import (
+    VISIBLE_STATUSES,
     AttributeDefinition,
     AttributeOption,
     Category,
@@ -19,8 +20,6 @@ from apps.catalog.models import (
     Product,
     ProductAttributeValue,
     ProductImage,
-    ProductStatus,
-    VISIBLE_STATUSES,
 )
 from apps.homepage.models import (
     Banner,
@@ -31,19 +30,21 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
-from apps.web.models import DynamicPage, SiteSettings
 from apps.support.draft_utils import (
     apply_draft_to_existing_instance,
     apply_draft_to_instance,
     get_draft_session_by_token,
 )
+from apps.web.models import DynamicPage, SiteSettings
+
+
+def server_error(request, *args, **kwargs):
+    return render(request, "500.html", status=500)
 
 
 def product_list(request, category_id=None, category_slug=None):
     """Product list page."""
-    products = (
-        Product.objects.filter(status__in=VISIBLE_STATUSES).prefetch_related("images").order_by("name")
-    )
+    products = Product.objects.filter(status__in=VISIBLE_STATUSES).prefetch_related("images").order_by("name")
 
     category = None
     if category_id:
@@ -121,6 +122,46 @@ def terms_page(request):
                 name="Terms and Conditions",
                 meta_title="Terms and Conditions",
                 content="<p>Your terms and conditions go here.</p>",
+                is_active=True,
+            )
+    apply_draft_to_existing_instance(request, page)
+    return render(
+        request,
+        "web/dynamicpage_detail.html",
+        {
+            "page": page,
+            "page_title": page.meta_title or page.name,
+            "page_description": page.meta_description,
+        },
+    )
+
+
+def privacy_page(request):
+    """Serve the Privacy Policy page from a DynamicPage with slug='privacy-policy'."""
+    try:
+        page, _created = DynamicPage.objects.get_or_create(
+            slug="privacy-policy",
+            defaults={
+                "name": "Privacy Policy",
+                "meta_title": "Privacy Policy",
+                "content": "<p>Your privacy policy goes here.</p>",
+                "is_active": True,
+            },
+        )
+    except IntegrityError:
+        # Sequence out of sync after seed data – reset it and fetch existing row
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT setval(pg_get_serial_sequence('web_dynamicpage', 'id'), "
+                "COALESCE((SELECT MAX(id) FROM web_dynamicpage), 0) + 1, false)"
+            )
+        page = DynamicPage.objects.filter(slug="privacy-policy").first()
+        if page is None:
+            page = DynamicPage.objects.create(
+                slug="privacy-policy",
+                name="Privacy Policy",
+                meta_title="Privacy Policy",
+                content="<p>Your privacy policy goes here.</p>",
                 is_active=True,
             )
     apply_draft_to_existing_instance(request, page)

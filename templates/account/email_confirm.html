@@ -1,29 +1,69 @@
-{% extends "account/base.html" %}
+{% extends "web/base.html" %}
 {% load i18n %}
 {% load account %}
-{% block content %}
-<h1 class="pg-title">{% translate "Confirm E-mail Address" %}</h1>
-{% if confirmation %}
-{% user_display confirmation.email_address.user as user_display %}
-<p class="pg-content">
-    {% blocktranslate trimmed with confirmation.email_address.email as email %}
-    Please confirm that <a href="mailto:{{ email }}">{{ email }}</a>
-    is an e-mail address for user {{ user_display }}.
-    {% endblocktranslate %}
-</p>
-<form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
-  {% csrf_token %}
-  <div class="mt-2">
-    <button class="pg-button-primary" type="submit">{% translate 'Confirm' %}</button>
+{% load static %}
+{% load media_tags %}
+
+{% block page_head %}
+  {% include "account/includes/auth_card_css.html" %}
+{% endblock %}
+
+{% block body %}
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+    <div class="w-full place-self-center lg:col-span-6">
+      <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card">
+        <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
+          {% if site_logo %}
+          <img class="w-20 h-20 mr-3 object-contain" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+          {% endif %}
+          {{ project_meta.NAME|default:"" }}
+        </a>
+
+        <h1 class="mb-2 text-2xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+          {% translate "Confirm E-mail Address" %}
+        </h1>
+
+        {% if confirmation %}
+          {% user_display confirmation.email_address.user as user_display %}
+          <p class="text-subtitle mt-1">
+            {% blocktranslate trimmed with confirmation.email_address.email as email %}
+              Please confirm that {{ email }} is an e-mail address for this account.
+            {% endblocktranslate %}
+          </p>
+
+          <form method="post" action="{% url 'account_confirm_email' confirmation.key %}" class="mt-6">
+            {% csrf_token %}
+            <button id="confirm-email-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200">
+              <svg id="confirm-email-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>{% translate "Confirm" %}</span>
+            </button>
+            {% include "account/includes/form_submit_loading.html" with btn_id="confirm-email-btn" spinner_id="confirm-email-spinner" %}
+          </form>
+        {% else %}
+          {% url 'account_email' as email_url %}
+          <div class="mt-4 flex items-start gap-3 rounded-lg bg-red-50 px-4 py-3 dark:bg-red-900/30">
+            <svg class="h-5 w-5 shrink-0 text-red-600 dark:text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/>
+            </svg>
+            <p class="text-sm font-medium text-red-700 dark:text-red-300">
+              {% blocktranslate trimmed %}
+                This e-mail confirmation link expired or is invalid.
+              {% endblocktranslate %}
+            </p>
+          </div>
+          <div class="mt-6">
+            <a href="{{ email_url }}" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200">
+              {% translate "Request a new confirmation" %}
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="mr-auto place-self-center lg:col-span-6">
+      <img class="hidden mx-auto lg:flex" src="{% media_file_url 'site/seed/auth-illustration.svg' %}" alt="illustration">
+    </div>
   </div>
-</form>
-{% else %}
-{% url 'account_email' as email_url %}
-<p class="pg-content">
-    {% blocktranslate trimmed %}
-    This e-mail confirmation link expired or is invalid.
-    Please <a href="{{ email_url }}">issue a new e-mail confirmation request</a>.
-    {% endblocktranslate %}
-</p>
-{% endif %}
+</section>
 {% endblock %}

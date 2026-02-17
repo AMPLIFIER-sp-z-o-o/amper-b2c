@@ -13,6 +13,7 @@ urlpatterns = [
     path("preview/<str:token>/", views.preview_draft, name="preview_draft"),
     path("dynamic-page/<slug:slug>/<int:pk>/", views.dynamic_page_detail, name="dynamic_page_detail"),
     path("terms/", views.terms_page, name="terms"),
+    path("privacy/", views.privacy_page, name="privacy"),
     path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain"), name="robots.txt"),
     # these views are just for testing error pages
     # actual error handling is handled by Django: https://docs.djangoproject.com/en/stable/ref/views/#error-views

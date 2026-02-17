@@ -3,9 +3,13 @@
   {% if products %}
     <section id="product-slider-section-{{ section.id }}" class="homepage-section section-product-slider bg-gray-50 py-8 antialiased dark:bg-gray-900 md:py-12">
       <div class="mx-auto max-w-7xl px-4 2xl:px-0">
-        <div class="mb-4 flex items-center justify-between md:mb-6">
+        <div class="mb-6 flex items-center justify-between gap-4 md:mb-8">
           {% if section.title %}
-            <h2 class="text-xl font-bold text-gray-900 dark:text-white sm:text-2xl underline underline-offset-8 decoration-4 decoration-primary-600">{{ section.title }}</h2>
+            <div class="flex items-center gap-3">
+              <div class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></div>
+              <h2 class="text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">{{ section.title }}</h2>
+              <div class="hidden h-px w-24 bg-gray-200 dark:bg-gray-700 sm:block"></div>
+            </div>
           {% else %}
             <div></div>
           {% endif %}

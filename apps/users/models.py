@@ -20,9 +20,6 @@ def _get_avatar_filename(instance, filename):
     return f"profile-pictures/{filename}"
 
 
-
-
-
 class CustomUser(AbstractUser):
     """
     Add additional fields to the user model here.
@@ -168,7 +165,6 @@ class ShippingAddress(BaseModel):
     )
 
     full_name = models.CharField(max_length=255, verbose_name=_("Full name"))
-    company = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Company"))
     phone_country_code = models.CharField(max_length=10, default="+48", verbose_name=_("Country code"))
     phone_number = models.CharField(max_length=50, default="", verbose_name=_("Mobile phone"))
 
@@ -176,7 +172,9 @@ class ShippingAddress(BaseModel):
     shipping_postal_code = models.CharField(max_length=20, default="", verbose_name=_("Postal code"))
     shipping_street = models.CharField(max_length=255, default="", verbose_name=_("Street"))
     shipping_building_number = models.CharField(max_length=30, default="", verbose_name=_("Building number"))
-    shipping_apartment_number = models.CharField(max_length=30, blank=True, default="", verbose_name=_("Apartment number"))
+    shipping_apartment_number = models.CharField(
+        max_length=30, blank=True, default="", verbose_name=_("Apartment number")
+    )
 
     class Meta:
         ordering = ["-is_default", "-updated_at", "-id"]

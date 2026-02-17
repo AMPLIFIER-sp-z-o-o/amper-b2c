@@ -112,7 +112,7 @@
                   <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
                     {% translate "Your email is not verified" %}
                   </p>
-                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                  <p class="text-subtitle mb-3">
                     {% translate "Please verify your email address to secure your account. Check your inbox for a verification link, or request a new one." %}
                   </p>
                   <div class="flex flex-wrap items-center gap-2">
@@ -139,7 +139,7 @@
                   <p class="text-base font-semibold text-gray-900 dark:text-white mb-1">
                     {% translate "Pending confirmation" %}: <span id="pending-email-label">{{ pending_email.new_email }}</span>
                   </p>
-                  <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-3">
+                  <p class="text-subtitle mb-3">
                     {% translate "A verification link has been sent. Please check your inbox." %}
                   </p>
                   <div class="flex flex-wrap items-center gap-2">
@@ -321,7 +321,7 @@
           </svg>
         </div>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2 text-center">{% translate "Delete Account?" %}</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-5 text-sm font-medium leading-relaxed text-center">
+        <p class="text-subtitle mb-5 leading-relaxed text-center">
           {% translate "To confirm, please enter your password. This action is permanent and cannot be undone." %}
         </p>
         <form method="POST" action="{% url 'users:account_delete' %}" id="delete-account-form">

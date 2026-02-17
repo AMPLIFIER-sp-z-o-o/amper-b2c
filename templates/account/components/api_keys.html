@@ -1,44 +1,47 @@
 {% load i18n %}
-<section class="app-card">
-  <h2 class="pg-subtitle">{% translate "API Keys" %}</h2>
-  {% for key in api_keys %}
-    {% if forloop.first %}
-    <div class='table-responsive'>
-      <table class="table pg-table">
-        <thead>
-        <tr>
-          <th>{% translate "Prefix" %}</th>
-          <th>{% translate "Created" %}</th>
-          <th></th>
-        </tr>
-        </thead>
-        <tbody>
-      {% endif %}
-          <tr>
-            <td>{{ key.prefix }}</td>
-            <td>{{ key.created.date }}</td>
-            <td>
-              <form method="post" action="{% url 'users:revoke_api_key' %}">
-                {% csrf_token %}
-                <input type="hidden" name="key_id" value="{{ key.id }}">
-                <div class="pg-inline-buttons">
-                  <input type="submit" class="pg-button-danger" value="{% translate "Revoke" %}" />
-                </div>
-              </form>
-            </td>
-          </tr>
-      {% if forloop.last %}
-        </tbody>
-      </table>
-    </div>
+<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div class="p-5 sm:p-6">
+    <h2 class="text-lg font-bold text-gray-900 dark:text-white">{% translate "API Keys" %}</h2>
+    <p class="text-subtitle mt-1">{% translate "Create and revoke keys for API access." %}</p>
+
+    {% if api_keys %}
+      <div class="mt-4 overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-gray-700 dark:text-gray-200">
+              <th class="py-2 pr-3 font-semibold">{% translate "Prefix" %}</th>
+              <th class="py-2 pr-3 font-semibold">{% translate "Created" %}</th>
+              <th class="py-2 font-semibold"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for key in api_keys %}
+            <tr>
+              <td class="py-3 pr-3 font-medium text-gray-700 dark:text-gray-200">{{ key.prefix }}</td>
+              <td class="py-3 pr-3 text-gray-500 dark:text-gray-400">{{ key.created.date }}</td>
+              <td class="py-3 text-right">
+                <form method="post" action="{% url 'users:revoke_api_key' %}">
+                  {% csrf_token %}
+                  <input type="hidden" name="key_id" value="{{ key.id }}">
+                  <button type="submit" class="inline-flex items-center justify-center gap-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg text-sm font-semibold px-3 py-1.5 transition-colors cursor-pointer btn-press">
+                    {% translate "Revoke" %}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="mt-4 text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "You haven't created any API keys yet." %}</p>
     {% endif %}
-  {% empty %}
-    <p>{% translate "You haven't created any API keys yet. Create one below." %}</p>
-  {% endfor %}
-  <form method="post" action="{% url 'users:create_api_key' %}">
-    {% csrf_token %}
-    <div class="mt-2">
-      <input type="submit" class="pg-button-secondary" value="{% translate "New API Key" %}" />
-    </div>
-  </form>
+
+    <form method="post" action="{% url 'users:create_api_key' %}" class="mt-4">
+      {% csrf_token %}
+      <button type="submit" class="inline-flex items-center justify-center gap-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-sm font-semibold px-4 py-2 transition-colors cursor-pointer btn-press">
+        {% translate "New API Key" %}
+      </button>
+    </form>
+  </div>
 </section>

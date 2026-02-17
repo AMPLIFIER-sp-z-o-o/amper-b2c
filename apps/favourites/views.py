@@ -1,5 +1,3 @@
-import json
-from decimal import Decimal
 
 from django.contrib import messages
 from django.db import IntegrityError
@@ -69,9 +67,7 @@ def _filter_wishlist_items(items_qs, request: HttpRequest):
     available_only = available_param == "1" if available_param is not None else False
 
     if search_query:
-        items_qs = items_qs.filter(
-            Q(product__name__icontains=search_query)
-        )
+        items_qs = items_qs.filter(Q(product__name__icontains=search_query))
 
     if available_only:
         items_qs = items_qs.filter(product__stock__gt=0)
@@ -84,15 +80,17 @@ def _filter_wishlist_items(items_qs, request: HttpRequest):
 @require_GET
 def favourites_page(request: HttpRequest) -> HttpResponse:
     """Main favourites page showing all wishlists."""
-    wishlists = _get_user_wishlists(request).annotate(
-        item_count=Count("items")
-    ).prefetch_related(
-        Prefetch(
-            "items",
-            queryset=WishListItem.objects.select_related("product").prefetch_related(
-                Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
-            ).order_by("-created_at"),
-            to_attr="prefetched_items",
+    wishlists = (
+        _get_user_wishlists(request)
+        .annotate(item_count=Count("items"))
+        .prefetch_related(
+            Prefetch(
+                "items",
+                queryset=WishListItem.objects.select_related("product")
+                .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")))
+                .order_by("-created_at"),
+                to_attr="prefetched_items",
+            )
         )
     )
 
@@ -153,9 +151,9 @@ def favourites_page(request: HttpRequest) -> HttpResponse:
     # Check if all wishlists are empty (for onboarding display)
     # Also true when no wishlists exist at all
     has_wishlists = _get_user_wishlists(request).exists()
-    all_lists_empty = not has_wishlists or not WishListItem.objects.filter(
-        wishlist__in=_get_user_wishlists(request)
-    ).exists()
+    all_lists_empty = (
+        not has_wishlists or not WishListItem.objects.filter(wishlist__in=_get_user_wishlists(request)).exists()
+    )
 
     return render(
         request,
@@ -434,9 +432,7 @@ def remove_from_wishlist(request: HttpRequest) -> HttpResponse:
         item.delete()
     elif product_id and wishlist_id:
         # Remove by product and wishlist
-        item = get_object_or_404(
-            WishListItem, product_id=product_id, wishlist_id=wishlist_id, wishlist__in=wishlists
-        )
+        item = get_object_or_404(WishListItem, product_id=product_id, wishlist_id=wishlist_id, wishlist__in=wishlists)
         wishlist = item.wishlist
         product_name = item.product.name
         item.delete()
@@ -461,9 +457,7 @@ def remove_from_wishlist(request: HttpRequest) -> HttpResponse:
             }
         )
     else:
-        return JsonResponse(
-            {"success": False, "message": _("Item or product ID is required.")}, status=400
-        )
+        return JsonResponse({"success": False, "message": _("Item or product ID is required.")}, status=400)
 
     # Get updated wishlist stats
     item_count = wishlist.items.count()
@@ -493,9 +487,7 @@ def move_item(request: HttpRequest) -> HttpResponse:
     target_wishlist_id = request.POST.get("target_wishlist_id")
 
     if not item_id or not target_wishlist_id:
-        return JsonResponse(
-            {"success": False, "message": _("Item and target wishlist are required.")}, status=400
-        )
+        return JsonResponse({"success": False, "message": _("Item and target wishlist are required.")}, status=400)
 
     wishlists = _get_user_wishlists(request)
     item = get_object_or_404(WishListItem, pk=item_id, wishlist__in=wishlists)
@@ -503,9 +495,7 @@ def move_item(request: HttpRequest) -> HttpResponse:
 
     # Check if already in target
     if WishListItem.objects.filter(wishlist=target_wishlist, product=item.product).exists():
-        return JsonResponse(
-            {"success": False, "message": _("Product is already in the target list.")}, status=400
-        )
+        return JsonResponse({"success": False, "message": _("Product is already in the target list.")}, status=400)
 
     # Move item
     source_wishlist = item.wishlist
@@ -547,9 +537,7 @@ def add_all_to_cart(request: HttpRequest) -> HttpResponse:
     if cart_id:
         cart = Cart.objects.filter(id=cart_id).first()
     if not cart:
-        cart = Cart.objects.create(
-            customer=request.user if request.user.is_authenticated else None
-        )
+        cart = Cart.objects.create(customer=request.user if request.user.is_authenticated else None)
         request.session["cart_id"] = cart.id
 
     for item in items:
@@ -616,9 +604,9 @@ def get_wishlists(request: HttpRequest) -> HttpResponse:
         try:
             pid = int(product_id)
             containing_ids = set(
-                WishListItem.objects.filter(
-                    wishlist__in=wishlists, product_id=pid
-                ).values_list("wishlist_id", flat=True)
+                WishListItem.objects.filter(wishlist__in=wishlists, product_id=pid).values_list(
+                    "wishlist_id", flat=True
+                )
             )
         except (ValueError, TypeError):
             pass
@@ -730,7 +718,7 @@ def wishlist_items_partial(request: HttpRequest) -> HttpResponse:
     share_id = request.GET.get("list")
     if not share_id:
         return HttpResponse("", status=400)
-        
+
     wishlists = _get_user_wishlists(request)
     wishlist = get_object_or_404(wishlists, share_id=share_id)
 
@@ -788,9 +776,7 @@ def copy_items(request: HttpRequest) -> HttpResponse:
     target_wishlist_id = request.POST.get("target_wishlist_id")
 
     if not item_ids or not target_wishlist_id:
-        return JsonResponse(
-            {"success": False, "message": _("Please select items and a target list.")}, status=400
-        )
+        return JsonResponse({"success": False, "message": _("Please select items and a target list.")}, status=400)
 
     wishlists = _get_user_wishlists(request)
     target_wishlist = get_object_or_404(wishlists, pk=target_wishlist_id)
@@ -835,9 +821,7 @@ def bulk_remove(request: HttpRequest) -> HttpResponse:
     item_ids = request.POST.getlist("item_ids")
 
     if not item_ids:
-        return JsonResponse(
-            {"success": False, "message": _("Please select items to remove.")}, status=400
-        )
+        return JsonResponse({"success": False, "message": _("Please select items to remove.")}, status=400)
 
     wishlists = _get_user_wishlists(request)
     items = WishListItem.objects.filter(pk__in=item_ids, wishlist__in=wishlists)
@@ -865,9 +849,7 @@ def get_all_products(request: HttpRequest) -> HttpResponse:
     items = (
         WishListItem.objects.filter(wishlist__in=wishlists)
         .select_related("product")
-        .prefetch_related(
-            Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order"))
-        )
+        .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")))
         .order_by("-created_at")
     )
 

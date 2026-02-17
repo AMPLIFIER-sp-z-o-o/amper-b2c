@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Prefetch, Q
 
-from apps.catalog.models import Category, Product, VISIBLE_STATUSES
+from apps.catalog.models import VISIBLE_STATUSES, Category, Product
 from apps.web.models import BottomBar, CustomCSS, Footer, FooterSectionLink, Navbar, NavbarItem, SiteSettings, TopBar
 
 from .meta import absolute_url, get_server_root
@@ -44,9 +44,7 @@ def _filter_categories_with_products(categories):
 
     # Get all category IDs that have at least one active product
     category_ids_with_products = set(
-        Product.objects.filter(status__in=VISIBLE_STATUSES)
-        .values_list("category_id", flat=True)
-        .distinct()
+        Product.objects.filter(status__in=VISIBLE_STATUSES).values_list("category_id", flat=True).distinct()
     )
 
     # Filter categories that have products (directly or in children)
@@ -377,10 +375,7 @@ def email_verification_banner(request):
     A cookie-based dismiss keeps the banner hidden for 24 hours.
     """
     show = False
-    if (
-        request.user.is_authenticated
-        and settings.ACCOUNT_EMAIL_VERIFICATION != "none"
-    ):
+    if request.user.is_authenticated and settings.ACCOUNT_EMAIL_VERIFICATION != "none":
         from allauth.account.models import EmailAddress
 
         show = not EmailAddress.objects.filter(user=request.user, email=request.user.email, verified=True).exists()

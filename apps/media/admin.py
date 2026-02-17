@@ -658,7 +658,6 @@ class MediaStorageSettingsForm(forms.ModelForm):
         return instance
 
 
-
 @admin.register(MediaStorageSettings)
 class MediaStorageSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     """Admin for media storage settings - singleton model with direct form access."""

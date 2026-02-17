@@ -157,12 +157,55 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize favourites
   initFavourites();
 
+  // Initialize cart "Save as list" modal
+  initCartSaveAsList();
+
   // Initialize product compare buttons state
   syncCompareButtons(document);
 
   // Initialize relative time labels (auto-refresh every 30s)
   initRelativeTimes();
 });
+
+function initCartSaveAsList() {
+  const form = document.getElementById("save-as-list-form");
+  if (!form || form.dataset.initialized) return;
+  form.dataset.initialized = "1";
+
+  const nameInput = document.getElementById("save-as-list-name");
+  const submitBtn = document.getElementById("save-as-list-submit");
+  const errorBox = document.getElementById("save-as-list-error");
+
+  document
+    .querySelectorAll('[data-modal-toggle="save-as-list-modal"]')
+    .forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (errorBox) errorBox.innerHTML = "";
+        if (submitBtn) window.btnReset?.(submitBtn);
+        // Flowbite shows the modal asynchronously; delay focus slightly.
+        window.setTimeout(() => {
+          nameInput?.focus();
+          nameInput?.select?.();
+        }, 50);
+      });
+    });
+
+  form.addEventListener("htmx:beforeRequest", () => {
+    if (errorBox) errorBox.innerHTML = "";
+    if (submitBtn) window.btnLoading?.(submitBtn);
+  });
+
+  form.addEventListener("htmx:afterRequest", (event) => {
+    const status = event?.detail?.xhr?.status;
+    if (typeof status === "number" && status >= 400) {
+      if (submitBtn) window.btnReset?.(submitBtn);
+    }
+  });
+
+  form.addEventListener("htmx:responseError", () => {
+    if (submitBtn) window.btnReset?.(submitBtn);
+  });
+}
 
 /* ============================================
    PRODUCT SHARE / COMPARE / IMAGE FULLSCREEN
@@ -1199,7 +1242,7 @@ function showWishlistPicker(btn, productId, wishlists) {
     .join("");
 
   const loginHintHtml = !isLoggedIn
-    ? `<p class="text-sm font-medium text-gray-600 dark:text-gray-300 mt-1.5 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
+    ? `<p class="text-subtitle mt-1.5 leading-relaxed">Sign in to keep your lists saved and access them from any device.</p>`
     : "";
 
   picker.innerHTML = `<div>
@@ -1719,7 +1762,7 @@ function showToast(message, type = "success") {
   closeBtn.type = "button";
   closeBtn.setAttribute("aria-label", "Close");
   closeBtn.className =
-    "absolute -right-3 -top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-900 shadow-md hover-bg btn-press border border-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-700";
+    "absolute -right-3 -top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-900 shadow-md hover-bg btn-press border border-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-700 cursor-pointer";
   closeBtn.innerHTML =
     '<svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 18 6M6 6l12 12"/></svg>';
   closeBtn.addEventListener("click", (e) => {

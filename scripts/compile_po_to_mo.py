@@ -15,6 +15,7 @@ from __future__ import annotations
 import glob
 import os
 import struct
+import ast
 from dataclasses import dataclass, field
 
 
@@ -49,8 +50,10 @@ def _unquote_po_string(s: str) -> str:
     if not s.startswith('"'):
         return ""
     try:
-        # Decode C-style escapes inside PO quoted strings.
-        return bytes(s[1:-1], "utf-8").decode("unicode_escape")
+        # PO files are UTF-8 text. We only need to interpret C-style escapes
+        # (\n, \", \\). Using unicode_escape on UTF-8 bytes corrupts non-ASCII
+        # characters (e.g. Polish diacritics) and can produce invalid .mo files.
+        return ast.literal_eval(s)
     except Exception:
         return s[1:-1]
 
@@ -67,7 +70,7 @@ def parse_po(path: str) -> list[PoEntry]:
         current = PoEntry()
         active_field = None
 
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         for raw in f:
             line = raw.rstrip("\n")
 
@@ -79,6 +82,13 @@ def parse_po(path: str) -> list[PoEntry]:
                 continue
 
             if line.startswith("msgctxt"):
+                # Some .po files omit the blank line separator between entries
+                # (notably between the header and the first real msgid). If a
+                # new entry starts, commit the previous one first.
+                if active_field is not None and (
+                    current.msgid != "" or current.msgstr or current.msgctxt is not None
+                ):
+                    commit()
                 current.msgctxt = _unquote_po_string(line[len("msgctxt") :].strip())
                 active_field = ("msgctxt", None)
                 continue
@@ -89,6 +99,11 @@ def parse_po(path: str) -> list[PoEntry]:
                 continue
 
             if line.startswith("msgid"):
+                # New entry without a blank line separator.
+                if active_field is not None and (
+                    current.msgid != "" or current.msgstr or current.msgctxt is not None
+                ):
+                    commit()
                 current.msgid = _unquote_po_string(line[len("msgid") :].strip())
                 active_field = ("msgid", None)
                 continue

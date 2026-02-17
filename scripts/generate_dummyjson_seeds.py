@@ -53,14 +53,18 @@ def fetch_json(url: str):
 
 
 def build_datasets(products_raw, categories_raw):
-    slug_to_name = {entry["slug"]: (entry.get("name") or entry["slug"].replace("-", " ").title()) for entry in categories_raw}
+    slug_to_name = {
+        entry["slug"]: (entry.get("name") or entry["slug"].replace("-", " ").title()) for entry in categories_raw
+    }
 
     by_root = defaultdict(list)
     for product in products_raw:
         by_root[product["category"]].append(product)
 
     for root_slug in by_root:
-        by_root[root_slug] = sorted(by_root[root_slug], key=lambda item: (-float(item.get("rating", 0) or 0), item["id"]))
+        by_root[root_slug] = sorted(
+            by_root[root_slug], key=lambda item: (-float(item.get("rating", 0) or 0), item["id"])
+        )
 
     global_ranked_products = sorted(products_raw, key=lambda item: (-float(item.get("rating", 0) or 0), item["id"]))
 
@@ -311,7 +315,9 @@ def build_datasets(products_raw, categories_raw):
             }
         )
 
-    roots = sorted([category for category in categories if category["parent_id"] is None], key=lambda category: category["name"])
+    roots = sorted(
+        [category for category in categories if category["parent_id"] is None], key=lambda category: category["name"]
+    )
     selected_roots = roots[:16]
     icon_cycle = [
         "storefront/seed/computers.svg",
@@ -351,7 +357,9 @@ def build_datasets(products_raw, categories_raw):
             "section_id": 1,
             "title": "Popular departments",
             "shop_link_text": "Shop now",
-            "shop_link_url": homepage_section_category_items[4]["url"] if len(homepage_section_category_items) > 4 else "/products/",
+            "shop_link_url": homepage_section_category_items[4]["url"]
+            if len(homepage_section_category_items) > 4
+            else "/products/",
             "order": 1,
         },
         {
@@ -472,9 +480,7 @@ def upload_images_to_s3(products_raw):
         except Exception as exception:
             failed += 1
             if len(errors) < 10:
-                errors.append(
-                    f"product_id={product_id} err={type(exception).__name__}: {exception} url={image_url}"
-                )
+                errors.append(f"product_id={product_id} err={type(exception).__name__}: {exception} url={image_url}")
 
     return uploaded, failed, errors
 

@@ -742,12 +742,6 @@ msgstr ""
 msgid "Phone Number"
 msgstr ""
 
-msgid "Company name"
-msgstr ""
-
-msgid "VAT number"
-msgstr ""
-
 msgid "Add new address"
 msgstr ""
 
@@ -786,11 +780,11 @@ msgstr ""
 msgid "Order amount"
 msgstr ""
 
-msgid "Place your order"
-msgstr ""
+msgid "Place order"
+msgstr "Złóż zamówienie"
 
 msgid "Return to Checkout"
-msgstr ""
+msgstr "Powrót do kasy"
 
 msgid "Proceed to Summary"
 msgstr ""
@@ -807,8 +801,14 @@ msgstr ""
 msgid "for faster checkout."
 msgstr ""
 
-msgid "By placing your order, you agree to Flowbite's"
-msgstr ""
+msgid "By placing your order, you agree to our"
+msgstr "Składając zamówienie, akceptujesz naszą"
+
+msgid "Shipping"
+msgstr "Dostawa"
+
+msgid "Order total"
+msgstr "Suma zamówienia"
 
 msgid "privacy note"
 msgstr ""
@@ -822,6 +822,18 @@ msgstr ""
 # --- Cart: Save as list ---
 msgid "Save as list"
 msgstr "Zapisz jako listę"
+
+msgid "Save cart as a list"
+msgstr "Zapisz koszyk jako listę"
+
+msgid "Create a new shopping list from the items currently in your cart."
+msgstr "Utwórz nową listę zakupów z produktów znajdujących się w Twoim koszyku."
+
+msgid "e.g., Weekly groceries"
+msgstr "np. Zakupy na tydzień"
+
+msgid "Save and open"
+msgstr "Zapisz i otwórz"
 
 msgid "Saved cart"
 msgstr "Zapisany koszyk"

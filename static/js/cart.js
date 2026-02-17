@@ -33,6 +33,8 @@ window.Cart = (function () {
         const form = document.getElementById("checkout-details-form");
         if (!btn || !form) return;
 
+        const hint = document.getElementById("proceed-disabled-hint");
+
         const hasDelivery = !!document.querySelector('input[name="delivery-method"]:checked');
         const hasPayment = !!document.querySelector('input[name="payment-method"]:checked');
         const isValid = typeof form.checkValidity === "function" ? form.checkValidity() : true;
@@ -40,6 +42,10 @@ window.Cart = (function () {
 
         btn.disabled = !canProceed;
         btn.setAttribute("aria-disabled", String(!canProceed));
+
+        if (hint) {
+            hint.classList.toggle("hidden", Boolean(canProceed));
+        }
     }
 
     function initCheckoutCountryReload() {
@@ -50,7 +56,7 @@ window.Cart = (function () {
         if (countrySelect.tagName !== "SELECT") return;
 
         countrySelect.addEventListener("change", () => {
-            // Reload checkout so available delivery/payment methods and tax totals update.
+            // Reload checkout so available delivery/payment methods update.
             const value = String(countrySelect.value || "").trim();
             const url = new URL(window.location.href);
             if (value) {
@@ -101,9 +107,9 @@ window.Cart = (function () {
     }
 
     function setProceedToSummaryLoading(loading) {
-        const proceedBtn = document.querySelector(
-            'a[href="/cart/summary/"][data-nav-loading-btn]'
-        );
+        const proceedBtn =
+            document.getElementById("proceed-to-summary-btn") ||
+            document.querySelector('a[href="/cart/summary/"][data-nav-loading-btn]');
         if (!proceedBtn) return;
         if (loading) {
             if (typeof window.btnLoading === "function") {
@@ -118,6 +124,21 @@ window.Cart = (function () {
                 proceedBtn.classList.remove("btn-loading");
             }
         }
+    }
+
+    function updateCheckoutChoiceCardStates() {
+        const cards = document.querySelectorAll('[data-checkout-choice-card]');
+        if (!cards.length) return;
+
+        cards.forEach((card) => {
+            const input = card.querySelector('input[type="radio"]');
+            if (!input) return;
+
+            const isChecked = Boolean(input.checked);
+            card.classList.toggle("ring-2", isChecked);
+            card.classList.toggle("ring-primary-600", isChecked);
+            card.classList.toggle("dark:ring-primary-500", isChecked);
+        });
     }
 
     function showCartError(message) {
@@ -222,8 +243,8 @@ window.Cart = (function () {
         const totalEls = document.querySelectorAll('[data-cart-total]');
         const subtotalEls = document.querySelectorAll('[data-cart-subtotal]');
         const deliveryEls = document.querySelectorAll('[data-delivery-cost]');
-        const taxEls = document.querySelectorAll('[data-tax-total]');
         const discountEls = document.querySelectorAll('[data-discount-total]');
+        const discountRows = document.querySelectorAll('[data-discount-row]');
         const cartLinesNumber =  document.querySelectorAll('[data-cart-lines-number]');
         const navCartLinesContainer = document.querySelector('#nav-cart-lines');
 
@@ -320,18 +341,15 @@ window.Cart = (function () {
                 el.textContent = data.delivery_cost;
             });
 
-            if (data.tax_total !== undefined) {
-                taxEls.forEach(el => {
-                    el.dataset.price = data.tax_total;
-                    el.textContent = data.tax_total;
-                });
-            }
-
             if (data.discount_total !== undefined) {
                 discountEls.forEach(el => {
                     el.dataset.price = data.discount_total;
                     el.textContent = `-${data.discount_total}`;
                 });
+
+                const discountValue = parseFloat(data.discount_total);
+                const hideRow = !Number.isFinite(discountValue) || discountValue <= 0;
+                discountRows.forEach((row) => row.classList.toggle('hidden', hideRow));
             }
 
             cartLinesNumber.forEach(el => {
@@ -657,6 +675,7 @@ window.Cart = (function () {
                 el.matches('input[name="delivery-method"], input[name="payment-method"]')
             ) {
                 updateProceedToSummaryDisabledState();
+                updateCheckoutChoiceCardStates();
             }
         },
         true
@@ -664,6 +683,7 @@ window.Cart = (function () {
 
     // Initial state on page load (if present)
     updateProceedToSummaryDisabledState();
+    updateCheckoutChoiceCardStates();
     initCheckoutCountryReload();
     initCartCountrySubmit();
 
@@ -719,6 +739,8 @@ window.Cart = (function () {
         const input = e.target;
         if (!input.matches('input[name="delivery-method"]')) return;
 
+        updateCheckoutChoiceCardStates();
+
         const methodId = input.value;
         const form = input.closest("form");
 
@@ -751,13 +773,6 @@ window.Cart = (function () {
                 el.dataset.price = data.total;
             });
 
-            if (data.tax_total !== undefined) {
-                document.querySelectorAll("[data-tax-total]").forEach(el => {
-                    el.textContent = data.tax_total;
-                    el.dataset.price = data.tax_total;
-                });
-            }
-
             if (data.discount_total !== undefined) {
                 document.querySelectorAll("[data-discount-total]").forEach(el => {
                     el.textContent = `-${data.discount_total}`;
@@ -783,6 +798,8 @@ window.Cart = (function () {
     document.addEventListener("change", function (e) {
         const input = e.target;
         if (!input.matches('input[name="payment-method"]')) return;
+
+        updateCheckoutChoiceCardStates();
 
         const paymentId = input.value;
         const form = input.closest("form");
@@ -816,13 +833,6 @@ window.Cart = (function () {
                 el.dataset.price = data.total;
             });
 
-            if (data.tax_total !== undefined) {
-                document.querySelectorAll("[data-tax-total]").forEach(el => {
-                    el.textContent = data.tax_total;
-                    el.dataset.price = data.tax_total;
-                });
-            }
-
             if (data.discount_total !== undefined) {
                 document.querySelectorAll("[data-discount-total]").forEach(el => {
                     el.textContent = `-${data.discount_total}`;
@@ -833,11 +843,6 @@ window.Cart = (function () {
             document.querySelectorAll("[data-delivery-cost]").forEach(el => {
                 el.textContent = data.delivery_cost;
                 el.dataset.price = data.delivery_cost;
-            });
-
-            document.querySelectorAll("[data-payment-cost]").forEach(el => {
-                el.textContent = data.payment_cost;
-                el.dataset.price = data.payment_cost;
             });
 
             formatPrices()
@@ -870,7 +875,9 @@ window.Cart = (function () {
 
         e.preventDefault();
 
+        const submitter = e.submitter instanceof HTMLElement ? e.submitter : null;
         const btn =
+            submitter?.closest?.("[data-apply-coupon-btn], [data-remove-coupon-btn]") ||
             form.querySelector("[data-apply-coupon-btn]") ||
             form.querySelector("[data-remove-coupon-btn]");
 
@@ -921,6 +928,12 @@ window.Cart = (function () {
                         el.textContent = `-${data.discount_total}`;
                         el.dataset.price = data.discount_total;
                     });
+
+                    const discountValue = parseFloat(data.discount_total);
+                    const hideRow = !Number.isFinite(discountValue) || discountValue <= 0;
+                    document.querySelectorAll("[data-discount-row]").forEach((row) => {
+                        row.classList.toggle("hidden", hideRow);
+                    });
                 }
                 if (data.delivery_cost !== undefined) {
                     document.querySelectorAll("[data-delivery-cost]").forEach((el) => {
@@ -935,13 +948,19 @@ window.Cart = (function () {
                 const removeForm = document.querySelector("[data-remove-coupon-form]");
                 const applyForm = document.querySelector("[data-apply-coupon-form]");
                 const input = applyForm?.querySelector("input[name='coupon_code']");
+                const removeBtn = document.querySelector("[data-remove-coupon-btn]");
 
                 if (display) {
                     display.textContent = couponCode;
                     display.classList.toggle("hidden", !couponCode);
                 }
                 if (removeForm) {
-                    removeForm.classList.toggle("hidden", !couponCode);
+                    // Form is kept in the DOM; the Remove button is toggled to intentionally allow layout shift.
+                }
+                if (removeBtn) {
+                    const hasCoupon = Boolean(couponCode);
+                    removeBtn.disabled = !hasCoupon;
+                    removeBtn.classList.toggle("hidden", !hasCoupon);
                 }
                 if (input) {
                     input.value = couponCode;

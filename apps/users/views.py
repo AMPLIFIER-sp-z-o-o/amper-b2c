@@ -1,12 +1,18 @@
 from allauth.account.internal.flows import password_reset as password_reset_flow
 from allauth.account.models import EmailAddress
-from allauth.account.views import ConfirmEmailView, LogoutView, PasswordChangeView, PasswordResetFromKeyView
+from allauth.account.views import (
+    ConfirmEmailView,
+    LogoutView,
+    PasswordChangeView,
+    PasswordResetFromKeyView,
+    PasswordResetView,
+)
 from allauth.socialaccount.models import SocialAccount
 from django.contrib import messages
-from django.contrib.messages import get_messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
+from django.contrib.messages import get_messages
+from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -75,9 +81,6 @@ def profile(request):
             "current_tz": timezone.get_current_timezone(),
         },
     )
-
-
-
 
 
 @login_required
@@ -180,12 +183,14 @@ def account_details(request):
             form.save()
             if is_ajax:
                 request.user.refresh_from_db()
-                return JsonResponse({
-                    "status": "ok",
-                    "message": str(_("Your details have been updated.")),
-                    "first_name": request.user.first_name,
-                    "display_name": request.user.get_display_name(),
-                })
+                return JsonResponse(
+                    {
+                        "status": "ok",
+                        "message": str(_("Your details have been updated.")),
+                        "first_name": request.user.first_name,
+                        "display_name": request.user.get_display_name(),
+                    }
+                )
             messages.success(request, _("Your details have been updated."))
             return redirect("users:account_details")
         else:
@@ -467,9 +472,7 @@ def _send_email_change_verification(request, pending):
     from apps.users.adapter import EmailAsUsernameAdapter
 
     adapter = EmailAsUsernameAdapter(request)
-    confirm_url = request.build_absolute_uri(
-        reverse("users:account_confirm_email_change", args=[pending.token])
-    )
+    confirm_url = request.build_absolute_uri(reverse("users:account_confirm_email_change", args=[pending.token]))
     context = {
         "confirm_url": confirm_url,
         "new_email": pending.new_email,
@@ -522,6 +525,19 @@ class CustomPasswordChangeView(PasswordChangeView):
         return reverse("users:account_details") + "#security-section"
 
 
+class CustomPasswordResetView(PasswordResetView):
+    """Prevent showing the password reset request form to authenticated users.
+
+    If the user is already signed in, they should manage their password via
+    change/set password flows rather than requesting a reset email.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated:
+            return redirect("/")
+        return super().dispatch(request, *args, **kwargs)
+
+
 class CustomLogoutView(LogoutView):
     """Log out both tab-scoped and default sessions to prevent session fallback."""
 
@@ -550,9 +566,7 @@ class AutoLoginConfirmEmailView(ConfirmEmailView):
         self.object = verification = self.get_object()
         from allauth.account.internal.flows import email_verification
 
-        email_address, response = email_verification.verify_email_and_resume(
-            self.request, verification
-        )
+        email_address, response = email_verification.verify_email_and_resume(self.request, verification)
         if response:
             return response
         if not email_address:
@@ -590,9 +604,7 @@ class AutoLoginPasswordResetFromKeyView(PasswordResetFromKeyView):
 
     def form_valid(self, form):
         form.save()
-        resp = password_reset_flow.finalize_password_reset(
-            self.request, self.reset_user
-        )
+        resp = password_reset_flow.finalize_password_reset(self.request, self.reset_user)
         if resp:
             return resp
         # Fallback: auto-login manually and redirect home

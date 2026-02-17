@@ -1,0 +1,4 @@
+{% load i18n %}
+{% autoescape off %}
+{% blocktranslate trimmed with order_id=order.id %}Order confirmation — Order #{{ order_id }}{% endblocktranslate %}
+{% endautoescape %}

@@ -1,0 +1,131 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+
+{% block body %}
+<section class="order-flow-enter bg-white py-8 antialiased dark:bg-gray-900 md:py-16">
+  <div class="mx-auto max-w-7xl px-4 2xl:px-0">
+    <div class="mx-auto max-w-5xl">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">
+        {% translate "Payment" %}
+        <span class="text-subtitle">({% translate "demo" %})</span>
+      </h2>
+      <p class="text-subtitle mt-1">
+        {% translate "This is a placeholder payment page. No real payment is processed." %}
+      </p>
+
+      <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12">
+        <form action="#" class="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+              {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
+            </h3>
+            <p class="text-subtitle mt-1">
+              {% translate "Selected payment method" %}: <span class="font-medium">{{ order.payment_method_name }}</span>
+            </p>
+            <p class="text-subtitle mt-2">
+              {% translate "Demo only — the form below does not submit anything." %}
+            </p>
+          </div>
+
+          <div class="mb-6 grid grid-cols-2 gap-4">
+            <div class="col-span-2 sm:col-span-1">
+              <label for="full_name" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "Full name (as displayed on card)" %}
+              </label>
+              <input
+                type="text"
+                id="full_name"
+                class="block w-full rounded-lg bg-gray-100 border-none p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-700 dark:focus:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)] transition-all"
+                placeholder="Bonnie Green"
+                autocomplete="cc-name"
+              />
+            </div>
+
+            <div class="col-span-2 sm:col-span-1">
+              <label for="card-number-input" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "Card number" %}
+              </label>
+              <input
+                type="text"
+                id="card-number-input"
+                class="block w-full rounded-lg bg-gray-100 border-none p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-700 dark:focus:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)] transition-all"
+                placeholder="xxxx-xxxx-xxxx-xxxx"
+                inputmode="numeric"
+                autocomplete="cc-number"
+              />
+            </div>
+
+            <div>
+              <label for="card-expiration-input" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "Card expiration" %}
+              </label>
+              <div class="relative">
+                <div class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3.5">
+                  <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+                    <path
+                      fill-rule="evenodd"
+                      d="M5 5a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1h1a1 1 0 0 0 1-1 1 1 0 1 1 2 0 1 1 0 0 0 1 1 2 2 0 0 1 2 2v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a2 2 0 0 1 2-2ZM3 19v-7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Zm6.01-6a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm-10 4a1 1 0 1 1 2 0 1 1 0 0 1-2 0Zm6 0a1 1 0 1 0-2 0 1 1 0 0 0 2 0Zm2 0a1 1 0 1 1 2 0 1 1 0 0 1-2 0Z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="card-expiration-input"
+                  type="text"
+                  class="block w-full rounded-lg bg-gray-100 border-none p-2.5 ps-9 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-700 dark:focus:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)] transition-all"
+                  placeholder="12/26"
+                  inputmode="numeric"
+                  autocomplete="cc-exp"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label for="cvv-input" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "CVV" %}
+              </label>
+              <input
+                type="text"
+                id="cvv-input"
+                class="block w-full rounded-lg bg-gray-100 border-none p-2.5 text-sm text-gray-900 focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:bg-gray-700 dark:focus:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)] transition-all"
+                placeholder="•••"
+                inputmode="numeric"
+                autocomplete="cc-csc"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 opacity-60 pointer-events-none"
+            aria-disabled="true"
+          >
+            {% translate "Pay now" %}
+          </button>
+        </form>
+
+        <div class="mt-6 grow sm:mt-8 lg:mt-0">
+          <div class="space-y-4 rounded-lg border border-gray-100 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+            <div class="space-y-2">
+              {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal discount_total=order.discount_total delivery_cost=order.delivery_cost total=order.total show_delivery_cost=True %}
+            </div>
+
+            <div class="border-t border-gray-200 pt-4 dark:border-gray-700">
+              <a href="{% url 'orders:track' token=order.tracking_token %}" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                {% translate "Go to order tracking" %}
+              </a>
+              <p class="text-subtitle mt-3">
+                {% translate "Tip: bookmark your tracking link." %}
+              </p>
+            </div>
+          </div>
+
+          <p class="mt-6 text-center text-subtitle sm:mt-8 lg:text-left">
+            {% translate "Payment is not processed on this page." %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

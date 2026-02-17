@@ -1,23 +1,116 @@
-{% extends "account/base.html" %}
-
+{% extends "web/base.html" %}
 {% load i18n %}
-{% load form_tags %}
+{% load static %}
+{% load media_tags %}
 
-{% block page_title %}{% translate "Sign Up" %}{% endblock %}
+{% block page_head %}
+  {% include "account/includes/auth_card_css.html" %}
+{% endblock %}
 
-{% block content %}
-    <h1 class="pg-title">{% translate "Sign Up" %}</h1>
+{% block body %}
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+    <div class="w-full place-self-center lg:col-span-6">
+      <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card">
+        <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
+          {% if site_logo %}
+          <img class="w-20 h-20 mr-3 object-contain" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+          {% endif %}
+          {{ project_meta.NAME|default:"" }}
+        </a>
 
-<p>{% blocktranslate trimmed with provider_name=account.get_provider.name site_name=site.name %}You are about to use your {{provider_name}} account to login to
-{{site_name}}. As a final step, please complete the following form:{% endblocktranslate %}</p>
+        <h1 class="mb-2 text-2xl font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
+          {% translate "Finish creating your account" %}
+        </h1>
 
-<form class="signup" id="signup_form" method="post" action="{% url 'socialaccount_signup' %}">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  {% render_form_fields form %}
-  {% if redirect_field_value %}
-  <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
-  {% endif %}
-  <button class="pg-button-primary" type="submit">{% translate "Sign Up" %} &raquo;</button>
-</form>
+        <p class="text-subtitle mt-1">
+          {% blocktranslate trimmed with provider_name=account.get_provider.name %}
+            You are signing up with {{ provider_name }}.
+          {% endblocktranslate %}
+        </p>
+
+        {% if form.non_field_errors %}
+        <div class="mt-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
+          {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <form class="mt-4 space-y-6 sm:mt-6" id="signup_form" method="post" action="{% url 'socialaccount_signup' %}">
+          {% csrf_token %}
+
+          {% for hidden in form.hidden_fields %}
+            {{ hidden }}
+          {% endfor %}
+
+          {% if redirect_field_value %}
+          <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+          {% endif %}
+
+          <div class="grid gap-6">
+            {% if form.email %}
+            <div>
+              <label for="{{ form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "Email" %}
+                {% if form.email.field.required %}<span class="text-red-500">*</span>{% endif %}
+              </label>
+              <input
+                type="email"
+                name="{{ form.email.html_name }}"
+                id="{{ form.email.id_for_label }}"
+                value="{{ form.email.value|default:'' }}"
+                autocomplete="email"
+                class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200"
+                placeholder="{% translate 'Enter your email' %}"
+                {% if form.email.field.required %}required{% endif %}
+              >
+              {% if form.email.errors %}
+              <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
+              {% endif %}
+            </div>
+            {% endif %}
+
+            {% if form.first_name %}
+            <div>
+              <label for="{{ form.first_name.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "First Name" %}
+                {% if form.first_name.field.required %}<span class="text-red-500">*</span>{% endif %}
+              </label>
+              <input
+                type="text"
+                name="{{ form.first_name.html_name }}"
+                id="{{ form.first_name.id_for_label }}"
+                value="{{ form.first_name.value|default:'' }}"
+                autocomplete="given-name"
+                class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200"
+                placeholder="{% translate 'Enter your first name' %}"
+                {% if form.first_name.field.required %}required{% endif %}
+              >
+              {% if form.first_name.errors %}
+              <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+              {% endif %}
+            </div>
+            {% endif %}
+          </div>
+
+          <button id="social-signup-submit-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200 mt-4">
+            <svg id="social-signup-btn-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span>{% translate "Continue" %}</span>
+          </button>
+
+          <p class="text-subtitle text-center mt-6">
+            <a href="{% url 'account_login' %}" class="font-medium text-primary-600 hover:underline dark:text-primary-500">{% translate "Back to sign in" %}</a>
+          </p>
+        </form>
+
+        {% include "account/includes/form_submit_loading.html" with btn_id="social-signup-submit-btn" spinner_id="social-signup-btn-spinner" %}
+      </div>
+    </div>
+
+    <div class="mr-auto place-self-center lg:col-span-6">
+      <img class="hidden mx-auto lg:flex" src="{% media_file_url 'site/seed/auth-illustration.svg' %}" alt="illustration">
+    </div>
+  </div>
+</section>
 {% endblock %}

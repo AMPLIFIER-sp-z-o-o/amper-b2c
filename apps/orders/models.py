@@ -1,8 +1,8 @@
 import secrets
-
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
@@ -53,7 +53,6 @@ class Order(BaseModel):
 
     email = models.EmailField(verbose_name=_("Email"))
     full_name = models.CharField(max_length=255, verbose_name=_("Full name"))
-    company = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Company"))
     phone = models.CharField(max_length=50, blank=True, default="", verbose_name=_("Phone"))
 
     shipping_postal_code = models.CharField(max_length=20, blank=True, default="", verbose_name=_("Postal code"))
@@ -64,13 +63,6 @@ class Order(BaseModel):
     payment_method_name = models.CharField(max_length=120, blank=True, default="", verbose_name=_("Payment method"))
 
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Subtotal"))
-    tax_rate_percent = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        default=Decimal("0.00"),
-        verbose_name=_("Tax rate percent"),
-    )
-    tax_total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Tax"))
     discount_total = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -78,8 +70,9 @@ class Order(BaseModel):
         verbose_name=_("Discount"),
     )
     coupon_code = models.CharField(max_length=50, blank=True, default="", verbose_name=_("Coupon code"))
-    delivery_cost = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Delivery cost"))
-    payment_cost = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Payment cost"))
+    delivery_cost = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Delivery cost")
+    )
     total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Total"))
 
     currency = models.CharField(max_length=10, blank=True, default="", verbose_name=_("Currency"))
@@ -163,8 +156,8 @@ class Coupon(BaseModel):
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name=_("Min subtotal"),
-        help_text=_("Optional. Coupon is valid only when cart subtotal is at least this amount."),
+        verbose_name=_("Min total"),
+        help_text=_("Optional. Coupon is valid only when cart total (before discounts) is at least this amount."),
     )
 
     class Meta:
@@ -174,3 +167,42 @@ class Coupon(BaseModel):
 
     def __str__(self) -> str:
         return self.code
+
+    def clean(self):
+        super().clean()
+
+        errors: dict[str, str] = {}
+
+        if self.valid_from and self.valid_to and self.valid_from > self.valid_to:
+            errors["valid_to"] = str(_("Valid to must be later than valid from."))
+
+        try:
+            value = Decimal(self.value)
+        except Exception:
+            value = None
+            errors["value"] = str(_("Value must be a number."))
+
+        if value is not None:
+            if value < 0:
+                errors["value"] = str(_("Value must be non-negative."))
+            elif self.kind == CouponKind.PERCENT and value > Decimal("100.00"):
+                errors["value"] = str(_("Percent value cannot exceed 100."))
+
+        if self.min_subtotal is not None:
+            try:
+                min_total = Decimal(self.min_subtotal)
+                if min_total < 0:
+                    errors["min_subtotal"] = str(_("Minimum total must be non-negative."))
+            except Exception:
+                errors["min_subtotal"] = str(_("Minimum total must be a number."))
+
+        if self.usage_limit is not None and self.used_count is not None:
+            try:
+                if int(self.used_count) > int(self.usage_limit):
+                    errors["usage_limit"] = str(_("Usage limit cannot be lower than used count."))
+            except Exception:
+                # Let field-level validators handle invalid types.
+                pass
+
+        if errors:
+            raise ValidationError(errors)

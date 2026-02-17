@@ -15,7 +15,7 @@ from apps.favourites.models import WishList
 def merge_anonymous_wishlists_on_login(sender, request, user, **kwargs):
     """
     Merge anonymous wishlists to user account on login.
-    
+
     When a user logs in, any wishlists associated with their session
     are merged into their account's wishlists. Items from anonymous
     wishlists are moved to the user's default wishlist.
@@ -26,7 +26,7 @@ def merge_anonymous_wishlists_on_login(sender, request, user, **kwargs):
     session_key = request.COOKIES.get(settings.SESSION_COOKIE_NAME) or request.session.session_key
     if not session_key:
         return
-    
+
     try:
         WishList.merge_anonymous_wishlists(user, session_key)
     except Exception:

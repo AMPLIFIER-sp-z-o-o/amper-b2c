@@ -107,7 +107,7 @@
         <div class="flex items-start justify-between gap-2 mb-3">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ wishlist.name }}</h3>
-            <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5"><span class="relative-time" data-timestamp="{{ wishlist.updated_at|date:'c' }}"></span></p>
+            <p class="text-xs text-gray-900 dark:text-white opacity-70 mt-0.5"><span class="relative-time" data-timestamp="{{ wishlist.updated_at|date:'c' }}"></span></p>
           </div>
           {# Context Menu Button #}
           <div class="relative z-10 shrink-0">
@@ -473,7 +473,7 @@
           </svg>
         </div>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Delete List?" %}</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate 'Are you sure you want to delete' %} "<span id="delete-list-name" class="font-semibold"></span>"? {% translate "This action cannot be undone." %}</p>
+        <p class="text-subtitle mb-6">{% translate 'Are you sure you want to delete' %} "<span id="delete-list-name" class="font-semibold"></span>"? {% translate "This action cannot be undone." %}</p>
         <form id="delete-form" method="POST" action="">
           {% csrf_token %}
           <div class="flex gap-3">
@@ -502,7 +502,7 @@
           </svg>
         </div>
         <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Remove Products?" %}</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-6">{% translate "Are you sure you want to remove the selected items from this list?" %}</p>
+        <p class="text-subtitle mb-6">{% translate "Are you sure you want to remove the selected items from this list?" %}</p>
         <div class="flex gap-3">
           <button type="button" id="remove-items-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
             {% translate "Cancel" %}

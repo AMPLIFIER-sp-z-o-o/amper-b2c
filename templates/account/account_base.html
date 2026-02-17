@@ -38,7 +38,7 @@
       <nav class="flex overflow-x-auto gap-1 py-2 -mx-1 scrollbar-hide" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
         <a
           href="{% url 'users:account_details' %}"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'details' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'details' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
         >
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
@@ -47,24 +47,24 @@
         </a>
 
         <a
+          href="{% url 'users:account_orders' %}"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'orders' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+        >
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+          </svg>
+          {% translate "Orders" %}
+        </a>
+
+        <a
           href="{% url 'users:account_addresses' %}"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'addresses' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'addresses' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
         >
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
           </svg>
           {% translate "Addresses" %}
-        </a>
-
-        <a
-          href="{% url 'users:account_orders' %}"
-          class="flex items-center gap-2 px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-all duration-200 shrink-0 {% if active_tab == 'orders' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
-        >
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-          </svg>
-          {% translate "Orders" %}
         </a>
       </nav>
     </div>
@@ -80,47 +80,47 @@
             <nav class="p-2 space-y-1">
               <a
                 href="{% url 'users:account_details' %}"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'details' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'details' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
               >
-                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'details' %}bg-primary-100 dark:bg-primary-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
-                  <svg class="w-5 h-5 {% if active_tab == 'details' %}text-primary-600 dark:text-primary-400{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'details' %}bg-white dark:bg-gray-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if active_tab == 'details' %}text-gray-700 dark:text-gray-200{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
                   </svg>
                 </div>
                 <span class="font-medium">{% translate "Account Details" %}</span>
                 {% if active_tab == 'details' %}
-                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"></div>
+                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-white"></div>
+                {% endif %}
+              </a>
+
+              <a
+                href="{% url 'users:account_orders' %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'orders' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+              >
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'orders' %}bg-white dark:bg-gray-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if active_tab == 'orders' %}text-gray-700 dark:text-gray-200{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                  </svg>
+                </div>
+                <span class="font-medium">{% translate "Orders" %}</span>
+                {% if active_tab == 'orders' %}
+                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-white"></div>
                 {% endif %}
               </a>
 
               <a
                 href="{% url 'users:account_addresses' %}"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'addresses' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'addresses' %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
               >
-                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'addresses' %}bg-primary-100 dark:bg-primary-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
-                  <svg class="w-5 h-5 {% if active_tab == 'addresses' %}text-primary-600 dark:text-primary-400{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'addresses' %}bg-white dark:bg-gray-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if active_tab == 'addresses' %}text-gray-700 dark:text-gray-200{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                   </svg>
                 </div>
                 <span class="font-medium">{% translate "Addresses" %}</span>
                 {% if active_tab == 'addresses' %}
-                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"></div>
-                {% endif %}
-              </a>
-
-              <a
-                href="{% url 'users:account_orders' %}"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if active_tab == 'orders' %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
-              >
-                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if active_tab == 'orders' %}bg-primary-100 dark:bg-primary-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
-                  <svg class="w-5 h-5 {% if active_tab == 'orders' %}text-primary-600 dark:text-primary-400{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-                  </svg>
-                </div>
-                <span class="font-medium">{% translate "Orders" %}</span>
-                {% if active_tab == 'orders' %}
-                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"></div>
+                <div class="ml-auto w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-white"></div>
                 {% endif %}
               </a>
             </nav>

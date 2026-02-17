@@ -136,7 +136,7 @@
           <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
              data-clear-all-filters
              data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
-             class="shrink-0 px-4 py-3 text-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white">{% translate "Clear filters" %}</a>
+             class="shrink-0 px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-white hover:text-gray-900 dark:hover:text-white">{% translate "Clear filters" %}</a>
           <button type="submit" id="mobile-show-results-btn" class="flex-1 rounded-lg bg-primary-700 px-6 py-3 text-center text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{% translate "Show results" %} (<span id="mobile-results-count">{{ total_count }}</span>)</button>
         </div>
       </div>
@@ -158,7 +158,7 @@
       <!-- Sort Options -->
       <div class="flex-1 overflow-y-auto p-4">
         <div class="mb-6">
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Sort by" %}</p>
+          <p class="text-subtitle mb-3">{% translate "Sort by" %}</p>
           <div class="space-y-1">
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if current_sort == 'relevance' %}bg-gray-100 dark:bg-gray-700{% endif %}">
               <input type="radio" name="mobile_sort" value="relevance" {% if current_sort == 'relevance' %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">
@@ -176,7 +176,7 @@
         </div>
 
         <div>
-          <p class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{% translate "Results per page" %}</p>
+          <p class="text-subtitle mb-3">{% translate "Results per page" %}</p>
           <div class="space-y-1">
             <label class="flex items-center gap-3 p-3 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 {% if per_page == 30 or not per_page %}bg-gray-100 dark:bg-gray-700{% endif %}">
               <input type="radio" name="mobile_per_page" value="30" {% if per_page == 30 or not per_page %}checked{% endif %} class="h-4 w-4 text-primary-600 border-gray-300 focus:ring-primary-600 dark:text-primary-600 dark:border-gray-600 dark:focus:ring-primary-600 transition-colors">

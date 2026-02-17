@@ -1,10 +1,10 @@
 {% if storefront_hero %}
 <section id="storefront-hero-section-{{ storefront_hero.id }}" class="storefront-hero-section bg-white pt-8 pb-4 antialiased dark:bg-gray-900 md:pt-16 md:pb-8">
-  <div class="mx-auto grid max-w-screen-xl px-4 xl:grid-cols-12 xl:gap-16 2xl:px-0">
+  <div class="mx-auto grid max-w-7xl px-4 xl:grid-cols-12 xl:gap-16 2xl:px-0">
     <!-- Left Side Content -->
     <div class="mx-auto content-center text-center xl:col-span-5 xl:justify-self-start xl:text-start">
       <h1 class="mb-4 text-4xl font-extrabold leading-[1.1] tracking-tight text-gray-900 dark:text-white md:max-w-2xl md:text-5xl xl:text-6xl">{{ storefront_hero.title }}</h1>
-      <p class="mb-4 max-w-2xl text-gray-500 dark:text-gray-400 md:text-lg xl:mb-8 xl:text-xl">{{ storefront_hero.subtitle }}</p>
+      <p class="mb-4 max-w-2xl text-gray-900 dark:text-white md:text-lg xl:mb-8 xl:text-xl">{{ storefront_hero.subtitle }}</p>
       <div class="mb-6 flex items-center justify-center space-x-4 md:mb-0 xl:justify-start">
         {% if storefront_hero.primary_button_text %}
         <a href="{{ storefront_hero.primary_button_url|default:'#' }}" {% if storefront_hero.primary_button_open_in_new_tab %}target="_blank" rel="noopener"{% endif %} class="rounded-lg bg-primary-700 px-6 py-3.5 text-center font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">{{ storefront_hero.primary_button_text }}</a>

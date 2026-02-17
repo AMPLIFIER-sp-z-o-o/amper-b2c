@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
+from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
 
 from .models import DeliveryMethod, PaymentMethod
@@ -8,7 +8,6 @@ from .models import DeliveryMethod, PaymentMethod
 
 @admin.register(DeliveryMethod)
 class DeliveryMethodAdmin(ModelAdmin):
-
     list_display = (
         "name",
         "price_display",
@@ -27,9 +26,12 @@ class DeliveryMethodAdmin(ModelAdmin):
     show_full_result_count = False
 
     fieldsets = (
-        (None, {
-            "fields": ("name", "price", "free_from", "delivery_time", "is_active"),
-        }),
+        (
+            None,
+            {
+                "fields": ("name", "price", "free_from", "delivery_time", "is_active"),
+            },
+        ),
     )
 
     @admin.display(description=_("Price"), ordering="price")
@@ -55,11 +57,9 @@ class DeliveryMethodAdmin(ModelAdmin):
 
 @admin.register(PaymentMethod)
 class PaymentMethodAdmin(ModelAdmin):
-
     list_display = (
         "name",
         "default_payment_time",
-        "additional_fees",
         "is_active",
     )
 
@@ -70,8 +70,4 @@ class PaymentMethodAdmin(ModelAdmin):
     list_per_page = 50
     show_full_result_count = False
 
-    fieldsets = (
-        (None, {"fields": ("name", "default_payment_time", "additional_fees", "is_active")}),
-    )
-
-
+    fieldsets = ((None, {"fields": ("name", "default_payment_time", "is_active")}),)

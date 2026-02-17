@@ -2,7 +2,6 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 from django.contrib import admin
-from django.db import models
 from django.db.models import Prefetch
 from django.urls import reverse
 from django.utils.html import format_html
@@ -25,8 +24,7 @@ def _format_price_with_currency(price_value):
 
     currency = _get_site_currency()
     return format_html(
-        '<span data-price="{}" data-currency="{}">{}</span>'
-        '<span class="ml-1 text-xs text-base-500">{}</span>',
+        '<span data-price="{}" data-currency="{}">{}</span><span class="ml-1 text-xs text-base-500">{}</span>',
         price_value,
         currency,
         price_value,
@@ -55,8 +53,11 @@ class WishListItemInline(TabularInline):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("product").prefetch_related(
-            Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id"))
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("product")
+            .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id")))
         )
 
     @admin.display(description=_("Product"), ordering="product__name")
@@ -114,7 +115,7 @@ class WishListItemInline(TabularInline):
             "</label>"
             '<div class="flex flex-none items-center leading-none self-stretch">'
             '<a target="_blank" rel="noopener" class="border-r border-base-200 cursor-pointer '
-            'text-base-400 px-3 hover:text-base-700 dark:border-base-700 dark:text-base-500 '
+            "text-base-400 px-3 hover:text-base-700 dark:border-base-700 dark:text-base-500 "
             'dark:hover:text-base-200 js-open-file" title="{open_label}" href="{url}" '
             'aria-label="{open_label}">'
             '<span class="material-symbols-outlined">open_in_new</span>'
@@ -220,7 +221,7 @@ class WishListAdmin(ModelAdmin):
             'text-primary-600 hover:bg-base-100 hover:underline dark:border-base-700 dark:text-primary-500 dark:hover:bg-base-800" '
             'title="{}" aria-label="{}">'
             '<span class="share-id-value font-mono">{}</span>'
-            '</a>'
+            "</a>"
             '<button type="button" '
             'class="share-id-copy-btn cursor-pointer rounded-default border border-base-200 px-2 py-1 text-xs font-medium '
             'hover:bg-base-100 dark:border-base-700 dark:hover:bg-base-800 inline-flex items-center gap-1.5" '
@@ -228,7 +229,7 @@ class WishListAdmin(ModelAdmin):
             'data-error-label="{}" aria-label="{}">'
             '<span class="material-symbols-outlined text-base">content_copy</span>'
             '<span class="share-id-copy-label">{}</span>'
-            '</button>'
+            "</button>"
             "</div>",
             share_url,
             share_url,
@@ -243,7 +244,7 @@ class WishListAdmin(ModelAdmin):
         )
 
     def _build_share_url(self, obj):
-        relative_share_url = f'{reverse("favourites:favourites_page")}?list={obj.share_id}'
+        relative_share_url = f"{reverse('favourites:favourites_page')}?list={obj.share_id}"
 
         request = getattr(self, "_current_request", None)
         if request is not None:

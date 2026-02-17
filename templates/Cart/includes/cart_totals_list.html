@@ -2,27 +2,27 @@
 
 <div class="flow-root">
   <div class="-my-3 divide-y divide-gray-200 dark:divide-gray-800">
-    <dl class="flex items-center justify-between gap-4 py-3">
-      <dt class="text-subtitle">{% translate "Subtotal" %}</dt>
-      <dd class="text-base font-semibold text-gray-900 dark:text-white" data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
-    </dl>
+    {% if show_subtotal|default_if_none:True %}
+      <dl class="flex items-center justify-between gap-4 py-3">
+        <dt class="text-subtitle">{% translate "Subtotal" %}</dt>
+        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-cart-subtotal data-price="{{ subtotal }}" data-currency="{{ site_currency }}">{{ subtotal }}</dd>
+      </dl>
+    {% endif %}
 
     {% if show_delivery_cost %}
       <dl class="flex items-center justify-between gap-4 py-3">
-        <dt class="text-subtitle">{% translate "Delivery Costs" %}</dt>
+        <dt class="text-subtitle">{% translate "Shipping" %}</dt>
         <dd class="text-base font-semibold text-gray-900 dark:text-white" data-delivery-cost data-price="{{ delivery_cost }}" data-currency="{{ site_currency }}">{{ delivery_cost }}</dd>
       </dl>
     {% endif %}
 
-    {% if discount_total %}
-      <dl class="flex items-center justify-between gap-4 py-3">
-        <dt class="text-subtitle">{% translate "Discount" %}</dt>
-        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-discount-total data-price="{{ discount_total }}" data-currency="{{ site_currency }}">-{{ discount_total }}</dd>
-      </dl>
-    {% endif %}
+    <dl data-discount-row class="flex items-center justify-between gap-4 py-3{% if not discount_total %} hidden{% endif %}">
+      <dt class="text-subtitle text-green-700 dark:text-green-300">{% translate "Savings" %}</dt>
+      <dd class="text-base font-semibold text-green-700 dark:text-green-300" data-discount-total data-price="{{ discount_total }}" data-currency="{{ site_currency }}">-{{ discount_total }}</dd>
+    </dl>
 
     <dl class="flex items-center justify-between gap-4 py-3">
-      <dt class="text-base font-bold text-gray-900 dark:text-white">{% translate "Total" %}</dt>
+      <dt class="text-base font-bold text-gray-900 dark:text-white">{% translate "Order total" %}</dt>
       <dd class="text-base font-bold text-gray-900 dark:text-white" data-cart-total data-price="{{ total }}" data-currency="{{ site_currency }}">{{ total }}</dd>
     </dl>
   </div>

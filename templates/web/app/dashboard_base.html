@@ -1,24 +1,39 @@
 {% extends "web/base.html" %}
+{% load i18n %}
 
 {% block body %}
-<section class="section mt-7">
-  <div class="container">
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 sm:py-10">
+  <div class="max-w-7xl mx-auto px-4">
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-4">
       <aside class="lg:col-span-1">
         {% block sidebar-nav %}
-        <nav class="app-sidebar">
-          <ul class="space-y-2">
-            <li><a href="{% url 'users:user_profile' %}">Profile</a></li>
-            <li><a href="{% url 'account_change_password' %}">Password</a></li>
-            <li><a href="{% url 'mfa_index' %}">2FA</a></li>
+        <nav class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+          <h2 class="text-base font-semibold text-gray-900 dark:text-white mb-3">{% translate "Account" %}</h2>
+          <ul class="space-y-1">
+            <li>
+              <a href="{% url 'users:user_profile' %}" class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                {% translate "Profile" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'account_change_password' %}" class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                {% translate "Password" %}
+              </a>
+            </li>
+            <li>
+              <a href="{% url 'mfa_index' %}" class="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                {% translate "Two-Factor Auth" %}
+              </a>
+            </li>
           </ul>
         </nav>
         {% endblock %}
       </aside>
+
       <div class="lg:col-span-3">
         {% block app %}{% endblock %}
       </div>
     </div>
   </div>
-</section>
+</div>
 {% endblock %}

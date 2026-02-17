@@ -9,12 +9,7 @@ class AdminAccessRedirectMiddleware:
         path = request.path or ""
         user = getattr(request, "user", None)
 
-        if (
-            path.startswith("/admin/")
-            and user
-            and user.is_authenticated
-            and not user.is_superuser
-        ):
+        if path.startswith("/admin/") and user and user.is_authenticated and not user.is_superuser:
             return redirect("web:home")
 
         return self.get_response(request)

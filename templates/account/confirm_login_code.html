@@ -19,7 +19,13 @@
               <p class="text-subtitle mt-1">
                   {% translate "A sign-in code has been sent to your email. Please enter it below." %}
               </p>
-              {{ form.non_field_errors }}
+              {% if form.non_field_errors %}
+              <div class="mt-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
+                {% for error in form.non_field_errors %}
+                  <p>{{ error }}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
               <form class="mt-4 space-y-6 sm:mt-6" method="post" action="{% url 'account_confirm_login_code' %}">
                   {% csrf_token %}
                   {% if redirect_field_value %}
@@ -28,7 +34,9 @@
                   <div>
                       <label for="{{ form.code.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Code" %}</label>
                       <input type="text" name="code" id="{{ form.code.id_for_label }}" maxlength="6" inputmode="text" class="bg-gray-100 border-none text-gray-900 rounded-lg text-center text-xl font-mono tracking-[0.3em] uppercase focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" placeholder="------" required="" autocomplete="one-time-code">
-                      {{ form.code.errors }}
+                      {% if form.code.errors %}
+                      <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.code.errors.0 }}</p>
+                      {% endif %}
                   </div>
                   <button id="confirm-code-btn" type="submit" class="w-full inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200">
                     <svg id="confirm-code-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>

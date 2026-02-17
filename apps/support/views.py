@@ -1,6 +1,6 @@
 import json
-from uuid import uuid4
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from uuid import uuid4
 
 from django.conf import settings
 from django.contrib.admin.views.decorators import staff_member_required
@@ -79,7 +79,9 @@ def hijack_user(request):
 def open_hijack_in_new_tab(request, user_pk: int):
     if request.method == "POST":
         next_url = request.POST.get("next") or "/"
-        if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+        if not url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+        ):
             next_url = "/"
 
         post_data = request.POST.copy()
@@ -89,7 +91,9 @@ def open_hijack_in_new_tab(request, user_pk: int):
         return AcquireUserView.as_view()(request)
 
     next_url = request.GET.get("next") or "/"
-    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+    if not url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
         next_url = "/"
 
     tab_id = uuid4().hex

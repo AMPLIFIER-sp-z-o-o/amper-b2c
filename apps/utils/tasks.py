@@ -41,7 +41,7 @@ def send_email_task(self, subject, body, from_email, recipient_list, html_messag
             exc,
         )
         try:
-            raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
+            raise self.retry(exc=exc, countdown=60 * (2**self.request.retries))
         except self.MaxRetriesExceededError:
             logger.error(
                 "Max retries exceeded for email to %s (subject=%r). Giving up.",

@@ -135,7 +135,7 @@
                 <div class="inline-flex items-center bg-white dark:bg-gray-700 rounded-full shadow-sm ring-1 ring-gray-200 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
                   {% include "Cart/cart_line_input.html" with quantity=1 product_id=product.id sync=False size='lg' max_quantity=product.stock %}
                 </div>
-                <span class="text-muted whitespace-nowrap">
+                <span class="text-subtitle whitespace-nowrap">
                   {% blocktranslate with stock=product.stock %}of {{ stock }} available{% endblocktranslate %}
                 </span>
               </div>

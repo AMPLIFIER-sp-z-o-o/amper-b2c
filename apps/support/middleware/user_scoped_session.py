@@ -43,11 +43,7 @@ class UserScopedSessionMiddleware:
                 pass
 
         # Look up the impersonated user's most recent cart
-        user_cart = (
-            Cart.objects.filter(customer=user)
-            .order_by("-id")
-            .first()
-        )
+        user_cart = Cart.objects.filter(customer=user).order_by("-id").first()
 
         if user_cart:
             request.session["cart_id"] = user_cart.id

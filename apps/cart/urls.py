@@ -4,13 +4,14 @@ from .views import (
     add_to_cart,
     apply_coupon,
     cart_page,
-    clear_cart,
     checkout_page,
     checkout_save_details,
-    remove_from_cart,
+    clear_cart,
     remove_coupon,
+    remove_from_cart,
     save_as_list,
     set_cart_address,
+    set_checkout_address_choice,
     summary_page,
 )
 
@@ -19,6 +20,7 @@ app_name = "cart"
 urlpatterns = [
     path("", cart_page, name="cart_page"),
     path("set-cart-address/", set_cart_address, name="set_cart_address"),
+    path("checkout/set-address-choice/", set_checkout_address_choice, name="set_checkout_address_choice"),
     path("clear/", clear_cart, name="clear_cart"),
     path("save-as-list/", save_as_list, name="save_as_list"),
     path("apply-coupon/", apply_coupon, name="apply_coupon"),
@@ -29,4 +31,3 @@ urlpatterns = [
     path("add/", add_to_cart, name="add_to_cart"),
     path("remove/", remove_from_cart, name="remove_from_cart"),
 ]
-

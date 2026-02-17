@@ -15,7 +15,7 @@
         <h1 class="text-2xl font-bold text-gray-900 dark:text-white mt-2 tracking-tight">{{ wishlist.name }}</h1>
         <p class="text-subtitle mt-1">{{ wishlist.product_count }} {% translate "product" %}{{ wishlist.product_count|pluralize }} · <span data-price="{{ wishlist.total_value }}" data-currency="{{ site_currency }}">{{ wishlist.total_value }}</span> {% translate "total" %}</p>
         {% if wishlist.description %}
-        <p class="text-sm text-gray-600 dark:text-gray-300 mt-2">{{ wishlist.description }}</p>
+        <p class="text-subtitle mt-2">{{ wishlist.description }}</p>
         {% endif %}
       </div>
     </div>

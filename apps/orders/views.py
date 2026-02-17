@@ -4,21 +4,48 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.db.models import DecimalField, F, Value
+from django.db.models.expressions import ExpressionWrapper
 from django.http import Http404, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.cart.models import Cart
-from apps.cart.checkout import CHECKOUT_SESSION_KEY
-from apps.cart.services import _annotate_lines_with_stock_issues, _clear_cart_id, _get_cart_from_request
-from apps.utils.tasks import send_email_task
+from apps.cart.checkout import CHECKOUT_SESSION_KEY, clear_checkout_session, get_checkout_state
+from apps.cart.services import (
+    _annotate_lines_with_stock_issues,
+    _clear_cart_id,
+    _get_cart_from_request,
+    ensure_cart_methods_active,
+    refresh_cart_totals_from_db,
+)
+from apps.catalog.models import Product, ProductStatus
+from apps.utils.tasks import send_email_task  # noqa: F401
 from apps.web.models import SiteSettings
 
-from .models import Order, OrderLine
+from .emails import send_order_confirmation_email
+from .models import Coupon, Order, OrderLine
+
+
+@require_GET
+def payment_gateway_placeholder(request: HttpRequest, token: str) -> HttpResponse:
+    if not token:
+        raise Http404
+
+    order = get_object_or_404(Order.objects.prefetch_related("lines__product"), tracking_token=token)
+
+    return render(
+        request,
+        "orders/payment_gateway_placeholder.html",
+        {
+            "order": order,
+            "lines": order.lines.all(),
+            "now": timezone.now(),
+        },
+    )
 
 
 def _get_site_base_url(request: HttpRequest) -> str:
@@ -34,29 +61,6 @@ def _get_site_base_url(request: HttpRequest) -> str:
         return ""
 
 
-def _send_tracking_email(*, to_email: str, tracking_url: str, order_id: int | None) -> None:
-    if not to_email or not tracking_url:
-        return
-
-    subject = _("Your order tracking link")
-    body = _("You can track your order here: {url}").format(url=tracking_url)
-
-    try:
-        send_email_task.apply_async(
-            kwargs={
-                "subject": str(subject),
-                "body": str(body),
-                "from_email": settings.DEFAULT_FROM_EMAIL,
-                "recipient_list": [to_email],
-                "html_message": None,
-            },
-            retry=False,
-        )
-    except Exception:
-        # Email is best-effort; do not block order placement.
-        return
-
-
 @require_POST
 def place_order(request: HttpRequest) -> HttpResponse:
     cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
@@ -68,13 +72,31 @@ def place_order(request: HttpRequest) -> HttpResponse:
         response = redirect("cart:cart_page")
         return _clear_cart_id(request, response=response)
 
+    # Delivery/payment can become invalid (disabled) after user selected them.
+    methods_changed = ensure_cart_methods_active(cart)
+    if methods_changed.get("delivery_method_cleared") or methods_changed.get("payment_method_cleared"):
+        messages.error(request, _("Please re-select your delivery and payment methods."))
+        return redirect("cart:checkout_page")
+
+    # Re-price and recompute totals/discounts from current DB state.
+    refresh_result = refresh_cart_totals_from_db(cart)
+    # If the coupon was cleared during refresh, the user must review and accept the new total.
+    if refresh_result.get("coupon_cleared"):
+        messages.error(request, _("Your promo code is no longer valid. We've updated your order total."))
+        return redirect("cart:summary_page")
+
     lines = list(cart.lines.select_related("product").all())
     stock_issues = _annotate_lines_with_stock_issues(lines)
     if stock_issues:
         messages.error(request, _("Some items in your cart are no longer available. Please review your cart."))
         return redirect("cart:cart_page")
 
-    details = request.session.get(CHECKOUT_SESSION_KEY) or {}
+    state = get_checkout_state(request)
+    if state.expired:
+        messages.error(request, _("Your checkout session expired. Please enter your delivery details again."))
+        return redirect("cart:checkout_page")
+
+    details = state.active_details
     required = [
         "first_name",
         "last_name",
@@ -98,11 +120,14 @@ def place_order(request: HttpRequest) -> HttpResponse:
         messages.error(request, _("Please select a payment method before placing the order."))
         return redirect("cart:checkout_page")
 
-    # Store-wide VAT rate.
-    try:
-        cart.tax_rate_percent = Decimal(SiteSettings.get_settings().vat_rate_percent or 0).quantize(Decimal("0.01"))
-    except Exception:
-        cart.tax_rate_percent = Decimal("0.00")
+    # Some payment methods require a follow-up "payment" step after the order is placed
+    # (e.g. bank transfer instructions / external gateway). For now we route such methods
+    # to an internal placeholder gateway page.
+    should_redirect_to_payment = bool(
+        cart.payment_method and cart.payment_method.default_payment_time is not None
+    )
+
+    # Final safety: re-calc totals right before persisting the order.
     cart.recalculate()
 
     tracking_token = Order.generate_tracking_token()
@@ -112,11 +137,6 @@ def place_order(request: HttpRequest) -> HttpResponse:
         tracking_token = Order.generate_tracking_token()
 
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
-    payment_cost = (
-        Decimal(cart.payment_method.additional_fees)
-        if cart.payment_method and cart.payment_method.additional_fees
-        else Decimal("0.00")
-    )
 
     try:
         site_settings = SiteSettings.get_settings()
@@ -128,10 +148,14 @@ def place_order(request: HttpRequest) -> HttpResponse:
     last_name = (details.get("last_name") or "").strip()
     full_name = (" ".join([p for p in (first_name, last_name) if p])).strip()
 
-    phone = (" ".join([
-        (details.get("phone_country_code") or "").strip(),
-        (details.get("phone_number") or "").strip(),
-    ])).strip()
+    phone = (
+        " ".join(
+            [
+                (details.get("phone_country_code") or "").strip(),
+                (details.get("phone_number") or "").strip(),
+            ]
+        )
+    ).strip()
 
     street = (details.get("shipping_street") or "").strip()
     building = (details.get("shipping_building_number") or "").strip()
@@ -141,12 +165,111 @@ def place_order(request: HttpRequest) -> HttpResponse:
         address_line = f"{address_line}/{apt}".strip()
 
     with transaction.atomic():
+        # ---- Atomic stock + coupon guards ----
+        # Two concurrent checkouts can both pass the earlier read-only stock/coupon validation.
+        # We must lock and re-validate inside the transaction to avoid overselling and
+        # exceeding coupon usage limits.
+
+        # Aggregate required quantities per product.
+        required_by_product_id: dict[int, int] = {}
+        revenue_by_product_id: dict[int, Decimal] = {}
+        for line in lines:
+            quantity = int(line.quantity or 0)
+            if quantity <= 0:
+                continue
+
+            required_by_product_id[line.product_id] = required_by_product_id.get(line.product_id, 0) + quantity
+            revenue_by_product_id[line.product_id] = revenue_by_product_id.get(line.product_id, Decimal("0.00")) + (
+                Decimal(line.subtotal or 0).quantize(Decimal("0.01"))
+            )
+
+        # Lock products in a stable order to minimize deadlock risk.
+        locked_products = list(
+            Product.objects.select_for_update()
+            .filter(id__in=list(required_by_product_id.keys()))
+            .order_by("id")
+        )
+
+        # Validate stock/availability again under the lock.
+        for product in locked_products:
+            required_qty = required_by_product_id.get(product.id, 0)
+            if required_qty <= 0:
+                continue
+
+            if product.status != ProductStatus.ACTIVE or int(product.stock or 0) <= 0:
+                messages.error(
+                    request,
+                    _("Some items in your cart are no longer available. Please review your cart."),
+                )
+                return redirect("cart:cart_page")
+
+            if int(product.stock or 0) < required_qty:
+                messages.error(
+                    request,
+                    _("Some items in your cart are no longer available. Please review your cart."),
+                )
+                return redirect("cart:cart_page")
+
+        # Lock + validate coupon usage limit (if any) under the lock.
+        locked_coupon: Coupon | None = None
+        coupon_code = (getattr(cart, "coupon_code", "") or "").strip()
+        if coupon_code:
+            now = timezone.now()
+            locked_coupon = (
+                Coupon.objects.select_for_update()
+                .filter(is_active=True, code__iexact=coupon_code)
+                .first()
+            )
+
+            coupon_is_valid = True
+            if not locked_coupon:
+                coupon_is_valid = False
+            elif locked_coupon.valid_from and now < locked_coupon.valid_from:
+                coupon_is_valid = False
+            elif locked_coupon.valid_to and now > locked_coupon.valid_to:
+                coupon_is_valid = False
+            elif locked_coupon.usage_limit is not None and locked_coupon.used_count >= locked_coupon.usage_limit:
+                coupon_is_valid = False
+            elif locked_coupon.min_subtotal is not None and cart.subtotal < locked_coupon.min_subtotal:
+                coupon_is_valid = False
+
+            if not coupon_is_valid:
+                # Clear coupon and ask the user to review updated totals.
+                cart.coupon_code = ""
+                cart.discount_total = Decimal("0.00")
+                cart.recalculate()
+                messages.error(
+                    request,
+                    _("Your promo code is no longer valid. We've updated your order total."),
+                )
+                return redirect("cart:summary_page")
+
+        # Apply updates only after all validations pass.
+        for product in locked_products:
+            required_qty = required_by_product_id.get(product.id, 0)
+            if required_qty <= 0:
+                continue
+
+            revenue_delta = (revenue_by_product_id.get(product.id) or Decimal("0.00")).quantize(Decimal("0.01"))
+
+            # Keep these counters consistent under concurrency.
+            Product.objects.filter(pk=product.pk).update(
+                stock=F("stock") - required_qty,
+                sales_total=F("sales_total") + required_qty,
+                revenue_total=ExpressionWrapper(
+                    F("revenue_total") + Value(revenue_delta),
+                    output_field=DecimalField(max_digits=15, decimal_places=2),
+                ),
+            )
+
+        if locked_coupon is not None:
+            Coupon.objects.filter(pk=locked_coupon.pk).update(used_count=F("used_count") + 1)
+
         order = Order.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             tracking_token=tracking_token,
             email=details.get("email", ""),
             full_name=full_name,
-            company=(details.get("company") or "").strip(),
             phone=phone,
             shipping_postal_code=(details.get("shipping_postal_code") or "").strip(),
             shipping_city=details.get("shipping_city", ""),
@@ -154,12 +277,9 @@ def place_order(request: HttpRequest) -> HttpResponse:
             delivery_method_name=(cart.delivery_method.name if cart.delivery_method else ""),
             payment_method_name=(cart.payment_method.name if cart.payment_method else ""),
             subtotal=cart.subtotal,
-            tax_rate_percent=cart.tax_rate_percent,
-            tax_total=cart.tax_total,
             discount_total=cart.discount_total,
             coupon_code=cart.coupon_code,
             delivery_cost=delivery_cost,
-            payment_cost=payment_cost,
             total=cart.total,
             currency=currency,
         )
@@ -177,17 +297,31 @@ def place_order(request: HttpRequest) -> HttpResponse:
         cart.delete()
 
     request.session.pop("cart_id", None)
-    request.session.pop(CHECKOUT_SESSION_KEY, None)
+    clear_checkout_session(request)
 
     base_url = _get_site_base_url(request)
     tracking_path = order.get_tracking_url()
     tracking_url = f"{base_url}{tracking_path}" if base_url else tracking_path
 
-    _send_tracking_email(to_email=order.email, tracking_url=tracking_url, order_id=order.id)
+    payment_url = ""
+    if should_redirect_to_payment:
+        payment_path = reverse("orders:pay", kwargs={"token": order.tracking_token})
+        payment_url = f"{base_url}{payment_path}" if base_url else payment_path
+
+    send_order_confirmation_email(
+        order=order,
+        base_url=base_url,
+        tracking_url=tracking_url,
+        payment_url=payment_url,
+    )
 
     messages.success(request, _("Order placed. Save your tracking link."))
 
-    response = redirect("orders:track", token=order.tracking_token)
+    response = (
+        redirect("orders:pay", token=order.tracking_token)
+        if should_redirect_to_payment
+        else redirect("orders:track", token=order.tracking_token)
+    )
     # Clear stale cookie cart_id (session takes precedence but cookie can confuse other flows)
     response.delete_cookie("cart_id")
     return response

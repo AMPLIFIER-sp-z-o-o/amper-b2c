@@ -1,7 +1,6 @@
 from allauth.account import app_settings
 from allauth.account.models import EmailAddress
 from django.conf import settings
-from django.utils.translation import gettext as _
 
 
 def require_email_confirmation():
@@ -19,4 +18,3 @@ def user_has_confirmed_email_address(user, email):
 def validate_profile_picture(value):
     """DEPRECATED: Kept only for migration compatibility."""
     pass
-

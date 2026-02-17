@@ -1,7 +1,8 @@
 from decimal import Decimal
 
 from .models import Cart
-from .services import _get_cart_from_request
+from .services import _get_cart_from_request, refresh_cart_totals_from_db
+
 
 def cart_context(request):
     cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
@@ -21,12 +22,7 @@ def cart_context(request):
     cart = _get_cart_from_request(request, cart_id)
     if not cart and request.user.is_authenticated:
         # Self-heal: stale cart_id might point to a different user's cart.
-        cart = (
-            Cart.objects.prefetch_related("lines__product")
-            .filter(customer=request.user)
-            .order_by("-id")
-            .first()
-        )
+        cart = Cart.objects.prefetch_related("lines__product").filter(customer=request.user).order_by("-id").first()
         if cart:
             request.session["cart_id"] = cart.id
 
@@ -39,6 +35,15 @@ def cart_context(request):
             "nav_cart_total": 0,
             "nav_cart_count": 0,
         }
+
+    # Keep navbar totals consistent with current DB state.
+    # Guard against doing this multiple times within the same request.
+    if not getattr(request, "_cart_totals_refreshed", False):
+        try:
+            refresh_cart_totals_from_db(cart)
+        except Exception:
+            pass
+        setattr(request, "_cart_totals_refreshed", True)
 
     nav_cart_lines = list(cart.lines.select_related("product").all())
     nav_cart_count = sum(int(line.quantity or 0) for line in nav_cart_lines)

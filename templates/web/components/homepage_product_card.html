@@ -5,12 +5,10 @@
   
   {# Card action buttons (compare/share + favourite) #}
   <div class="absolute top-2 right-2 z-10 flex items-center gap-2">
-    {% include "web/components/product_share_button.html" with product=product wrapper_class="contents" button_class="p-2 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 opacity-0 group-hover:opacity-100 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] cursor-pointer" %}
-
     {# Favourite Button #}
     <button 
       type="button"
-      class="favourite-btn p-2 rounded-full bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 opacity-0 group-hover:opacity-100 [&.is-favourited]:opacity-100 transition-all duration-200 hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] dark:hover:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] cursor-pointer"
+      class="favourite-btn p-2 rounded-full bg-white dark:bg-gray-800 hover-bg btn-press opacity-0 group-hover:opacity-100 [&.is-favourited]:opacity-100 transition-opacity duration-200 cursor-pointer"
       data-product-id="{{ product.id }}"
       title="{% translate 'Add to Favourites' %}"
     >

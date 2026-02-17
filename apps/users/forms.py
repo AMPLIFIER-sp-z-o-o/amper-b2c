@@ -81,9 +81,6 @@ class CustomUserChangeForm(UserChangeForm):
             self.fields.pop("language")
 
 
-
-
-
 class AccountDetailsForm(forms.ModelForm):
     """Form for updating the user's first name on the Account Details page."""
 
@@ -147,6 +144,8 @@ class TermsSignupForm(TurnstileSignupForm):
         required=True,
     )
     terms_agreement = forms.BooleanField(required=True)
+    # Honeypot to catch bots. Must stay empty.
+    phone_number_x = forms.CharField(required=False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -157,6 +156,12 @@ class TermsSignupForm(TurnstileSignupForm):
             _("Terms and Conditions"),
         )
         self.fields["terms_agreement"].label = mark_safe(_("I agree to the {terms_link}").format(terms_link=link))
+
+    def clean_phone_number_x(self):
+        value = (self.cleaned_data.get("phone_number_x") or "").strip()
+        if value:
+            raise forms.ValidationError(_("Invalid signup submission."))
+        return ""
 
 
 class CustomSocialSignupForm(SocialSignupForm):
@@ -179,7 +184,6 @@ class ShippingAddressForm(forms.ModelForm):
         model = ShippingAddress
         fields = (
             "full_name",
-            "company",
             "phone_country_code",
             "phone_number",
             "shipping_city",
@@ -190,11 +194,15 @@ class ShippingAddressForm(forms.ModelForm):
             "is_default",
         )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Keep the prefix stored, but don't expose it as a dropdown in the UI.
+        if "phone_country_code" in self.fields:
+            self.fields["phone_country_code"].widget = forms.HiddenInput()
+            self.fields["phone_country_code"].initial = "+48"
+
     def clean_full_name(self):
         return (self.cleaned_data.get("full_name") or "").strip()
-
-    def clean_company(self):
-        return (self.cleaned_data.get("company") or "").strip()
 
     def clean_phone_country_code(self):
         value = (self.cleaned_data.get("phone_country_code") or "").strip()

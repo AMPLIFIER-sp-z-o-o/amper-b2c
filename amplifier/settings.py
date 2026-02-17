@@ -160,10 +160,6 @@ UNFOLD = {
                         "link": reverse_lazy("admin:orders_order_changelist"),
                     },
                     {
-                        "title": gettext_lazy("Checkout"),
-                        "link": reverse_lazy("admin:app_list", kwargs={"app_label": "cart"}),
-                    },
-                    {
                         "title": gettext_lazy("Delivery methods"),
                         "link": reverse_lazy("admin:cart_deliverymethod_changelist"),
                     },

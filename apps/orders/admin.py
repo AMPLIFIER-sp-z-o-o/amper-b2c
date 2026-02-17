@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-
 from unfold.admin import ModelAdmin
 
 from .models import Order, OrderLine
@@ -22,7 +21,7 @@ class OrderAdmin(ModelAdmin):
 
     fieldsets = (
         (None, {"fields": ("status", "customer")}),
-        (_("Contact"), {"fields": ("email", "full_name", "company", "phone")}),
+        (_("Contact"), {"fields": ("email", "full_name", "phone")}),
         (_("Shipping"), {"fields": ("shipping_address", "shipping_postal_code", "shipping_city")}),
         (_("Methods"), {"fields": ("delivery_method_name", "payment_method_name")}),
         (
@@ -30,12 +29,9 @@ class OrderAdmin(ModelAdmin):
             {
                 "fields": (
                     "subtotal",
-                    "tax_rate_percent",
-                    "tax_total",
                     "discount_total",
                     "coupon_code",
                     "delivery_cost",
-                    "payment_cost",
                     "total",
                     "currency",
                 )

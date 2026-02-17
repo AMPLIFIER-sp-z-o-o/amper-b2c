@@ -10,7 +10,6 @@ from unfold.admin import StackedInline, TabularInline
 from unfold.widgets import UnfoldAdminColorInputWidget, UnfoldAdminPasswordInput, UnfoldAdminSelect2Widget
 
 from apps.utils.admin_mixins import AutoReorderMixin, BaseModelAdmin, HistoryModelAdmin, SingletonAdminMixin
-from apps.utils.admin_utils import make_image_preview_html
 
 from .models import (
     BottomBar,
@@ -182,8 +181,8 @@ class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         (
             _("Regional Settings"),
             {
-                "fields": ("currency", "vat_rate_percent"),
-                "description": _("Currency symbol displayed on prices and a store-wide VAT rate."),
+                "fields": ("currency",),
+                "description": _("Currency symbol displayed on prices."),
             },
         ),
     )
@@ -666,16 +665,20 @@ class SystemSettingsForm(forms.ModelForm):
         widget=UnfoldAdminPasswordInput(render_value=True),
         required=False,
         label=_("SMTP password"),
-        help_text=_("Password or API key for authenticating with your email provider. "
-                    "The current value is never displayed. Leave unchanged to keep the existing password, "
-                    "or enter a new value to replace it."),
+        help_text=_(
+            "Password or API key for authenticating with your email provider. "
+            "The current value is never displayed. Leave unchanged to keep the existing password, "
+            "or enter a new value to replace it."
+        ),
     )
     turnstile_secret_key = forms.CharField(
         widget=UnfoldAdminPasswordInput(render_value=True),
         required=False,
         label=_("Turnstile secret key"),
-        help_text=_("Server-side secret key from Cloudflare Turnstile dashboard. Never shared publicly. "
-                    "Leave unchanged to keep the existing key, or enter a new value to replace it."),
+        help_text=_(
+            "Server-side secret key from Cloudflare Turnstile dashboard. Never shared publicly. "
+            "Leave unchanged to keep the existing key, or enter a new value to replace it."
+        ),
     )
 
     class Meta:
@@ -812,7 +815,6 @@ class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
     def send_test_email_view(self, request):
         """Send a test email to a specified recipient using the configured SMTP. Returns JSON."""
         import json
-        import smtplib
 
         from django.core.mail import EmailMessage
         from django.core.mail.backends.smtp import EmailBackend as SmtpEmailBackend
@@ -837,10 +839,12 @@ class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         try:
             validate_email(recipient)
         except Exception:
-            return JsonResponse({
-                "success": False,
-                "message": str(_("Invalid email address: %(email)s") % {"email": recipient}),
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": str(_("Invalid email address: %(email)s") % {"email": recipient}),
+                }
+            )
 
         try:
             if recipient and recipient != system_settings.smtp_test_recipient_email:
@@ -858,33 +862,44 @@ class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
             from_email = overrides.get("smtp_default_from_email", system_settings.smtp_default_from_email)
 
             backend = SmtpEmailBackend(
-                host=host, port=port, username=username, password=password,
-                use_tls=use_tls, use_ssl=use_ssl, timeout=timeout,
+                host=host,
+                port=port,
+                username=username,
+                password=password,
+                use_tls=use_tls,
+                use_ssl=use_ssl,
+                timeout=timeout,
             )
             # Use store name from SiteSettings for the test email subject
             try:
                 from apps.web.models import SiteSettings as _SiteSettings
+
                 _store_name = _SiteSettings.get_settings().store_name or "Store"
             except Exception:
                 _store_name = "Store"
 
             email = EmailMessage(
                 subject=_("%(store_name)s — SMTP Test Email") % {"store_name": _store_name},
-                body=_("This is a test email sent from %(store_name)s admin to verify SMTP configuration.") % {"store_name": _store_name},
+                body=_("This is a test email sent from %(store_name)s admin to verify SMTP configuration.")
+                % {"store_name": _store_name},
                 from_email=from_email,
                 to=[recipient],
                 connection=backend,
             )
             email.send()
-            return JsonResponse({
-                "success": True,
-                "message": str(_("Test email sent successfully to %(email)s.") % {"email": recipient}),
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": str(_("Test email sent successfully to %(email)s.") % {"email": recipient}),
+                }
+            )
         except Exception as exc:
-            return JsonResponse({
-                "success": False,
-                "message": str(_("Failed to send test email: %(error)s") % {"error": str(exc)}),
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": str(_("Failed to send test email: %(error)s") % {"error": str(exc)}),
+                }
+            )
 
     def test_smtp_connection_view(self, request):
         """Test SMTP connection without sending an email — returns JSON.
@@ -952,30 +967,38 @@ class SystemSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
             elapsed = round((time.monotonic() - start) * 1000)
             server.quit()
 
-            return JsonResponse({
-                "success": True,
-                "message": str(_("SMTP connection test passed! (%(ms)dms)") % {"ms": elapsed}),
-                "steps": steps,
-            })
+            return JsonResponse(
+                {
+                    "success": True,
+                    "message": str(_("SMTP connection test passed! (%(ms)dms)") % {"ms": elapsed}),
+                    "steps": steps,
+                }
+            )
 
         except smtplib.SMTPAuthenticationError as e:
             steps.append({"step": str(_("Authentication")), "status": "error", "detail": str(e)})
-            return JsonResponse({
-                "success": False,
-                "message": str(_("Authentication failed. Check your username and password.")),
-                "steps": steps,
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": str(_("Authentication failed. Check your username and password.")),
+                    "steps": steps,
+                }
+            )
         except smtplib.SMTPConnectError as e:
             steps.append({"step": str(_("Connect to server")), "status": "error", "detail": str(e)})
-            return JsonResponse({
-                "success": False,
-                "message": str(_("Could not connect to SMTP server.")),
-                "steps": steps,
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": str(_("Could not connect to SMTP server.")),
+                    "steps": steps,
+                }
+            )
         except Exception as e:
             steps.append({"step": str(_("Unexpected error")), "status": "error", "detail": str(e)})
-            return JsonResponse({
-                "success": False,
-                "message": str(_("Connection test failed: %(error)s") % {"error": str(e)}),
-                "steps": steps,
-            })
+            return JsonResponse(
+                {
+                    "success": False,
+                    "message": str(_("Connection test failed: %(error)s") % {"error": str(e)}),
+                    "steps": steps,
+                }
+            )

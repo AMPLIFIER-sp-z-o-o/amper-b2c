@@ -255,7 +255,7 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 
 **Purpose**: For descriptive text that provides immediate context for a heading or title. This text must have high readability and good contrast.
 
-- **Style**: `text-sm font-medium text-gray-700 dark:text-gray-200`
+- **Style**: `text-sm font-medium text-gray-900 dark:text-white`
 - **When to use**: Page descriptions directly under titles, summary info (e.g., "10 products · 200,00 zł total"), category descriptions.
 - **Markup**: `<p class="text-subtitle mt-1">Manage your lists</p>`
 
@@ -263,8 +263,8 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 
 **Purpose**: For supplemental or helper information that is less critical for the user's primary flow.
 
-- **Style**: `text-sm text-gray-500 dark:text-gray-400`
-- **When to use**: Pagination info ("1-10 of 50"), empty state messages, form field hints, footer copyright, timestamps.
+- **Style**: `text-sm text-gray-900 dark:text-white opacity-70`
+- **When to use**: Pagination info ("1-10 of 50"), empty state messages, form field hints, footer copyright, timestamps (i.e. truly secondary/meta text).
 - **Markup**: `<span class="text-muted">Page 1 of 5</span>`
 
 ### Default Subtitle Style
@@ -272,7 +272,7 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 All secondary/descriptive text under main headings (like "Start your shopping in seconds" on login or "Manage your lists" on favourites) MUST use the `.text-subtitle` utility class. This ensures a consistent look across the app with:
 
 - **Font**: `text-sm font-medium`
-- **Color**: `text-gray-700 dark:text-gray-200`
+- **Color**: `text-gray-900 dark:text-white`
 
 **Product detail exception / rule**: The storefront product page `Description` content (rendered from CKEditor) MUST default to the `.text-subtitle` baseline (even when wrapped in Flowbite Typography classes like `format`).
 
@@ -280,11 +280,11 @@ All secondary/descriptive text under main headings (like "Start your shopping in
 
 For the entire B2C UI, the **default** color for regular readable text (labels, menu items, subcategory names, list items, and standard interactive text) must use the darker baseline:
 
-- `text-gray-700 dark:text-gray-200`
+- `text-gray-900 dark:text-white`
 
-Use lighter tones only for intentionally de-emphasized helper text (e.g., `.text-muted`) or explicitly defined secondary metadata.
+Do not use Tailwind grays (`text-gray-500`, `text-gray-600`, `dark:text-gray-400`, etc.) for normal body copy. If text needs to be secondary, use `.text-muted` (black + `opacity-70`) so we don't regress to gray body text.
 
-**Cart/checkout labels**: Labels like "Subtotal" and "Payment Fee" MUST use the baseline readable text color (`text-gray-700 dark:text-gray-200`) — the same default used for desktop navbar category names. Do NOT render these labels with `.text-muted`.
+**Cart/checkout labels**: Labels like "Subtotal" and "Payment Fee" MUST use the baseline readable text color (`text-gray-900 dark:text-white`) — matching the breadcrumb/stepper tone. Do NOT render these labels with `.text-muted`.
 
 #### ❌ Anti-Patterns
 

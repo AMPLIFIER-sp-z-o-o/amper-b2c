@@ -2,14 +2,12 @@
 {% load static %}
 {% load django_vite %}
 {% block app %}
-<section class="app-card">
+<div class="space-y-6">
   {% include 'account/components/profile_form.html' %}
-</section>
-{% include 'account/components/2fa.html' %}
-<section class="app-card">
+  {% include 'account/components/2fa.html' %}
   {% include 'account/components/social/social_accounts.html' %}
-</section>
-{% include 'account/components/api_keys.html' %}
+  {% include 'account/components/api_keys.html' %}
+</div>
 {% endblock %}
 {% block page_js %}
 {% vite_asset 'assets/javascript/app.js' %}

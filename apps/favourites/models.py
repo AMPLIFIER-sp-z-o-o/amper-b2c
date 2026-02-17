@@ -87,7 +87,11 @@ class WishList(BaseModel):
         ]
 
     def __str__(self) -> str:
-        owner = self.user.get_display_name() if self.user else f"Session ({self.session_key[:8] if self.session_key else 'unknown'}...)"
+        owner = (
+            self.user.get_display_name()
+            if self.user
+            else f"Session ({self.session_key[:8] if self.session_key else 'unknown'}...)"
+        )
         return f"{self.name} - {owner}"
 
     def get_absolute_url(self) -> str:
@@ -106,7 +110,7 @@ class WishList(BaseModel):
         ) or Decimal("0.00")
 
     @classmethod
-    def get_or_create_default(cls, user=None, session_key=None) -> "WishList":
+    def get_or_create_default(cls, user=None, session_key=None) -> WishList:
         """
         Get or create the default shopping list for a user or session.
         """
@@ -132,7 +136,7 @@ class WishList(BaseModel):
         """
         Merge anonymous wishlists into user's wishlists after login.
         Returns the number of items transferred.
-        
+
         Strategy:
         - For default wishlist: merge items into user's default wishlist
         - For custom lists: transfer ownership to user (rename if name conflicts)

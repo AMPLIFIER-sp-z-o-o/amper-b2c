@@ -20,15 +20,11 @@ Usage:
     uv run manage.py seed --skip-users  # Skip superuser creation
 """
 
-import os
-import re
 import json
-from collections import defaultdict
+import os
 from contextlib import contextmanager
 from decimal import Decimal
-from itertools import cycle
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 
 from allauth.account.models import EmailAddress
@@ -41,8 +37,8 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.utils import NotSupportedError
 from django.utils.dateparse import parse_datetime
-from django.utils.text import slugify
 
+from apps.cart.models import DeliveryMethod, PaymentMethod
 from apps.catalog.models import (
     AttributeDefinition,
     AttributeOption,
@@ -86,7 +82,6 @@ from apps.web.models import (
     SystemSettings,
     TopBar,
 )
-from apps.cart.models import DeliveryMethod, PaymentMethod
 
 # Site domain is read from SITE_DOMAIN env var (default: localhost:8000).
 # On QA/production, set e.g. SITE_DOMAIN=amper-b2c.ampliapps.com
@@ -150,7 +145,6 @@ def _load_generated_seed_list(filename):
     return []
 
 
-
 def _load_generated_seed_dict(filename):
     path = settings.BASE_DIR / "assets" / "seeds" / "generated" / filename
     if not path.exists():
@@ -165,6 +159,7 @@ def _load_generated_seed_dict(filename):
         pass
 
     return {}
+
 
 SITES_DATA = _load_generated_seed_list("sites_data.json")
 for _site in SITES_DATA:
@@ -185,6 +180,59 @@ for _site_settings in SITE_SETTINGS_DATA:
 SYSTEM_SETTINGS_DATA = _load_generated_seed_list("system_settings_data.json")
 
 DYNAMIC_PAGES_DATA = _load_generated_seed_list("dynamic_pages_data.json")
+
+
+def _ensure_required_dynamic_pages() -> None:
+    """Ensure essential legal pages exist in seed data.
+
+    We seed these pages even when generated seed JSON omits them so public routes
+    like /terms/ and /privacy/ always work out-of-the-box.
+    """
+
+    try:
+        existing_slugs = {str(item.get("slug") or "").strip() for item in DYNAMIC_PAGES_DATA if isinstance(item, dict)}
+        existing_ids = [int(item.get("id") or 0) for item in DYNAMIC_PAGES_DATA if isinstance(item, dict)]
+        next_id = (max(existing_ids) if existing_ids else 0) + 1
+    except Exception:
+        existing_slugs = set()
+        next_id = 1
+
+    required = [
+        {
+            "slug": "terms",
+            "name": "Terms and Conditions",
+            "meta_title": "Terms and Conditions",
+            "content": "<p>Your terms and conditions go here.</p>",
+        },
+        {
+            "slug": "privacy-policy",
+            "name": "Privacy Policy",
+            "meta_title": "Privacy Policy",
+            "content": "<p>Your privacy policy goes here.</p>",
+        },
+    ]
+
+    for item in required:
+        slug = item["slug"]
+        if slug in existing_slugs:
+            continue
+        DYNAMIC_PAGES_DATA.append(
+            {
+                "id": next_id,
+                "name": item["name"],
+                "slug": slug,
+                "meta_title": item.get("meta_title", ""),
+                "meta_description": "",
+                "is_active": True,
+                "exclude_from_sitemap": False,
+                "seo_noindex": False,
+                "content": item.get("content", ""),
+            }
+        )
+        next_id += 1
+
+
+_ensure_required_dynamic_pages()
 
 NAVBAR_DATA = _load_generated_seed_list("navbar_data.json")
 
@@ -213,7 +261,6 @@ DELIVERY_METHODS_DATA = _load_generated_seed_list("delivery_methods_data.json")
 PAYMENT_METHODS_DATA = _load_generated_seed_list("payment_methods_data.json")
 
 
-
 def _build_product_images_data():
     return [
         {
@@ -225,6 +272,7 @@ def _build_product_images_data():
         }
         for index, product in enumerate(PRODUCTS_DATA, start=1)
     ]
+
 
 PRODUCT_ATTRIBUTE_VALUES_DATA = _load_generated_seed_list("product_attribute_values_data.json")
 
@@ -281,7 +329,6 @@ def _disable_simple_history():
 class Command(BaseCommand):
     help = "Seed database with predefined data"
 
-
     def add_arguments(self, parser):
         parser.add_argument(
             "--fast",
@@ -327,37 +374,36 @@ class Command(BaseCommand):
         if local_only:
             self.stdout.write("  Local media mode: enabled (URL fallback disabled)")
 
-        with transaction.atomic():
-            with _disable_simple_history():
-                self._seed_sites()
-                self._seed_topbar()
-                self._seed_custom_css()
-                self._seed_media_storage_settings()
-                self._seed_static_media_assets()
-                self._seed_site_settings()
-                self._seed_system_settings()
-                self._seed_dynamic_pages()
-                self._seed_footer()
-                self._seed_bottombar()
-                self._seed_categories()
-                self._seed_category_banners()
-                self._seed_category_recommended_products()
-                self._seed_navbar()
-                self._seed_attributes()
-                self._seed_products()
-                self._seed_banners()
-                self._seed_homepage_sections()
-                self._seed_storefront_hero_section()
-                self._seed_delivery_methods()
-                self._seed_payment_methods()
-                # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
-                self._seed_social_apps()
+        with transaction.atomic(), _disable_simple_history():
+            self._seed_sites()
+            self._seed_topbar()
+            self._seed_custom_css()
+            self._seed_media_storage_settings()
+            self._seed_static_media_assets()
+            self._seed_site_settings()
+            self._seed_system_settings()
+            self._seed_dynamic_pages()
+            self._seed_footer()
+            self._seed_bottombar()
+            self._seed_categories()
+            self._seed_category_banners()
+            self._seed_category_recommended_products()
+            self._seed_navbar()
+            self._seed_attributes()
+            self._seed_products()
+            self._seed_banners()
+            self._seed_homepage_sections()
+            self._seed_storefront_hero_section()
+            self._seed_delivery_methods()
+            self._seed_payment_methods()
+            # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
+            self._seed_social_apps()
 
-                if not skip_users:
-                    self._create_superuser()
+            if not skip_users:
+                self._create_superuser()
 
-                # Fix PostgreSQL sequences after inserting with explicit IDs
-                self._fix_sequences()
+            # Fix PostgreSQL sequences after inserting with explicit IDs
+            self._fix_sequences()
 
         # Populate history outside the big seed transaction to avoid one huge final COMMIT.
         # Create initial history only once; skip when any historical records already exist.
@@ -414,9 +460,7 @@ class Command(BaseCommand):
             if relative_path not in self._warned_seed_sync_failures:
                 self._warned_seed_sync_failures.add(relative_path)
                 self.stdout.write(
-                    self.style.WARNING(
-                        f"    Warning: Failed local media sync for {relative_path}: {exc}"
-                    )
+                    self.style.WARNING(f"    Warning: Failed local media sync for {relative_path}: {exc}")
                 )
             return False
 
@@ -449,11 +493,7 @@ class Command(BaseCommand):
         except (HTTPError, URLError, OSError, TimeoutError) as exc:
             if relative_path not in self._warned_seed_sync_failures:
                 self._warned_seed_sync_failures.add(relative_path)
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"    Warning: Failed URL media sync for {relative_path}: {exc}"
-                    )
-                )
+                self.stdout.write(self.style.WARNING(f"    Warning: Failed URL media sync for {relative_path}: {exc}"))
             return False
 
     def _ensure_media_in_storage(self, storage, relative_path, warn_if_missing=True, force_sync=False):
@@ -955,9 +995,7 @@ class Command(BaseCommand):
         )
         # Second pass: set parent_id
         parent_updates = [
-            Category(id=item["id"], parent_id=item["parent_id"])
-            for item in CATEGORIES_DATA
-            if item["parent_id"]
+            Category(id=item["id"], parent_id=item["parent_id"]) for item in CATEGORIES_DATA if item["parent_id"]
         ]
         if parent_updates:
             Category.objects.bulk_update(parent_updates, ["parent"], batch_size=1000)
@@ -1196,7 +1234,7 @@ class Command(BaseCommand):
                     obj,
                     "mobile_image",
                     item["mobile_image"],
-                    )
+                )
         self.stdout.write(f"  Banner: {len(BANNERS_DATA)} records")
 
     def _seed_homepage_sections(self):
@@ -1490,7 +1528,7 @@ class Command(BaseCommand):
             "homepage_storefrontcategorybox",
             "homepage_storefrontcategoryitem",
             "cart_deliverymethod",
-            "cart_paymentmethod"
+            "cart_paymentmethod",
         ]
 
         fixed_count = 0
@@ -1581,8 +1619,9 @@ class Command(BaseCommand):
                 {
                     "id": item["id"],
                     "name": item["name"],
-                    "default_payment_time": int(item["default_payment_time"]) if item.get("default_payment_time") else None,
-                    "additional_fees": Decimal(item["additional_fees"]) if item.get("additional_fees") is not None else None,
+                    "default_payment_time": int(item["default_payment_time"])
+                    if item.get("default_payment_time")
+                    else None,
                     "is_active": item.get("is_active", True),
                 }
                 for item in PAYMENT_METHODS_DATA
@@ -1590,7 +1629,6 @@ class Command(BaseCommand):
             update_fields=[
                 "name",
                 "default_payment_time",
-                "additional_fees",
                 "is_active",
             ],
         )

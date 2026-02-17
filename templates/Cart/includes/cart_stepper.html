@@ -2,9 +2,9 @@
 
 <div class="w-full rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:p-5">
   <ol class="mx-auto flex w-full max-w-2xl items-center justify-center text-center text-sm font-medium text-gray-700 dark:text-gray-200 sm:text-base">
-    <li class="flex items-center after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 after:content-[''] dark:after:border-gray-700 md:w-full md:after:inline-block xl:after:mx-10{% if active_step == 'cart' %} text-primary-600 dark:text-primary-500{% endif %}">
+    <li class="flex items-center after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 after:content-[''] dark:after:border-gray-700 md:w-full md:after:inline-block xl:after:mx-10{% if active_step == 'cart' %} text-gray-700 dark:text-gray-200{% endif %}">
     {% if active_step == 'cart' %}
-      <span class="flex items-center rounded-lg px-2 py-1 bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400">
+      <span class="flex items-center rounded-lg px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
         <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
@@ -20,7 +20,7 @@
     {% endif %}
     </li>
 
-    <li class="flex items-center after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 after:content-[''] dark:after:border-gray-700 md:w-full md:after:inline-block xl:after:mx-10{% if active_step == 'checkout' %} text-primary-700 dark:text-primary-500{% endif %}">
+    <li class="flex items-center after:mx-6 after:hidden after:w-full after:border after:border-b after:border-gray-200 after:content-[''] dark:after:border-gray-700 md:w-full md:after:inline-block xl:after:mx-10{% if active_step == 'checkout' %} text-gray-700 dark:text-gray-200{% endif %}">
     {% if active_step == 'summary' %}
       <a href="{% url 'cart:checkout_page' %}" class="flex items-center rounded-lg px-2 py-1 text-gray-700 dark:text-gray-200 hover-bg cursor-pointer">
         <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -29,7 +29,7 @@
         {% translate "Checkout" %}
       </a>
     {% else %}
-      <span class="flex items-center rounded-lg px-2 py-1{% if active_step == 'checkout' %} bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400{% endif %}">
+      <span class="flex items-center rounded-lg px-2 py-1{% if active_step == 'checkout' %} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200{% endif %}">
         <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
@@ -38,8 +38,8 @@
     {% endif %}
     </li>
 
-    <li class="flex shrink-0 items-center{% if active_step == 'summary' %} text-primary-700 dark:text-primary-500{% endif %}">
-    <span class="flex items-center rounded-lg px-2 py-1{% if active_step == 'summary' %} bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-400{% endif %}">
+    <li class="flex shrink-0 items-center{% if active_step == 'summary' %} text-gray-700 dark:text-gray-200{% endif %}">
+    <span class="flex items-center rounded-lg px-2 py-1{% if active_step == 'summary' %} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200{% endif %}">
       <svg class="me-2 h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
       </svg>

@@ -1,39 +1,101 @@
 {% load i18n %}
-{% load form_tags %}
-<div class="pg-columns">
-  <div id="profile-picture" class="pg-column-one-quarter">
-    <div class="pg-text-centered">
-      <img class="avatar" src="{{ user.avatar_url }}">
+<section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+  <div class="p-5 sm:p-6">
+    <div class="flex items-start gap-4">
+      <div id="profile-picture" class="shrink-0">
+        <img class="w-16 h-16 rounded-full object-cover bg-gray-100 dark:bg-gray-700" src="{{ user.avatar_url }}" alt="{% translate 'Profile picture' %}">
+      </div>
+      <div class="min-w-0 flex-1">
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">{% translate "My Details" %}</h2>
+        <p class="text-subtitle mt-1">{% translate "Update your profile information and preferences." %}</p>
+      </div>
     </div>
-  </div>
-  <div class="pg-column">
-    <h2 class="pg-subtitle">{% translate "My Details" %}</h2>
-    <form method="post">
+
+    {% if form.non_field_errors %}
+    <div class="mt-5 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg">
+      {% for error in form.non_field_errors %}
+        <p>{{ error }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" class="mt-5 space-y-5">
       {% csrf_token %}
-      {% render_text_input form.email %}
-      {% if user.emailaddress_set.count > 1 %}
-        <div class="pg-help"><a href="{% url "account_email" %}" class="link">{%  translate "Manage email addresses" %}</a></div>
-      {% endif %}
-      {% render_text_input form.first_name %}
-      {% render_text_input form.last_name %}
-      {% if form.fields.language.choices %}
-        {% render_select_input form.language %}
-      {% endif %}
-      {% render_select_input form.timezone %}
-      <div class="pg-help">
-        {% if user.timezone %}
-          {% blocktranslate trimmed with user_tz=user.timezone %}
-            Your current timezone is {{ user_tz }}, where it is {{ now }}.
-          {% endblocktranslate %}
-        {% else %}
-          {% blocktranslate trimmed %}
-            You have not set a timezone, and are using the system timezone of {{ current_tz }} where it is {{ now }}.
-          {% endblocktranslate %}
+
+      <div>
+        <label for="{{ form.email.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Email" %}</label>
+        <input type="email" name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" autocomplete="email" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200" required>
+        {% if form.email.errors %}
+        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.email.errors.0 }}</p>
+        {% endif %}
+        {% if user.emailaddress_set.count > 1 %}
+          <div class="mt-2">
+            <a href="{% url 'account_email' %}" class="text-sm font-medium text-primary-700 dark:text-primary-400 hover:underline">{% translate "Manage email addresses" %}</a>
+          </div>
         {% endif %}
       </div>
-      <div class="mt-2">
-        <input class="pg-button-primary" type="submit" value="{% translate "Save" %}">
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div>
+          <label for="{{ form.first_name.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "First Name" %}</label>
+          <input type="text" name="{{ form.first_name.html_name }}" id="{{ form.first_name.id_for_label }}" value="{{ form.first_name.value|default:'' }}" autocomplete="given-name" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200">
+          {% if form.first_name.errors %}
+          <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.first_name.errors.0 }}</p>
+          {% endif %}
+        </div>
+        <div>
+          <label for="{{ form.last_name.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{% translate "Last Name" %}</label>
+          <input type="text" name="{{ form.last_name.html_name }}" id="{{ form.last_name.id_for_label }}" value="{{ form.last_name.value|default:'' }}" autocomplete="family-name" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:placeholder-gray-400 dark:text-white dark:focus:bg-gray-600 dark:focus:shadow-[0_4px_10px_-2px_rgb(0_0_0/0.5)] transition-all duration-200">
+          {% if form.last_name.errors %}
+          <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.last_name.errors.0 }}</p>
+          {% endif %}
+        </div>
       </div>
+
+      {% if form.language %}
+      <div>
+        <label for="{{ form.language.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.language.label }}</label>
+        <select name="{{ form.language.html_name }}" id="{{ form.language.id_for_label }}" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-600 transition-all duration-200">
+          {% for value, label in form.language.field.choices %}
+            <option value="{{ value }}" {% if form.language.value == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if form.language.errors %}
+        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.language.errors.0 }}</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if form.timezone %}
+      <div>
+        <label for="{{ form.timezone.id_for_label }}" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">{{ form.timezone.label }}</label>
+        <select name="{{ form.timezone.html_name }}" id="{{ form.timezone.id_for_label }}" class="bg-gray-100 border-none text-gray-900 text-base rounded-lg focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] block w-full p-2.5 dark:bg-gray-700 dark:text-white dark:focus:bg-gray-600 transition-all duration-200">
+          {% for value, label in form.timezone.field.choices %}
+            <option value="{{ value }}" {% if form.timezone.value == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+        {% if form.timezone.errors %}
+        <p class="mt-2 text-sm text-red-600 dark:text-red-400">{{ form.timezone.errors.0 }}</p>
+        {% endif %}
+        <p class="text-subtitle mt-2">
+          {% if user.timezone %}
+            {% blocktranslate trimmed with user_tz=user.timezone %}
+              Your current timezone is {{ user_tz }}, where it is {{ now }}.
+            {% endblocktranslate %}
+          {% else %}
+            {% blocktranslate trimmed %}
+              You have not set a timezone, and are using the system timezone of {{ current_tz }} where it is {{ now }}.
+            {% endblocktranslate %}
+          {% endif %}
+        </p>
+      </div>
+      {% endif %}
+
+      <button id="profile-save-btn" type="submit" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-semibold rounded-lg text-sm px-6 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer transition-all duration-200">
+        <svg id="profile-save-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+        <span>{% translate "Save" %}</span>
+      </button>
+      {% include "account/includes/form_submit_loading.html" with btn_id="profile-save-btn" spinner_id="profile-save-spinner" %}
     </form>
   </div>
-</div>
+</section>

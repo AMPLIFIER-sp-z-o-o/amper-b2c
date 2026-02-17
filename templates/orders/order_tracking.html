@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block body %}
-<section class="bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+<section class="order-flow-enter bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
     <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
       {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
@@ -84,7 +84,7 @@
         <div class="space-y-4 p-6">
           <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
           <div class="space-y-2">
-            {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal delivery_cost=order.delivery_cost payment_cost=order.payment_cost total=order.total show_delivery_cost=True show_payment_cost=True %}
+            {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal discount_total=order.discount_total delivery_cost=order.delivery_cost total=order.total show_delivery_cost=True %}
           </div>
         </div>
       </div>

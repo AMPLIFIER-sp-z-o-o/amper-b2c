@@ -1,12 +1,23 @@
-{% extends "account/base.html" %}
+{% extends "web/base.html" %}
 {% load i18n %}
+{% load static %}
+{% load media_tags %}
 
 {% block page_head %}
-{% include "account/includes/auth_card_css.html" %}
+  {% include "account/includes/auth_card_css.html" %}
 {% endblock %}
 
-{% block content %}
-<div class="auth-card bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+{% block body %}
+<section class="bg-gray-50 dark:bg-gray-900">
+  <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
+    <div class="w-full place-self-center lg:col-span-6">
+      <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card text-center">
+        <a href="{% url 'web:home' %}" class="inline-flex items-center mb-4 text-2xl font-semibold text-gray-900 dark:text-white">
+          {% if site_logo %}
+          <img class="w-20 h-20 mr-3 object-contain" src="{{ site_logo }}" alt="{{ project_meta.NAME }}">
+          {% endif %}
+          {{ project_meta.NAME|default:"" }}
+        </a>
 
   {# ── Envelope icon ── #}
   <div class="flex justify-center mb-5">
@@ -29,7 +40,7 @@
     {% endblocktranslate %}
   </p>
 
-  <p class="text-muted mb-6">
+  <p class="text-subtitle mb-6">
     {% blocktranslate trimmed %}
     Please contact us if you do not receive it within a few minutes.
     {% endblocktranslate %}
@@ -38,5 +49,12 @@
   {# ── Quick-link to webmail ── #}
   {% include "account/includes/check_email_button.html" with email=user.email %}
 
-</div>
+      </div>
+    </div>
+
+    <div class="mr-auto place-self-center lg:col-span-6">
+      <img class="hidden mx-auto lg:flex" src="{% media_file_url 'site/seed/auth-illustration.svg' %}" alt="illustration">
+    </div>
+  </div>
+</section>
 {% endblock %}

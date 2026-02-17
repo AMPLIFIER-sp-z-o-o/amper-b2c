@@ -580,11 +580,13 @@ class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         ]
         if disabled:
             parts.append(format_html(', <span class="text-orange-500">{} {}</span>', disabled, _("disabled")))
-        parts.append(format_html(
-            ') — <a href="{}" class="text-primary-600 hover:underline">{}</a>',
-            url,
-            _("View all products"),
-        ))
+        parts.append(
+            format_html(
+                ') — <a href="{}" class="text-primary-600 hover:underline">{}</a>',
+                url,
+                _("View all products"),
+            )
+        )
         return mark_safe("".join(str(p) for p in parts))
 
     product_count_detail.short_description = _("Product Count")

@@ -10,6 +10,7 @@ from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.mfa.models import Authenticator
 from django.conf import settings
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
@@ -26,7 +27,9 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
         super().__init__(request)
         # Prevent leaking whether someone is already signed up.
         self.error_messages["email_taken"] = format_html(
-            _('An account with this email already exists. <a href="{}" class="link font-semibold hover:underline">Sign in</a> or <a href="{}" class="link font-semibold hover:underline">reset your password</a>.'),
+            _(
+                'An account with this email already exists. <a href="{}" class="link font-semibold hover:underline">Sign in</a> or <a href="{}" class="link font-semibold hover:underline">reset your password</a>.'
+            ),
             reverse("account_login"),
             reverse("account_reset_password"),
         )
@@ -59,6 +62,31 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
             message=message,
         )
 
+    def is_safe_url(self, url: str) -> bool:
+        """Tighten allauth's redirect safety.
+
+        The upstream implementation includes hosts from `settings.ALLOWED_HOSTS`.
+        In development this is often configured as `*`, which would allow
+        open-redirects via `?next=https://evil.example`.
+
+        We only allow:
+        - relative URLs (e.g. `/cart/`)
+        - absolute URLs pointing to the current host
+        """
+
+        from allauth.utils import context
+        from django.utils.http import url_has_allowed_host_and_scheme
+
+        request = getattr(self, "request", None) or getattr(context, "request", None)
+        if not request:
+            return False
+
+        return url_has_allowed_host_and_scheme(
+            url,
+            allowed_hosts={request.get_host()},
+            require_https=request.is_secure(),
+        )
+
     def post_login(
         self,
         request,
@@ -84,6 +112,28 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
         if signup:
             request._signup_in_progress = False
         return response
+
+    def get_login_redirect_url(self, request):
+        """Prevent open-redirects.
+
+        Some environments may configure permissive host settings; we still
+        only allow relative URLs or same-host absolute URLs.
+        """
+
+        redirect_url = super().get_login_redirect_url(request)
+        if not redirect_url:
+            return redirect_url
+
+        allowed_hosts = {request.get_host()}
+        if url_has_allowed_host_and_scheme(
+            redirect_url,
+            allowed_hosts=allowed_hosts,
+            require_https=request.is_secure(),
+        ):
+            return redirect_url
+
+        # Fall back to a safe in-site redirect.
+        return settings.LOGIN_REDIRECT_URL or "/"
 
     # ── Async email dispatch via Celery ───────────────────────────────────
 

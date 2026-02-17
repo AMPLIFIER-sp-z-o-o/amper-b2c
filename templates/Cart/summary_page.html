@@ -9,10 +9,13 @@
   <form action="{% url 'orders:place' %}" method="post" class="max-w-7xl mx-auto px-2">
   {% csrf_token %}
     {% include "Cart/includes/cart_stepper.html" with active_step="summary" %}
-    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">{% translate "Review Order" %}</h2>
+    <h2 class="mt-8 flex items-center gap-3 text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:mt-12 sm:text-3xl">
+      <span class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></span>
+      {% translate "Review Order" %}
+    </h2>
 
     <div class="mt-6 sm:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
-      <div class="lg:col-span-7 xl:col-span-8 space-y-6">
+      <div class="lg:col-span-7 xl:col-span-8 space-y-10 sm:space-y-12">
         <div class="min-w-0 divide-y divide-gray-200 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:divide-gray-700 dark:bg-gray-800">
           {% for line in lines %}
           <div data-cart-line data-cart-line-id="{{ line.id }}" class="flex flex-wrap items-center gap-4 p-6 sm:flex-nowrap sm:gap-6 md:justify-between">
@@ -49,7 +52,7 @@
             <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
 
             <div class="space-y-2">
-              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal tax_total=tax_total discount_total=discount_total delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
+              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal discount_total=discount_total delivery_cost=delivery_cost total=total show_delivery_cost=True %}
             </div>
 
             <button type="submit" data-nav-loading-btn class="relative mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
@@ -57,7 +60,7 @@
                 {% if selected_payment and selected_payment.default_payment_time != None %}
                   {% translate "Continue to payment" %}
                 {% else %}
-                  {% translate "Place your order" %}
+                  {% translate "Place order" %}
                 {% endif %}
               </span>
               <svg class="absolute right-11 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -72,11 +75,11 @@
               {% translate "Return to Checkout" %}
             </a>
 
-            <p class="text-muted">
-              {% translate "By placing your order, you agree to Flowbite's" %}
-              <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "privacy note" %}</a>
+            <p class="text-subtitle">
+              {% translate "By placing your order, you agree to our" %}
+              <a href="{% url 'web:privacy' %}" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "privacy note" %}</a>
               {% translate "and" %}
-              <a href="#" title="" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "terms of use" %}</a>.
+              <a href="{% url 'web:terms' %}" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "terms of use" %}</a>.
             </p>
           </div>
         </div>
@@ -101,7 +104,7 @@
               <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
                 <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Phone" %}</dt>
                 <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">
-                  {% if checkout_details.phone %}{{ checkout_details.phone }}{% else %}—{% endif %}
+                  {% if checkout_details.phone_number %}{{ checkout_details.phone_country_code }} {{ checkout_details.phone_number }}{% else %}—{% endif %}
                 </dd>
               </dl>
 

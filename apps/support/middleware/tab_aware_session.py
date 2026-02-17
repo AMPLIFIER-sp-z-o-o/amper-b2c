@@ -7,7 +7,6 @@ from django.contrib.sessions.exceptions import SessionInterrupted
 from django.utils.cache import patch_vary_headers
 from django.utils.deprecation import MiddlewareMixin
 
-
 TAB_PARAM = "__tab"
 TAB_HEADER = "HTTP_X_TAB_ID"
 TAB_COOKIE_HINT = "amper_tab_id"

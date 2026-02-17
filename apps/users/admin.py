@@ -99,7 +99,7 @@ class CustomUserAdmin(HistoryModelAdmin, UserAdmin, ImportExportModelAdmin):
     ordering = ("-date_joined",)
     autocomplete_fields = ("groups", "user_permissions")
     fieldsets = (
-        (None, {"fields": ("email", "first_name", "password")} ),
+        (None, {"fields": ("email", "first_name", "password")}),
         (
             _("Permissions"),
             {
