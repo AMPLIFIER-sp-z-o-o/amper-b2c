@@ -151,3 +151,44 @@ class PendingEmailChange(BaseModel):
             token=token,
             expires_at=expires_at,
         )
+
+
+class ShippingAddress(BaseModel):
+    user = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        related_name="shipping_addresses",
+        verbose_name=_("User"),
+    )
+
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name=_("Default"),
+        help_text=_("Used as the default shipping address for checkout prefill."),
+    )
+
+    full_name = models.CharField(max_length=255, verbose_name=_("Full name"))
+    company = models.CharField(max_length=255, blank=True, default="", verbose_name=_("Company"))
+    phone_country_code = models.CharField(max_length=10, default="+48", verbose_name=_("Country code"))
+    phone_number = models.CharField(max_length=50, default="", verbose_name=_("Mobile phone"))
+
+    shipping_city = models.CharField(max_length=120, verbose_name=_("City"))
+    shipping_postal_code = models.CharField(max_length=20, default="", verbose_name=_("Postal code"))
+    shipping_street = models.CharField(max_length=255, default="", verbose_name=_("Street"))
+    shipping_building_number = models.CharField(max_length=30, default="", verbose_name=_("Building number"))
+    shipping_apartment_number = models.CharField(max_length=30, blank=True, default="", verbose_name=_("Apartment number"))
+
+    class Meta:
+        ordering = ["-is_default", "-updated_at", "-id"]
+        verbose_name = _("Shipping address")
+        verbose_name_plural = _("Shipping addresses")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"],
+                condition=models.Q(is_default=True),
+                name="uniq_default_shipping_address_per_user",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.full_name} — {self.shipping_city}"  # pragma: no cover

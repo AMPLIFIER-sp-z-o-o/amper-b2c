@@ -182,8 +182,8 @@ class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
         (
             _("Regional Settings"),
             {
-                "fields": ("currency",),
-                "description": _("Currency symbol displayed on prices."),
+                "fields": ("currency", "vat_rate_percent"),
+                "description": _("Currency symbol displayed on prices and a store-wide VAT rate."),
             },
         ),
     )

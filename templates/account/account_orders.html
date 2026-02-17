@@ -2,17 +2,54 @@
 {% load i18n static %}
 
 {% block account_content %}
-<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-  <div class="p-8 sm:p-12 text-center">
-    <div class="max-w-sm mx-auto">
-      <div class="flex items-center justify-center w-16 h-16 mx-auto mb-5 rounded-full bg-gray-100 dark:bg-gray-700">
-        <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
-        </svg>
-      </div>
-      <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{% translate "Orders" %}</h2>
-      <p class="text-subtitle leading-relaxed">{% translate "Your order history will appear here." %}</p>
-    </div>
+<div class="space-y-6">
+
+  <div>
+    <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-1">{% translate "Orders" %}</h2>
+    <p class="text-subtitle">{% translate "Your recent orders" %}</p>
   </div>
+
+  <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if orders and orders|length %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for order in orders %}
+          <div class="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <div class="flex-1 min-w-0">
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <p class="text-base font-semibold text-gray-900 dark:text-white">
+                  {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
+                </p>
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-200">•</span>
+                <p class="text-sm font-medium text-gray-700 dark:text-gray-200">{{ order.created_at|date:"Y-m-d H:i" }}</p>
+              </div>
+              <p class="mt-1 text-subtitle">
+                {% translate "Status" %}: <span class="font-semibold text-gray-700 dark:text-gray-200">{{ order.get_status_display }}</span>
+              </p>
+            </div>
+            <div class="flex items-center justify-between sm:justify-end gap-4">
+              <p class="text-base font-bold text-gray-900 dark:text-white">
+                <span data-price="{{ order.total }}" data-currency="{{ order.currency }}">{{ order.total }}</span>
+              </p>
+              <a href="{% url 'orders:track' token=order.tracking_token %}" class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
+                {% translate "Track" %}
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="p-8 sm:p-12 text-center">
+        <div class="max-w-sm mx-auto">
+          <div class="flex items-center justify-center w-16 h-16 mx-auto mb-5 rounded-full bg-gray-100 dark:bg-gray-700">
+            <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{% translate "No orders yet" %}</h3>
+          <p class="text-subtitle leading-relaxed">{% translate "Your order history will appear here." %}</p>
+        </div>
+      </div>
+    {% endif %}
+  </section>
 </div>
 {% endblock account_content %}

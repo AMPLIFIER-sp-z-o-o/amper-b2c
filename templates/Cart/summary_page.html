@@ -9,7 +9,7 @@
   <form action="{% url 'orders:place' %}" method="post" class="max-w-7xl mx-auto px-2">
   {% csrf_token %}
     {% include "Cart/includes/cart_stepper.html" with active_step="summary" %}
-    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">{% translate "Order Summary" %}</h2>
+    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">{% translate "Review Order" %}</h2>
 
     <div class="mt-6 sm:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
       <div class="lg:col-span-7 xl:col-span-8 space-y-6">
@@ -49,14 +49,23 @@
             <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
 
             <div class="space-y-2">
-              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
+              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal tax_total=tax_total discount_total=discount_total delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
             </div>
 
-            <button type="submit" data-nav-loading-btn class="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
-              <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+            <button type="submit" data-nav-loading-btn class="relative mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
+              <span class="pr-16">
+                {% if selected_payment and selected_payment.default_payment_time != None %}
+                  {% translate "Continue to payment" %}
+                {% else %}
+                  {% translate "Place your order" %}
+                {% endif %}
+              </span>
+              <svg class="absolute right-11 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
               </svg>
-              <span>{% translate "Place your order" %}</span>
+              <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+              </svg>
             </button>
             
             <a href="/cart/checkout/" class="btn-press mt-2 flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
@@ -110,7 +119,10 @@
 
               <dl class="pt-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
                 <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ checkout_details.shipping_address }}, {{ checkout_details.shipping_city }}, {{ checkout_details.shipping_country }}</dd>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">
+                  {{ checkout_details.shipping_street }} {{ checkout_details.shipping_building_number }}{% if checkout_details.shipping_apartment_number %}/{{ checkout_details.shipping_apartment_number }}{% endif %},
+                  {{ checkout_details.shipping_postal_code }} {{ checkout_details.shipping_city }}
+                </dd>
               </dl>
             </div>
           </div>

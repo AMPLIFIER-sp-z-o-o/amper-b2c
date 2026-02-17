@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
+from unfold.admin import ModelAdmin
+
 from .models import Order, OrderLine
 
 
@@ -11,7 +13,7 @@ class OrderLineInline(admin.TabularInline):
 
 
 @admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
+class OrderAdmin(ModelAdmin):
     list_display = ("id", "status", "email", "full_name", "total", "created_at")
     list_filter = ("status", "created_at")
     search_fields = ("email", "full_name", "tracking_token")
@@ -20,10 +22,25 @@ class OrderAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {"fields": ("status", "customer")}),
-        (_("Contact"), {"fields": ("email", "full_name", "phone")}),
-        (_("Shipping"), {"fields": ("shipping_country", "shipping_city", "shipping_address")}),
+        (_("Contact"), {"fields": ("email", "full_name", "company", "phone")}),
+        (_("Shipping"), {"fields": ("shipping_address", "shipping_postal_code", "shipping_city")}),
         (_("Methods"), {"fields": ("delivery_method_name", "payment_method_name")}),
-        (_("Totals"), {"fields": ("subtotal", "delivery_cost", "payment_cost", "total", "currency")}),
+        (
+            _("Totals"),
+            {
+                "fields": (
+                    "subtotal",
+                    "tax_rate_percent",
+                    "tax_total",
+                    "discount_total",
+                    "coupon_code",
+                    "delivery_cost",
+                    "payment_cost",
+                    "total",
+                    "currency",
+                )
+            },
+        ),
         (_("Tracking"), {"fields": ("tracking_token",)}),
         (_("Verification"), {"fields": ("email_verified_at",)}),
         (_("Timestamps"), {"fields": ("created_at", "updated_at")}),

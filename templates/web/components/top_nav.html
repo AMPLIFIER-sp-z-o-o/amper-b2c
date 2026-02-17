@@ -399,7 +399,26 @@ body.nav-scroll-locked {
                       <svg class="h-5 w-5 text-gray-700 group-hover:text-gray-900 dark:text-gray-200 dark:group-hover:text-white transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-width="1.5" d="M7 17v1c0 .6.4 1 1 1h8c.6 0 1-.4 1-1v-1a3 3 0 0 0-3-3h-4a3 3 0 0 0-3 3Zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
                       </svg>
-                      <span class="text-sm font-medium">{% translate "My Account" %}</span>
+                      <span class="text-sm font-medium">{% translate "Account Details" %}</span>
+                    </a>
+                  </li>
+
+                  <li>
+                    <a href="{% url 'users:account_addresses' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-150">
+                      <svg class="h-5 w-5 text-gray-700 group-hover:text-gray-900 dark:text-gray-200 dark:group-hover:text-white transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657 13.414 20.9a2 2 0 0 1-2.828 0L6.343 16.657A8 8 0 1 1 17.657 16.657Z" />
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                      <span class="text-sm font-medium">{% translate "Addresses" %}</span>
+                    </a>
+                  </li>
+
+                  <li>
+                    <a href="{% url 'users:account_orders' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-200 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-150">
+                      <svg class="h-5 w-5 text-gray-700 group-hover:text-gray-900 dark:text-gray-200 dark:group-hover:text-white transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                      </svg>
+                      <span class="text-sm font-medium">{% translate "Orders" %}</span>
                     </a>
                   </li>
                 </ul>
@@ -476,7 +495,7 @@ body.nav-scroll-locked {
                 href="/cart/"
                 id="cartDropdownButton"
                 title="{% translate 'Cart' %}"
-                class="nav-icon-btn inline-flex items-center justify-center w-11 h-11 rounded-full hover-bg btn-press text-gray-700 dark:text-gray-200 cursor-pointer transition-all duration-200 relative"
+                class="nav-icon-btn inline-flex items-center justify-center w-11 h-11 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer transition-all duration-200 relative"
               >
                 <span class="sr-only">{% translate "Cart" %}</span>
                 <svg class="w-8 h-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
@@ -493,8 +512,20 @@ body.nav-scroll-locked {
             <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-[calc(100vw-1rem)] max-w-96 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
               <div class="p-4 bg-gray-50 dark:bg-gray-800">
                 <dl class="flex items-center gap-2">
-                  <dt class="font-bold text-gray-900 dark:text-white underline decoration-primary-600 underline-offset-8 decoration-2 dark:decoration-primary-500">{% translate "Shopping cart" %}</dt>
-                  <dd data-cart-lines-number data-lines_number="{{ nav_cart_count }}" data-label-items="{% translate 'items' %}" class="text-gray-500 dark:text-gray-400 font-medium" {% if not nav_cart_count %}style="display: none;"{% endif %}>({{ nav_cart_count }} {% translate "items" %})</dd>
+                  <dt class="font-bold text-gray-900 dark:text-white">{% translate "Shopping cart" %}</dt>
+                  <dd
+                    data-cart-lines-number
+                    data-lines_number="{{ nav_cart_count }}"
+                    data-label-items="{% translate 'products' %}"
+                    data-label-one="{% translate 'product' context 'Cart item label: one' %}"
+                    data-label-few="{% translate 'products' context 'Cart item label: few' %}"
+                    data-label-many="{% translate 'products' context 'Cart item label: many' %}"
+                    data-label-other="{% translate 'products' context 'Cart item label: other' %}"
+                    class="text-gray-500 dark:text-gray-400 font-medium"
+                    {% if not nav_cart_count %}style="display: none;"{% endif %}
+                  >
+                    {% blocktranslate count counter=nav_cart_count %}({{ counter }} product){% plural %}({{ counter }} products){% endblocktranslate %}
+                  </dd>
                 </dl>
               </div>
 
@@ -1495,6 +1526,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Cart dropdown can lock itself open briefly while async updates happen.
+  // If the user leaves during this lock window, we still need to close it
+  // once the lock expires; otherwise it can remain stuck open.
+  let cartUnlockCloseTimeout = null;
+  function scheduleCartDropdownCloseAfterUnlock() {
+    const dropdown = document.getElementById('cartDropdown');
+    if (!dropdown) return;
+
+    const lockUntil = parseInt(dropdown.dataset.lockOpenUntil || '0', 10);
+    if (!lockUntil || Date.now() >= lockUntil) return;
+    if (cartUnlockCloseTimeout) return;
+
+    const delay = Math.max(0, lockUntil - Date.now()) + 20;
+    cartUnlockCloseTimeout = setTimeout(() => {
+      cartUnlockCloseTimeout = null;
+
+      const dd = document.getElementById('cartDropdown');
+      if (!dd) return;
+
+      const stillLocked = parseInt(dd.dataset.lockOpenUntil || '0', 10);
+      if (stillLocked && Date.now() < stillLocked) {
+        scheduleCartDropdownCloseAfterUnlock();
+        return;
+      }
+
+      const trigger = document.querySelector(`.nav-category-trigger[data-dropdown-target="cartDropdown"]`);
+      const isHovering = dd.matches(':hover') || (trigger && trigger.matches(':hover'));
+      if (!isHovering) {
+        scheduleCloseAllDropdowns();
+      }
+    }, delay);
+  }
+
   function closeOnScroll() {
     if (activeDropdown) {
       closeAllDropdowns();
@@ -1686,7 +1750,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
     
             previewPane.innerHTML = `
-              <div class="preview-content flex flex-col items-center w-full h-full animate-fade-in">
+              <div class="preview-content flex flex-col ${hasChildren ? '' : 'items-center'} w-full h-full animate-fade-in ${hasChildren ? 'text-left' : ''}">
                 ${contentHtml}
               </div>
             `;
@@ -1808,6 +1872,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const lockUntil = parseInt(dropdown.dataset.lockOpenUntil || '0', 10);
         if (lockUntil && Date.now() < lockUntil) {
           cancelScheduledClose();
+          scheduleCartDropdownCloseAfterUnlock();
           return;
         }
       }
@@ -1848,6 +1913,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const lockUntil = parseInt(dropdown.dataset.lockOpenUntil || '0', 10);
         if (lockUntil && Date.now() < lockUntil) {
           cancelScheduledClose();
+          scheduleCartDropdownCloseAfterUnlock();
           return;
         }
       }

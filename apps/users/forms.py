@@ -12,8 +12,7 @@ from django.utils.translation import gettext_lazy as _
 
 from apps.utils.timezones import get_timezones_display
 
-
-from .models import CustomUser
+from .models import CustomUser, ShippingAddress
 
 
 def _validate_turnstile_token(token):
@@ -173,3 +172,48 @@ class CustomSocialSignupForm(SocialSignupForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.prevent_enumeration = False
+
+
+class ShippingAddressForm(forms.ModelForm):
+    class Meta:
+        model = ShippingAddress
+        fields = (
+            "full_name",
+            "company",
+            "phone_country_code",
+            "phone_number",
+            "shipping_city",
+            "shipping_postal_code",
+            "shipping_street",
+            "shipping_building_number",
+            "shipping_apartment_number",
+            "is_default",
+        )
+
+    def clean_full_name(self):
+        return (self.cleaned_data.get("full_name") or "").strip()
+
+    def clean_company(self):
+        return (self.cleaned_data.get("company") or "").strip()
+
+    def clean_phone_country_code(self):
+        value = (self.cleaned_data.get("phone_country_code") or "").strip()
+        return value or "+48"
+
+    def clean_phone_number(self):
+        return (self.cleaned_data.get("phone_number") or "").strip()
+
+    def clean_shipping_city(self):
+        return (self.cleaned_data.get("shipping_city") or "").strip()
+
+    def clean_shipping_postal_code(self):
+        return (self.cleaned_data.get("shipping_postal_code") or "").strip()
+
+    def clean_shipping_street(self):
+        return (self.cleaned_data.get("shipping_street") or "").strip()
+
+    def clean_shipping_building_number(self):
+        return (self.cleaned_data.get("shipping_building_number") or "").strip()
+
+    def clean_shipping_apartment_number(self):
+        return (self.cleaned_data.get("shipping_apartment_number") or "").strip()

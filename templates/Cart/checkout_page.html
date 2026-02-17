@@ -11,267 +11,62 @@
     <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12 xl:gap-16">
       <div class="min-w-0 flex-1 space-y-8">
         <div class="space-y-4">
-          <form id="checkout-details-form" method="post" action="{% url 'cart:checkout_save_details' %}">
-            {% csrf_token %}
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label for="full_name" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Full name" %}*</label>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-                <input type="text" id="full_name" name="full_name" value="{{ details_form.full_name.value|default_if_none:'' }}" class="block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
-              </div>
-              {% if details_form.full_name.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.full_name.errors|striptags }}</p>
-              {% endif %}
-            </div>
-
-            <div>
-              <label for="email" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Email" %}*</label>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-                <input type="email" id="email" name="email" value="{{ details_form.email.value|default_if_none:'' }}" class="block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
-              </div>
-              {% if details_form.email.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.email.errors|striptags }}</p>
-              {% endif %}
-            </div>
-
-            <div>
-              <div class="mb-2 flex items-center gap-2">
-                <label for="shipping_country" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Country" %}*</label>
-              </div>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-                <input type="text" id="shipping_country" name="shipping_country" value="{{ details_form.shipping_country.value|default_if_none:'' }}" class="block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
-              </div>
-              {% if details_form.shipping_country.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_country.errors|striptags }}</p>
-              {% endif %}
-            </div>
-
-            <div>
-              <div class="mb-2 flex items-center gap-2">
-                <label for="shipping_city" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "City" %}*</label>
-              </div>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-                <input type="text" id="shipping_city" name="shipping_city" value="{{ details_form.shipping_city.value|default_if_none:'' }}" class="block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
-              </div>
-              {% if details_form.shipping_city.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_city.errors|striptags }}</p>
-              {% endif %}
-            </div>
-
-            <div>
-              <label for="phone-input" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Phone" %}</label>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-              <div class="flex items-center">
-                <button id="dropdown-phone-button-3" data-dropdown-toggle="dropdown-phone-3" class="btn-press hover-bg-active z-10 inline-flex shrink-0 items-center rounded-s-lg border-none bg-gray-100 px-4 py-2.5 text-center text-sm font-medium text-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:focus:ring-gray-700" type="button">
-                  <svg fill="none" aria-hidden="true" class="me-2 h-4 w-4" viewBox="0 0 20 15">
-                    <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                    <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                      <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                    </mask>
-                    <g mask="url(#a)">
-                      <path fill="#D02F44" fill-rule="evenodd" d="M19.6.5H0v.933h19.6V.5zm0 1.867H0V3.3h19.6v-.933zM0 4.233h19.6v.934H0v-.934zM19.6 6.1H0v.933h19.6V6.1zM0 7.967h19.6V8.9H0v-.933zm19.6 1.866H0v.934h19.6v-.934zM0 11.7h19.6v.933H0V11.7zm19.6 1.867H0v.933h19.6v-.933z" clip-rule="evenodd" />
-                      <path fill="#46467F" d="M0 .5h8.4v6.533H0z" />
-                      <g filter="url(#filter0_d_343_121520)">
-                        <path
-                          fill="url(#paint0_linear_343_121520)"
-                          fill-rule="evenodd"
-                          d="M1.867 1.9a.467.467 0 11-.934 0 .467.467 0 01.934 0zm1.866 0a.467.467 0 11-.933 0 .467.467 0 01.933 0zm1.4.467a.467.467 0 100-.934.467.467 0 000 .934zM7.467 1.9a.467.467 0 11-.934 0 .467.467 0 01.934 0zM2.333 3.3a.467.467 0 100-.933.467.467 0 000 .933zm2.334-.467a.467.467 0 11-.934 0 .467.467 0 01.934 0zm1.4.467a.467.467 0 100-.933.467.467 0 000 .933zm1.4.467a.467.467 0 11-.934 0 .467.467 0 01.934 0zm-2.334.466a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.466a.467.467 0 11-.933 0 .467.467 0 01.933 0zM1.4 4.233a.467.467 0 100-.933.467.467 0 000 .933zm1.4.467a.467.467 0 11-.933 0 .467.467 0 01.933 0zm1.4.467a.467.467 0 100-.934.467.467 0 000 .934zM6.533 4.7a.467.467 0 11-.933 0 .467.467 0 01.933 0zM7 6.1a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.467a.467.467 0 11-.933 0 .467.467 0 01.933 0zM3.267 6.1a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.467a.467.467 0 11-.934 0 .467.467 0 01.934 0z"
-                          clip-rule="evenodd"
-                        />
-                      </g>
-                    </g>
-                    <defs>
-                      <linearGradient id="paint0_linear_343_121520" x1=".933" x2=".933" y1="1.433" y2="6.1" gradientUnits="userSpaceOnUse">
-                        <stop stop-color="#fff" />
-                        <stop offset="1" stop-color="#F0F0F0" />
-                      </linearGradient>
-                      <filter id="filter0_d_343_121520" width="6.533" height="5.667" x=".933" y="1.433" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-                        <feFlood flood-opacity="0" result="BackgroundImageFix" />
-                        <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
-                        <feOffset dy="1" />
-                        <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0" />
-                        <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_343_121520" />
-                        <feBlend in="SourceGraphic" in2="effect1_dropShadow_343_121520" result="shape" />
-                      </filter>
-                    </defs>
-                  </svg>
-                  +1
-                  <svg class="-me-0.5 ms-2 h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 9-7 7-7-7" />
-                  </svg>
+          {% if user.is_authenticated %}
+            <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:border-gray-700 dark:bg-gray-800">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</h3>
+                  <p class="text-subtitle mt-1">
+                    {% if details_form.shipping_street.value %}
+                      {{ details_form.shipping_street.value }} {{ details_form.shipping_building_number.value }}{% if details_form.shipping_apartment_number.value %}/{{ details_form.shipping_apartment_number.value }}{% endif %}, {{ details_form.shipping_postal_code.value }} {{ details_form.shipping_city.value }}
+                    {% else %}
+                      {% translate "Add an address to see delivery options." %}
+                    {% endif %}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  data-modal-target="shipping-details-modal"
+                  data-modal-toggle="shipping-details-modal"
+                  class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+                >
+                  {% if details_form.shipping_street.value %}{% translate "Edit address" %}{% else %}{% translate "Add address" %}{% endif %}
+                  <span class="ml-2 text-base leading-none">+</span>
                 </button>
-                <div id="dropdown-phone-3" class="z-10 hidden w-56 divide-y divide-gray-100 rounded-lg bg-white shadow dark:bg-gray-700">
-                  <ul class="p-2 text-sm font-medium text-gray-700 dark:text-gray-200" aria-labelledby="dropdown-phone-button-2">
-                    <li>
-                      <button type="button" class="inline-flex w-full rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover-bg" role="menuitem">
-                        <span class="inline-flex items-center">
-                          <svg fill="none" aria-hidden="true" class="me-2 h-4 w-4" viewBox="0 0 20 15">
-                            <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                              <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            </mask>
-                            <g mask="url(#a)">
-                              <path fill="#D02F44" fill-rule="evenodd" d="M19.6.5H0v.933h19.6V.5zm0 1.867H0V3.3h19.6v-.933zM0 4.233h19.6v.934H0v-.934zM19.6 6.1H0v.933h19.6V6.1zM0 7.967h19.6V8.9H0v-.933zm19.6 1.866H0v.934h19.6v-.934zM0 11.7h19.6v.933H0V11.7zm19.6 1.867H0v.933h19.6v-.933z" clip-rule="evenodd" />
-                              <path fill="#46467F" d="M0 .5h8.4v6.533H0z" />
-                              <g filter="url(#filter0_d_343_121520)">
-                                <path
-                                  fill="url(#paint0_linear_343_121520)"
-                                  fill-rule="evenodd"
-                                  d="M1.867 1.9a.467.467 0 11-.934 0 .467.467 0 01.934 0zm1.866 0a.467.467 0 11-.933 0 .467.467 0 01.933 0zm1.4.467a.467.467 0 100-.934.467.467 0 000 .934zM7.467 1.9a.467.467 0 11-.934 0 .467.467 0 01.934 0zM2.333 3.3a.467.467 0 100-.933.467.467 0 000 .933zm2.334-.467a.467.467 0 11-.934 0 .467.467 0 01.934 0zm1.4.467a.467.467 0 100-.933.467.467 0 000 .933zm1.4.467a.467.467 0 11-.934 0 .467.467 0 01.934 0zm-2.334.466a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.466a.467.467 0 11-.933 0 .467.467 0 01.933 0zM1.4 4.233a.467.467 0 100-.933.467.467 0 000 .933zm1.4.467a.467.467 0 11-.933 0 .467.467 0 01.933 0zm1.4.467a.467.467 0 100-.934.467.467 0 000 .934zM6.533 4.7a.467.467 0 11-.933 0 .467.467 0 01.933 0zM7 6.1a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.467a.467.467 0 11-.933 0 .467.467 0 01.933 0zM3.267 6.1a.467.467 0 100-.933.467.467 0 000 .933zm-1.4-.467a.467.467 0 11-.934 0 .467.467 0 01.934 0z"
-                                  clip-rule="evenodd"
-                                />
-                              </g>
-                            </g>
-                            <defs>
-                              <linearGradient id="paint0_linear_343_121520" x1=".933" x2=".933" y1="1.433" y2="6.1" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#fff" />
-                                <stop offset="1" stop-color="#F0F0F0" />
-                              </linearGradient>
-                              <filter id="filter0_d_343_121520" width="6.533" height="5.667" x=".933" y="1.433" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-                                <feFlood flood-opacity="0" result="BackgroundImageFix" />
-                                <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
-                                <feOffset dy="1" />
-                                <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0" />
-                                <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_343_121520" />
-                                <feBlend in="SourceGraphic" in2="effect1_dropShadow_343_121520" result="shape" />
-                              </filter>
-                            </defs>
-                          </svg>
-                          United States (+1)
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="inline-flex w-full rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover-bg" role="menuitem">
-                        <span class="inline-flex items-center">
-                          <svg class="me-2 h-4 w-4" fill="none" viewBox="0 0 20 15">
-                            <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                              <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            </mask>
-                            <g mask="url(#a)">
-                              <path fill="#0A17A7" d="M0 .5h19.6v14H0z" />
-                              <path fill="#fff" fill-rule="evenodd" d="M-.898-.842L7.467 4.8V-.433h4.667V4.8l8.364-5.642L21.542.706l-6.614 4.46H19.6v4.667h-4.672l6.614 4.46-1.044 1.549-8.365-5.642v5.233H7.467V10.2l-8.365 5.642-1.043-1.548 6.613-4.46H0V5.166h4.672L-1.941.706-.898-.842z" clip-rule="evenodd" />
-                              <path stroke="#DB1F35" stroke-linecap="round" stroke-width=".667" d="M13.067 4.933L21.933-.9M14.009 10.088l7.947 5.357M5.604 4.917L-2.686-.67M6.503 10.024l-9.189 6.093" />
-                              <path fill="#E6273E" fill-rule="evenodd" d="M0 8.9h8.4v5.6h2.8V8.9h8.4V6.1h-8.4V.5H8.4v5.6H0v2.8z" clip-rule="evenodd" />
-                            </g>
-                          </svg>
-                          United Kingdom (+44)
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="inline-flex w-full rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover-bg" role="menuitem">
-                        <span class="inline-flex items-center">
-                          <svg class="me-2 h-4 w-4" fill="none" viewBox="0 0 20 15" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                              <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            </mask>
-                            <g mask="url(#a)">
-                              <path fill="#0A17A7" d="M0 .5h19.6v14H0z" />
-                              <path fill="#fff" stroke="#fff" stroke-width=".667" d="M0 .167h-.901l.684.586 3.15 2.7v.609L-.194 6.295l-.14.1v1.24l.51-.319L3.83 5.033h.73L7.7 7.276a.488.488 0 00.601-.767L5.467 4.08v-.608l2.987-2.134a.667.667 0 00.28-.543V-.1l-.51.318L4.57 2.5h-.73L.66.229.572.167H0z" />
-                              <path fill="url(#paint0_linear_374_135177)" fill-rule="evenodd" d="M0 2.833V4.7h3.267v2.133c0 .369.298.667.666.667h.534a.667.667 0 00.666-.667V4.7H8.2a.667.667 0 00.667-.667V3.5a.667.667 0 00-.667-.667H5.133V.5H3.267v2.333H0z" clip-rule="evenodd" />
-                              <path fill="url(#paint1_linear_374_135177)" fill-rule="evenodd" d="M0 3.3h3.733V.5h.934v2.8H8.4v.933H4.667v2.8h-.934v-2.8H0V3.3z" clip-rule="evenodd" />
-                              <path
-                                fill="#fff"
-                                fill-rule="evenodd"
-                                d="M4.2 11.933l-.823.433.157-.916-.666-.65.92-.133.412-.834.411.834.92.134-.665.649.157.916-.823-.433zm9.8.7l-.66.194.194-.66-.194-.66.66.193.66-.193-.193.66.193.66-.66-.194zm0-8.866l-.66.193.194-.66-.194-.66.66.193.66-.193-.193.66.193.66-.66-.193zm2.8 2.8l-.66.193.193-.66-.193-.66.66.193.66-.193-.193.66.193.66-.66-.193zm-5.6.933l-.66.193.193-.66-.193-.66.66.194.66-.194-.193.66.193.66-.66-.193zm4.2 1.167l-.33.096.096-.33-.096-.33.33.097.33-.097-.097.33.097.33-.33-.096z"
-                                clip-rule="evenodd"
-                              />
-                            </g>
-                            <defs>
-                              <linearGradient id="paint0_linear_374_135177" x1="0" x2="0" y1=".5" y2="7.5" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#fff" />
-                                <stop offset="1" stop-color="#F0F0F0" />
-                              </linearGradient>
-                              <linearGradient id="paint1_linear_374_135177" x1="0" x2="0" y1=".5" y2="7.033" gradientUnits="userSpaceOnUse">
-                                <stop stop-color="#FF2E3B" />
-                                <stop offset="1" stop-color="#FC0D1B" />
-                              </linearGradient>
-                            </defs>
-                          </svg>
-                          Australia (+61)
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="inline-flex w-full rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover-bg" role="menuitem">
-                        <span class="inline-flex items-center">
-                          <svg class="me-2 h-4 w-4" fill="none" viewBox="0 0 20 15">
-                            <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                              <rect width="19.6" height="14" y=".5" fill="#fff" rx="2" />
-                            </mask>
-                            <g mask="url(#a)">
-                              <path fill="#262626" fill-rule="evenodd" d="M0 5.167h19.6V.5H0v4.667z" clip-rule="evenodd" />
-                              <g filter="url(#filter0_d_374_135180)">
-                                <path fill="#F01515" fill-rule="evenodd" d="M0 9.833h19.6V5.167H0v4.666z" clip-rule="evenodd" />
-                              </g>
-                              <g filter="url(#filter1_d_374_135180)">
-                                <path fill="#FFD521" fill-rule="evenodd" d="M0 14.5h19.6V9.833H0V14.5z" clip-rule="evenodd" />
-                              </g>
-                            </g>
-                            <defs>
-                              <filter id="filter0_d_374_135180" width="19.6" height="4.667" x="0" y="5.167" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-                                <feFlood flood-opacity="0" result="BackgroundImageFix" />
-                                <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
-                                <feOffset />
-                                <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0" />
-                                <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_374_135180" />
-                                <feBlend in="SourceGraphic" in2="effect1_dropShadow_374_135180" result="shape" />
-                              </filter>
-                              <filter id="filter1_d_374_135180" width="19.6" height="4.667" x="0" y="9.833" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
-                                <feFlood flood-opacity="0" result="BackgroundImageFix" />
-                                <feColorMatrix in="SourceAlpha" result="hardAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" />
-                                <feOffset />
-                                <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0" />
-                                <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_374_135180" />
-                                <feBlend in="SourceGraphic" in2="effect1_dropShadow_374_135180" result="shape" />
-                              </filter>
-                            </defs>
-                          </svg>
-                          Germany (+49)
-                        </span>
-                      </button>
-                    </li>
-                    <li>
-                      <button type="button" class="inline-flex w-full rounded-md px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover-bg" role="menuitem">
-                        <span class="inline-flex items-center">
-                          <svg class="me-2 h-4 w-4" fill="none" viewBox="0 0 20 15">
-                            <rect width="19.1" height="13.5" x=".25" y=".75" fill="#fff" stroke="#F5F5F5" stroke-width=".5" rx="1.75" />
-                            <mask id="a" style="mask-type:luminance" width="20" height="15" x="0" y="0" maskUnits="userSpaceOnUse">
-                              <rect width="19.1" height="13.5" x=".25" y=".75" fill="#fff" stroke="#fff" stroke-width=".5" rx="1.75" />
-                            </mask>
-                            <g mask="url(#a)">
-                              <path fill="#F44653" d="M13.067.5H19.6v14h-6.533z" />
-                              <path fill="#1035BB" fill-rule="evenodd" d="M0 14.5h6.533V.5H0v14z" clip-rule="evenodd" />
-                            </g>
-                          </svg>
-                          France (+33)
-                        </span>
-                      </button>
-                    </li>
-                  </ul>
-                </div>
-                <div class="relative w-full">
-                  <input type="text" id="phone-input" name="phone" value="{{ details_form.phone.value|default_if_none:'' }}" class="z-20 block w-full rounded-e-lg border-s-0 bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" placeholder="123-456-7890" />
-                </div>
-              </div>
               </div>
             </div>
 
-            <div class="sm:col-span-2">
-              <label for="shipping_address" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Shipping address" %}*</label>
-              <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-200 dark:bg-gray-700 dark:ring-gray-600 transition-all focus-within:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] dark:focus-within:shadow-[0_4px_8px_0_rgba(0,0,0/0.5),0_0_2px_1px_rgba(0,0,0/0.3)]">
-                <input type="text" id="shipping_address" name="shipping_address" value="{{ details_form.shipping_address.value|default_if_none:'' }}" class="block w-full rounded-lg bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+            <div id="shipping-details-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-90 overflow-y-auto overflow-x-hidden">
+              <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
+              <div class="relative flex min-h-full items-center justify-center p-4">
+                <div class="relative flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
+                  <div class="flex items-center justify-between border-b border-gray-200 p-5 dark:border-gray-700">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Delivery details" %}</h3>
+                    <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300" data-modal-hide="shipping-details-modal" aria-label="{% translate 'Close' %}">
+                      <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="p-5 overflow-y-auto">
+                    <form id="checkout-details-form" method="post" action="{% url 'cart:checkout_save_details' %}">
+                      {% csrf_token %}
+                      {% include "Cart/includes/checkout_details_fields.html" with details_form=details_form %}
+                    </form>
+                  </div>
+                  <div class="flex items-center justify-end gap-2 border-t border-gray-200 p-5 dark:border-gray-700">
+                    <button type="button" class="btn-press rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer" data-modal-hide="shipping-details-modal">{% translate "Cancel" %}</button>
+                    <button type="button" class="inline-flex items-center justify-center rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-700 cursor-pointer" data-modal-hide="shipping-details-modal">{% translate "Done" %}</button>
+                  </div>
+                </div>
               </div>
-              {% if details_form.shipping_address.errors %}
-                <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_address.errors|striptags }}</p>
-              {% endif %}
             </div>
-          </div>
-          </form>
+          {% else %}
+            <form id="checkout-details-form" method="post" action="{% url 'cart:checkout_save_details' %}">
+              {% csrf_token %}
+              {% include "Cart/includes/checkout_details_fields.html" with details_form=details_form %}
+            </form>
+          {% endif %}
         </div>
         <form id="checkout-form">
         <div class="space-y-4">
@@ -293,20 +88,9 @@
                       </div>
 
                     <div class="ms-4 text-sm">
-                      <span class="block font-medium leading-none text-gray-900 dark:text-white line-clamp-2 wrap-break-word" title="{{ payment.name }}">
+                      <span class="block font-bold leading-snug whitespace-normal text-gray-900 dark:text-white wrap-break-word" title="{{ payment.name }}">
                         {{ payment.name }}
                         </span>
-                        {% if payment.additional_fees > 0 %}
-                         <p class="mt-1 text-subtitle">
-                              +<span 
-                                  data-price="{{ payment.additional_fees }}" 
-                                  data-currency="{{ site_currency }}"
-                              >
-                                  {{ payment.additional_fees }}
-                              </span>
-                          {% translate "payment fee" %}
-                            </p>
-                        {% endif %}
                         {% if payment.default_payment_time %}
                          <p class="mt-1 text-subtitle">
                           {% blocktranslate with days=payment.default_payment_time %}Payment in days: {{ days }}{% endblocktranslate %}
@@ -339,7 +123,7 @@
                     </div>
 
                     <div class="ms-4 text-sm">
-                        <span class="block font-medium leading-none text-gray-900 dark:text-white line-clamp-2 wrap-break-word" title="{% if method.price == 0 or method.free_from and cart.subtotal >= method.free_from %}{% blocktranslate with name=method.name %}Free Delivery - {{ name }}{% endblocktranslate %}{% else %}{{ method.price|floatformat:2 }} {{ site_currency }} - {{ method.name }}{% endif %}">
+                        <span class="block font-bold leading-snug whitespace-normal text-gray-900 dark:text-white wrap-break-word" title="{% if method.price == 0 or method.free_from and cart.subtotal >= method.free_from %}{% blocktranslate with name=method.name %}Free Delivery - {{ name }}{% endblocktranslate %}{% else %}{{ method.price|floatformat:2 }} {{ site_currency }} - {{ method.name }}{% endif %}">
                         {% if method.price == 0 or method.free_from and cart.subtotal >= method.free_from %}
                           {% blocktranslate with name=method.name %}Free Delivery - {{ name }}{% endblocktranslate %}
                         {% else %}
@@ -364,15 +148,15 @@
         </form>
       </div>
 
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg bg-white p-4 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-        {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
+      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg bg-white p-4 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md shadow-[0_2px_8px_rgba(0,0,0,0.08)] lg:sticky lg:top-24 lg:self-start">
+        {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal tax_total=tax_total discount_total=discount_total delivery_cost=delivery_cost payment_cost=payment_cost total=total show_delivery_cost=True show_payment_cost=True %}
 
         <div class="space-y-3">
-          <button type="submit" form="checkout-details-form" data-nav-loading-btn class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
-                <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <button id="proceed-to-summary-btn" type="submit" form="checkout-details-form" data-nav-loading-btn class="relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer disabled:opacity-60 disabled:pointer-events-none">
+                <span class="pr-7">{% translate "Review Order" %}</span>
+                <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
                 </svg>
-                <span>{% translate "Proceed to Summary" %}</span>
           </button>
             <a href="/cart/" class="btn-press flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
                 {% translate "Return to Cart" %}

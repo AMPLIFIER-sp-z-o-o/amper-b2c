@@ -1,0 +1,125 @@
+{% load i18n %}
+
+{% if details_form.non_field_errors %}
+  <div class="rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700 dark:bg-red-900/20 dark:text-red-200">
+    {{ details_form.non_field_errors|striptags }}
+  </div>
+{% endif %}
+
+<div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+
+  <div>
+    <label for="first_name" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "First name" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="first_name" name="first_name" value="{{ details_form.first_name.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.first_name.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.first_name.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label for="last_name" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Last name" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="last_name" name="last_name" value="{{ details_form.last_name.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.last_name.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.last_name.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="company" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Company" %}</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="company" name="company" value="{{ details_form.company.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" />
+    </div>
+  </div>
+
+  <div>
+    <label for="phone_country_code" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Country code" %}*</label>
+    <div class="rounded-xl bg-gray-100 dark:bg-gray-700">
+      <select id="phone_country_code" name="phone_country_code" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 focus:ring-0" required>
+        <option value="+48" selected>PL (+48)</option>
+      </select>
+    </div>
+    {% if details_form.phone_country_code.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.phone_country_code.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label for="phone_number" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Mobile phone" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="phone_number" name="phone_number" value="{{ details_form.phone_number.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.phone_number.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.phone_number.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="email" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Email" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="email" id="email" name="email" value="{{ details_form.email.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.email.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.email.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="country_display" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Country" %}*</label>
+    <div id="country_display" class="rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+      {% translate "Poland" %}
+    </div>
+  </div>
+
+  <div class="sm:col-span-2">
+    <label for="shipping_street" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Street" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="shipping_street" name="shipping_street" value="{{ details_form.shipping_street.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.shipping_street.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_street.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label for="shipping_building_number" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Building number" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="shipping_building_number" name="shipping_building_number" value="{{ details_form.shipping_building_number.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.shipping_building_number.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_building_number.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <label for="shipping_apartment_number" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Apartment number" %}</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="shipping_apartment_number" name="shipping_apartment_number" value="{{ details_form.shipping_apartment_number.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" />
+    </div>
+  </div>
+
+  <div>
+    <label for="shipping_postal_code" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "Postal code" %}*</label>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="shipping_postal_code" name="shipping_postal_code" value="{{ details_form.shipping_postal_code.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.shipping_postal_code.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_postal_code.errors|striptags }}</p>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="mb-2 flex items-center gap-2">
+      <label for="shipping_city" class="block text-sm font-medium text-gray-700 dark:text-gray-200">{% translate "City" %}*</label>
+    </div>
+    <div class="rounded-xl bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-700 transition-all focus-within:shadow-[0_8px_24px_rgba(0,0,0,0.12)]">
+      <input type="text" id="shipping_city" name="shipping_city" value="{{ details_form.shipping_city.value|default_if_none:'' }}" class="block w-full rounded-xl bg-transparent border-none p-2.5 text-sm text-gray-700 dark:text-gray-200 placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:ring-0" required />
+    </div>
+    {% if details_form.shipping_city.errors %}
+      <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.shipping_city.errors|striptags }}</p>
+    {% endif %}
+  </div>
+</div>

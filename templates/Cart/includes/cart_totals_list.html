@@ -14,10 +14,10 @@
       </dl>
     {% endif %}
 
-    {% if show_payment_cost %}
+    {% if discount_total %}
       <dl class="flex items-center justify-between gap-4 py-3">
-        <dt class="text-subtitle">{% translate "Payment Fee" %}</dt>
-        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-payment-cost data-price="{{ payment_cost }}" data-currency="{{ site_currency }}">{{ payment_cost }}</dd>
+        <dt class="text-subtitle">{% translate "Discount" %}</dt>
+        <dd class="text-base font-semibold text-gray-900 dark:text-white" data-discount-total data-price="{{ discount_total }}" data-currency="{{ site_currency }}">-{{ discount_total }}</dd>
       </dl>
     {% endif %}
 

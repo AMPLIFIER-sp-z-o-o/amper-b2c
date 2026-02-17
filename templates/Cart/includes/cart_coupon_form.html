@@ -1,0 +1,44 @@
+{% load i18n %}
+
+<div class="space-y-3">
+  <div class="flex items-center justify-between gap-3">
+    <p class="text-subtitle">{% translate "Promo code" %}</p>
+    <span data-coupon-code-display class="text-subtitle{% if not cart or not cart.coupon_code %} hidden{% endif %}">
+      {% if cart and cart.coupon_code %}{{ cart.coupon_code }}{% endif %}
+    </span>
+  </div>
+
+  <div class="flex items-stretch gap-2">
+    <form method="post" action="{% url 'cart:apply_coupon' %}" class="flex-1" data-apply-coupon-form>
+      {% csrf_token %}
+      <div class="flex items-stretch gap-2">
+        <input
+          type="text"
+          name="coupon_code"
+          value="{% if cart and cart.coupon_code %}{{ cart.coupon_code }}{% endif %}"
+          placeholder="{% translate 'Enter code' %}"
+          class="w-full rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-900 border-none focus:bg-white focus:ring-0 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all duration-150 ease-in dark:bg-gray-700 dark:text-white dark:focus:bg-gray-600"
+          autocomplete="off"
+        />
+        <button
+          type="submit"
+          data-apply-coupon-btn
+          class="inline-flex items-center justify-center rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-700 cursor-pointer"
+        >
+          {% translate "Apply" %}
+        </button>
+      </div>
+    </form>
+
+    <form method="post" action="{% url 'cart:remove_coupon' %}" data-remove-coupon-form class="{% if not cart or not cart.coupon_code %}hidden{% endif %}">
+      {% csrf_token %}
+      <button
+        type="submit"
+        data-remove-coupon-btn
+        class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+      >
+        {% translate "Remove" %}
+      </button>
+    </form>
+  </div>
+</div>

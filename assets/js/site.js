@@ -520,8 +520,11 @@ function btnLoading(btn) {
       btn.dataset.btnGapAdded = "1";
     }
   }
-  // Hide existing SVG icon (direct child) to replace with spinner
-  const existingIcon = btn.querySelector(":scope > svg");
+  // Hide existing SVG icon (direct child) to replace with spinner.
+  // Allow opting out for icons that must stay visible (e.g. cart/checkout arrows).
+  const existingIcon = btn.querySelector(
+    ":scope > svg:not([data-keep-on-loading])",
+  );
   if (existingIcon) {
     existingIcon.dataset.btnHidden = "1";
     existingIcon.style.display = "none";
@@ -1701,7 +1704,7 @@ function showToast(message, type = "success") {
   toast.id = toastId;
   toast.setAttribute("role", "alert");
   toast.className =
-    "flex items-center w-full max-w-xs p-4 mb-4 text-gray-900 bg-white rounded-lg shadow-lg dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
+    "relative overflow-visible flex items-center w-full max-w-xs p-4 pr-10 mb-4 text-gray-900 bg-white rounded-lg shadow-lg dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
   toast.innerHTML = `
     <div class="${iconWrapperClass}">
       <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
@@ -1711,6 +1714,20 @@ function showToast(message, type = "success") {
     </div>
     <div class="ms-3 text-sm font-medium">${message}</div>
   `;
+
+  const closeBtn = document.createElement("button");
+  closeBtn.type = "button";
+  closeBtn.setAttribute("aria-label", "Close");
+  closeBtn.className =
+    "absolute -right-3 -top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-900 shadow-md hover-bg btn-press border border-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-700";
+  closeBtn.innerHTML =
+    '<svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 18 6M6 6l12 12"/></svg>';
+  closeBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    removeToast();
+  });
+  toast.appendChild(closeBtn);
 
   toastContainer.appendChild(toast);
 

@@ -29,17 +29,57 @@
                         {% for item in group.items %}
                             {% if item.has_permission %}
                                 <li>
-                                    <a href="{% if item.link_callback %}{{ item.link_callback }}{% else %}{{ item.link }}{% endif %}" class="flex items-center pr-3 rounded-default hover:text-primary-600 dark:hover:text-primary-500 {% if item.active %}bg-base-100 font-semibold text-primary-600 dark:bg-white/6 dark:text-primary-500 active{% endif %}" style="padding-left: 38px !important; font-size: 14px !important; height: 32px !important;">
-                                        {% if item.icon %}
-                                            <span class="material-symbols-outlined md-18 mr-3 w-[18px]">
-                                                {{ item.icon }}
-                                            </span>
-                                        {% endif %}
+                                    {% if item|index:'items' %}
+                                        {% has_nav_item_active item|index:'items' as has_active_child %}
 
-                                        <span>{{ item.title|safe }}</span>
+                                        <div x-data="{ subOpen: {% if has_active_child %}true{% else %}false{% endif %} }">
+                                            <button type="button" class="w-full flex items-center pr-3 rounded-default hover:text-primary-600 dark:hover:text-primary-500 {% if has_active_child %}bg-base-100 font-semibold text-primary-600 dark:bg-white/6 dark:text-primary-500 active{% endif %}" style="padding-left: 38px !important; font-size: 14px !important; height: 32px !important;" x-on:click="subOpen = !subOpen">
+                                                {% if item.icon %}
+                                                    <span class="material-symbols-outlined md-18 mr-3 w-[18px]">
+                                                        {{ item.icon }}
+                                                    </span>
+                                                {% endif %}
 
-                                        {% include "unfold/helpers/app_list_badge.html" with item=item %}
-                                    </a>
+                                                <span class="text-left">{{ item.title|safe }}</span>
+
+                                                {% include "unfold/helpers/app_list_badge.html" with item=item %}
+
+                                                <span class="material-symbols-outlined ml-auto transition-all" x-bind:class="{ 'rotate-90': subOpen }">chevron_right</span>
+                                            </button>
+
+                                            <ol class="flex flex-col gap-1" x-cloak x-show="subOpen">
+                                                {% for subitem in item|index:'items' %}
+                                                    {% if subitem.has_permission %}
+                                                        <li>
+                                                            <a href="{% if subitem.link_callback %}{{ subitem.link_callback }}{% else %}{{ subitem.link }}{% endif %}" class="flex items-center pr-3 rounded-default hover:text-primary-600 dark:hover:text-primary-500 {% if subitem.active %}bg-base-100 font-semibold text-primary-600 dark:bg-white/6 dark:text-primary-500 active{% endif %}" style="padding-left: 58px !important; font-size: 14px !important; height: 32px !important;">
+                                                                {% if subitem.icon %}
+                                                                    <span class="material-symbols-outlined md-18 mr-3 w-[18px]">
+                                                                        {{ subitem.icon }}
+                                                                    </span>
+                                                                {% endif %}
+
+                                                                <span>{{ subitem.title|safe }}</span>
+
+                                                                {% include "unfold/helpers/app_list_badge.html" with item=subitem %}
+                                                            </a>
+                                                        </li>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </ol>
+                                        </div>
+                                    {% else %}
+                                        <a href="{% if item.link_callback %}{{ item.link_callback }}{% else %}{{ item.link }}{% endif %}" class="flex items-center pr-3 rounded-default hover:text-primary-600 dark:hover:text-primary-500 {% if item.active %}bg-base-100 font-semibold text-primary-600 dark:bg-white/6 dark:text-primary-500 active{% endif %}" style="padding-left: 38px !important; font-size: 14px !important; height: 32px !important;">
+                                            {% if item.icon %}
+                                                <span class="material-symbols-outlined md-18 mr-3 w-[18px]">
+                                                    {{ item.icon }}
+                                                </span>
+                                            {% endif %}
+
+                                            <span>{{ item.title|safe }}</span>
+
+                                            {% include "unfold/helpers/app_list_badge.html" with item=item %}
+                                        </a>
+                                    {% endif %}
                                 </li>
                             {% endif %}
                         {% endfor %}

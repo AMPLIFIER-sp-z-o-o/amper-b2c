@@ -7,7 +7,7 @@ from django.contrib.messages import get_messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone, translation
 from django.utils.html import format_html
@@ -19,9 +19,9 @@ from apps.api.models import UserAPIKey
 from apps.utils.timezones import is_valid_timezone
 
 from .adapter import user_has_valid_totp_device
-from .forms import AccountDetailsForm, CustomUserChangeForm, DeleteAccountForm, EmailChangeForm
+from .forms import AccountDetailsForm, CustomUserChangeForm, DeleteAccountForm, EmailChangeForm, ShippingAddressForm
 from .helpers import require_email_confirmation, user_has_confirmed_email_address
-from .models import CustomUser, PendingEmailChange
+from .models import CustomUser, PendingEmailChange, ShippingAddress
 
 # Cookie name for storing browser timezone
 TIMEZONE_COOKIE_NAME = "amplifier_timezone"
@@ -218,13 +218,117 @@ def account_details(request):
 
 @login_required
 def account_orders(request):
-    """Orders page — placeholder for future implementation."""
+    """Orders page — shows a list of the user's orders."""
+    from apps.orders.models import Order
+
+    orders = (
+        Order.objects.filter(customer=request.user)
+        .only("id", "created_at", "total", "currency", "status", "tracking_token")
+        .order_by("-created_at")
+    )
     return render(
         request,
         "account/account_orders.html",
         {
             "active_tab": "orders",
             "page_title": _("Orders"),
+            "orders": orders,
+        },
+    )
+
+
+@login_required
+def account_addresses(request):
+    """Shipping addresses page — manage saved checkout addresses."""
+
+    addresses_qs = ShippingAddress.objects.filter(user=request.user)
+    addresses = list(addresses_qs.order_by("-is_default", "-updated_at", "-id"))
+
+    edit_id = request.GET.get("edit")
+    editing_address = None
+    if edit_id:
+        try:
+            editing_address = addresses_qs.get(pk=int(edit_id))
+        except (ValueError, TypeError, ShippingAddress.DoesNotExist):
+            editing_address = None
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "save").strip().lower()
+
+        if action == "delete":
+            address_id = request.POST.get("address_id")
+            address = get_object_or_404(addresses_qs, pk=address_id)
+            was_default = bool(address.is_default)
+            address.delete()
+
+            if was_default:
+                remaining = addresses_qs.order_by("-updated_at", "-id")
+                replacement = remaining.first()
+                if replacement and not remaining.filter(is_default=True).exists():
+                    remaining.update(is_default=False)
+                    ShippingAddress.objects.filter(pk=replacement.pk).update(is_default=True)
+
+            messages.success(request, _("Address removed."))
+            return redirect("users:account_addresses")
+
+        if action == "set_default":
+            address_id = request.POST.get("address_id")
+            address = get_object_or_404(addresses_qs, pk=address_id)
+            addresses_qs.update(is_default=False)
+            ShippingAddress.objects.filter(pk=address.pk).update(is_default=True)
+            messages.success(request, _("Default address updated."))
+            return redirect("users:account_addresses")
+
+        # Save (create or update)
+        instance = None
+        address_id = request.POST.get("address_id")
+        if address_id:
+            try:
+                instance = addresses_qs.get(pk=int(address_id))
+            except (ValueError, TypeError, ShippingAddress.DoesNotExist):
+                instance = None
+
+        form = ShippingAddressForm(request.POST, instance=instance)
+        if form.is_valid():
+            obj = form.save(commit=False)
+            obj.user = request.user
+
+            is_first = not addresses_qs.exists() if instance is None else False
+            if is_first and not obj.is_default:
+                obj.is_default = True
+
+            obj.save()
+
+            if obj.is_default:
+                addresses_qs.exclude(pk=obj.pk).update(is_default=False)
+
+            messages.success(request, _("Address saved."))
+            return redirect("users:account_addresses")
+
+        # invalid form: fall through and render with errors
+        return render(
+            request,
+            "account/account_addresses.html",
+            {
+                "active_tab": "addresses",
+                "page_title": _("Addresses"),
+                "addresses": addresses,
+                "form": form,
+                "editing_address": instance,
+            },
+            status=400,
+        )
+
+    form = ShippingAddressForm(instance=editing_address)
+    return render(
+        request,
+        "account/account_addresses.html",
+        {
+            "active_tab": "addresses",
+            "page_title": _("Addresses"),
+            "addresses": addresses,
+            "form": form,
+            "editing_address": editing_address,
         },
     )
 

@@ -5,19 +5,5 @@
     "default_payment_time": 4,
     "additional_fees": null,
     "is_active": true
-  },
-  {
-    "id": 2,
-    "name": "Cash",
-    "default_payment_time": null,
-    "additional_fees": null,
-    "is_active": true
-  },
-  {
-    "id": 3,
-    "name": "Cash on delivery",
-    "default_payment_time": null,
-    "additional_fees": "6.00",
-    "is_active": true
   }
 ]

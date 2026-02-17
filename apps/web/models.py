@@ -213,6 +213,14 @@ class SiteSettings(SingletonModel):
         help_text=_("Currency symbol displayed on prices. No conversion is performed - this is display only."),
     )
 
+    vat_rate_percent = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=0,
+        verbose_name=_("VAT rate percent"),
+        help_text=_("Store-wide VAT rate (percent). Example: 23 means 23%."),
+    )
+
     class Meta:
         verbose_name = _("Site settings")
         verbose_name_plural = _("Site settings")

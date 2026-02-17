@@ -7,6 +7,7 @@ urlpatterns = [
     path("profile/", views.profile, name="user_profile"),
 
     path("account/", views.account_details, name="account_details"),
+    path("account/addresses/", views.account_addresses, name="account_addresses"),
     path("account/orders/", views.account_orders, name="account_orders"),
     path("account/delete/", views.account_delete, name="account_delete"),
     path("account/email/change/", views.account_request_email_change, name="account_request_email_change"),

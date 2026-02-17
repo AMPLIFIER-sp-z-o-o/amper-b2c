@@ -75,7 +75,7 @@
 
               <dl class="pt-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
                 <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.shipping_address }}, {{ order.shipping_city }}, {{ order.shipping_country }}</dd>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.shipping_address }}, {{ order.shipping_postal_code }} {{ order.shipping_city }}</dd>
               </dl>
             </div>
           </div>

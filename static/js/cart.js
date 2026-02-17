@@ -3,6 +3,76 @@ window.Cart = (function () {
     const INLINE_SPINNER_SVG =
         '<svg class="w-5 h-5 animate-spin text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
 
+    function getCartLinesLabelForCount(el, count) {
+        const ds = el?.dataset || {};
+        const lang =
+            document.documentElement.getAttribute("lang") ||
+            navigator.language ||
+            "en";
+
+        let category = "other";
+        try {
+            category = new Intl.PluralRules(lang).select(count);
+        } catch (e) {
+            category = count === 1 ? "one" : "other";
+        }
+
+        const byCategory = {
+            one: ds.labelOne,
+            few: ds.labelFew,
+            many: ds.labelMany,
+            other: ds.labelOther,
+        };
+
+        const label = (byCategory[category] || ds.labelItems || "items").trim();
+        return label || "items";
+    }
+
+    function updateProceedToSummaryDisabledState() {
+        const btn = document.getElementById("proceed-to-summary-btn");
+        const form = document.getElementById("checkout-details-form");
+        if (!btn || !form) return;
+
+        const hasDelivery = !!document.querySelector('input[name="delivery-method"]:checked');
+        const hasPayment = !!document.querySelector('input[name="payment-method"]:checked');
+        const isValid = typeof form.checkValidity === "function" ? form.checkValidity() : true;
+        const canProceed = Boolean(isValid && hasDelivery && hasPayment);
+
+        btn.disabled = !canProceed;
+        btn.setAttribute("aria-disabled", String(!canProceed));
+    }
+
+    function initCheckoutCountryReload() {
+        const countrySelect = document.getElementById("shipping_country");
+        if (!countrySelect) return;
+
+        // Only applies to whitelist-backed select (when a ShippingCountry list exists).
+        if (countrySelect.tagName !== "SELECT") return;
+
+        countrySelect.addEventListener("change", () => {
+            // Reload checkout so available delivery/payment methods and tax totals update.
+            const value = String(countrySelect.value || "").trim();
+            const url = new URL(window.location.href);
+            if (value) {
+                url.searchParams.set("country", value);
+            } else {
+                url.searchParams.delete("country");
+            }
+            window.location.href = url.toString();
+        });
+    }
+
+    function initCartCountrySubmit() {
+        const countrySelect = document.getElementById("cart-shipping-country");
+        if (!countrySelect) return;
+        if (countrySelect.tagName !== "SELECT") return;
+
+        countrySelect.addEventListener("change", () => {
+            const form = countrySelect.closest("form");
+            if (form) form.submit();
+        });
+    }
+
     function setCheckoutInputsDisabled(disabled) {
         document
             .querySelectorAll('input[name="delivery-method"], input[name="payment-method"]')
@@ -152,6 +222,8 @@ window.Cart = (function () {
         const totalEls = document.querySelectorAll('[data-cart-total]');
         const subtotalEls = document.querySelectorAll('[data-cart-subtotal]');
         const deliveryEls = document.querySelectorAll('[data-delivery-cost]');
+        const taxEls = document.querySelectorAll('[data-tax-total]');
+        const discountEls = document.querySelectorAll('[data-discount-total]');
         const cartLinesNumber =  document.querySelectorAll('[data-cart-lines-number]');
         const navCartLinesContainer = document.querySelector('#nav-cart-lines');
 
@@ -247,9 +319,24 @@ window.Cart = (function () {
                 el.dataset.price = data.delivery_cost;
                 el.textContent = data.delivery_cost;
             });
+
+            if (data.tax_total !== undefined) {
+                taxEls.forEach(el => {
+                    el.dataset.price = data.tax_total;
+                    el.textContent = data.tax_total;
+                });
+            }
+
+            if (data.discount_total !== undefined) {
+                discountEls.forEach(el => {
+                    el.dataset.price = data.discount_total;
+                    el.textContent = `-${data.discount_total}`;
+                });
+            }
+
             cartLinesNumber.forEach(el => {
-                const label = el.dataset.labelItems || "items";
                 const count = parseInt(data.lines_count, 10) || 0;
+                const label = getCartLinesLabelForCount(el, count);
 
                 el.dataset.lines_number = String(count);
                 el.textContent = `(${count} ${label})`;
@@ -551,6 +638,48 @@ window.Cart = (function () {
         window.location.href = cartHref;
     });
 
+    // Keep the checkout CTA disabled until the form is valid and delivery/payment are selected.
+    document.addEventListener(
+        "input",
+        function (e) {
+            if (!e.target.closest("#checkout-details-form")) return;
+            updateProceedToSummaryDisabledState();
+        },
+        true
+    );
+
+    document.addEventListener(
+        "change",
+        function (e) {
+            const el = e.target;
+            if (
+                el.closest("#checkout-details-form") ||
+                el.matches('input[name="delivery-method"], input[name="payment-method"]')
+            ) {
+                updateProceedToSummaryDisabledState();
+            }
+        },
+        true
+    );
+
+    // Initial state on page load (if present)
+    updateProceedToSummaryDisabledState();
+    initCheckoutCountryReload();
+    initCartCountrySubmit();
+
+    // Initialize blur-sync baseline so focusing and blurring without changes doesn't trigger a sync/toast.
+    document.addEventListener(
+        "focusin",
+        function (e) {
+            const input = e.target;
+            if (!input.matches("[data-counter-input]")) return;
+            const container = input.closest("[data-counter]");
+            if (!container) return;
+            container.dataset.syncedValue = String(input.value ?? "");
+        },
+        true
+    );
+
     document.addEventListener("blur", function(e) {
         const input = e.target;
         if (!input.matches("[data-counter-input]")) return;
@@ -567,6 +696,10 @@ window.Cart = (function () {
 
         // Avoid duplicate sync when value was already updated via +/- click
         const syncedValue = container.dataset.syncedValue;
+        if (syncedValue === undefined) {
+            container.dataset.syncedValue = String(value);
+            return;
+        }
         if (syncedValue !== undefined && syncedValue === String(value)) {
             return;
         }
@@ -606,12 +739,32 @@ window.Cart = (function () {
         })
         .then(res => res.json())
         .then(data => {
-            if (!data.success) return;
+            if (!data.success) {
+                if (data.message) {
+                    showCartError(data.message);
+                }
+                return;
+            }
 
             document.querySelectorAll("[data-cart-total]").forEach(el => {
                 el.textContent = data.total;
                 el.dataset.price = data.total;
             });
+
+            if (data.tax_total !== undefined) {
+                document.querySelectorAll("[data-tax-total]").forEach(el => {
+                    el.textContent = data.tax_total;
+                    el.dataset.price = data.tax_total;
+                });
+            }
+
+            if (data.discount_total !== undefined) {
+                document.querySelectorAll("[data-discount-total]").forEach(el => {
+                    el.textContent = `-${data.discount_total}`;
+                    el.dataset.price = data.discount_total;
+                });
+            }
+
             document.querySelectorAll("[data-delivery-cost]").forEach(el => {
                 el.textContent = data.delivery_cost;
                 el.dataset.price = data.delivery_cost;
@@ -651,12 +804,31 @@ window.Cart = (function () {
         })
         .then(res => res.json())
         .then(data => {
-            if (!data.success) return;
+            if (!data.success) {
+                if (data.message) {
+                    showCartError(data.message);
+                }
+                return;
+            }
 
             document.querySelectorAll("[data-cart-total]").forEach(el => {
                 el.textContent = data.total;
                 el.dataset.price = data.total;
             });
+
+            if (data.tax_total !== undefined) {
+                document.querySelectorAll("[data-tax-total]").forEach(el => {
+                    el.textContent = data.tax_total;
+                    el.dataset.price = data.tax_total;
+                });
+            }
+
+            if (data.discount_total !== undefined) {
+                document.querySelectorAll("[data-discount-total]").forEach(el => {
+                    el.textContent = `-${data.discount_total}`;
+                    el.dataset.price = data.discount_total;
+                });
+            }
 
             document.querySelectorAll("[data-delivery-cost]").forEach(el => {
                 el.textContent = data.delivery_cost;
@@ -676,6 +848,122 @@ window.Cart = (function () {
             setProceedToSummaryLoading(false);
             setCheckoutInputsDisabled(false);
         });
+    });
+
+    // Clear cart (standard POST form submit)
+    document.addEventListener("submit", function (e) {
+        const form = e.target;
+        if (!form || !(form instanceof HTMLFormElement)) return;
+        if (!form.matches("[data-clear-cart-form]")) return;
+
+        const btn = form.querySelector("[data-clear-cart-btn]");
+        if (btn && typeof window.btnLoading === "function") {
+            window.btnLoading(btn);
+        }
+    });
+
+    // Apply/remove coupon (standard POST form submit)
+    document.addEventListener("submit", function (e) {
+        const form = e.target;
+        if (!form || !(form instanceof HTMLFormElement)) return;
+        if (!form.matches("[data-apply-coupon-form], [data-remove-coupon-form]")) return;
+
+        e.preventDefault();
+
+        const btn =
+            form.querySelector("[data-apply-coupon-btn]") ||
+            form.querySelector("[data-remove-coupon-btn]");
+
+        if (btn && btn.classList.contains("btn-loading")) return;
+        if (btn && typeof window.btnLoading === "function") {
+            window.btnLoading(btn);
+        }
+
+        fetch(form.action, {
+            method: "POST",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+                "X-CSRFToken": getCSRFToken(),
+            },
+            body: new FormData(form),
+        })
+            .then((res) =>
+                res
+                    .json()
+                    .catch(() => null)
+                    .then((data) => ({ ok: res.ok, status: res.status, data }))
+            )
+            .then(({ ok, data }) => {
+                if (!data) {
+                    throw new Error("Invalid response");
+                }
+
+                const type = data.message_type || (ok ? "success" : "error");
+                if (typeof window.showToast === "function" && data.message) {
+                    window.showToast(data.message, type);
+                }
+
+                // Update totals
+                if (data.cart_total !== undefined) {
+                    document.querySelectorAll("[data-cart-total]").forEach((el) => {
+                        el.textContent = data.cart_total;
+                        el.dataset.price = data.cart_total;
+                    });
+                }
+                if (data.cart_subtotal !== undefined) {
+                    document.querySelectorAll("[data-cart-subtotal]").forEach((el) => {
+                        el.textContent = data.cart_subtotal;
+                        el.dataset.price = data.cart_subtotal;
+                    });
+                }
+                if (data.discount_total !== undefined) {
+                    document.querySelectorAll("[data-discount-total]").forEach((el) => {
+                        el.textContent = `-${data.discount_total}`;
+                        el.dataset.price = data.discount_total;
+                    });
+                }
+                if (data.delivery_cost !== undefined) {
+                    document.querySelectorAll("[data-delivery-cost]").forEach((el) => {
+                        el.textContent = data.delivery_cost;
+                        el.dataset.price = data.delivery_cost;
+                    });
+                }
+
+                // Update promo code UI (no full reload)
+                const couponCode = (data.coupon_code || "").trim();
+                const display = document.querySelector("[data-coupon-code-display]");
+                const removeForm = document.querySelector("[data-remove-coupon-form]");
+                const applyForm = document.querySelector("[data-apply-coupon-form]");
+                const input = applyForm?.querySelector("input[name='coupon_code']");
+
+                if (display) {
+                    display.textContent = couponCode;
+                    display.classList.toggle("hidden", !couponCode);
+                }
+                if (removeForm) {
+                    removeForm.classList.toggle("hidden", !couponCode);
+                }
+                if (input) {
+                    input.value = couponCode;
+                }
+
+                if (typeof window.formatPrices === "function") {
+                    window.formatPrices();
+                }
+
+                return data;
+            })
+            .catch((err) => {
+                console.error(err);
+                if (typeof window.showToast === "function") {
+                    window.showToast("Failed to apply promo code.", "error");
+                }
+            })
+            .finally(() => {
+                if (btn && typeof window.btnReset === "function") {
+                    window.btnReset(btn);
+                }
+            });
     });
 
 

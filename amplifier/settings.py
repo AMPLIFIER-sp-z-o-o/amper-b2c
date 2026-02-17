@@ -111,6 +111,7 @@ PROJECT_APPS = [
     "apps.support.apps.SupportConfig",
     "apps.cart.apps.CartConfig",
     "apps.favourites.apps.FavouritesConfig",
+    "apps.promotions.apps.PromotionsConfig",
     "apps.orders.apps.OrdersConfig",
 ]
 
@@ -150,47 +151,36 @@ UNFOLD = {
                 ],
             },
             {
-                "title": gettext_lazy("Homepage"),
-                "icon": "home",
+                "title": gettext_lazy("Orders"),
+                "icon": "receipt_long",
                 "collapsible": True,
                 "items": [
                     {
-                        "title": gettext_lazy("Hero Banners"),
-                        "link": reverse_lazy("admin:homepage_bannergroup_changelist"),
+                        "title": gettext_lazy("Orders"),
+                        "link": reverse_lazy("admin:orders_order_changelist"),
                     },
                     {
-                        "title": gettext_lazy("Sections"),
-                        "link": reverse_lazy("admin:homepage_homepagesection_changelist"),
+                        "title": gettext_lazy("Checkout"),
+                        "link": reverse_lazy("admin:app_list", kwargs={"app_label": "cart"}),
+                    },
+                    {
+                        "title": gettext_lazy("Delivery methods"),
+                        "link": reverse_lazy("admin:cart_deliverymethod_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Payment methods"),
+                        "link": reverse_lazy("admin:cart_paymentmethod_changelist"),
                     },
                 ],
             },
             {
-                "title": gettext_lazy("Media Storage"),
-                "icon": "perm_media",
+                "title": gettext_lazy("Promotions"),
+                "icon": "campaign",
                 "collapsible": True,
                 "items": [
                     {
-                        "title": gettext_lazy("Media library"),
-                        "link": reverse_lazy("admin:media_mediafile_changelist"),
-                    },
-                    {
-                        "title": gettext_lazy("Storage settings"),
-                        "link": reverse_lazy("admin:media_mediastoragesettings_changelist"),
-                    },
-                ],
-            },
-            {
-                "title": gettext_lazy("Social accounts"),
-                "icon": "share",
-                "collapsible": True,
-                "items": [
-                    {
-                        "title": gettext_lazy("Accounts"),
-                        "link": reverse_lazy("admin:socialaccount_socialaccount_changelist"),
-                    },
-                    {
-                        "title": gettext_lazy("Applications"),
-                        "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
+                        "title": gettext_lazy("Coupons"),
+                        "link": reverse_lazy("admin:promotions_coupon_changelist"),
                     },
                 ],
             },
@@ -210,6 +200,21 @@ UNFOLD = {
                     {
                         "title": gettext_lazy("Shopping lists"),
                         "link": reverse_lazy("admin:favourites_wishlist_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Homepage"),
+                "icon": "home",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Hero Banners"),
+                        "link": reverse_lazy("admin:homepage_bannergroup_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Sections"),
+                        "link": reverse_lazy("admin:homepage_homepagesection_changelist"),
                     },
                 ],
             },
@@ -249,6 +254,36 @@ UNFOLD = {
                     {
                         "title": gettext_lazy("System Settings"),
                         "link": reverse_lazy("admin:web_systemsettings_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Media Storage"),
+                "icon": "perm_media",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Media library"),
+                        "link": reverse_lazy("admin:media_mediafile_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Storage settings"),
+                        "link": reverse_lazy("admin:media_mediastoragesettings_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": gettext_lazy("Social accounts"),
+                "icon": "share",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Accounts"),
+                        "link": reverse_lazy("admin:socialaccount_socialaccount_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Applications"),
+                        "link": reverse_lazy("admin:socialaccount_socialapp_changelist"),
                     },
                 ],
             },

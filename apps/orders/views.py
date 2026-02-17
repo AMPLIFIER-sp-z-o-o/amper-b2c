@@ -13,14 +13,12 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.cart.models import Cart
-from apps.cart.views import _annotate_lines_with_stock_issues
+from apps.cart.checkout import CHECKOUT_SESSION_KEY
+from apps.cart.services import _annotate_lines_with_stock_issues, _clear_cart_id, _get_cart_from_request
 from apps.utils.tasks import send_email_task
 from apps.web.models import SiteSettings
 
 from .models import Order, OrderLine
-
-
-CHECKOUT_SESSION_KEY = "checkout_details"
 
 
 def _get_site_base_url(request: HttpRequest) -> str:
@@ -65,7 +63,10 @@ def place_order(request: HttpRequest) -> HttpResponse:
     if not cart_id:
         return redirect("cart:cart_page")
 
-    cart = get_object_or_404(Cart, id=cart_id)
+    cart = _get_cart_from_request(request, cart_id)
+    if not cart:
+        response = redirect("cart:cart_page")
+        return _clear_cart_id(request, response=response)
 
     lines = list(cart.lines.select_related("product").all())
     stock_issues = _annotate_lines_with_stock_issues(lines)
@@ -74,10 +75,35 @@ def place_order(request: HttpRequest) -> HttpResponse:
         return redirect("cart:cart_page")
 
     details = request.session.get(CHECKOUT_SESSION_KEY) or {}
-    required = ["full_name", "email", "shipping_country", "shipping_city", "shipping_address"]
+    required = [
+        "first_name",
+        "last_name",
+        "email",
+        "phone_country_code",
+        "phone_number",
+        "shipping_city",
+        "shipping_postal_code",
+        "shipping_street",
+        "shipping_building_number",
+    ]
     if any(not details.get(k) for k in required):
         messages.error(request, _("Please complete your delivery details before placing the order."))
         return redirect("cart:checkout_page")
+
+    # Delivery and payment must be selected before placing the order.
+    if not cart.delivery_method:
+        messages.error(request, _("Please select a delivery method before placing the order."))
+        return redirect("cart:checkout_page")
+    if not cart.payment_method:
+        messages.error(request, _("Please select a payment method before placing the order."))
+        return redirect("cart:checkout_page")
+
+    # Store-wide VAT rate.
+    try:
+        cart.tax_rate_percent = Decimal(SiteSettings.get_settings().vat_rate_percent or 0).quantize(Decimal("0.01"))
+    except Exception:
+        cart.tax_rate_percent = Decimal("0.00")
+    cart.recalculate()
 
     tracking_token = Order.generate_tracking_token()
 
@@ -98,19 +124,40 @@ def place_order(request: HttpRequest) -> HttpResponse:
     except Exception:
         currency = ""
 
+    first_name = (details.get("first_name") or "").strip()
+    last_name = (details.get("last_name") or "").strip()
+    full_name = (" ".join([p for p in (first_name, last_name) if p])).strip()
+
+    phone = (" ".join([
+        (details.get("phone_country_code") or "").strip(),
+        (details.get("phone_number") or "").strip(),
+    ])).strip()
+
+    street = (details.get("shipping_street") or "").strip()
+    building = (details.get("shipping_building_number") or "").strip()
+    apt = (details.get("shipping_apartment_number") or "").strip()
+    address_line = f"{street} {building}".strip()
+    if apt:
+        address_line = f"{address_line}/{apt}".strip()
+
     with transaction.atomic():
         order = Order.objects.create(
             customer=request.user if request.user.is_authenticated else None,
             tracking_token=tracking_token,
             email=details.get("email", ""),
-            full_name=details.get("full_name", ""),
-            phone=details.get("phone", ""),
-            shipping_country=details.get("shipping_country", ""),
+            full_name=full_name,
+            company=(details.get("company") or "").strip(),
+            phone=phone,
+            shipping_postal_code=(details.get("shipping_postal_code") or "").strip(),
             shipping_city=details.get("shipping_city", ""),
-            shipping_address=details.get("shipping_address", ""),
+            shipping_address=address_line,
             delivery_method_name=(cart.delivery_method.name if cart.delivery_method else ""),
             payment_method_name=(cart.payment_method.name if cart.payment_method else ""),
             subtotal=cart.subtotal,
+            tax_rate_percent=cart.tax_rate_percent,
+            tax_total=cart.tax_total,
+            discount_total=cart.discount_total,
+            coupon_code=cart.coupon_code,
             delivery_cost=delivery_cost,
             payment_cost=payment_cost,
             total=cart.total,
@@ -127,7 +174,6 @@ def place_order(request: HttpRequest) -> HttpResponse:
             )
 
         # Clear cart after successful order placement
-        cart.lines.all().delete()
         cart.delete()
 
     request.session.pop("cart_id", None)
