@@ -46,13 +46,13 @@
           <div id="wishlist-sort-dropdown" class="absolute left-0 top-full mt-1 z-50 w-52 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg overflow-hidden opacity-0 scale-95 pointer-events-none transition-all duration-150 ease-out">
             <ul class="py-1 text-sm">
               <li>
-                <button type="button" class="wishlist-sort-option w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer {% if current_sort == 'recent' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}" data-sort="recent" data-wishlist-id="{{ wishlist.id }}">
+                <button type="button" class="wishlist-sort-option w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer {% if current_sort == 'recent' %}bg-gray-100 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}" data-sort="recent" data-wishlist-id="{{ wishlist.id }}">
                   <span>{% translate "Recently added" %}</span>
                   {% if current_sort == 'recent' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
                 </button>
               </li>
               <li>
-                <button type="button" class="wishlist-sort-option w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer {% if current_sort == 'oldest' %}bg-gray-50 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}" data-sort="oldest" data-wishlist-id="{{ wishlist.id }}">
+                <button type="button" class="wishlist-sort-option w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer {% if current_sort == 'oldest' %}bg-gray-100 dark:bg-gray-600 font-bold text-primary-600 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300{% endif %}" data-sort="oldest" data-wishlist-id="{{ wishlist.id }}">
                   <span>{% translate "Oldest" %}</span>
                   {% if current_sort == 'oldest' %}<svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>{% endif %}
                 </button>

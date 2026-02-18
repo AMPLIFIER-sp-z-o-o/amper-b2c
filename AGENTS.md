@@ -166,6 +166,17 @@ When implementing a feature, always check if a similar element already exists. I
 
 ## UI Components & Styling
 
+### Interactive Element Transitions
+
+- **Standard Box Shadow Hover**: For elements that use a card-like appearance (e.g., product cards, cart list items, white-background action buttons in the cart), use a consistent transition:
+  - **Classes**: `transition-all duration-300 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]`
+  - **Purpose**: Provides a smooth, elevated elevation effect that signifies interactivity.
+  - **Note**: Ensure `transition-all` is used to smoothly animate the shadow changes.
+
+### Modal Sizing
+
+- Modal dialogs should not be narrower than **400px** on typical desktop/tablet viewports. Avoid `max-w-sm`/`max-w-xs` for modals; prefer `w-full max-w-[400px]` (exact) or larger (`max-w-md`, `max-w-lg`). Keep `w-full` so modals stay responsive on small screens.
+
 ### Swiper/Slider Components (HTMX-Compatible Pattern)
 
 This project uses [Swiper.js](https://swiperjs.com/) for carousels and sliders. To ensure sliders work correctly with **HTMX partial page updates**, follow these rules:

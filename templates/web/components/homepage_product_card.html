@@ -22,7 +22,7 @@
   </div>
   
   <div class="block pointer-events-none">
-    <div class="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-700">
+    <div class="relative aspect-square w-full shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700">
       {% with product.images.all|first as product_image %}
         {% if product_image %}
           <img
@@ -45,7 +45,7 @@
   
   <div class="mt-3 flex flex-1 flex-col min-w-0 pointer-events-none {% if not product.is_unavailable %}pr-10 sm:pr-12{% endif %}">
     <div class="line-clamp-2 text-sm font-semibold leading-tight tracking-tight text-gray-900 dark:text-white sm:text-base" title="{{ product.name }}">
-      <a href="{{ product.get_absolute_url }}" class="hover:underline">{{ product.name }}</a>
+      <a href="{{ product.get_absolute_url }}" class="pointer-events-auto relative z-10 hover:underline">{{ product.name }}</a>
     </div>
     
     {# Product Attributes - show up to 4 #}

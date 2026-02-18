@@ -1,0 +1,165 @@
+{% load i18n %}
+
+{# Create/Edit List Modal #}
+<div id="list-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl transform transition-all max-h-[90vh] flex flex-col" id="modal-content">
+      <div class="p-6 flex flex-col min-h-0">
+        <div class="flex items-center justify-between mb-6 shrink-0">
+          <h3 id="modal-title" class="text-lg font-bold text-gray-900 dark:text-white">{% translate "Create New List" %}</h3>
+          <button type="button" id="modal-close" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+        <form id="list-form" method="POST" action="{% url 'favourites:create_wishlist' %}">
+          {% csrf_token %}
+          <input type="hidden" name="wishlist_id" id="form-wishlist-id" value="">
+          <div class="mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <label for="list-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">{% translate "List Name" %}</label>
+              <span id="list-name-counter" class="text-xs text-gray-400">0 / 64</span>
+            </div>
+            <input
+              type="text"
+              id="list-name"
+              name="name"
+              required
+              maxlength="64"
+              class="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 border-none rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-0 focus:bg-white dark:focus:bg-gray-600 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all"
+              placeholder="{% translate 'e.g., Birthday Wishlist' %}"
+            >
+            <p class="mt-1 text-xs text-gray-400">{% translate "Name can be up to 64 characters long." %}</p>
+          </div>
+
+          {# Product Picker Section - only shown for new lists #}
+          <div id="product-picker-section" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{% translate "Choose what to add to the list:" %}</label>
+            <div id="product-picker-grid" class="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-52 overflow-y-auto p-1">
+              <div class="flex items-center justify-center py-8 col-span-full text-sm text-gray-400">
+                <svg class="w-5 h-5 animate-spin mr-2" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                {% translate "Loading products..." %}
+              </div>
+            </div>
+          </div>
+
+          <div id="form-error" class="hidden mb-4 p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-lg"></div>
+          <div class="flex gap-3 shrink-0">
+            <button type="button" id="modal-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+              {% translate "Cancel" %}
+            </button>
+            <button type="submit" id="modal-submit" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors cursor-pointer">
+              {% translate "Create List" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Delete Confirmation Modal #}
+<div id="delete-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="delete-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Delete List?" %}</h3>
+        <p class="text-subtitle mb-6">{% translate 'Are you sure you want to delete' %} "<span id="delete-list-name" class="font-semibold"></span>"? {% translate "This action cannot be undone." %}</p>
+        <form id="delete-form" method="POST" action="">
+          {% csrf_token %}
+          <div class="flex gap-3">
+            <button type="button" id="delete-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+              {% translate "Cancel" %}
+            </button>
+            <button type="submit" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+              {% translate "Delete" %}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Remove Products Confirmation Modal #}
+<div id="remove-items-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="remove-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Remove Products?" %}</h3>
+        <p class="text-subtitle mb-6">{% translate "Are you sure you want to remove the selected items from this list?" %}</p>
+        <div class="flex gap-3">
+          <button type="button" id="remove-items-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+            {% translate "Cancel" %}
+          </button>
+          <button type="button" id="remove-items-confirm" class="flex-1 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+            {% translate "Remove" %}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# Copy Items to List Modal #}
+<div id="copy-items-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="copy-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-lg font-bold text-gray-900 dark:text-white">{% translate "Copy to List" %}</h3>
+          <button type="button" id="copy-modal-close" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-2 max-h-80 overflow-y-auto pr-1" id="copy-lists-container">
+          {% for wishlist in wishlists %}
+            {% if active_wishlist_pk and wishlist.id != active_wishlist_pk %}
+            <button type="button" class="w-full text-left p-3 flex items-center gap-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl transition-all group select-list-btn cursor-pointer" data-list-id="{{ wishlist.id }}">
+              <div class="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700 group-hover:scale-105 transition-transform">
+                <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 0-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+              </div>
+              <div>
+                <span class="block text-sm font-semibold text-gray-900 dark:text-white">{{ wishlist.name }}</span>
+                <span class="text-xs text-gray-500">{{ wishlist.items.count }} {% translate "product" %}{{ wishlist.items.count|pluralize }}</span>
+              </div>
+            </button>
+            {% endif %}
+          {% endfor %}
+
+          <button type="button" id="copy-create-new-list" class="w-full text-left p-3 flex items-center gap-3 bg-primary-50 dark:bg-primary-900/20 hover:bg-primary-100 dark:hover:bg-primary-900/40 rounded-xl transition-all group cursor-pointer">
+            <div class="w-10 h-10 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center border border-primary-200 dark:border-primary-800 text-primary-600 group-hover:scale-105 transition-transform">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+              </svg>
+            </div>
+            <span class="text-sm font-semibold text-primary-700 dark:text-primary-400">{% translate "Create New List" %}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

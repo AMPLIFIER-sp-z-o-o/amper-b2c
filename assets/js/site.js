@@ -1261,7 +1261,7 @@ function showWishlistPicker(btn, productId, wishlists) {
         Add new list
       </button>
     </div>
-    <div id="wishlist-picker-create-form" class="hidden px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+    <div id="wishlist-picker-create-form" class="hidden px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-100 dark:bg-gray-700/30">
       <div class="flex gap-2">
         <input type="text" id="wishlist-picker-new-name" class="flex-1 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-0 focus:border-gray-300 dark:focus:border-gray-500 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.08)]" placeholder="List name..." maxlength="64" />
         <button type="button" id="wishlist-picker-create-submit" class="px-3 py-2 text-sm font-semibold text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors cursor-pointer">Save</button>

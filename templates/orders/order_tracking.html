@@ -2,7 +2,7 @@
 {% load i18n %}
 
 {% block body %}
-<section id="order-tracking-page-{{ order.id }}" class="order-flow-enter bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+<section id="order-tracking-page-{{ order.id }}" class="order-flow-enter bg-gray-100 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
     <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
       {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
@@ -36,7 +36,7 @@
         {% endfor %}
       </div>
 
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-100 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
+      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
         <div class="p-6">
           <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order Details" %}</h4>
           <div class="flow-root">

@@ -2,12 +2,14 @@
 {% load i18n %}
 
 {% block body %}
-<section id="cart-page" class="bg-gray-50 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+<section id="cart-page" class="bg-gray-100 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
     {% include "Cart/includes/cart_stepper.html" with active_step="cart" %}
 
-    <div class="mt-8 flex flex-wrap items-center justify-start gap-4 sm:mt-12">
-      <h2 class="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+    <div class="mt-8 sm:mt-12 lg:flex lg:items-start lg:gap-12 xl:gap-16">
+      <div class="min-w-0 flex-1">
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-6 sm:gap-y-4">
+      <h2 class="flex items-center gap-3 text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-2xl">
         <span class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></span>
         {% translate "Your Cart" %}
         <span
@@ -31,7 +33,7 @@
             type="button"
             data-modal-target="save-as-list-modal"
             data-modal-toggle="save-as-list-modal"
-            class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+            class="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
           >
             <svg class="h-5 w-5 -ms-1 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
               <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -41,14 +43,14 @@
 
           <div id="save-as-list-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-90 overflow-y-auto overflow-x-hidden">
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
-            <div class="relative flex min-h-full items-center justify-center p-4">
+              <div class="relative flex min-h-full w-full items-center justify-center p-4">
               <div class="relative flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
                 <div class="flex items-center justify-between border-b border-gray-200 p-5 dark:border-gray-700">
                   <div class="min-w-0">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Save cart as a list" %}</h3>
                     <p class="text-subtitle mt-1">{% translate "Create a new shopping list from the items currently in your cart." %}</p>
                   </div>
-                  <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300" data-modal-hide="save-as-list-modal" aria-label="{% translate 'Close' %}">
+                  <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300 cursor-pointer" data-modal-hide="save-as-list-modal" aria-label="{% translate 'Close' %}">
                     <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/>
                     </svg>
@@ -103,7 +105,7 @@
               type="button"
               data-modal-target="clear-cart-modal"
               data-modal-toggle="clear-cart-modal"
-              class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer"
+              class="inline-flex items-center justify-center rounded-lg bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 dark:text-gray-200 cursor-pointer"
             >
               <svg class="h-5 w-5 -ms-1 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 7h14m-9 3v8m4-8v8M10 3h4a1 1 0 011 1v3H9V4a1 1 0 011-1zM6 7h12v13a1 1 0 01-1 1H7a1 1 0 01-1-1V7z" />
@@ -113,25 +115,25 @@
 
             <div id="clear-cart-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-90 overflow-y-auto overflow-x-hidden">
               <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
-              <div class="relative flex min-h-full items-center justify-center p-4">
-                <div class="relative flex w-full max-w-md max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
-                  <div class="flex items-center justify-between border-b border-gray-200 p-5 dark:border-gray-700">
+              <div class="relative flex min-h-full w-full items-center justify-center p-4">
+                <div class="relative flex w-full max-w-[400px] max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
+                  <div class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Clear cart" %}</h3>
-                    <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300" data-modal-hide="clear-cart-modal" aria-label="{% translate 'Close' %}">
+                    <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300 cursor-pointer" data-modal-hide="clear-cart-modal" aria-label="{% translate 'Close' %}">
                       <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18 18 6M6 6l12 12"/>
                       </svg>
                     </button>
                   </div>
-                  <div class="p-5 overflow-y-auto">
-                    <p class="text-subtitle">{% translate "Remove all items from your cart?" %}</p>
+                  <div class="py-12 px-6 overflow-y-auto text-center">
+                    <p class="text-base font-medium text-gray-900 dark:text-white">{% translate "Remove all items from your cart?" %}</p>
                   </div>
-                  <div class="flex items-center justify-end gap-2 border-t border-gray-200 p-5 dark:border-gray-700">
-                    <button type="button" class="btn-press rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer" data-modal-hide="clear-cart-modal">{% translate "Cancel" %}</button>
+                  <div class="flex items-center justify-end gap-3 border-t border-gray-200 p-6 dark:border-gray-700">
+                    <button type="button" class="btn-press rounded-lg bg-gray-100 px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer" data-modal-hide="clear-cart-modal">{% translate "Cancel" %}</button>
                     <button
                       type="submit"
                       data-clear-cart-btn
-                      class="inline-flex items-center justify-center rounded-lg bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-700 cursor-pointer"
+                      class="inline-flex items-center justify-center rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700 cursor-pointer"
                     >
                       {% translate "Clear" %}
                     </button>
@@ -142,7 +144,7 @@
           </form>
         </div>
       {% endif %}
-    </div>
+      </div>
 
     {% if requires_cart_fix %}
       <div class="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
@@ -158,11 +160,13 @@
       </div>
     {% endif %}
 
-    <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12 xl:gap-16">
+      <div class="mt-6 sm:mt-8">
       {% include "Cart/partials/cart_lines_list.html" with lines=lines container_id="cart-page-lines" show_stock_validation=True %}
+      </div>
+      </div>
 
       {% if lines %}
-        <div data-cart-summary-card class="ml-auto mt-6 w-full space-y-6 rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md lg:sticky lg:top-24 lg:self-start">
+        <div data-cart-summary-card class="mt-6 w-full space-y-6 rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md lg:sticky lg:top-24 lg:self-start">
           {% include "Cart/includes/cart_coupon_form.html" with cart=cart %}
           <div class="mb-1">
             {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal discount_total=discount_total total=total show_delivery_cost=False show_subtotal=False %}

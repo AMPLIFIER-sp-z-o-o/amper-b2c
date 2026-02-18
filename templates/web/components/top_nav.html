@@ -510,7 +510,7 @@ body.nav-scroll-locked {
             {# Cart Dropdown #}
             {% if not disable_cart_dropdown %}
             <div id="cartDropdown" class="category-dropdown hidden absolute right-0 top-full mt-3 w-[calc(100vw-1rem)] max-w-96 divide-y divide-gray-200 overflow-hidden rounded-lg bg-white antialiased shadow-lg dark:divide-gray-600 dark:bg-gray-700 transition-opacity duration-300 z-50 before:absolute before:-top-10 before:h-10 before:w-full before:content-['']">
-              <div class="p-4 bg-gray-50 dark:bg-gray-800">
+              <div class="p-4 bg-gray-100 dark:bg-gray-800">
                 <dl class="flex items-center gap-2">
                   <dt class="font-bold text-gray-900 dark:text-white">{% translate "Shopping cart" %}</dt>
                   <dd
@@ -549,7 +549,7 @@ body.nav-scroll-locked {
 
               <div
                 data-cart-summary-footer
-                class="p-4 space-y-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600 {% if not nav_cart_lines %}hidden{% endif %}"
+                class="p-4 space-y-3 bg-gray-100 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-600 {% if not nav_cart_lines %}hidden{% endif %}"
               >
                 <div class="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
                   <span>{% translate "Total" %}</span>
@@ -793,7 +793,7 @@ body.nav-scroll-locked {
 {# MOVED Categories Navigation Row Container #}
   <div class="hidden md:block relative w-full z-40" id="categories-row-wrapper" data-navbar-mode="{{ navbar_mode }}" style="transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out; will-change: transform, opacity;">
     {# Categories Navigation Bar #}
-    <div class="py-3 w-full bg-white dark:bg-gray-800 shadow-md" id="categories-nav-wrapper">
+    <div class="py-3 w-full bg-gray-100 dark:bg-gray-800 shadow-md" id="categories-nav-wrapper">
     <div id="categories-nav-container" class="px-3 relative mx-auto 2xl:px-0 max-w-7xl">
       <div class="flex gap-0 items-center overflow-hidden" id="categories-nav" data-navbar-mode="{{ navbar_mode }}" data-total-categories="{% if navbar_mode == 'custom' %}{{ custom_navbar_items|length }}{% else %}{{ nav_categories|slice:':10'|length }}{% endif %}">
         {# More Categories Drawer Trigger - Fixed at the beginning #}
@@ -898,7 +898,7 @@ body.nav-scroll-locked {
           </div>
           
           <!-- Right Column: Previews -->
-          <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-50 dark:bg-gray-900 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview" data-category-icon-url="{% if category.image %}{{ category.image.url }}{% endif %}">
+          <div id="previewPane{{ category.id }}" class="w-1/2 bg-gray-100 dark:bg-gray-900 flex flex-col justify-center items-center text-center relative overflow-hidden group/preview" data-category-icon-url="{% if category.image %}{{ category.image.url }}{% endif %}">
              <!-- Default State -->
              <div id="preview-default-{{ category.id }}" class="subcategory-preview-default p-6 transition-all duration-300 transform scale-100 opacity-100 z-10 flex flex-col items-center">
                {% if category.image %}
@@ -1173,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // Header - "Wyszukiwania" (Searches)
       html += `
-        <div class="sticky top-0 z-10 px-4 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="sticky top-0 z-10 px-4 py-2 bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
           <span class="text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">{% translate "Searches" %}</span>
         </div>
       `;
@@ -1199,7 +1199,7 @@ document.addEventListener('DOMContentLoaded', function() {
           ? `{% url 'web:search_results' %}?q=${encodeURIComponent(query)}&category=${encodeURIComponent(categorySlug)}`
           : `{% url 'web:search_results' %}?q=${encodeURIComponent(query)}`;
         html += `
-          <div class="sticky bottom-0 z-10 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <div class="sticky bottom-0 z-10 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
             <a href="${seeAllUrl}" class="text-sm font-medium text-primary-700 dark:text-primary-500 hover:underline transition-colors duration-200">
               {% translate "See all" %} ${total_count} {% translate "results" %} →
             </a>

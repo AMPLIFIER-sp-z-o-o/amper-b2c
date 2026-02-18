@@ -23,7 +23,7 @@
   
   <div class="flex flex-1 flex-row pointer-events-none">
     <div class="block shrink-0">
-      <div class="relative aspect-square w-28 overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-700 sm:aspect-square sm:w-44 sm:self-center lg:w-52">
+      <div class="relative aspect-square w-28 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:aspect-square sm:w-44 sm:self-center lg:w-52">
         {% with product.images.all|first as product_image %}
           {% if product_image %}
             <img 
@@ -53,7 +53,7 @@
     </div>
 
     <div class="flex flex-1 flex-col pl-3 sm:pl-4 {% if not product.is_unavailable %}pr-10 sm:pr-12{% endif %}">
-      <span class="text-base font-semibold text-gray-900 dark:text-white sm:text-xl"><a href="{{ product.get_absolute_url }}" class="hover:underline">{{ product.name }}</a></span>
+      <span class="text-base font-semibold text-gray-900 dark:text-white sm:text-xl"><a href="{{ product.get_absolute_url }}" class="pointer-events-auto relative z-10 hover:underline">{{ product.name }}</a></span>
 
       <div class="mt-1 flex items-center gap-4 sm:mt-2">
         <p class="text-lg font-extrabold leading-tight text-gray-900 dark:text-white sm:text-2xl" data-price="{{ product.price }}" data-currency="{{ site_currency }}">

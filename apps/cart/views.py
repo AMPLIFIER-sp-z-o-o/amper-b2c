@@ -1054,9 +1054,60 @@ def checkout_save_details(request):
         messages.info(request, _("Your checkout session expired. Please enter your delivery details again."))
         return redirect("cart:checkout_page")
 
+    checkout_action = (request.POST.get("checkout_action") or "").strip()
+
     checkout_mode = (request.POST.get("checkout_mode") or "").strip() or get_checkout_mode(state.meta)
     if checkout_mode not in {CHECKOUT_MODE_ORDER_SESSION, CHECKOUT_MODE_USER_DEFAULT}:
         checkout_mode = CHECKOUT_MODE_ORDER_SESSION
+
+    # Address-only save (from the modal "Done" button):
+    # - validates and stores delivery details in session
+    # - does NOT require delivery/payment method selection
+    # - redirects back to checkout page so the address summary updates
+    if checkout_action == "save_only":
+        mutable = request.POST.copy()
+        expected_code = (state.order_details or state.active_details or {}).get(
+            "phone_country_code"
+        ) or _get_default_phone_country_code(request)
+        mutable["phone_country_code"] = expected_code
+        form = CheckoutDetailsForm(mutable)
+        if not form.is_valid():
+            delivery_methods = DeliveryMethod.objects.filter(is_active=True).order_by("name")
+            payment_methods = PaymentMethod.objects.filter(is_active=True).order_by("name")
+            delivery_cost = (
+                cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
+            )
+            return render(
+                request,
+                "Cart/checkout_page.html",
+                {
+                    "cart": cart,
+                    "subtotal": cart.subtotal,
+                    "discount_total": cart.discount_total,
+                    "total": cart.total,
+                    "disable_cart_dropdown": True,
+                    "delivery_methods": delivery_methods,
+                    "selected_delivery": cart.delivery_method,
+                    "delivery_cost": str(delivery_cost),
+                    "payment_methods": payment_methods,
+                    "selected_payment": cart.payment_method,
+                    "details_form": form,
+                    "checkout_details": get_checkout_state(request, touch=False).active_details,
+                    "checkout_order_details": get_checkout_state(request, touch=False).order_details,
+                    "checkout_mode": CHECKOUT_MODE_ORDER_SESSION,
+                    "user_default_address": None,
+                    "user_has_addresses": request.user.is_authenticated
+                    and ShippingAddress.objects.filter(user=request.user).exists(),
+                    "phone_country_code": expected_code,
+                },
+                status=400,
+            )
+
+        cart.recalculate()
+        set_checkout_order_details(request, form.cleaned_data)
+        set_checkout_active_details(request, form.cleaned_data, mode=CHECKOUT_MODE_ORDER_SESSION)
+        touch_checkout_session(request, set_mode=CHECKOUT_MODE_ORDER_SESSION)
+        return redirect("cart:checkout_page")
 
     # Persist delivery/payment selection if provided.
     # This makes the flow robust when JS fails (the radios are still submitted with the details form).

@@ -30,12 +30,20 @@
         </div>
 
         <div class="relative z-10 min-w-0 flex-1 space-y-3 pointer-events-none">
-          <p class="text-base font-bold text-gray-900 dark:text-white line-clamp-2 wrap-break-word group-hover:underline" title="{{ line.product.name }}">
+          <a
+            href="{{ line.product.get_absolute_url }}"
+            class="pointer-events-auto relative z-10 block text-base font-bold text-gray-900 dark:text-white line-clamp-2 wrap-break-word hover:underline"
+            title="{{ line.product.name }}"
+          >
             {{ line.product.name }}
-          </p>
+          </a>
 
-          <p class="text-subtitle">
-            {% translate "Per item" %}: <span data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price }}</span>
+          <p
+            data-cart-unit-price-row
+            class="text-subtitle{% if line.quantity|default:0|add:0 <= 1 %} hidden{% endif %}"
+          >
+            {% translate "Per item" %}:
+            <span data-cart-unit-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price }}</span>
           </p>
 
           <div class="flex items-center justify-between gap-4">
@@ -77,7 +85,7 @@
               </div>
             </div>
 
-            <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:hidden">
+            <p data-cart-line-subtotal data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:hidden">
               {{ line.subtotal|floatformat:2 }}
             </p>
           </div>
@@ -106,7 +114,7 @@
           {% endif %}
         </div>
 
-        <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="relative z-10 hidden w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:block pointer-events-none">
+        <p data-cart-line-subtotal data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="relative z-10 hidden w-24 shrink-0 text-end text-base font-semibold text-gray-900 dark:text-white sm:block pointer-events-none">
           {{ line.subtotal|floatformat:2 }}
         </p>
       </div>

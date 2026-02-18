@@ -413,25 +413,10 @@ button[disabled]:hover,
   animation: favouritePulse 0.4s ease-in-out;
 }
 
-/* 
+/*
  * Active Favourite Button State
- * When a product is in a wishlist, the button highlights with a subtle rose tint.
+ * Intentionally no background styling; the icon swap (outline vs filled) is the only visual change.
  */
-.favourite-btn.is-favourited {
-  @apply bg-rose-50 border-rose-200 text-rose-600;
-}
-
-.dark .favourite-btn.is-favourited {
-  @apply bg-rose-900/20 border-rose-800/50 text-rose-400;
-}
-
-.favourite-btn.is-favourited:hover {
-  @apply bg-gray-200;
-}
-
-.dark .favourite-btn.is-favourited:hover {
-  @apply bg-gray-700;
-}
 
 /* Utilities */
 .scrollbar-hide {

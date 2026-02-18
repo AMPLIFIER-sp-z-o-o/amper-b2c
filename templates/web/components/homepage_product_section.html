@@ -1,6 +1,6 @@
 {% with products=section.section_products.all|slice:":8" %}
   {% if products %}
-    <section id="product-section-{{ section.css_hook }}" class="homepage-section section-product-list storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-product-list-section storefront-product-list-section-{{ section.id }} bg-gray-50 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
+    <section id="product-section-{{ section.css_hook }}" class="homepage-section section-product-list storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-product-list-section storefront-product-list-section-{{ section.id }} bg-gray-100 antialiased dark:bg-gray-900 {% if section.title %}pt-6 pb-8 md:pt-10 md:pb-12{% else %}pt-4 pb-8 md:pt-6 md:pb-12{% endif %}">
       <div class="mx-auto max-w-7xl px-4 2xl:px-0">
         {% if section.title %}
           <div id="product-section-title-{{ section.css_hook }}" class="mb-6 flex items-center gap-3 sm:mb-8">

@@ -1,7 +1,7 @@
 {% load i18n %}
 {% with products=section.section_products.all|slice:":8" %}
   {% if products %}
-    <section id="product-slider-section-{{ section.css_hook }}" class="homepage-section section-product-slider storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-product-slider-section storefront-product-slider-section-{{ section.id }} bg-gray-50 py-8 antialiased dark:bg-gray-900 md:py-12">
+    <section id="product-slider-section-{{ section.css_hook }}" class="homepage-section section-product-slider storefront-homepage-section storefront-homepage-section-{{ section.id }} storefront-product-slider-section storefront-product-slider-section-{{ section.id }} bg-gray-100 py-8 antialiased dark:bg-gray-900 md:py-12">
       <div class="mx-auto max-w-7xl px-4 2xl:px-0">
         <div id="product-slider-section-header-{{ section.css_hook }}" class="mb-6 flex items-center justify-between gap-4 md:mb-8">
           {% if section.title %}

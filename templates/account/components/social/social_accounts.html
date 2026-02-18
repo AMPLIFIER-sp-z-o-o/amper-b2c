@@ -8,7 +8,7 @@
     <div class="mt-4 space-y-3">
       {% for base_account in social_accounts %}
         {% with base_account.get_provider_account as account %}
-          <div class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 px-3 py-2">
+          <div class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700/30 px-3 py-2">
             {% if base_account.provider == 'google' %}
               <img class="w-5 h-5" src="{% static 'images/socialauth/google-logo.svg' %}" alt="Google">
               <p class="text-sm font-medium text-gray-700 dark:text-gray-200 truncate">{{ base_account.extra_data.email }}</p>

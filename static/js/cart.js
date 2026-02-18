@@ -374,14 +374,21 @@ window.Cart = (function () {
             `[data-cart-line-id="${data.line_id}"]`
             );
             if (lineEl) {
-                const priceEls = lineEl.querySelectorAll("[data-price]");
-                priceEls.forEach(priceEl => {
-                    priceEl.dataset.price = data.line_subtotal;
-                    priceEl.textContent = data.line_subtotal;
+                const subtotalEls = lineEl.querySelectorAll("[data-cart-line-subtotal]");
+                subtotalEls.forEach((subtotalEl) => {
+                    subtotalEl.dataset.price = data.line_subtotal;
+                    subtotalEl.textContent = data.line_subtotal;
                 });
                 const input = lineEl.querySelector("[data-counter-input]");
                 if (input && data.product_quantity !== undefined) {
                     input.value = data.product_quantity;
+                }
+
+                // Show unit price only when quantity > 1
+                const unitRow = lineEl.querySelector("[data-cart-unit-price-row]");
+                if (unitRow && data.product_quantity !== undefined) {
+                    const qty = parseInt(String(data.product_quantity || "0"), 10) || 0;
+                    unitRow.classList.toggle("hidden", qty <= 1);
                 }
             }
             }

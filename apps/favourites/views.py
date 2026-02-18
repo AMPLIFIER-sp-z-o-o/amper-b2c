@@ -5,6 +5,7 @@ from django.db.models import Count, Prefetch, Q
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.template.loader import render_to_string
 from django.utils.html import format_html
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
@@ -181,7 +182,7 @@ def wishlist_detail(request: HttpRequest, pk: int) -> HttpResponse:
     wishlists = _get_user_wishlists(request)
     wishlist = get_object_or_404(wishlists, pk=pk)
 
-    items = wishlist.items.select_related("product__category").prefetch_related(
+    items_qs = wishlist.items.select_related("product__category").prefetch_related(
         Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order")),
         Prefetch(
             "product__attribute_values",
@@ -192,6 +193,9 @@ def wishlist_detail(request: HttpRequest, pk: int) -> HttpResponse:
         ),
     )
 
+    has_unavailable = wishlist.items.filter(product__stock__lte=0).exists()
+    items, search_query, current_sort, available_only = _filter_wishlist_items(items_qs, request)
+
     return render(
         request,
         "favourites/wishlist_detail.html",
@@ -199,6 +203,10 @@ def wishlist_detail(request: HttpRequest, pk: int) -> HttpResponse:
             "wishlist": wishlist,
             "items": items,
             "wishlists": wishlists,
+            "search_query": search_query,
+            "current_sort": current_sort,
+            "available_only": available_only,
+            "has_unavailable": has_unavailable,
             "page_title": wishlist.name,
         },
     )
@@ -517,6 +525,7 @@ def move_item(request: HttpRequest) -> HttpResponse:
 def add_all_to_cart(request: HttpRequest) -> HttpResponse:
     """Add all items from a wishlist to the cart."""
     from apps.cart.models import Cart, CartLine
+    from apps.cart.services import refresh_cart_totals_from_db
     from apps.catalog.models import ProductStatus
 
     wishlist_id = request.POST.get("wishlist_id")
@@ -571,20 +580,40 @@ def add_all_to_cart(request: HttpRequest) -> HttpResponse:
         line.save(update_fields=["quantity", "price"])
         added_count += 1
 
+    # Ensure totals/discounts are consistent with the current DB state.
     cart.recalculate()
+    refresh_cart_totals_from_db(cart)
 
     message = _("{count} item(s) added to cart.").format(count=added_count)
     if unavailable_count > 0:
         message += " " + _("{count} item(s) were unavailable.").format(count=unavailable_count)
 
-    return JsonResponse(
+    # Render nav dropdown lines HTML so the client can refresh the dropdown without reloading.
+    cart_lines = list(cart.lines.select_related("product").all())
+    nav_cart_lines_html = "".join(
+        render_to_string("Cart/nav_cart_line.html", {"line": line}, request=request) for line in cart_lines
+    )
+
+    lines_count = sum(int(line.quantity or 0) for line in cart_lines)
+    delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else 0
+
+    response = JsonResponse(
         {
             "success": True,
             "message": message,
             "added_count": added_count,
             "unavailable_count": unavailable_count,
+            "cart_id": cart.id,
+            "lines_count": lines_count,
+            "cart_total": str(cart.total),
+            "cart_subtotal": str(cart.subtotal),
+            "discount_total": str(cart.discount_total),
+            "delivery_cost": str(delivery_cost),
+            "nav_cart_lines_html": nav_cart_lines_html,
         }
     )
+    response.set_cookie("cart_id", cart.id, max_age=60 * 60 * 24 * 10)
+    return response
 
 
 @require_GET

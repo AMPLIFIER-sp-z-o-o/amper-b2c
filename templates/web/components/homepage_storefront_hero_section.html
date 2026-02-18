@@ -25,7 +25,7 @@
     {% if category_boxes %}
     <div id="homepage-storefront-hero-category-boxes-{{ section.css_hook }}" class="grid grid-cols-1 gap-4 sm:grid-cols-2 md:mt-8 xl:col-span-7 xl:mt-0 xl:gap-8">
       {% for box in category_boxes %}
-      <div id="homepage-storefront-hero-category-box-{{ section.css_hook }}-{{ box.css_hook|default:forloop.counter }}" class="flex h-full flex-col space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
+      <div id="homepage-storefront-hero-category-box-{{ section.css_hook }}-{{ box.css_hook|default:forloop.counter }}" class="flex h-full flex-col space-y-4 rounded-lg border border-gray-200 bg-gray-100 p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 md:space-y-6">
         <h2 class="text-lg font-bold text-gray-900 dark:text-white">{{ box.title }}</h2>
         
         {% with items=box.draft_items|default:box.items.all %}

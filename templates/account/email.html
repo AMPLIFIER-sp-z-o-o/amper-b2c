@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block body %}
-<section class="bg-gray-50 dark:bg-gray-900">
+<section class="bg-gray-100 dark:bg-gray-900">
   <div class="grid max-w-7xl px-4 py-8 mx-auto lg:gap-20 lg:py-16 lg:grid-cols-12">
     <div class="w-full place-self-center lg:col-span-6">
       <div class="p-6 mx-auto bg-white rounded-lg shadow dark:bg-gray-800 sm:max-w-xl sm:p-8 animate-auth-card">
@@ -40,7 +40,7 @@
     {% csrf_token %}
     <fieldset>
       {% for emailaddress in user.emailaddress_set.all %}
-        <label for="email_radio_{{ forloop.counter }}" class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30 px-3 py-2 cursor-pointer">
+        <label for="email_radio_{{ forloop.counter }}" class="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-700/30 px-3 py-2 cursor-pointer">
           <input id="email_radio_{{ forloop.counter }}" type="radio" name="email"
                  class="w-4 h-4 accent-primary-600"
                  {% if emailaddress.primary or user.emailaddress_set.count == 1 %}checked="checked"{% endif %}
@@ -79,7 +79,7 @@
 <div id="remove-email-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
   <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="remove-email-backdrop"></div>
   <div class="fixed inset-0 flex items-center justify-center p-4">
-    <div class="relative w-full max-w-sm bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
       <div class="p-6 text-center">
         <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
           <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
