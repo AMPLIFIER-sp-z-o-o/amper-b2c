@@ -10,8 +10,8 @@ from allauth.headless.adapter import DefaultHeadlessAdapter
 from allauth.mfa.models import Authenticator
 from django.conf import settings
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.html import format_html
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 
 logger = logging.getLogger(__name__)
@@ -293,14 +293,14 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
 
     @staticmethod
     def _send_sync(msg):
-        """Send an email synchronously through ``DatabaseSmtpBackend``."""
-        from apps.utils.email_backend import DatabaseSmtpBackend
+        """Send an email synchronously through the configured backend."""
+        from django.core.mail import get_connection
 
         try:
-            backend = DatabaseSmtpBackend()
+            backend = get_connection()
             backend.send_messages([msg])
         except Exception:
-            logger.exception("Synchronous email send via DatabaseSmtpBackend failed.")
+            logger.exception("Synchronous email send via configured backend failed.")
 
 
 class NoNewUsersAccountAdapter(DefaultAccountAdapter):

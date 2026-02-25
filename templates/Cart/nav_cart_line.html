@@ -7,10 +7,10 @@
   data-product-url="{{ line.product.get_absolute_url }}"
 >
   <a href="{{ line.product.get_absolute_url }}"
-     class="w-16 h-16 bg-gray-100 dark:bg-gray-500 rounded shrink-0 flex items-center justify-center cursor-pointer">
+     class="w-16 h-16 shrink-0 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden cursor-pointer">
     {% with line.product.images.all|first as img %}
       {% if img %}
-        <img class="w-8 h-8 object-contain" src="{{ img.image.url }}" alt="{{ line.product.name }}">
+        <img class="h-full w-full object-cover" src="{{ img.image.url }}" alt="{{ line.product.name }}">
       {% else %}
         <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
       {% endif %}

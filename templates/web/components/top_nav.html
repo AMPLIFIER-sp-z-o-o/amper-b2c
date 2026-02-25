@@ -576,7 +576,7 @@ body.nav-scroll-locked {
               <input
                 type="text"
                 id="navbar-search"
-                class="block w-full py-2 md:py-3.5 text-base md:text-sm text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-14 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
+                class="block w-full py-2 md:py-3.5 text-base md:text-sm font-medium text-gray-900 border-none rounded-lg md:rounded-r-none ps-6 pe-14 bg-transparent focus:ring-0 placeholder:font-medium dark:placeholder-gray-400 dark:text-white"
                 placeholder="{% translate "Search products..." %}"
                 autocomplete="off"
               />
@@ -902,15 +902,15 @@ body.nav-scroll-locked {
              <!-- Default State -->
              <div id="preview-default-{{ category.id }}" class="subcategory-preview-default p-6 transition-all duration-300 transform scale-100 opacity-100 z-10 flex flex-col items-center">
                {% if category.image %}
-                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
+                <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
                   <img src="{{ category.image.url }}" alt="{{ category.name }}" class="w-10 h-10 object-contain" loading="lazy">
                 </div>
                {% elif nav_category_preview_icon %}
-                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
+                <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-700 dark:text-gray-200">
                   <span class="text-3xl leading-none">{{ nav_category_preview_icon }}</span>
                 </div>
                {% else %}
-                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-500 dark:text-gray-400">
+                <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 transition-transform duration-500 group-hover/preview:scale-110 text-gray-500 dark:text-gray-400">
                   <svg class="w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                     <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
                     <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
@@ -956,7 +956,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const normalizedIconUrl = String(iconUrl || '').trim();
     if (normalizedIconUrl) {
       return `
-      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
+      <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
         <img src="${escapeHtml(normalizedIconUrl)}" alt="" class="w-10 h-10 object-contain" loading="lazy">
       </div>
       `;
@@ -964,14 +964,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (navCategoryPreviewIcon) {
       return `
-      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
+      <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-700 dark:text-gray-200">
         <span class="text-3xl leading-none">${escapeHtml(navCategoryPreviewIcon)}</span>
       </div>
       `;
     }
 
     return `
-      <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-500 dark:text-gray-400">
+      <div class="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center mb-4 text-gray-500 dark:text-gray-400">
         <svg class="w-10 h-10" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
           <rect x="4" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
           <rect x="14" y="4" width="6" height="6" rx="1.5" stroke="currentColor" stroke-width="1.7"></rect>
@@ -1114,7 +1114,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function highlightMatch(text, query) {
       // Highlight logic: make everything EXCEPT the query bold
-      // The query itself stays normal weight (lighter)
+      // The query itself stays font-medium (slightly bold)
       if (!query) return `<strong>${escapeHtml(text)}</strong>`;
       const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`(${escapedQuery})`, 'gi');
@@ -1125,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!part) return '';
         // Check if this part matches the query (case-insensitive)
         if (part.toLowerCase() === query.toLowerCase()) {
-          return part; // Query match - normal weight (not bold)
+          return `<span class="font-medium">${part}</span>`; // Query match - font-medium
         }
         return `<strong>${part}</strong>`; // Non-matching parts - bold
       }).join('');

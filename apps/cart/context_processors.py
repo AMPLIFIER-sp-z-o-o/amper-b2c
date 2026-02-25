@@ -43,7 +43,7 @@ def cart_context(request):
             refresh_cart_totals_from_db(cart)
         except Exception:
             pass
-        setattr(request, "_cart_totals_refreshed", True)
+        request._cart_totals_refreshed = True
 
     nav_cart_lines = list(cart.lines.select_related("product").all())
     nav_cart_count = sum(int(line.quantity or 0) for line in nav_cart_lines)

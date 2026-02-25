@@ -19,12 +19,12 @@
           aria-label="{% blocktranslate with name=line.product.name %}View {{ name }}{% endblocktranslate %}"
         ></a>
 
-        <div class="relative z-10 w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-lg shrink-0 flex items-center justify-center pointer-events-none">
+        <div class="relative z-10 w-16 h-16 shrink-0 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden pointer-events-none">
           {% with line.product.images.all|first as img %}
             {% if img %}
-              <img class="h-12 w-12 object-contain" src="{{ img.image.url }}" alt="{{ line.product.name }}">
+              <img class="h-full w-full object-cover" src="{{ img.image.url }}" alt="{{ line.product.name }}">
             {% else %}
-              <div class="h-full w-full bg-gray-200 dark:bg-gray-700 rounded"></div>
+              <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
             {% endif %}
           {% endwith %}
         </div>
@@ -102,7 +102,7 @@
                   data-product-id="{{ line.product.id }}"
                   data-quantity="{{ line.checkout_stock_available }}"
                   data-add-to-cart-mode="set"
-                  class="pointer-events-auto add-to-cart-btn mt-3 inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700"
+                  class="pointer-events-auto add-to-cart-btn mt-3 inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-800 dark:text-white dark:hover:bg-gray-700 dark:focus:ring-gray-700 cursor-pointer"
                 >
                   {% blocktranslate with available=line.checkout_stock_available %}Set {{ available }} items{% endblocktranslate %}
                 </button>

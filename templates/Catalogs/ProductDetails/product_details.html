@@ -1,9 +1,89 @@
 {% extends "web/base.html" %}
 {% load i18n %}
 
+{% block extra_head %}
+<style>
+  .breadcrumb-item-container.is-open {
+    background-color: rgb(243 244 246);
+    color: rgb(55 65 81);
+  }
+
+  .dark .breadcrumb-item-container.is-open {
+    background-color: rgb(31 41 55);
+    color: rgb(156 163 175);
+  }
+
+  .breadcrumb-item-container.is-open .breadcrumb-arrow {
+    transform: rotate(180deg);
+  }
+
+  .breadcrumb-item-container.is-open::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    z-index: 40;
+  }
+</style>
+{% endblock %}
+
 {% block body %}
-<section id="product-details-page-{{ product.id }}" class="pt-4 pb-8 bg-gray-100 md:pt-8 md:pb-16 xl:pt-10 xl:pb-24 dark:bg-gray-900 antialiased">
+<section id="product-details-page-{{ product.id }}" class="pt-3 pb-8 bg-gray-100 md:pt-5 md:pb-16 xl:pt-6 xl:pb-24 dark:bg-gray-900 antialiased">
   <div class="max-w-7xl mx-auto px-2 sm:px-4">
+    <!-- Breadcrumb -->
+    <nav class="flex justify-center md:justify-start mb-4" aria-label="Breadcrumb">
+      <ol class="inline-flex items-center justify-center md:justify-start space-x-1 md:space-x-2 rtl:space-x-reverse flex-wrap gap-y-1 rounded-xl bg-white py-1 pl-3 pr-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:pl-4 sm:pr-3">
+        <li class="inline-flex items-center">
+          <a href="{% url 'web:home' %}" class="md:-ms-3 inline-flex items-center py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors">
+            <svg class="me-2.5 h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+              <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z" />
+            </svg>
+            {% translate "Home" %}
+          </a>
+        </li>
+        {% for item in breadcrumb %}
+        <li class="inline-flex items-center">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+            </svg>
+            <div class="relative breadcrumb-item-container flex items-center rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+              <a href="{{ item.category.get_absolute_url }}" class="inline-flex items-center py-2 ps-3 pe-1 text-sm font-medium text-gray-700 dark:text-gray-400">
+                {{ item.category.name }}
+              </a>
+              <button id="dropdownBreadcrumb{{ forloop.counter }}" data-breadcrumb-trigger="dropdownBreadcrumbMenu{{ forloop.counter }}" aria-haspopup="true" aria-expanded="false" class="cursor-pointer inline-flex items-center py-2 ps-1 pe-3 text-sm font-medium text-gray-700 dark:text-gray-400">
+                <svg class="w-2.5 h-2.5 breadcrumb-arrow transition-transform duration-300" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                </svg>
+              </button>
+              <!-- Dropdown menu -->
+              <div id="dropdownBreadcrumbMenu{{ forloop.counter }}" data-breadcrumb-menu class="z-50 hidden absolute left-1/2 -translate-x-1/2 top-full mt-2 bg-white divide-y divide-gray-100 rounded-lg shadow w-60 dark:bg-gray-700 overflow-hidden animate-fade-in">
+                <ul class="max-h-80 overflow-y-auto py-2 text-sm text-gray-700 dark:text-gray-200" aria-labelledby="dropdownBreadcrumb{{ forloop.counter }}">
+                  {% for sibling in item.siblings %}
+                  <li>
+                    <a href="{{ sibling.get_absolute_url }}" class="block px-4 py-2 font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700 {% if sibling.id == item.category.id %}bg-gray-100 dark:bg-gray-600 font-semibold text-gray-900 dark:text-white{% endif %}">
+                      {{ sibling.name }}
+                    </a>
+                  </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+        <li class="inline-flex items-center" aria-current="page">
+          <div class="flex items-center">
+            <svg class="h-5 w-5 text-gray-400 rtl:rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 5 7 7-7 7" />
+            </svg>
+            <span class="inline-flex items-center py-2 px-3 text-sm font-medium text-gray-900 dark:text-white truncate max-w-45 sm:max-w-xs">{{ product.name }}</span>
+          </div>
+        </li>
+      </ol>
+    </nav>
     <div class="flex flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[1fr_28rem] xl:grid-cols-[1fr_32rem]">
       <div class="order-1 lg:col-start-1 lg:row-start-1">
         <div class="rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 dark:bg-gray-800 sm:p-6">
@@ -44,8 +124,8 @@
           <div id="product-2-tab-content" class="order-1 lg:order-2 flex-1 min-w-0">
             {% for img in product.images.all %}
               <div class="{% if forloop.first %}block{% else %}hidden{% endif %}
-                        w-full h-full rounded-xl bg-gray-100 p-4
-                        relative flex items-center justify-center aspect-square lg:aspect-4/3 dark:bg-gray-700"
+                        w-full h-full rounded-xl p-4
+                        relative flex items-center justify-center aspect-square lg:aspect-4/3"
                     id="product-2-image-{{ forloop.counter }}"
                     role="tabpanel"
                     aria-labelledby="product-2-image-{{ forloop.counter }}-tab"
@@ -70,7 +150,7 @@
                     />
                 </div>
             {% empty %}
-              <div class="block rounded-xl bg-gray-100 p-4 dark:bg-gray-700"
+              <div class="block rounded-xl p-4"
                    id="product-2-image-1"
                    role="tabpanel"
                    aria-labelledby="product-2-image-1-tab">
@@ -90,9 +170,11 @@
             <h2 id="product-description-heading">
               <button type="button" class="flex w-full items-center justify-between font-semibold text-gray-900 dark:text-white rtl:text-right cursor-pointer transition-colors hover:text-gray-900 dark:hover:text-white focus:outline-none" data-accordion-target="#product-description-body" aria-expanded="true" aria-controls="product-description-body">
                 <span class="text-lg">{% translate "Description" %}</span>
-                <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
-                </svg>
+                <span class="p-1 rounded-lg hover-bg btn-press">
+                  <svg data-accordion-icon class="h-5 w-5 shrink-0 rotate-180" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m5 15 7-7 7 7" />
+                  </svg>
+                </span>
               </button>
             </h2>
             <div id="product-description-body" class="mt-3" aria-labelledby="product-description-heading">
@@ -110,7 +192,7 @@
             <div class="absolute top-4 right-4 z-10">
               {% include "web/components/product_share_button.html" with product=product wrapper_class="contents" button_class="p-2 rounded-full bg-gray-100 dark:bg-gray-700 hover-bg btn-press transition-colors cursor-pointer" %}
             </div>
-            <h1 class="text-xl font-semibold text-gray-900 dark:text-white">
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-white pr-12 leading-tight">
               {{ product.name }}
             </h1>
 
@@ -233,5 +315,106 @@
     </div>
   </div>
   </section>
+{% endblock %}
+
+{% block page_js %}
+<script>
+  function initBreadcrumbDropdowns() {
+    const triggers = document.querySelectorAll('[data-breadcrumb-trigger]');
+    if (!triggers.length) return;
+
+    const HOVER_INTENT_DELAY = 150;
+    const CLOSE_DELAY = 200;
+
+    const isDesktop = () => window.innerWidth >= 1024;
+    const canHover = () => window.matchMedia('(hover: hover)').matches && isDesktop();
+
+    triggers.forEach((trigger) => {
+      if (trigger.dataset.breadcrumbInit === 'true') return;
+
+      const menuId = trigger.getAttribute('data-breadcrumb-trigger');
+      const menu = document.getElementById(menuId);
+      if (!menu) return;
+
+      const container = trigger.closest('.breadcrumb-item-container');
+      if (!container) return;
+
+      trigger.dataset.breadcrumbInit = 'true';
+      menu.dataset.breadcrumbInit = 'true';
+
+      let hoverTimeoutId = null;
+      let closeTimeoutId = null;
+      let isOpen = false;
+
+      const clearTimeouts = () => {
+        if (hoverTimeoutId) clearTimeout(hoverTimeoutId);
+        if (closeTimeoutId) clearTimeout(closeTimeoutId);
+        hoverTimeoutId = null;
+        closeTimeoutId = null;
+      };
+
+      const openMenu = () => {
+        if (isOpen) return;
+        menu.classList.remove('hidden');
+        container.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        isOpen = true;
+      };
+
+      const closeMenu = () => {
+        if (!isOpen) return;
+        menu.classList.add('hidden');
+        container.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        isOpen = false;
+      };
+
+      container.addEventListener('mouseenter', () => {
+        if (!canHover()) return;
+        clearTimeouts();
+        hoverTimeoutId = setTimeout(openMenu, HOVER_INTENT_DELAY);
+      });
+
+      container.addEventListener('mouseleave', () => {
+        if (!canHover()) return;
+        clearTimeouts();
+        closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
+      });
+
+      menu.addEventListener('mouseenter', () => {
+        if (!canHover()) return;
+        clearTimeouts();
+        openMenu();
+      });
+
+      menu.addEventListener('mouseleave', () => {
+        if (!canHover()) return;
+        clearTimeouts();
+        closeTimeoutId = setTimeout(closeMenu, CLOSE_DELAY);
+      });
+
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        clearTimeouts();
+        if (isOpen) {
+          closeMenu();
+        } else {
+          openMenu();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (isOpen && !container.contains(e.target)) {
+          closeMenu();
+        }
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    initBreadcrumbDropdowns();
+  });
+</script>
 {% endblock %}
 

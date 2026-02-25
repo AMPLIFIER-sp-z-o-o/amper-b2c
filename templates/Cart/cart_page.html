@@ -116,7 +116,7 @@
             <div id="clear-cart-modal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-90 overflow-y-auto overflow-x-hidden">
               <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
               <div class="relative flex min-h-full w-full items-center justify-center p-4">
-                <div class="relative flex w-full max-w-[400px] max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
+                <div class="relative flex w-full max-w-90 max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-white shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
                   <div class="flex items-center justify-between border-b border-gray-200 p-6 dark:border-gray-700">
                     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Clear cart" %}</h3>
                     <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300 cursor-pointer" data-modal-hide="clear-cart-modal" aria-label="{% translate 'Close' %}">
@@ -146,19 +146,17 @@
       {% endif %}
       </div>
 
-    {% if requires_cart_fix %}
-      <div class="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+      <div data-cart-stock-warning class="mt-4 rounded-xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20{% if not requires_cart_fix %} hidden{% endif %}">
         <div class="flex items-start gap-3">
           <svg class="h-5 w-5 shrink-0 text-orange-600 dark:text-orange-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 4h.01M10.29 3.86l-8.02 14A2 2 0 004 21h16a2 2 0 001.73-3.14l-8.02-14a2 2 0 00-3.46 0z" />
           </svg>
           <div class="min-w-0">
             <p class="text-sm font-semibold text-orange-900 dark:text-orange-200">{% translate "Please adjust your cart to continue" %}</p>
-            <p class="mt-1 text-sm text-orange-900/90 dark:text-orange-200/90">{% translate "Some items exceed current stock or are no longer available." %}</p>
+            <p class="mt-1 text-sm font-medium text-orange-900/90 dark:text-orange-200/90">{% translate "Some items exceed current stock or are no longer available." %}</p>
           </div>
         </div>
       </div>
-    {% endif %}
 
       <div class="mt-6 sm:mt-8">
       {% include "Cart/partials/cart_lines_list.html" with lines=lines container_id="cart-page-lines" show_stock_validation=True %}
@@ -166,27 +164,48 @@
       </div>
 
       {% if lines %}
-        <div data-cart-summary-card class="mt-6 w-full space-y-6 rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md lg:sticky lg:top-24 lg:self-start">
+        <div data-cart-summary-card class="mt-6 w-full space-y-6 rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md lg:sticky lg:top-32 lg:self-start">
           {% include "Cart/includes/cart_coupon_form.html" with cart=cart %}
           <div class="mb-1">
             {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal discount_total=discount_total total=total show_delivery_cost=False show_subtotal=False %}
           </div>
 
           <div class="space-y-3 pt-3">
-              <a href="/cart/checkout/" data-nav-loading-btn
+              <a href="/cart/checkout/" data-nav-loading-btn cart-checkout-btn
                   {% if requires_cart_fix %}aria-disabled="true" tabindex="-1"{% endif %}
-                  class="relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer{% if requires_cart_fix %} opacity-60 pointer-events-none{% endif %}">
-                  <span class="pr-7">{% translate "Continue to Checkout" %}</span>
+                  class="cart-checkout-btn relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer{% if requires_cart_fix %} opacity-60 pointer-events-none{% endif %}">
+                  <span class="w-full text-center">{% translate "Continue to Checkout" %}</span>
                   <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                     <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
                   </svg>
               </a>
-            <p class="text-subtitle{% if not requires_cart_fix %} hidden{% endif %}">{% translate "Fix the highlighted cart items above to continue." %}</p>
-            <p class="text-subtitle">
-                {% translate "Want faster checkout and order tracking?" %}
-                <a href="{% url 'account_login' %}" class="font-semibold text-primary-700 underline underline-offset-2 hover:text-primary-800 dark:text-primary-500 dark:hover:text-primary-400 cursor-pointer">{% translate "Sign in or create an account" %}</a>.
-                {% translate "You can also continue as a guest." %}
-              </p>
+            <p data-cart-fix-hint class="text-subtitle{% if not requires_cart_fix %} hidden{% endif %}">{% translate "Fix the highlighted cart items above to continue." %}</p>
+            {% if not request.user.is_authenticated %}
+            <div class="rounded-xl border border-primary-100 bg-primary-50 dark:border-primary-900/50 dark:bg-primary-950/40 p-4">
+              <div class="flex items-start gap-3">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-100 dark:bg-primary-900/60">
+                  <svg class="h-5 w-5 text-primary-700 dark:text-primary-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-4 7a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7Z"/>
+                  </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-base font-bold text-gray-900 dark:text-white">{% translate "Faster checkout & order tracking" %}</p>
+                  <p class="mt-0.5 text-sm font-medium text-gray-900 dark:text-white">{% translate "Create a free account for faster checkout and save your details for next time." %}</p>
+                </div>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <a href="{% url 'account_signup' %}?next={{ request.get_full_path|urlencode }}" class="inline-flex flex-1 items-center justify-center rounded-lg bg-primary-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-800 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 cursor-pointer">
+                  {% translate "Create account" %}
+                </a>
+                <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="inline-flex flex-1 items-center justify-center rounded-lg border border-primary-300 bg-white px-4 py-2 text-sm font-semibold text-primary-700 transition-colors hover:bg-primary-50 active:scale-95 dark:border-primary-700 dark:bg-transparent dark:text-primary-400 dark:hover:bg-primary-900/30 cursor-pointer">
+                  {% translate "Sign in" %}
+                </a>
+              </div>
+              <div class="mt-2 rounded-lg bg-white shadow-[0_1px_4px_rgba(0,0,0,0.08)] px-3 py-2 dark:bg-gray-700/60">
+                <p class="text-center text-xs font-medium text-gray-500 dark:text-gray-400">{% translate "or continue as a guest via Checkout" %}</p>
+              </div>
+            </div>
+            {% endif %}
           </div>
         </div>
       {% endif %}

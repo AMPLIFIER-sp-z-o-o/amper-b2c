@@ -62,6 +62,7 @@ from apps.homepage.models import (
 )
 from apps.media.models import MediaStorageSettings
 from apps.media.storage import DynamicMediaStorage
+from apps.orders.models import Coupon, CouponKind
 from apps.users.models import CustomUser, SocialAppSettings
 from apps.web.management.seed_media import (
     collect_seed_media_paths_from_generated_data,
@@ -262,7 +263,7 @@ PAYMENT_METHODS_DATA = _load_generated_seed_list("payment_methods_data.json")
 
 
 def _build_product_images_data():
-    return [
+    images = [
         {
             "id": index,
             "product_id": product["id"],
@@ -272,6 +273,24 @@ def _build_product_images_data():
         }
         for index, product in enumerate(PRODUCTS_DATA, start=1)
     ]
+    next_id = len(images) + 1
+    images += [
+        {
+            "id": next_id,
+            "product_id": 96,
+            "image": "product-images/seed/product-12.jpg",
+            "alt_text": "Annibale Colombo Bed",
+            "sort_order": 1,
+        },
+        {
+            "id": next_id + 1,
+            "product_id": 96,
+            "image": "product-images/seed/product-13.jpg",
+            "alt_text": "Annibale Colombo Bed",
+            "sort_order": 2,
+        },
+    ]
+    return images
 
 
 PRODUCT_ATTRIBUTE_VALUES_DATA = _load_generated_seed_list("product_attribute_values_data.json")
@@ -396,6 +415,7 @@ class Command(BaseCommand):
             self._seed_storefront_hero_section()
             self._seed_delivery_methods()
             self._seed_payment_methods()
+            self._seed_coupons()
             # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
             self._seed_social_apps()
 
@@ -798,6 +818,24 @@ class Command(BaseCommand):
             ],
             update_fields=["singleton_key", "content_type", "custom_html", "custom_css", "custom_js", "is_active"],
         )
+
+    def _seed_coupons(self):
+        """Seed Coupon model."""
+        self._bulk_upsert_by_id(
+            Coupon,
+            [
+                {
+                    "id": 1,
+                    "code": "LATO2026",
+                    "kind": CouponKind.PERCENT,
+                    "value": Decimal("20.00"),
+                    "is_active": True,
+                    "used_count": 0,
+                }
+            ],
+            update_fields=["code", "kind", "value", "is_active"],
+        )
+        self.stdout.write("  Coupons: 1 records")
         self.stdout.write(f"  Footer: {len(FOOTER_DATA)} records")
 
         self._bulk_upsert_by_id(

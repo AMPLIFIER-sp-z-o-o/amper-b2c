@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% block body %}
-<div id="favourites-page" class="min-h-screen bg-linear-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
+<div id="favourites-page" class="min-h-screen bg-gray-100 dark:bg-gray-900">
   {# Header Section #}
   <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
@@ -38,7 +38,7 @@
   <div class="max-w-7xl mx-auto px-4 py-4 sm:py-5">
     {% if not user.is_authenticated %}
     {# Anonymous user — info banner about list expiry #}
-    <div class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+    <div class="mb-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20 px-4 py-3 text-sm font-medium text-amber-800 dark:text-amber-300">
       <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
       <p class="leading-relaxed">
         {% translate "Your lists are stored for 90 days. Sign in to save them permanently." %}
@@ -132,7 +132,7 @@
           {% for item in wishlist.prefetched_items|slice:":5" %}
           {% with item.product.images.all|first as first_img %}
           {% if first_img %}
-          <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shrink-0">
+          <div class="w-14 h-14 rounded-lg overflow-hidden bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 shrink-0">
             <img src="{{ first_img.image.url }}" alt="{{ item.product.name }}" class="w-full h-full object-contain p-0.5" loading="lazy">
           </div>
           {% endif %}
@@ -232,30 +232,30 @@
               {% for wishlist in wishlists %}
               <a 
                 href="?list={{ wishlist.share_id }}"
-                class="wishlist-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if wishlist == active_wishlist %}bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+                class="wishlist-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if wishlist == active_wishlist %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
                 data-wishlist-id="{{ wishlist.id }}"
               >
                 {% if wishlist.is_default %}
-                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-primary-100 dark:bg-primary-800{% else %}bg-rose-50 dark:bg-rose-900/30{% endif %} shrink-0">
-                  <svg class="w-5 h-5 {% if wishlist == active_wishlist %}text-primary-600 dark:text-primary-400{% else %}text-rose-500{% endif %}" fill="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-white dark:bg-gray-800{% else %}bg-rose-50 dark:bg-rose-900/30{% endif %} shrink-0">
+                  <svg class="w-5 h-5 text-rose-500" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                 </div>
                 {% else %}
-                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-primary-100 dark:bg-primary-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
-                  <svg class="w-5 h-5 {% if wishlist == active_wishlist %}text-primary-600 dark:text-primary-400{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="flex items-center justify-center w-9 h-9 rounded-lg {% if wishlist == active_wishlist %}bg-white dark:bg-gray-800{% else %}bg-gray-100 dark:bg-gray-700{% endif %} shrink-0">
+                  <svg class="w-5 h-5 {% if wishlist == active_wishlist %}text-gray-700 dark:text-gray-200{% else %}text-gray-500 dark:text-gray-400{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
                   </svg>
                 </div>
                 {% endif %}
                 <div class="flex-1 min-w-0">
                   <span class="block font-medium truncate">{{ wishlist.name }}</span>
-                  <span class="text-xs font-semibold {% if wishlist == active_wishlist %}text-primary-600/70 dark:text-primary-400/70{% else %}text-gray-500 dark:text-gray-400{% endif %}">
+                  <span class="text-xs font-semibold {% if wishlist == active_wishlist %}text-gray-700/70 dark:text-gray-200/70{% else %}text-gray-500 dark:text-gray-400{% endif %}">
                     {{ wishlist.item_count }} {% translate "products" %}
                   </span>
                 </div>
                 {% if wishlist == active_wishlist %}
-                <div class="w-1.5 h-1.5 rounded-full bg-primary-600 dark:bg-primary-400"></div>
+                <div class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-white"></div>
                 {% endif %}
               </a>
               {% empty %}

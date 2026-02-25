@@ -14,7 +14,8 @@
       </p>
 
       <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-12">
-        <form action="#" class="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
+        <form method="POST" action="{% url 'orders:post_payment_mock' token=order.tracking_token %}" class="w-full rounded-lg border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800 sm:p-6 lg:max-w-xl lg:p-8">
+          {% csrf_token %}
           <div class="mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
               {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
@@ -27,6 +28,18 @@
             </p>
           </div>
 
+          {% if order.payment_method_name == "Bank transfer" or order.payment_method_name == "Przelew tradycyjny" %}
+          <div class="mb-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+            <h4 class="text-sm font-bold text-gray-900 dark:text-white">{% translate "Bank Transfer Details" %}</h4>
+            <div class="mt-2 space-y-2 text-sm text-gray-700 dark:text-gray-300">
+              <p><strong>{% translate "Recipient" %}:</strong> Amper Store</p>
+              <p><strong>{% translate "Account Number" %}:</strong> 12 3456 7890 0000 0000 1111 2222</p>
+              <p><strong>{% translate "Transfer Title" %}:</strong> {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}</p>
+              <p><strong>{% translate "Amount" %}:</strong> {{ order.total }} {{ site_currency }}</p>
+            </div>
+            <p class="mt-4 text-sm text-subtitle">{% translate "We will start processing your order as soon as the transfer is cleared." %}</p>
+          </div>
+          {% else %}
           <div class="mb-6 grid grid-cols-2 gap-4">
             <div class="col-span-2 sm:col-span-1">
               <label for="full_name" class="mb-2 block text-sm font-medium text-gray-900 dark:text-white">
@@ -96,12 +109,12 @@
           </div>
 
           <button
-            type="button"
-            class="flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 opacity-60 pointer-events-none"
-            aria-disabled="true"
+            type="submit"
+            class="mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
           >
             {% translate "Pay now" %}
           </button>
+          {% endif %}
         </form>
 
         <div class="mt-6 grow sm:mt-8 lg:mt-0">

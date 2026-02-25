@@ -926,3 +926,21 @@ msgstr "Wpisz kod"
 #, python-format
 msgid "Add %(name)s to favourites"
 msgstr "Dodaj %(name)s do ulubionych"
+
+#: apps/orders/views.py
+msgid "Order placed."
+msgstr "Zamówienie zostało złożone."
+
+#: templates/orders/email/order_confirmation_subject.txt
+#, python-format
+msgid "Your order #%(order_id)s at %(store)s \u2013 confirmed!"
+msgstr "Twoje zamówienie #%(order_id)s w %(store)s zostało potwierdzone!"
+
+#: templates/orders/email/order_confirmation_message.html
+msgid "Quantity"
+msgstr "Ilość"
+
+#: templates/orders/email/order_confirmation_message.html
+#: templates/orders/email/order_confirmation_message.txt
+msgid "Track your order"
+msgstr "Śledź swoje zamówienie"

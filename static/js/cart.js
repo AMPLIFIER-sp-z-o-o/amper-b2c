@@ -390,9 +390,57 @@ window.Cart = (function () {
                     const qty = parseInt(String(data.product_quantity || "0"), 10) || 0;
                     unitRow.classList.toggle("hidden", qty <= 1);
                 }
+
+                // Resolve stock issue state from current DOM values so UX updates immediately
+                // even if backend response shape changes.
+                const qtyInput = lineEl.querySelector("[data-counter-input]");
+                const qtyWrap = lineEl.querySelector("[data-qty-wrap]");
+                const currentQty = parseInt(String(qtyInput?.value || data.product_quantity || "0"), 10) || 0;
+                const maxAttr = qtyInput?.getAttribute("max");
+                const maxFromInput = parseInt(String(maxAttr || ""), 10);
+                const maxFromResponse = parseInt(String(data.available_stock || ""), 10);
+                const stockLimit = Number.isFinite(maxFromInput)
+                    ? maxFromInput
+                    : (Number.isFinite(maxFromResponse) ? maxFromResponse : NaN);
+
+                if (Number.isFinite(stockLimit) && currentQty <= stockLimit) {
+                    lineEl.querySelectorAll("[data-stock-issue]").forEach((el) => el.remove());
+                    if (qtyWrap) {
+                        qtyWrap.classList.remove("ring-red-500", "dark:ring-red-500");
+                    }
+                }
             }
             }
         }
+
+        // After any cart update on the cart page: check if all stock issues are resolved
+        // and update the orange warning banner + checkout CTA accordingly.
+        const stockValidationRoot = document.querySelector("[data-checkout-stock-validation]");
+        if (stockValidationRoot) {
+            const remainingIssues = stockValidationRoot.querySelectorAll("[data-stock-issue='1']");
+            const orangeBanner = document.querySelector("[data-cart-stock-warning]");
+            const checkoutBtn = document.querySelector(".cart-checkout-btn");
+            const fixHint = document.querySelector("[data-cart-fix-hint]");
+
+            if (orangeBanner) {
+                orangeBanner.classList.toggle("hidden", remainingIssues.length === 0);
+            }
+            if (checkoutBtn) {
+                if (remainingIssues.length === 0) {
+                    checkoutBtn.classList.remove("opacity-60", "pointer-events-none");
+                    checkoutBtn.removeAttribute("aria-disabled");
+                    checkoutBtn.removeAttribute("tabindex");
+                } else {
+                    checkoutBtn.classList.add("opacity-60", "pointer-events-none");
+                    checkoutBtn.setAttribute("aria-disabled", "true");
+                    checkoutBtn.setAttribute("tabindex", "-1");
+                }
+            }
+            if (fixHint) {
+                fixHint.classList.toggle("hidden", remainingIssues.length === 0);
+            }
+        }
+
         if (typeof window.formatPrices === "function") {
             window.formatPrices();
         }
@@ -465,6 +513,10 @@ window.Cart = (function () {
     document.addEventListener("click", function (e) {
         const btn = e.target.closest(".add-to-cart-btn");
         if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
         if (btn.classList.contains("btn-loading")) return;
 
         const addMode = (btn.dataset.addToCartMode || "increment").toLowerCase();
@@ -871,6 +923,21 @@ window.Cart = (function () {
         const btn = form.querySelector("[data-clear-cart-btn]");
         if (btn && typeof window.btnLoading === "function") {
             window.btnLoading(btn);
+        }
+    });
+
+    // Checkout details modal: show loading on "Done" (save_only) submit.
+    document.addEventListener("submit", function (e) {
+        const form = e.target;
+        if (!form || !(form instanceof HTMLFormElement)) return;
+        if (!form.matches("#checkout-details-form")) return;
+
+        const submitter = e.submitter instanceof HTMLElement ? e.submitter : null;
+        if (!submitter?.matches("[data-checkout-save-btn]")) return;
+        if (submitter.classList.contains("btn-loading")) return;
+
+        if (typeof window.btnLoading === "function") {
+            window.btnLoading(submitter);
         }
     });
 

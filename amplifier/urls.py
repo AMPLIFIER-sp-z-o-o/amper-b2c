@@ -34,7 +34,6 @@ from apps.users.views import (
 )
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
-
 # Ensure error pages render with RequestContext (so base.html context processors are available).
 handler500 = "apps.web.views.server_error"
 

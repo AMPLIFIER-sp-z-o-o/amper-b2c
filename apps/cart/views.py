@@ -20,8 +20,6 @@ from apps.users.models import ShippingAddress
 from .checkout import (
     CHECKOUT_MODE_ORDER_SESSION,
     CHECKOUT_MODE_USER_DEFAULT,
-    CHECKOUT_ORDER_DETAILS_SESSION_KEY,
-    CHECKOUT_SESSION_KEY,
     clear_checkout_session,
     get_checkout_mode,
     get_checkout_state,
@@ -352,9 +350,7 @@ def apply_coupon(request):
         cart.coupon_code = ""
         cart.recalculate()
         if wants_json:
-            return _json_payload(
-                cart, success=False, message=str(_("Your cart is empty.")), message_type="error"
-            )
+            return _json_payload(cart, success=False, message=str(_("Your cart is empty.")), message_type="error")
         messages.error(request, _("Your cart is empty."))
         return response
 
@@ -370,9 +366,7 @@ def apply_coupon(request):
         cart.coupon_code = ""
         cart.recalculate()
         if wants_json:
-            return _json_payload(
-                cart, success=False, message=str(_("Invalid promo code.")), message_type="error"
-            )
+            return _json_payload(cart, success=False, message=str(_("Invalid promo code.")), message_type="error")
         messages.error(request, _("Invalid promo code."))
         return response
 
@@ -504,6 +498,7 @@ def clear_cart(request):
         return _clear_cart_id(request, response=response)
 
     cart.delete()
+    messages.success(request, _("Cart cleared."))
     return _clear_cart_id(request, response=response)
 
 
@@ -557,8 +552,10 @@ def save_as_list(request):
             request.session.create()
         session_key = request.session.session_key
 
-    owner_qs = WishList.objects.filter(user=request.user) if request.user.is_authenticated else WishList.objects.filter(
-        session_key=session_key, user__isnull=True
+    owner_qs = (
+        WishList.objects.filter(user=request.user)
+        if request.user.is_authenticated
+        else WishList.objects.filter(session_key=session_key, user__isnull=True)
     )
     if owner_qs.filter(name__iexact=name).exists():
         if wants_htmx:
@@ -583,6 +580,7 @@ def save_as_list(request):
             )
 
     if wants_htmx:
+        messages.success(request, _("List created successfully."))
         response = HttpResponse("")
         response["HX-Redirect"] = wishlist.get_absolute_url()
         return response
@@ -1242,6 +1240,7 @@ def checkout_save_details(request):
 
             should_save = (not has_any) or wants_save
             if should_save:
+
                 def _norm(value: str) -> str:
                     return " ".join(str(value or "").strip().split()).lower()
 
@@ -1251,13 +1250,17 @@ def checkout_save_details(request):
                 building = _norm(form.cleaned_data.get("shipping_building_number"))
                 apt = _norm(form.cleaned_data.get("shipping_apartment_number"))
 
-                match = existing_qs.filter(
-                    shipping_street__iexact=street,
-                    shipping_postal_code__iexact=postal,
-                    shipping_city__iexact=city,
-                    shipping_building_number__iexact=building,
-                    shipping_apartment_number__iexact=apt,
-                ).order_by("-is_default", "-updated_at", "-id").first()
+                match = (
+                    existing_qs.filter(
+                        shipping_street__iexact=street,
+                        shipping_postal_code__iexact=postal,
+                        shipping_city__iexact=city,
+                        shipping_building_number__iexact=building,
+                        shipping_apartment_number__iexact=apt,
+                    )
+                    .order_by("-is_default", "-updated_at", "-id")
+                    .first()
+                )
 
                 defaults = {
                     "full_name": form.get_full_name(),

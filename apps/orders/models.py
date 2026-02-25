@@ -14,6 +14,7 @@ from apps.utils.models import BaseModel
 class OrderStatus(models.TextChoices):
     PENDING = "pending", _("Pending")
     CONFIRMED = "confirmed", _("Confirmed")
+    PAID = "paid", _("Paid")
     CANCELLED = "cancelled", _("Cancelled")
 
 

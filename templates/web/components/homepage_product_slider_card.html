@@ -23,7 +23,7 @@
   
   <div class="flex flex-1 flex-row pointer-events-none">
     <div class="block shrink-0">
-      <div class="relative aspect-square w-28 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-700 sm:aspect-square sm:w-44 sm:self-center lg:w-52">
+      <div class="relative aspect-square w-28 overflow-hidden rounded-lg sm:aspect-square sm:w-44 sm:self-center lg:w-52">
         {% with product.images.all|first as product_image %}
           {% if product_image %}
             <img 
@@ -39,7 +39,7 @@
               loading="lazy"
             />
           {% else %}
-            <div class="flex h-full w-full items-center justify-center bg-gray-100 text-[10px] text-gray-400 dark:bg-gray-700 sm:text-sm">
+            <div class="flex h-full w-full items-center justify-center text-[10px] text-gray-400 sm:text-sm">
               {% translate "No photo" %}
             </div>
           {% endif %}

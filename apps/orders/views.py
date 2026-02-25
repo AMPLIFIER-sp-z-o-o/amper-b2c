@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from django.conf import settings
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import DecimalField, F, Value
@@ -14,7 +13,7 @@ from django.utils import timezone
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
-from apps.cart.checkout import CHECKOUT_SESSION_KEY, clear_checkout_session, get_checkout_state
+from apps.cart.checkout import clear_checkout_session, get_checkout_state
 from apps.cart.services import (
     _annotate_lines_with_stock_issues,
     _clear_cart_id,
@@ -27,7 +26,7 @@ from apps.utils.tasks import send_email_task  # noqa: F401
 from apps.web.models import SiteSettings
 
 from .emails import send_order_confirmation_email
-from .models import Coupon, Order, OrderLine
+from .models import Coupon, Order, OrderLine, OrderStatus
 
 
 @require_GET
@@ -35,7 +34,9 @@ def payment_gateway_placeholder(request: HttpRequest, token: str) -> HttpRespons
     if not token:
         raise Http404
 
-    order = get_object_or_404(Order.objects.prefetch_related("lines__product"), tracking_token=token)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("lines__product", "lines__product__images"), tracking_token=token
+    )
 
     return render(
         request,
@@ -123,9 +124,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
     # Some payment methods require a follow-up "payment" step after the order is placed
     # (e.g. bank transfer instructions / external gateway). For now we route such methods
     # to an internal placeholder gateway page.
-    should_redirect_to_payment = bool(
-        cart.payment_method and cart.payment_method.default_payment_time is not None
-    )
+    should_redirect_to_payment = bool(cart.payment_method and cart.payment_method.default_payment_time is not None)
 
     # Final safety: re-calc totals right before persisting the order.
     cart.recalculate()
@@ -141,8 +140,10 @@ def place_order(request: HttpRequest) -> HttpResponse:
     try:
         site_settings = SiteSettings.get_settings()
         currency = site_settings.currency or ""
+        base_url = (site_settings.site_url or "").strip().rstrip("/") or request.build_absolute_uri("/").rstrip("/")
     except Exception:
         currency = ""
+        base_url = request.build_absolute_uri("/").rstrip("/")
 
     first_name = (details.get("first_name") or "").strip()
     last_name = (details.get("last_name") or "").strip()
@@ -185,9 +186,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
 
         # Lock products in a stable order to minimize deadlock risk.
         locked_products = list(
-            Product.objects.select_for_update()
-            .filter(id__in=list(required_by_product_id.keys()))
-            .order_by("id")
+            Product.objects.select_for_update().filter(id__in=list(required_by_product_id.keys())).order_by("id")
         )
 
         # Validate stock/availability again under the lock.
@@ -215,22 +214,10 @@ def place_order(request: HttpRequest) -> HttpResponse:
         coupon_code = (getattr(cart, "coupon_code", "") or "").strip()
         if coupon_code:
             now = timezone.now()
-            locked_coupon = (
-                Coupon.objects.select_for_update()
-                .filter(is_active=True, code__iexact=coupon_code)
-                .first()
-            )
+            locked_coupon = Coupon.objects.select_for_update().filter(is_active=True, code__iexact=coupon_code).first()
 
             coupon_is_valid = True
-            if not locked_coupon:
-                coupon_is_valid = False
-            elif locked_coupon.valid_from and now < locked_coupon.valid_from:
-                coupon_is_valid = False
-            elif locked_coupon.valid_to and now > locked_coupon.valid_to:
-                coupon_is_valid = False
-            elif locked_coupon.usage_limit is not None and locked_coupon.used_count >= locked_coupon.usage_limit:
-                coupon_is_valid = False
-            elif locked_coupon.min_subtotal is not None and cart.subtotal < locked_coupon.min_subtotal:
+            if not locked_coupon or locked_coupon.valid_from and now < locked_coupon.valid_from or locked_coupon.valid_to and now > locked_coupon.valid_to or locked_coupon.usage_limit is not None and locked_coupon.used_count >= locked_coupon.usage_limit or locked_coupon.min_subtotal is not None and cart.subtotal < locked_coupon.min_subtotal:
                 coupon_is_valid = False
 
             if not coupon_is_valid:
@@ -284,14 +271,18 @@ def place_order(request: HttpRequest) -> HttpResponse:
             currency=currency,
         )
 
-        for line in lines:
-            OrderLine.objects.create(
-                order=order,
-                product=line.product,
-                quantity=line.quantity,
-                unit_price=line.price,
-                line_total=line.subtotal,
-            )
+        OrderLine.objects.bulk_create(
+            [
+                OrderLine(
+                    order=order,
+                    product=line.product,
+                    quantity=line.quantity,
+                    unit_price=line.price,
+                    line_total=line.subtotal,
+                )
+                for line in lines
+            ]
+        )
 
         # Clear cart after successful order placement
         cart.delete()
@@ -299,7 +290,6 @@ def place_order(request: HttpRequest) -> HttpResponse:
     request.session.pop("cart_id", None)
     clear_checkout_session(request)
 
-    base_url = _get_site_base_url(request)
     tracking_path = order.get_tracking_url()
     tracking_url = f"{base_url}{tracking_path}" if base_url else tracking_path
 
@@ -315,7 +305,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
         payment_url=payment_url,
     )
 
-    messages.success(request, _("Order placed. Save your tracking link."))
+    messages.success(request, _("Order placed."))
 
     response = (
         redirect("orders:pay", token=order.tracking_token)
@@ -332,7 +322,9 @@ def track_order(request: HttpRequest, token: str) -> HttpResponse:
     if not token:
         raise Http404
 
-    order = get_object_or_404(Order.objects.prefetch_related("lines__product"), tracking_token=token)
+    order = get_object_or_404(
+        Order.objects.prefetch_related("lines__product", "lines__product__images"), tracking_token=token
+    )
 
     if order.email_verified_at is None:
         try:
@@ -341,6 +333,10 @@ def track_order(request: HttpRequest, token: str) -> HttpResponse:
         except Exception:
             pass
 
+    user_order_number = (
+        Order.objects.filter(email__iexact=order.email, created_at__lte=order.created_at).count()
+    )
+
     return render(
         request,
         "orders/order_tracking.html",
@@ -348,5 +344,38 @@ def track_order(request: HttpRequest, token: str) -> HttpResponse:
             "order": order,
             "lines": order.lines.all(),
             "now": timezone.now(),
+            "user_order_number": user_order_number,
         },
     )
+
+
+@require_POST
+def post_payment_mock(request: HttpRequest, token: str) -> HttpResponse:
+    """
+    Mock payment endpoint.
+    Simulates a successful payment response by updating the order status and sending the email.
+    """
+    if not token:
+        raise Http404
+
+    order = get_object_or_404(
+        Order.objects.prefetch_related("lines__product", "lines__product__images"), tracking_token=token
+    )
+
+    with transaction.atomic():
+        order.status = OrderStatus.PAID
+        order.save(update_fields=["status", "updated_at"])
+
+    base_url = _get_site_base_url(request)
+    tracking_path = order.get_tracking_url()
+    tracking_url = f"{base_url}{tracking_path}" if base_url else tracking_path
+
+    send_order_confirmation_email(
+        order=order,
+        base_url=base_url,
+        tracking_url=tracking_url,
+        payment_url="",  # We are already paid, no need for payment_url
+    )
+
+    messages.success(request, _("Payment successful. Thank you for your order!"))
+    return redirect("orders:track", token=order.tracking_token)

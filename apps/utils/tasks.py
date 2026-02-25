@@ -18,10 +18,10 @@ def send_email_task(self, subject, body, from_email, recipient_list, html_messag
     All arguments must be JSON-serializable so Celery can enqueue them.
     Retries up to 3 times with exponential back-off on SMTP errors.
     """
-    from apps.utils.email_backend import DatabaseSmtpBackend
+    from django.core.mail import get_connection
 
     try:
-        backend = DatabaseSmtpBackend()
+        backend = get_connection()
         msg = EmailMultiAlternatives(
             subject=subject,
             body=body,

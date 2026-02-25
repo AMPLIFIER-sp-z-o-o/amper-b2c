@@ -2,13 +2,13 @@
 {% autoescape off %}
 {% blocktranslate trimmed with name=order.full_name %}Hello {{ name }},{% endblocktranslate %}
 
-{% blocktranslate trimmed with order_id=order.id %}Thank you for your order #{{ order_id }}.{% endblocktranslate %}
+{% blocktranslate trimmed with order_id=order.id %}Thank you for placing your order #{{ order_id }}. We have received it and are preparing it for shipment.{% endblocktranslate %}
 
 {% translate "Order summary" %}
 {% blocktranslate trimmed %}Placed:{% endblocktranslate %} {{ order.created_at|date:"Y-m-d H:i" }}
 
 {% translate "Items" %}:
-{% for line in lines %}- {{ line.product.name }} x{{ line.quantity }} — {{ line.unit_price|floatformat:2 }} {{ currency_symbol }} ({{ line.line_total|floatformat:2 }} {{ currency_symbol }})
+{% for line in lines %}- {{ line.product.name }} ({{ site_url }}{{ line.product.get_absolute_url }}) x{{ line.quantity }} — {{ line.unit_price|floatformat:2 }} {{ currency_symbol }} ({{ line.line_total|floatformat:2 }} {{ currency_symbol }})
 {% endfor %}
 
 {% translate "Subtotal" %}: {{ order.subtotal|floatformat:2 }} {{ currency_symbol }}
@@ -26,8 +26,7 @@
 {% if order.phone %}{% translate "Phone" %}: {{ order.phone }}
 {% endif %}
 
-{% if payment_url %}{% translate "Payment" %}: {{ payment_url }}
-{% endif %}{% translate "Track your order" %}: {{ tracking_url }}
+{% translate "Track your order" %}: {{ tracking_url }}
 
 {% blocktranslate trimmed with store=store_name %}Thank you for shopping with {{ store }}.{% endblocktranslate %}
 {% endautoescape %}

@@ -12,10 +12,10 @@ It compiles all `locale/*/LC_MESSAGES/*.po` files into matching `.mo` files.
 
 from __future__ import annotations
 
+import ast
 import glob
 import os
 import struct
-import ast
 from dataclasses import dataclass, field
 
 
@@ -85,9 +85,7 @@ def parse_po(path: str) -> list[PoEntry]:
                 # Some .po files omit the blank line separator between entries
                 # (notably between the header and the first real msgid). If a
                 # new entry starts, commit the previous one first.
-                if active_field is not None and (
-                    current.msgid != "" or current.msgstr or current.msgctxt is not None
-                ):
+                if active_field is not None and (current.msgid != "" or current.msgstr or current.msgctxt is not None):
                     commit()
                 current.msgctxt = _unquote_po_string(line[len("msgctxt") :].strip())
                 active_field = ("msgctxt", None)
@@ -100,9 +98,7 @@ def parse_po(path: str) -> list[PoEntry]:
 
             if line.startswith("msgid"):
                 # New entry without a blank line separator.
-                if active_field is not None and (
-                    current.msgid != "" or current.msgstr or current.msgctxt is not None
-                ):
+                if active_field is not None and (current.msgid != "" or current.msgstr or current.msgctxt is not None):
                     commit()
                 current.msgid = _unquote_po_string(line[len("msgid") :].strip())
                 active_field = ("msgid", None)

@@ -4,18 +4,23 @@
 {% block body %}
 <section id="order-tracking-page-{{ order.id }}" class="order-flow-enter bg-gray-100 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
   <div class="max-w-7xl mx-auto px-2">
-    <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
-      {% blocktranslate with id=order.id %}Order #{{ id }}{% endblocktranslate %}
+    <h2 class="mt-6 flex items-center gap-3 text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
+      <span class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></span>
+      {% blocktranslate with id=user_order_number %}Order summary #{{ id }}{% endblocktranslate %}
     </h2>
-    <p class="text-subtitle mt-1">
-      {% translate "Save this link to track your order." %}
-    </p>
 
     <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-8">
-      <div class="min-w-0 flex-1 divide-y divide-gray-200 rounded-lg border border-gray-200 bg-white shadow-sm dark:divide-gray-700 dark:border-gray-700 dark:bg-gray-800">
+      <div class="min-w-0 flex-1 divide-y divide-gray-200 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:divide-gray-700 dark:bg-gray-800">
         {% for line in lines %}
           <div class="flex flex-wrap items-center space-y-4 p-6 sm:gap-6 sm:space-y-0 md:justify-between">
-            <div class="w-full items-center space-y-4 sm:flex sm:space-x-6 sm:space-y-0 md:max-w-md lg:max-w-lg">
+            <div class="w-full items-center space-y-4 sm:flex sm:space-x-4 sm:space-y-0 md:max-w-md lg:max-w-lg">
+              {% with primary_image=line.product.images.first %}
+                  {% if primary_image and primary_image.image %}
+                    <a href="{{ line.product.get_absolute_url }}" class="shrink-0 group">
+                      <img class="h-16 w-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 group-hover:opacity-80 transition-opacity" src="{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:line.product.name }}">
+                    </a>
+                  {% endif %}
+              {% endwith %}
               <a href="{{ line.product.get_absolute_url }}" class="font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">
                 {{ line.product.name }}
               </a>
@@ -36,9 +41,11 @@
         {% endfor %}
       </div>
 
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 sm:mt-8 md:p-6 lg:mt-0 lg:max-w-sm xl:max-w-md">
-        <div class="p-6">
-          <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order Details" %}</h4>
+      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 lg:mt-0 lg:max-w-sm xl:max-w-md">
+        <div class="px-6 pt-5 pb-6">
+          <h4 class="mb-4 flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
+            {% translate "Order Details" %}
+          </h4>
           <div class="flow-root">
             <div class="divide-y divide-gray-200 dark:divide-gray-700">
               <dl class="pb-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
@@ -81,8 +88,10 @@
           </div>
         </div>
 
-        <div class="space-y-4 p-6">
-          <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
+        <div class="space-y-4 px-6 pt-4 pb-6">
+          <h4 class="flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
+            {% translate "Order amount" %}
+          </h4>
           <div class="space-y-2">
             {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal discount_total=order.discount_total delivery_cost=order.delivery_cost total=order.total show_delivery_cost=True %}
           </div>

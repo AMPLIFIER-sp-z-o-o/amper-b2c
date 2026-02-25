@@ -14,134 +14,108 @@
       {% translate "Review Order" %}
     </h2>
 
-    <div class="mt-6 sm:mt-8 lg:grid lg:grid-cols-12 lg:items-start lg:gap-8">
-      <div class="lg:col-span-7 xl:col-span-8 space-y-10 sm:space-y-12">
-        <div class="min-w-0 divide-y divide-gray-200 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:divide-gray-700 dark:bg-gray-800">
-          {% for line in lines %}
-          <div data-cart-line data-cart-line-id="{{ line.id }}" class="flex flex-wrap items-center gap-4 p-6 sm:flex-nowrap sm:gap-6 md:justify-between">
-              <div class="w-full items-center gap-4 sm:flex sm:gap-6 md:max-w-md lg:max-w-lg">
-                  <a href="{{ line.product.get_absolute_url }}" class="block aspect-square w-20 shrink-0">
-                      {% with line.product.images.all|first as img %}
-                      {% if img %}
-                          <img class="h-full w-full object-contain"
-                              src="{{ img.image.url }}"
-                              alt="{{ line.product.name }}">
-                      {% else %}
-                          <div class="h-full w-full bg-gray-200 dark:bg-gray-700"></div>
-                      {% endif %}
-                      {% endwith %}
-                  </a>
+    <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-8">
 
-                  <div class="w-full min-w-0 md:max-w-sm lg:max-w-md">
-                      <a href="{{ line.product.get_absolute_url }}" class="block font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">{{ line.product.name }}</a>
-                  </div>
-              </div>
-              <div class="w-10 shrink-0">
-                  <p class="text-base font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
-              </div>
+      {# ── LEFT 70%: product list ── #}
+      <div class="min-w-0 flex-1 space-y-4">
+        {% for line in lines %}
+        <div data-cart-line data-cart-line-id="{{ line.id }}"
+             class="flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-all duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 sm:flex-nowrap sm:gap-6 sm:p-5 md:justify-between">
 
-              <div class="sm:w-24 sm:text-right">
-                  <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}" class="text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
-              </div>
+          <a href="{{ line.product.get_absolute_url }}" class="block aspect-square w-20 shrink-0 rounded-md overflow-hidden">
+            {% with line.product.images.all|first as img %}
+            {% if img %}
+              <img class="h-full w-full object-contain" src="{{ img.image.url }}" alt="{{ line.product.name }}">
+            {% else %}
+              <div class="h-full w-full bg-gray-200 dark:bg-gray-700 rounded-md"></div>
+            {% endif %}
+            {% endwith %}
+          </a>
+
+          <div class="min-w-0 flex-1">
+            <a href="{{ line.product.get_absolute_url }}"
+               class="block font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word"
+               title="{{ line.product.name }}">{{ line.product.name }}</a>
           </div>
-          {% endfor %}
-        </div>
 
-        <div class="w-full rounded-lg bg-white p-4 dark:bg-gray-800 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-          <div class="space-y-4 p-2 sm:p-4">
-            <h4 class="text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order amount" %}</h4>
-
-            <div class="space-y-2">
-              {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal discount_total=discount_total delivery_cost=delivery_cost total=total show_delivery_cost=True %}
-            </div>
-
-            <button type="submit" data-nav-loading-btn class="relative mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
-              <span class="pr-16">
-                {% if selected_payment and selected_payment.default_payment_time != None %}
-                  {% translate "Continue to payment" %}
-                {% else %}
-                  {% translate "Place order" %}
-                {% endif %}
-              </span>
-              <svg class="absolute right-11 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.5 11.5 11 14l4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-              <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
-              </svg>
-            </button>
-            
-            <a href="/cart/checkout/" class="btn-press mt-2 flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
-              {% translate "Return to Checkout" %}
-            </a>
-
-            <p class="text-subtitle">
-              {% translate "By placing your order, you agree to our" %}
-              <a href="{% url 'web:privacy' %}" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "privacy note" %}</a>
-              {% translate "and" %}
-              <a href="{% url 'web:terms' %}" class="text-sm font-medium text-primary-700 underline hover:no-underline dark:text-primary-500">{% translate "terms of use" %}</a>.
-            </p>
+          <div class="flex shrink-0 items-center gap-6">
+            <p class="text-sm font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
+            <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}"
+               class="w-24 text-right text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
           </div>
+
         </div>
+        {% endfor %}
       </div>
 
-      <div class="lg:col-span-5 xl:col-span-4 mt-6 lg:mt-0 w-full rounded-lg bg-white p-4 dark:bg-gray-800 md:p-6 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-        <div class="p-2 sm:p-4">
-          <h4 class="mb-4 text-xl font-semibold text-gray-900 dark:text-white">{% translate "Order Details" %}</h4>
+      {# ── RIGHT 30%: sticky summary panel ── #}
+      <div class="mt-6 lg:mt-0 lg:w-[30%] lg:min-w-70 lg:max-w-sm lg:shrink-0 lg:self-stretch">
+        <div class="sticky top-32 mt-0 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800">
+          <div class="space-y-0 p-5 sm:p-6">
 
-          <div class="flow-root">
-            <div class="divide-y divide-gray-200 dark:divide-gray-700">
-              <dl class="pb-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Order date" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ now|date:"Y-m-d H:i" }}</dd>
+            {# Totals #}
+            <h4 class="mb-4 text-base font-semibold text-gray-900 dark:text-white">{% translate "Order Summary" %}</h4>
+            {% include "Cart/includes/cart_totals_list.html" with subtotal=subtotal discount_total=discount_total delivery_cost=delivery_cost total=total show_delivery_cost=True %}
+
+            <div class="my-5 border-t border-gray-200 dark:border-gray-700"></div>
+
+            {# CTA #}
+            <div class="mt-5 space-y-3">
+              <button type="submit" data-nav-loading-btn class="relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-3 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer">
+                <span class="w-full text-center">
+                  {% if selected_payment and selected_payment.default_payment_time != None %}
+                    {% translate "Continue to payment" %}
+                  {% else %}
+                    {% translate "Place order" %}
+                  {% endif %}
+                </span>
+                <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+                </svg>
+              </button>
+
+              <a href="/cart/checkout/" class="btn-press flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
+                {% translate "Return to Checkout" %}
+              </a>
+
+              <p class="text-center text-sm font-medium text-gray-900 dark:text-white">
+                {% translate "By placing your order, you agree to our" %}
+                <a href="{% url 'web:privacy' %}" target="_blank" rel="noopener noreferrer" class="font-medium text-primary-700 underline hover:text-primary-900 dark:text-primary-500 dark:hover:text-primary-300 transition-colors">{% translate "privacy note" %}</a>
+                {% translate "and" %}
+                <a href="{% url 'web:terms' %}" target="_blank" rel="noopener noreferrer" class="font-medium text-primary-700 underline hover:text-primary-900 dark:text-primary-500 dark:hover:text-primary-300 transition-colors">{% translate "terms of use" %}</a>.
+              </p>
+            </div>
+
+            <div class="mt-5 border-t border-gray-200 dark:border-gray-700"></div>
+
+            {# Order details rows – stacked label above value #}
+            <div class="mt-5 space-y-4">
+              <dl>
+                <dt class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">{% translate "Payment" %}</dt>
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ payment_name|default:"—" }}</dd>
               </dl>
 
-              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Email" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ checkout_details.email }}</dd>
+              <dl>
+                <dt class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">{% translate "Delivery" %}</dt>
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ delivery_name|default:"—" }}</dd>
               </dl>
 
-              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Phone" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">
-                  {% if checkout_details.phone_number %}{{ checkout_details.phone_country_code }} {{ checkout_details.phone_number }}{% else %}—{% endif %}
-                </dd>
-              </dl>
-
-              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Delivery method" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ delivery_name|default:"—" }}</dd>
-              </dl>
-
-              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Payment method" %}</dt>
-                <dd class="mt-2 sm:mt-0 sm:text-right sm:max-w-xs">
-                  <span class="text-subtitle wrap-break-word">{{ payment_name|default:"—" }}</span>
-                </dd>
-              </dl>
-
-              <dl class="pt-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
-                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
-                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">
+              <dl>
+                <dt class="text-sm font-bold uppercase tracking-wider text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
+                <dd class="mt-1 text-sm font-medium text-gray-900 dark:text-white wrap-break-word">
                   {{ checkout_details.shipping_street }} {{ checkout_details.shipping_building_number }}{% if checkout_details.shipping_apartment_number %}/{{ checkout_details.shipping_apartment_number }}{% endif %},
                   {{ checkout_details.shipping_postal_code }} {{ checkout_details.shipping_city }}
                 </dd>
               </dl>
             </div>
+
           </div>
         </div>
       </div>
+
     </div>
   </form>
 </section>
-
-<script>
-window.addEventListener("pageshow", function (event) {
-    if (event.persisted || performance.getEntriesByType("navigation")[0].type === "back_forward") {
-        window.location.replace("{% url 'cart:cart_page' %}");
-    }
-});
-</script>
 {% endblock %}
 
 

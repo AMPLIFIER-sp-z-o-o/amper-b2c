@@ -1,7 +1,6 @@
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 
-from apps.cart.models import Cart, CartLine
 from apps.cart.checkout import (
     CHECKOUT_MODE_ORDER_SESSION,
     CHECKOUT_MODE_USER_DEFAULT,
@@ -11,6 +10,7 @@ from apps.cart.checkout import (
     set_checkout_order_details,
     touch_checkout_session,
 )
+from apps.cart.models import Cart, CartLine
 from apps.users.models import ShippingAddress
 
 
@@ -180,14 +180,18 @@ def migrate_checkout_on_login(sender, request, user, **kwargs):
             "shipping_apartment_number": (order_details.get("shipping_apartment_number") or "").strip(),
         }
 
-        match = ShippingAddress.objects.filter(
-            user=user,
-            shipping_street__iexact=street,
-            shipping_postal_code__iexact=postal,
-            shipping_city__iexact=city,
-            shipping_building_number__iexact=building,
-            shipping_apartment_number__iexact=apt,
-        ).order_by("-updated_at", "-id").first()
+        match = (
+            ShippingAddress.objects.filter(
+                user=user,
+                shipping_street__iexact=street,
+                shipping_postal_code__iexact=postal,
+                shipping_city__iexact=city,
+                shipping_building_number__iexact=building,
+                shipping_apartment_number__iexact=apt,
+            )
+            .order_by("-updated_at", "-id")
+            .first()
+        )
 
         if not has_any:
             if match:

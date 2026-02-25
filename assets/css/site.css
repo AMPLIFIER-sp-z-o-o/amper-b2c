@@ -40,9 +40,38 @@ html {
 @theme {
   --font-sans: "Montserrat", "sans-serif";
   --font-body: "Montserrat", "sans-serif";
+  --control-surface-bg: #eceff3;
   --font-mono:
     "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas",
     "Liberation Mono", "Courier New", "monospace";
+}
+
+/*
+ * Improve contrast for gray controls on white surfaces.
+ * Keep this scoped to interactive elements so page/container backgrounds remain unchanged.
+ */
+input.bg-gray-100:not(:focus):not(:focus-visible),
+textarea.bg-gray-100:not(:focus):not(:focus-visible),
+select.bg-gray-100:not(:focus):not(:focus-visible),
+button.bg-gray-100:not(:hover),
+a.bg-gray-100:not(:hover),
+label.bg-gray-100:not(:hover),
+[class~="bg-gray-100"][class*="focus-within:"]:not(:focus-within) {
+  background-color: var(--control-surface-bg);
+}
+
+input.bg-gray-100:focus,
+textarea.bg-gray-100:focus,
+select.bg-gray-100:focus,
+[class~="bg-gray-100"][class*="focus-within:"]:focus-within {
+  background-color: #fff !important;
+}
+
+.dark input.bg-gray-100:focus,
+.dark textarea.bg-gray-100:focus,
+.dark select.bg-gray-100:focus,
+.dark [class~="bg-gray-100"][class*="focus-within:"]:focus-within {
+  background-color: rgb(75 85 99) !important;
 }
 
 /* ===========================================
@@ -366,6 +395,7 @@ button[disabled]:hover,
 .btn-loading {
   opacity: 0.6;
   pointer-events: none;
+  cursor: not-allowed;
 }
 
 .btn-loading * {
@@ -382,6 +412,10 @@ button[disabled]:hover,
   width: 1.25rem;
   height: 1.25rem;
   animation: spin 0.7s linear infinite;
+}
+
+.btn-loading[data-nav-loading-btn] > span:not(.btn-spinner) {
+  width: auto;
 }
 
 @keyframes spin {

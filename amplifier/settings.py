@@ -595,6 +595,11 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@example.com")
 #   EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
 EMAIL_BACKEND = env("EMAIL_BACKEND", default="apps.utils.email_backend.DatabaseSmtpBackend")
 
+# Order confirmation email dispatch strategy:
+# - local/dev (DEBUG=True): send synchronously by default for easier debugging
+# - non-local (DEBUG=False): dispatch asynchronously through Celery by default
+ORDER_EMAIL_USE_CELERY = env.bool("ORDER_EMAIL_USE_CELERY", default=not DEBUG)
+
 EMAIL_SUBJECT_PREFIX = ""
 
 # Django sites

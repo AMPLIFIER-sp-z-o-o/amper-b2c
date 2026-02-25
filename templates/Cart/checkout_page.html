@@ -43,7 +43,7 @@
             <div class="fixed inset-0 bg-black/50 backdrop-blur-sm"></div>
             <div class="relative flex min-h-full w-full items-center justify-center p-4">
               <div class="relative flex w-full max-w-lg max-h-[90vh] flex-col overflow-hidden rounded-2xl bg-gray-100 shadow-[0_8px_24px_rgba(0,0,0,0.18)] dark:bg-gray-800">
-                <div class="flex items-center justify-between border-b border-gray-200 bg-gray-100 p-5 dark:border-gray-700 dark:bg-gray-800">
+                <div class="flex shrink-0 items-center justify-between border-b border-gray-200 bg-gray-100 p-5 dark:border-gray-700 dark:bg-gray-800">
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "Delivery details" %}</h3>
                   <button type="button" class="inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 hover-bg btn-press dark:text-gray-300 cursor-pointer" data-modal-hide="shipping-details-modal" aria-label="{% translate 'Close' %}">
                     <svg class="h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -52,17 +52,17 @@
                   </button>
                 </div>
 
-                <form id="checkout-details-form" method="post" action="{% url 'cart:checkout_save_details' %}">
+                <form id="checkout-details-form" method="post" action="{% url 'cart:checkout_save_details' %}" class="flex flex-col flex-1 min-h-0 overflow-hidden">
                   {% csrf_token %}
                   <input type="hidden" name="checkout_mode" value="order_session" />
 
-                  <div class="bg-gray-100 p-5 overflow-y-auto dark:bg-gray-800">
+                  <div class="flex-1 bg-gray-100 p-5 overflow-y-auto dark:bg-gray-800">
                     {% include "Cart/includes/checkout_details_fields.html" with details_form=details_form %}
                   </div>
 
-                  <div class="flex items-center justify-end gap-2 border-t border-gray-200 bg-gray-100 p-5 dark:border-gray-700 dark:bg-gray-800">
+                  <div class="flex shrink-0 items-center justify-end gap-2 border-t border-gray-200 bg-gray-100 p-5 dark:border-gray-700 dark:bg-gray-800">
                     <button type="button" class="btn-press rounded-lg bg-gray-100 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 cursor-pointer" data-modal-hide="shipping-details-modal">{% translate "Cancel" %}</button>
-                    <button type="submit" name="checkout_action" value="save_only" class="inline-flex items-center justify-center rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-700 cursor-pointer">{% translate "Done" %}</button>
+                    <button type="submit" name="checkout_action" value="save_only" data-checkout-save-btn class="inline-flex items-center justify-center rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-800 dark:bg-primary-600 dark:hover:bg-primary-700 cursor-pointer">{% translate "Done" %}</button>
                   </div>
                 </form>
               </div>
@@ -155,17 +155,18 @@
 
         <div class="space-y-3">
               <button id="proceed-to-summary-btn" type="submit" form="checkout-details-form" data-nav-loading-btn class="relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer disabled:opacity-60 disabled:pointer-events-none">
-                <span class="pr-7">{% translate "Review Order" %}</span>
+                <span class="w-full text-center">{% translate "Review Order" %}</span>
                 <svg data-keep-on-loading class="absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
                 </svg>
           </button>
+          <p id="proceed-disabled-hint" class="text-center text-sm font-medium text-gray-500 dark:text-gray-400 mt-2">{% translate "Please complete your delivery details to proceed." %}</p>
             <a href="/cart/" class="btn-press flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
                 {% translate "Return to Cart" %}
             </a>
           <p class="text-subtitle">
             {% translate "You can check out as a guest, or" %}
-            <a href="{% url 'account_login' %}" class="font-semibold text-primary-700 underline underline-offset-2 hover:underline dark:text-primary-500 cursor-pointer">{% translate "sign in / create an account" %}</a>
+            <a href="{% url 'account_login' %}?next={{ request.get_full_path|urlencode }}" class="font-semibold text-primary-700 underline underline-offset-2 hover:underline dark:text-primary-500 cursor-pointer">{% translate "sign in / create an account" %}</a>
             {% translate "for faster checkout." %}
           </p>
         </div>
