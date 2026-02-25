@@ -1,0 +1,103 @@
+{% extends "web/base.html" %}
+{% load i18n %}
+
+{% block body %}
+<section id="order-summary-page-{{ order.id }}" class="order-flow-enter bg-gray-100 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
+  <div class="max-w-7xl mx-auto px-2">
+    <h2 class="mt-6 flex items-center gap-3 text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:mt-8 sm:text-2xl">
+      <span class="h-8 w-1.5 shrink-0 rounded-full bg-primary-600 dark:bg-primary-500"></span>
+      {% blocktranslate with id=user_order_number %}Order summary #{{ id }}{% endblocktranslate %}
+    </h2>
+
+    <div class="mt-6 sm:mt-8 lg:flex lg:items-start lg:gap-8">
+      <div class="min-w-0 flex-1 divide-y divide-gray-200 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:divide-gray-700 dark:bg-gray-800">
+        {% for line in lines %}
+          <div class="flex flex-wrap items-center space-y-4 p-6 sm:gap-6 sm:space-y-0 md:justify-between">
+            <div class="w-full items-center space-y-4 sm:flex sm:space-x-4 sm:space-y-0 md:max-w-md lg:max-w-lg">
+              {% with primary_image=line.product.images.first %}
+                  {% if primary_image and primary_image.image %}
+                    <a href="{{ line.product.get_absolute_url }}" class="shrink-0 group">
+                      <img class="h-16 w-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 group-hover:opacity-80 transition-opacity" src="{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:line.product.name }}">
+                    </a>
+                  {% endif %}
+              {% endwith %}
+              <a href="{{ line.product.get_absolute_url }}" class="font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">
+                {{ line.product.name }}
+              </a>
+            </div>
+            <div class="w-8 shrink-0">
+              <p class="text-base font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
+            </div>
+            <div class="md:w-24 md:text-right">
+              <p data-price="{{ line.line_total }}" data-currency="{{ order.currency|default:site_currency }}" class="text-base font-bold text-gray-900 dark:text-white">
+                {{ line.line_total|floatformat:2 }}
+              </p>
+            </div>
+          </div>
+        {% empty %}
+          <div class="p-6">
+            <p class="text-subtitle">{% translate "No items." %}</p>
+          </div>
+        {% endfor %}
+      </div>
+
+      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 lg:mt-0 lg:max-w-sm xl:max-w-md">
+        <div class="px-6 pt-5 pb-6">
+          <h4 class="mb-4 flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
+            {% translate "Order Details" %}
+          </h4>
+          <div class="flow-root">
+            <div class="divide-y divide-gray-200 dark:divide-gray-700">
+              <dl class="pb-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Order date" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.created_at|date:"Y-m-d H:i" }}</dd>
+              </dl>
+
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Status" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.get_status_display }}</dd>
+              </dl>
+
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Email" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.email }}</dd>
+              </dl>
+
+              {% if order.phone %}
+                <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                  <dt class="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">{% translate "Phone" %}</dt>
+                  <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.phone }}</dd>
+                </dl>
+              {% endif %}
+
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap text-base font-semibold text-gray-900 dark:text-white">{% translate "Delivery method" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.delivery_method_name }}</dd>
+              </dl>
+
+              <dl class="py-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Payment method" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.payment_method_name }}</dd>
+              </dl>
+
+              <dl class="pt-4 sm:flex sm:items-start sm:justify-between sm:gap-4">
+                <dt class="whitespace-nowrap font-semibold text-gray-900 dark:text-white">{% translate "Shipping address" %}</dt>
+                <dd class="mt-2 text-subtitle wrap-break-word sm:mt-0 sm:text-right sm:max-w-xs">{{ order.shipping_address }}, {{ order.shipping_postal_code }} {{ order.shipping_city }}</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-4 px-6 pt-4 pb-6">
+          <h4 class="flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
+            {% translate "Order amount" %}
+          </h4>
+          <div class="space-y-2">
+            {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal discount_total=order.discount_total delivery_cost=order.delivery_cost total=order.total show_delivery_cost=True %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}

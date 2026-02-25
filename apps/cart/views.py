@@ -890,7 +890,7 @@ def checkout_page(request):
             if user_default_address and not user_default_address_is_complete:
                 checkout_mode = CHECKOUT_MODE_ORDER_SESSION
                 touch_checkout_session(request, set_mode=CHECKOUT_MODE_ORDER_SESSION)
-            elif (not _has_checkout_identity(checkout_details)) and user_default_address:
+            elif user_default_address:
                 full_name = (user_default_address.full_name or "").strip()
                 parts = full_name.split(None, 1)
                 first_name = parts[0] if parts else ""

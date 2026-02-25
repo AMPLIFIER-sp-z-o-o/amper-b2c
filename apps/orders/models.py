@@ -85,7 +85,7 @@ class Order(BaseModel):
         return f"Order #{self.pk}"
 
     def get_tracking_url(self) -> str:
-        return reverse("orders:track", kwargs={"token": self.tracking_token})
+        return reverse("orders:summary", kwargs={"token": self.tracking_token})
 
     @classmethod
     def generate_tracking_token(cls) -> str:

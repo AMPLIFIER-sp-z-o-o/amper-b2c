@@ -12,6 +12,7 @@ from django.contrib import messages
 from django.contrib.auth import login as auth_login
 from django.contrib.auth.decorators import login_required
 from django.contrib.messages import get_messages
+from django.db import transaction
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -246,6 +247,39 @@ def account_orders(request):
 def account_addresses(request):
     """Shipping addresses page — manage saved checkout addresses."""
 
+    def _sync_checkout_with_address(default_address):
+        """Keep checkout session aligned with the current default saved address."""
+        if not default_address:
+            return
+
+        from apps.cart.checkout import (
+            CHECKOUT_MODE_USER_DEFAULT,
+            set_checkout_active_details,
+            set_checkout_order_details,
+        )
+
+        full_name = (default_address.full_name or "").strip()
+        parts = full_name.split(None, 1)
+        first_name = parts[0] if parts else ""
+        last_name = parts[1] if len(parts) > 1 else ""
+
+        active = {
+            "first_name": first_name,
+            "last_name": last_name,
+            "phone_country_code": (default_address.phone_country_code or "+48").strip() or "+48",
+            "phone_number": (default_address.phone_number or "").strip(),
+            "email": request.user.email,
+            "shipping_city": (default_address.shipping_city or "").strip(),
+            "shipping_postal_code": (default_address.shipping_postal_code or "").strip(),
+            "shipping_street": (default_address.shipping_street or "").strip(),
+            "shipping_building_number": (default_address.shipping_building_number or "").strip(),
+            "shipping_apartment_number": (default_address.shipping_apartment_number or "").strip(),
+        }
+        # Update both snapshots so stale order_session data cannot overwrite
+        # the selected default address on checkout.
+        set_checkout_active_details(request, active, mode=CHECKOUT_MODE_USER_DEFAULT)
+        set_checkout_order_details(request, active)
+
     addresses_qs = ShippingAddress.objects.filter(user=request.user)
     addresses = list(addresses_qs.order_by("-is_default", "-updated_at", "-id"))
 
@@ -273,7 +307,14 @@ def account_addresses(request):
                     remaining.update(is_default=False)
                     ShippingAddress.objects.filter(pk=replacement.pk).update(is_default=True)
 
+            current_default = (
+                ShippingAddress.objects.filter(user=request.user, is_default=True).order_by("-updated_at", "-id").first()
+            ) or (ShippingAddress.objects.filter(user=request.user).order_by("-updated_at", "-id").first())
+            _sync_checkout_with_address(current_default)
+
             messages.success(request, _("Address removed."))
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": True})
             return redirect("users:account_addresses")
 
         if action == "set_default":
@@ -281,7 +322,10 @@ def account_addresses(request):
             address = get_object_or_404(addresses_qs, pk=address_id)
             addresses_qs.update(is_default=False)
             ShippingAddress.objects.filter(pk=address.pk).update(is_default=True)
+            _sync_checkout_with_address(address)
             messages.success(request, _("Default address updated."))
+            if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+                return JsonResponse({"success": True})
             return redirect("users:account_addresses")
 
         # Save (create or update)
@@ -302,10 +346,14 @@ def account_addresses(request):
             if is_first and not obj.is_default:
                 obj.is_default = True
 
-            obj.save()
+            with transaction.atomic():
+                # Clear existing defaults first to satisfy the partial unique constraint.
+                if obj.is_default:
+                    addresses_qs.exclude(pk=obj.pk).update(is_default=False)
+                obj.save()
 
             if obj.is_default:
-                addresses_qs.exclude(pk=obj.pk).update(is_default=False)
+                _sync_checkout_with_address(obj)
 
             messages.success(request, _("Address saved."))
             return redirect("users:account_addresses")

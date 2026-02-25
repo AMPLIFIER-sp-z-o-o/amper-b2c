@@ -1,4 +1,4 @@
 {% load i18n %}
 {% autoescape off %}
-{% blocktranslate trimmed with order_id=order.id store=store_name %}Your order #{{ order_id }} at {{ store }} – confirmed!{% endblocktranslate %}
+{% blocktranslate trimmed with store=store_name order_id=order.id %}{{ store }} - Order #{{ order_id }} confirmed (summary link){% endblocktranslate %}
 {% endautoescape %}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from urllib.parse import urljoin
 
 from celery import shared_task
 from django.conf import settings
@@ -50,7 +51,18 @@ def _build_and_send_order_confirmation_email(*, order_id: int, base_url: str, tr
         currency_symbol = SiteSettings.CURRENCY_SYMBOLS.get(order.currency or "", order.currency or "")
 
     cta_url = payment_url or tracking_url
-    cta_text = str(_("Pay for your order")) if payment_url else str(_("Track your order"))
+    cta_text = str(_("Pay for your order")) if payment_url else str(_("View order summary"))
+
+    normalized_site_url = _normalize_base_url(base_url)
+
+    for line in lines:
+        primary_image = line.product.images.first()
+        image_url = ""
+        if primary_image and primary_image.image:
+            image_url = _absolute_url(normalized_site_url, str(primary_image.image.url))
+
+        line.product_url = _absolute_url(normalized_site_url, str(line.product.get_absolute_url()))
+        line.image_url = image_url
 
     context = {
         **branding,
@@ -93,7 +105,7 @@ def _get_site_branding(*, base_url: str) -> dict:
     """Return shared email branding context (store_name/site_url/logo_url/year)."""
 
     store_name = settings.PROJECT_METADATA.get("NAME", "Store")
-    site_url = base_url or ""
+    site_url = _normalize_base_url(base_url)
     logo_url = ""
     currency_symbol = ""
 
@@ -110,10 +122,8 @@ def _get_site_branding(*, base_url: str) -> dict:
         logo_url = ""
 
     # Make logo URL absolute (relative URLs do not work in email clients).
-    if logo_url and site_url and not str(logo_url).startswith(("http://", "https://")):
-        if not str(logo_url).startswith("/"):
-            logo_url = f"/{logo_url}"
-        logo_url = f"{site_url.rstrip('/')}{logo_url}"
+    if logo_url:
+        logo_url = _absolute_url(site_url, str(logo_url))
 
     return {
         "store_name": store_name,
@@ -122,6 +132,24 @@ def _get_site_branding(*, base_url: str) -> dict:
         "current_year": datetime.now().year,
         "currency_symbol": currency_symbol,
     }
+
+
+def _normalize_base_url(base_url: str) -> str:
+    base = (base_url or "").strip()
+    if not base:
+        return ""
+    return base if base.endswith("/") else f"{base}/"
+
+
+def _absolute_url(base_url: str, url: str) -> str:
+    candidate = (url or "").strip()
+    if not candidate:
+        return ""
+    if candidate.startswith(("http://", "https://")):
+        return candidate
+    if not base_url:
+        return candidate
+    return urljoin(base_url, candidate)
 
 
 def _get_from_email() -> str:

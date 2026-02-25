@@ -1,9 +1,9 @@
 {% extends 'account/email/email_template_base.html' %}
 {% load i18n %}
 
-{% block title %}{% blocktranslate trimmed %}Order confirmation{% endblocktranslate %}{% endblock %}
+{% block title %}{% blocktranslate trimmed with store=store_name order_id=order.id %}{{ store }} - Order #{{ order_id }} confirmation{% endblocktranslate %}{% endblock %}
 
-{% block preheader %}{% blocktranslate trimmed with order_id=order.id %}Thanks for your order #{{ order_id }}.{% endblocktranslate %}{% endblock %}
+{% block preheader %}{% blocktranslate trimmed with store=store_name order_id=order.id %}{{ store }}: your order #{{ order_id }} is confirmed. View summary and tracking details.{% endblocktranslate %}{% endblock %}
 
 {% block message_body %}
   <p style="margin: 0;">{% blocktranslate trimmed with name=order.full_name %}Hello {{ name }},{% endblocktranslate %}</p>
@@ -19,33 +19,27 @@
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse: collapse; width: 100%;">
     <thead>
       <tr>
-        <th align="left" style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600;" colspan="2">{% translate "Item" %}</th>
-        <th align="center" style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600; width: 80px;">{% translate "Quantity" %}</th>
-        <th align="right" style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600; width: 90px;">{% translate "Total" %}</th>
+        <th align="left" style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600;" colspan="2">{% translate "Product" %}</th>
+        <th align="center" style="padding: 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600; width: 72px; text-align: center;">{% translate "Quantity" %}</th>
+        <th align="right" style="padding: 10px 0 10px 0; border-bottom: 1px solid #e5e7eb; font-size: 13px; color: #6b7280; font-weight: 600; width: 120px; text-align: right;">{% translate "Total" %}</th>
       </tr>
     </thead>
     <tbody>
       {% for line in lines %}
         <tr>
-          <td width="60" style="padding: 10px 10px 10px 0; border-bottom: 1px solid #f3f4f6;">
-            {% with primary_image=line.product.images.first %}
-              {% if primary_image and primary_image.image %}
-                {% if primary_image.image.url|slice:":4" == "http" %}
-                  <img src="{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:line.product.name }}" width="50" style="max-width: 50px; height: auto; border-radius: 4px; display: block;" />
-                {% else %}
-                  <img src="{{ site_url }}{{ primary_image.image.url }}" alt="{{ primary_image.alt_text|default:line.product.name }}" width="50" style="max-width: 50px; height: auto; border-radius: 4px; display: block;" />
-                {% endif %}
-              {% endif %}
-            {% endwith %}
+          <td width="60" valign="top" style="padding: 10px 10px 10px 0; border-bottom: 1px solid #f3f4f6;">
+            {% if line.image_url %}
+              <img src="{{ line.image_url }}" alt="{{ line.product.name }}" width="50" style="max-width: 50px; height: auto; border-radius: 4px; display: block;" />
+            {% endif %}
           </td>
-          <td style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+          <td valign="top" style="padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
             <div style="font-weight: 600;">
-               <a href="{{ site_url }}{{ line.product.get_absolute_url }}" target="_blank" style="color: #111827; text-decoration: none;">{{ line.product.name }}</a>
+               <a href="{{ line.product_url }}" target="_blank" style="color: #111827; text-decoration: none;">{{ line.product.name }}</a>
             </div>
             <div style="font-size: 12px; color: #6b7280;">{{ line.unit_price|floatformat:2 }} {{ currency_symbol }} {% translate "each" %}</div>
           </td>
-          <td align="center" style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; color: #111827;">{{ line.quantity }}</td>
-          <td align="right" style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: 600; color: #111827;">{{ line.line_total|floatformat:2 }} {{ currency_symbol }}</td>
+          <td align="center" valign="top" style="padding: 10px 0; border-bottom: 1px solid #f3f4f6; color: #111827; text-align: center;">{{ line.quantity }}</td>
+          <td align="right" valign="top" style="padding: 10px 0 10px 0; border-bottom: 1px solid #f3f4f6; font-weight: 600; color: #111827; text-align: right;">{{ line.line_total|floatformat:2 }} {{ currency_symbol }}</td>
         </tr>
       {% endfor %}
     </tbody>
@@ -104,9 +98,9 @@
 
   <p style="margin: 0;">&nbsp;</p>
   <p style="margin: 0;">
-    <strong style="color: #111827;">{% translate "Track your order" %}:</strong>
+    <strong style="color: #111827;">{% translate "View order summary" %}:</strong>
   </p>
-  <p style="margin: 4px 0 0 0;">
+  <p style="margin: 4px 0 8px 0;">
     <a href="{{ tracking_url }}" target="_blank" style="color:#1A56DB; font-size: 14px; font-weight: 600; text-decoration: underline; word-break: break-all;">{{ tracking_url }}</a>
   </p>
 {% endblock %}

@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 @import "flowbite/src/themes/default";
@@ -31,6 +30,29 @@ textarea {
     color, background-color, border-color, opacity, box-shadow;
   transition-duration: 150ms;
   transition-timing-function: ease-in-out;
+}
+
+/*
+ * Extend clickable hit area around button-like controls without changing visuals.
+ * This helps edge clicks land reliably when controls have rounded corners/rings.
+ */
+button,
+a[data-nav-loading-btn],
+a.btn-press,
+a.add-to-cart-btn,
+a.remove-cart-line {
+  position: relative;
+}
+
+button::after,
+a[data-nav-loading-btn]::after,
+a.btn-press::after,
+a.add-to-cart-btn::after,
+a.remove-cart-line::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
 }
 
 html {

@@ -37,30 +37,27 @@
                 {% endif %}
               </div>
 
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="flex flex-col items-start gap-2 sm:flex-row sm:flex-nowrap sm:items-center sm:shrink-0">
                 <a href="{% url 'users:account_addresses' %}?edit={{ a.id }}" class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
                   {% translate "Edit" %}
                 </a>
 
                 {% if not a.is_default %}
-                  <form method="post" action="{% url 'users:account_addresses' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="set_default" />
-                    <input type="hidden" name="address_id" value="{{ a.id }}" />
-                    <button type="submit" class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                      {% translate "Set default" %}
-                    </button>
-                  </form>
+                  <button
+                    type="button"
+                    class="addr-set-default btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                    data-address-id="{{ a.id }}">
+                    {% translate "Set default" %}
+                  </button>
                 {% endif %}
 
-                <form method="post" action="{% url 'users:account_addresses' %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="delete" />
-                  <input type="hidden" name="address_id" value="{{ a.id }}" />
-                  <button type="submit" class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-red-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                    {% translate "Delete" %}
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  class="addr-delete btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-red-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  data-address-id="{{ a.id }}"
+                  data-address-name="{{ a.full_name }}">
+                  {% translate "Delete" %}
+                </button>
               </div>
             </div>
           </div>
@@ -235,9 +232,11 @@
 
         <div class="mt-5">
           <button
+            id="addr-submit-btn"
             type="submit"
             class="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer"
           >
+            <svg id="addr-submit-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <span>{% if editing_address %}{% translate "Save address" %}{% else %}{% translate "Add address" %}{% endif %}</span>
           </button>
         </div>
@@ -248,3 +247,124 @@
 
 </div>
 {% endblock account_content %}
+
+{% block account_modals %}
+{# Delete Address Confirmation Modal #}
+<div id="addr-delete-modal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
+  <div class="fixed inset-0 bg-black/50 backdrop-blur-sm" id="addr-delete-modal-backdrop"></div>
+  <div class="fixed inset-0 flex items-center justify-center p-4">
+    <div class="relative w-full max-w-100 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl">
+      <div class="p-6 text-center">
+        <div class="flex items-center justify-center w-14 h-14 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30">
+          <svg class="w-7 h-7 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{% translate "Delete Address?" %}</h3>
+        <p class="text-subtitle mb-6">{% translate "Are you sure you want to delete the address for" %} "<span id="addr-delete-name" class="font-semibold"></span>"? {% translate "This action cannot be undone." %}</p>
+        <div class="flex gap-3">
+          <button type="button" id="addr-delete-cancel" class="flex-1 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer">
+            {% translate "Cancel" %}
+          </button>
+          <button type="button" id="addr-delete-confirm" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer">
+            <svg id="addr-delete-spinner" class="hidden w-4 h-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <span>{% translate "Delete" %}</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock account_modals %}
+
+{% block page_js %}
+<script>
+(function() {
+  const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+  const addressesUrl = '{% url "users:account_addresses" %}';
+
+  async function postAddress(action, addressId) {
+    const body = new FormData();
+    body.append('action', action);
+    body.append('address_id', addressId);
+    body.append('csrfmiddlewaretoken', csrfToken);
+    const resp = await fetch(addressesUrl, {
+      method: 'POST',
+      headers: { 'X-Requested-With': 'XMLHttpRequest' },
+      body,
+    });
+    if (!resp.ok) throw new Error('Request failed');
+    return resp.json();
+  }
+
+  // Set Default
+  document.addEventListener('click', async function(e) {
+    const btn = e.target.closest('.addr-set-default');
+    if (!btn || btn.classList.contains('btn-loading')) return;
+    window.btnLoading(btn);
+    try {
+      await postAddress('set_default', btn.dataset.addressId);
+      window.location.reload();
+    } catch {
+      window.showToast('{% translate "Failed to update default address." %}', 'error');
+      window.btnReset(btn);
+    }
+  });
+
+  // Delete — show modal first
+  let pendingDeleteId = null;
+  const deleteModal = document.getElementById('addr-delete-modal');
+  const deleteNameEl = document.getElementById('addr-delete-name');
+  const deleteConfirmBtn = document.getElementById('addr-delete-confirm');
+  const deleteSpinner = document.getElementById('addr-delete-spinner');
+
+  function showDeleteModal(addressId, addressName) {
+    pendingDeleteId = addressId;
+    if (deleteNameEl) deleteNameEl.textContent = addressName;
+    deleteModal?.classList.remove('hidden');
+  }
+  function hideDeleteModal() {
+    deleteModal?.classList.add('hidden');
+    pendingDeleteId = null;
+  }
+
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.addr-delete');
+    if (!btn) return;
+    showDeleteModal(btn.dataset.addressId, btn.dataset.addressName);
+  });
+
+  document.getElementById('addr-delete-cancel')?.addEventListener('click', hideDeleteModal);
+  document.getElementById('addr-delete-modal-backdrop')?.addEventListener('click', hideDeleteModal);
+
+  deleteConfirmBtn?.addEventListener('click', async function() {
+    if (!pendingDeleteId || this.dataset.loading) return;
+    this.dataset.loading = 'true';
+    this.classList.add('opacity-60', 'pointer-events-none');
+    deleteSpinner?.classList.remove('hidden');
+    try {
+      await postAddress('delete', pendingDeleteId);
+      window.location.reload();
+    } catch {
+      window.showToast('{% translate "Failed to delete address." %}', 'error');
+      delete this.dataset.loading;
+      this.classList.remove('opacity-60', 'pointer-events-none');
+      deleteSpinner?.classList.add('hidden');
+    }
+  });
+
+  // Add/Save address form — loading state
+  const submitBtn = document.getElementById('addr-submit-btn');
+  const submitSpinner = document.getElementById('addr-submit-spinner');
+  if (submitBtn) {
+    submitBtn.closest('form')?.addEventListener('submit', function() {
+      if (!submitBtn.dataset.loading) {
+        submitBtn.dataset.loading = 'true';
+        submitBtn.classList.add('opacity-60', 'pointer-events-none');
+        submitSpinner?.classList.remove('hidden');
+      }
+    });
+  }
+})();
+</script>
+{% endblock page_js %}

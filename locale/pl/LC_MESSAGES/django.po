@@ -933,8 +933,18 @@ msgstr "Zamówienie zostało złożone."
 
 #: templates/orders/email/order_confirmation_subject.txt
 #, python-format
-msgid "Your order #%(order_id)s at %(store)s \u2013 confirmed!"
-msgstr "Twoje zamówienie #%(order_id)s w %(store)s zostało potwierdzone!"
+msgid "%(store)s - Order #%(order_id)s confirmed (summary and tracking link)"
+msgstr "%(store)s - Zamówienie nr %(order_id)s potwierdzone (podsumowanie i link śledzenia)"
+
+#: templates/orders/email/order_confirmation_message.html
+#, python-format
+msgid "%(store)s - Order #%(order_id)s confirmation"
+msgstr "%(store)s - Potwierdzenie zamówienia nr %(order_id)s"
+
+#: templates/orders/email/order_confirmation_message.html
+#, python-format
+msgid "%(store)s: your order #%(order_id)s is confirmed. View summary and tracking details."
+msgstr "%(store)s: Twoje zamówienie nr %(order_id)s jest potwierdzone. Zobacz podsumowanie i szczegóły śledzenia."
 
 #: templates/orders/email/order_confirmation_message.html
 msgid "Quantity"

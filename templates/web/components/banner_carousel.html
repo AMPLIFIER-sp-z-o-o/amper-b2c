@@ -19,6 +19,8 @@
                             alt="{{ banner.name }}"
                             class="w-full h-full object-cover object-{{ banner.image_alignment }}"
                             loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                            fetchpriority="{% if forloop.first %}high{% else %}auto{% endif %}"
+                            decoding="async"
                         />
                     </picture>
                     
@@ -543,6 +545,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 alt="{{ banner.name }}"
                                 class="banner-img object-{{ banner.image_alignment }}"
                                 loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                                fetchpriority="{% if forloop.first %}high{% else %}auto{% endif %}"
+                                decoding="async"
                             />
                         </picture>
                     </a>
@@ -557,6 +561,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 alt="{{ banner.name }}"
                                 class="banner-img object-{{ banner.image_alignment }}"
                                 loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+                                fetchpriority="{% if forloop.first %}high{% else %}auto{% endif %}"
+                                decoding="async"
                             />
                         </picture>
                     </div>

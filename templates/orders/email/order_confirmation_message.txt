@@ -7,8 +7,8 @@
 {% translate "Order summary" %}
 {% blocktranslate trimmed %}Placed:{% endblocktranslate %} {{ order.created_at|date:"Y-m-d H:i" }}
 
-{% translate "Items" %}:
-{% for line in lines %}- {{ line.product.name }} ({{ site_url }}{{ line.product.get_absolute_url }}) x{{ line.quantity }} — {{ line.unit_price|floatformat:2 }} {{ currency_symbol }} ({{ line.line_total|floatformat:2 }} {{ currency_symbol }})
+{% translate "Products" %}:
+{% for line in lines %}- {{ line.product.name }} ({{ line.product_url }}) x{{ line.quantity }} — {{ line.unit_price|floatformat:2 }} {{ currency_symbol }} ({{ line.line_total|floatformat:2 }} {{ currency_symbol }})
 {% endfor %}
 
 {% translate "Subtotal" %}: {{ order.subtotal|floatformat:2 }} {{ currency_symbol }}
@@ -26,7 +26,7 @@
 {% if order.phone %}{% translate "Phone" %}: {{ order.phone }}
 {% endif %}
 
-{% translate "Track your order" %}: {{ tracking_url }}
+{% translate "View order summary" %}: {{ tracking_url }}
 
 {% blocktranslate trimmed with store=store_name %}Thank you for shopping with {{ store }}.{% endblocktranslate %}
 {% endautoescape %}

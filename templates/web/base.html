@@ -35,6 +35,9 @@
 {% endif %}
 {% endblock meta %}
 {% include 'web/components/favicon.html' %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
     {# Swiper library - loaded globally for all slider components #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -73,8 +76,12 @@
 >
 <script>
   (function() {
+    let bodyShown = false;
+
     // Prevent FOUC - show body after styles are likely loaded
     function showBody() {
+      if (bodyShown) return;
+      bodyShown = true;
       document.body.style.opacity = '1';
       // Allow a small delay for the browser to paint before enabling transitions
       setTimeout(function() {
@@ -82,14 +89,58 @@
       }, 50);
     }
 
+    function waitForFonts(maxWaitMs) {
+      if (!document.fonts || !document.fonts.ready) {
+        return Promise.resolve();
+      }
+
+      return Promise.race([
+        document.fonts.ready,
+        new Promise(function(resolve) {
+          setTimeout(resolve, maxWaitMs);
+        })
+      ]);
+    }
+
+    function waitForFirstHeroImage(maxWaitMs) {
+      const heroImage = document.querySelector('.hero-banner-section img');
+      if (!heroImage) {
+        return Promise.resolve();
+      }
+
+      if (heroImage.complete) {
+        return Promise.resolve();
+      }
+
+      return new Promise(function(resolve) {
+        let settled = false;
+
+        function finish() {
+          if (settled) return;
+          settled = true;
+          resolve();
+        }
+
+        heroImage.addEventListener('load', finish, { once: true });
+        heroImage.addEventListener('error', finish, { once: true });
+        setTimeout(finish, maxWaitMs);
+      });
+    }
+
+    function revealWhenReady() {
+      Promise.all([
+        waitForFonts(1500),
+        waitForFirstHeroImage(2000)
+      ]).then(showBody);
+    }
+
     if (document.readyState === 'complete') {
-        showBody();
+        revealWhenReady();
     } else {
-        window.addEventListener('load', showBody);
-        // Fallback for DOMContentLoaded if load takes too long (e.g. slow images)
-        document.addEventListener('DOMContentLoaded', function() {
-          setTimeout(showBody, 100); 
-        });
+        document.addEventListener('DOMContentLoaded', revealWhenReady, { once: true });
+        // Hard fallback: if any promise hangs, do not keep the page hidden forever.
+        window.addEventListener('load', showBody, { once: true });
+        setTimeout(showBody, 2500);
     }
   })();
 </script>

@@ -124,12 +124,12 @@
             </div>
 
             <div class="border-t border-gray-200 pt-4 dark:border-gray-700">
-              <a href="{% url 'orders:track' token=order.tracking_token %}" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-                {% translate "Go to order tracking" %}
+              <a href="{% url 'orders:summary' token=order.tracking_token %}" data-nav-loading-btn class="relative inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <span class="w-full text-center">{% translate "Go to order summary" %}</span>
+                <svg data-keep-on-loading class="pointer-events-none absolute right-4 h-5 w-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+                  <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 12H5m14 0-4 4m4-4-4-4" />
+                </svg>
               </a>
-              <p class="text-subtitle mt-3">
-                {% translate "Tip: bookmark your tracking link." %}
-              </p>
             </div>
           </div>
 

@@ -310,7 +310,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
     response = (
         redirect("orders:pay", token=order.tracking_token)
         if should_redirect_to_payment
-        else redirect("orders:track", token=order.tracking_token)
+        else redirect("orders:summary", token=order.tracking_token)
     )
     # Clear stale cookie cart_id (session takes precedence but cookie can confuse other flows)
     response.delete_cookie("cart_id")
@@ -318,7 +318,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
 
 
 @require_GET
-def track_order(request: HttpRequest, token: str) -> HttpResponse:
+def order_summary(request: HttpRequest, token: str) -> HttpResponse:
     if not token:
         raise Http404
 
@@ -339,7 +339,7 @@ def track_order(request: HttpRequest, token: str) -> HttpResponse:
 
     return render(
         request,
-        "orders/order_tracking.html",
+        "orders/order_summary.html",
         {
             "order": order,
             "lines": order.lines.all(),
@@ -347,6 +347,11 @@ def track_order(request: HttpRequest, token: str) -> HttpResponse:
             "user_order_number": user_order_number,
         },
     )
+
+
+@require_GET
+def track_order_legacy(request: HttpRequest, token: str) -> HttpResponse:
+    return redirect("orders:summary", token=token)
 
 
 @require_POST
@@ -378,4 +383,4 @@ def post_payment_mock(request: HttpRequest, token: str) -> HttpResponse:
     )
 
     messages.success(request, _("Payment successful. Thank you for your order!"))
-    return redirect("orders:track", token=order.tracking_token)
+    return redirect("orders:summary", token=order.tracking_token)
