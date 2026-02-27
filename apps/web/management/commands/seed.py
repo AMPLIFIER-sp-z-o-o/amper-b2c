@@ -86,9 +86,15 @@ from apps.web.models import (
 
 # Site domain is read from SITE_DOMAIN env var (default: localhost:8000).
 # On QA/production, set e.g. SITE_DOMAIN=amper-b2c.ampliapps.com
-_SITE_DOMAIN = os.environ.get("SITE_DOMAIN", "localhost:8000")
-_SITE_SCHEME = "http" if _SITE_DOMAIN.startswith("localhost") else "https"
-_SITE_URL = f"{_SITE_SCHEME}://{_SITE_DOMAIN}"
+_SITE_DOMAIN = os.environ.get("SITE_DOMAIN")
+if _SITE_DOMAIN:
+    _SITE_SCHEME = "http" if _SITE_DOMAIN.startswith("localhost") else "https"
+    _SITE_URL = f"{_SITE_SCHEME}://{_SITE_DOMAIN}"
+else:
+    # Use FRONTEND_ADDRESS as fallback if SITE_DOMAIN is missing in environment
+    _FRONTEND_ADDRESS = getattr(settings, "FRONTEND_ADDRESS", "http://localhost:8000")
+    _SITE_URL = _FRONTEND_ADDRESS.split(",")[0].strip()
+    _SITE_DOMAIN = _SITE_URL.split("://")[-1].split("/")[0]
 _MEDIA_CDN_DOMAIN_URL = os.environ.get("MEDIA_CDN_DOMAIN_URL", "").strip()
 if _MEDIA_CDN_DOMAIN_URL.startswith(("http://", "https://")):
     _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.split("://", 1)[1]

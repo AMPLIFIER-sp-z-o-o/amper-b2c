@@ -2522,7 +2522,7 @@ function showToast(message, type = "success") {
     toast.id = toastId;
     toast.setAttribute("role", "alert");
     toast.className =
-      "relative flex items-center w-full max-w-xs p-4 mb-4 text-gray-900 bg-white rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_4px_20px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.12)] dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
+      "relative flex items-center w-full min-w-[340px] max-w-sm p-4 mb-4 text-gray-900 bg-white rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_4px_20px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.12)] dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
     toast.innerHTML = `
       <div class="${iconWrapperClass}">
         <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
