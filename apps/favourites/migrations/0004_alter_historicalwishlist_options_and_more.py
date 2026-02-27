@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='historicalwishlist',
             name='is_default',
-            field=models.BooleanField(default=False, help_text='Whether this is the default shopping list (Favourites)', verbose_name='Default'),
+            field=models.BooleanField(default=False, help_text='Whether this is the default shopping list (Favorites)', verbose_name='Default'),
         ),
         migrations.AlterField(
             model_name='historicalwishlist',
@@ -50,7 +50,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='wishlist',
             name='is_default',
-            field=models.BooleanField(default=False, help_text='Whether this is the default shopping list (Favourites)', verbose_name='Default'),
+            field=models.BooleanField(default=False, help_text='Whether this is the default shopping list (Favorites)', verbose_name='Default'),
         ),
         migrations.AlterField(
             model_name='wishlist',

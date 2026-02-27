@@ -1,6 +1,6 @@
 {% load i18n %}
 {# Reusable View Toggle Component #}
-{# Usage: {% include "web/components/view_toggle.html" with toggle_id="favourites" toggle_function="toggleFavouritesViewMode" current_view=view_mode %} #}
+{# Usage: {% include "web/components/view_toggle.html" with toggle_id="favorites" toggle_function="toggleFavoritesViewMode" current_view=view_mode %} #}
 
 <div id="view-toggle-{{ toggle_id|default:'default' }}" class="flex items-center shrink-0">
   <button type="button"

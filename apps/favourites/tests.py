@@ -1,5 +1,5 @@
 """
-Comprehensive tests for the favourites app.
+Comprehensive tests for the favorites app.
 
 Tests cover:
 - Model functionality (WishList, WishListItem)
@@ -90,9 +90,9 @@ class TestWishListModel(TestCase):
 
     def test_wishlist_str(self):
         """Test wishlist string representation."""
-        wishlist = WishList.objects.create(user=self.user, name="My Favourites")
+        wishlist = WishList.objects.create(user=self.user, name="My Favorites")
         # __str__ includes owner info
-        assert "My Favourites" in str(wishlist)
+        assert "My Favorites" in str(wishlist)
 
     def test_product_count(self):
         """Test product_count property."""
@@ -245,8 +245,8 @@ class TestWishListMerge(TestCase):
 # ============================================
 
 
-class TestFavouritesPageView(TestCase):
-    """Tests for favourites page view."""
+class TestFavoritesPageView(TestCase):
+    """Tests for favorites page view."""
 
     @classmethod
     def setUpTestData(cls):
@@ -254,23 +254,23 @@ class TestFavouritesPageView(TestCase):
             username="pageview@example.com", email="pageview@example.com", password="testpass123"
         )
 
-    def test_favourites_page_anonymous(self):
-        """Test anonymous user can access favourites page."""
+    def test_favorites_page_anonymous(self):
+        """Test anonymous user can access favorites page."""
         client = Client()
-        response = client.get(reverse("favourites:favourites_page"))
+        response = client.get(reverse("favorites:favorites_page"))
         assert response.status_code == 200
-        assert "Favourites" in response.content.decode() or "Ulubione" in response.content.decode()
+        assert "Favorites" in response.content.decode() or "Ulubione" in response.content.decode()
 
-    def test_favourites_page_authenticated(self):
-        """Test authenticated user can access favourites page."""
+    def test_favorites_page_authenticated(self):
+        """Test authenticated user can access favorites page."""
         client = Client()
         client.login(username="pageview@example.com", password="testpass123")
-        response = client.get(reverse("favourites:favourites_page"))
+        response = client.get(reverse("favorites:favorites_page"))
         assert response.status_code == 200
 
 
-class TestToggleFavouriteView(TestCase):
-    """Tests for toggle favourite API endpoint."""
+class TestToggleFavoriteView(TestCase):
+    """Tests for toggle favorite API endpoint."""
 
     @classmethod
     def setUpTestData(cls):
@@ -282,31 +282,31 @@ class TestToggleFavouriteView(TestCase):
             name="Toggle Product", slug="toggle-product", price=Decimal("15.00"), category=cls.category
         )
 
-    def test_toggle_add_favourite_anonymous(self):
-        """Test anonymous user can add product to favourites."""
+    def test_toggle_add_favorite_anonymous(self):
+        """Test anonymous user can add product to favorites."""
         client = Client()
-        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
+        response = client.post(reverse("favorites:toggle_favorite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
 
-    def test_toggle_remove_favourite_anonymous(self):
-        """Test anonymous user can remove product from favourites."""
+    def test_toggle_remove_favorite_anonymous(self):
+        """Test anonymous user can remove product from favorites."""
         client = Client()
         # First add
-        client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
+        client.post(reverse("favorites:toggle_favorite"), {"product_id": self.product.id})
         # Then remove
-        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
+        response = client.post(reverse("favorites:toggle_favorite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "removed"
 
-    def test_toggle_favourite_authenticated(self):
-        """Test authenticated user can toggle favourite."""
+    def test_toggle_favorite_authenticated(self):
+        """Test authenticated user can toggle favorite."""
         client = Client()
         client.login(username="toggle@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
+        response = client.post(reverse("favorites:toggle_favorite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
@@ -318,7 +318,7 @@ class TestToggleFavouriteView(TestCase):
     def test_toggle_invalid_product(self):
         """Test toggle with invalid product ID."""
         client = Client()
-        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": 99999})
+        response = client.post(reverse("favorites:toggle_favorite"), {"product_id": 99999})
         assert response.status_code == 404
 
 
@@ -336,7 +336,7 @@ class TestCreateWishlistView(TestCase):
         client = Client()
         client.login(username="create@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:create_wishlist"), {"name": "My Custom List"})
+        response = client.post(reverse("favorites:create_wishlist"), {"name": "My Custom List"})
         assert response.status_code == 302  # Redirect on success
 
         wishlist = WishList.objects.get(user=self.user, name="My Custom List")
@@ -347,7 +347,7 @@ class TestCreateWishlistView(TestCase):
         client = Client()
         client.login(username="create@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:create_wishlist"), {"name": ""})
+        response = client.post(reverse("favorites:create_wishlist"), {"name": ""})
         # Should redirect with error or show error
         assert response.status_code in [302, 400]
 
@@ -368,7 +368,7 @@ class TestDeleteWishlistView(TestCase):
         client = Client()
         client.login(username="delete@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:delete_wishlist", args=[wishlist.pk]))
+        response = client.post(reverse("favorites:delete_wishlist", args=[wishlist.pk]))
         assert response.status_code == 302  # Redirect on success
         assert not WishList.objects.filter(pk=wishlist.pk).exists()
 
@@ -379,7 +379,7 @@ class TestDeleteWishlistView(TestCase):
         client = Client()
         client.login(username="delete@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:delete_wishlist", args=[wishlist.pk]))
+        response = client.post(reverse("favorites:delete_wishlist", args=[wishlist.pk]))
         # Default wishlist should be deleted successfully
         assert response.status_code == 302
         assert not WishList.objects.filter(pk=wishlist.pk).exists()
@@ -406,7 +406,7 @@ class TestAddToWishlistView(TestCase):
         client.login(username="addto@example.com", password="testpass123")
 
         response = client.post(
-            reverse("favourites:add_to_wishlist"), {"product_id": self.product.id, "wishlist_id": wishlist.id}
+            reverse("favorites:add_to_wishlist"), {"product_id": self.product.id, "wishlist_id": wishlist.id}
         )
         assert response.status_code == 200
         assert wishlist.items.filter(product=self.product).exists()
@@ -425,26 +425,26 @@ class TestCheckProductStatusView(TestCase):
             name="Status Product", slug="status-product", price=Decimal("30.00"), category=cls.category
         )
 
-    def test_check_status_no_favourites(self):
-        """Test status check when product is not in favourites."""
+    def test_check_status_no_favorites(self):
+        """Test status check when product is not in favorites."""
         client = Client()
-        response = client.get(reverse("favourites:check_product_status"), {"product_ids": str(self.product.id)})
+        response = client.get(reverse("favorites:check_product_status"), {"product_ids": str(self.product.id)})
         assert response.status_code == 200
         data = response.json()
         # status is a dict mapping product_id -> list of wishlist_ids
-        # If product is not in favourites, it won't be in status
+        # If product is not in favorites, it won't be in status
         assert str(self.product.id) not in data.get("status", {})
 
-    def test_check_status_with_favourites(self):
-        """Test status check when product is in favourites."""
+    def test_check_status_with_favorites(self):
+        """Test status check when product is in favorites."""
         client = Client()
         client.login(username="status@example.com", password="testpass123")
 
-        # Add to favourites
+        # Add to favorites
         wishlist = WishList.get_or_create_default(user=self.user)
         WishListItem.objects.create(wishlist=wishlist, product=self.product, price_when_added=self.product.price)
 
-        response = client.get(reverse("favourites:check_product_status"), {"product_ids": str(self.product.id)})
+        response = client.get(reverse("favorites:check_product_status"), {"product_ids": str(self.product.id)})
         assert response.status_code == 200
         data = response.json()
         # status is a dict mapping product_id -> list of wishlist_ids
@@ -475,7 +475,7 @@ class TestMoveItemView(TestCase):
         client = Client()
         client.login(username="move@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:move_item"), {"item_id": item.id, "target_wishlist_id": target.id})
+        response = client.post(reverse("favorites:move_item"), {"item_id": item.id, "target_wishlist_id": target.id})
         assert response.status_code == 200
 
         # Item should be in target, not source
@@ -504,7 +504,7 @@ class TestAddAllToCartView(TestCase):
         client = Client()
         client.login(username="cart@example.com", password="testpass123")
 
-        response = client.post(reverse("favourites:add_all_to_cart"), {"wishlist_id": wishlist.id})
+        response = client.post(reverse("favorites:add_all_to_cart"), {"wishlist_id": wishlist.id})
         assert response.status_code == 200
         # Note: Actual cart functionality depends on cart app implementation
 
@@ -532,7 +532,7 @@ class TestMergeOnLoginSignal(TestCase):
         client = Client()
 
         # Add product as anonymous user
-        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
+        response = client.post(reverse("favorites:toggle_favorite"), {"product_id": self.product.id})
         assert response.status_code == 200
 
         # Get the session key
@@ -708,8 +708,8 @@ class TestWishListMergeEdgeCases(TestCase):
         assert renamed.items.count() == 1
 
 
-class TestFavouritesPageViewEdgeCases(TestCase):
-    """Additional edge case tests for favourites page."""
+class TestFavoritesPageViewEdgeCases(TestCase):
+    """Additional edge case tests for favorites page."""
 
     @classmethod
     def setUpTestData(cls):
@@ -719,28 +719,28 @@ class TestFavouritesPageViewEdgeCases(TestCase):
             password="testpass123",
         )
 
-    def test_favourites_page_creates_default_for_anonymous(self):
+    def test_favorites_page_creates_default_for_anonymous(self):
         client = Client()
-        response = client.get(reverse("favourites:favourites_page"))
+        response = client.get(reverse("favorites:favorites_page"))
         assert response.status_code == 200
 
         session_key = client.session.session_key
         assert WishList.objects.filter(session_key=session_key, is_default=True).exists()
 
-    def test_favourites_page_creates_default_for_user(self):
+    def test_favorites_page_creates_default_for_user(self):
         client = Client()
         client.login(username="pageedge@example.com", password="testpass123")
-        response = client.get(reverse("favourites:favourites_page"))
+        response = client.get(reverse("favorites:favorites_page"))
         assert response.status_code == 200
         assert WishList.objects.filter(user=self.user, is_default=True).exists()
 
-    def test_favourites_page_invalid_list_param_falls_back_to_default(self):
+    def test_favorites_page_invalid_list_param_falls_back_to_default(self):
         client = Client()
         client.login(username="pageedge@example.com", password="testpass123")
         default_list = WishList.get_or_create_default(user=self.user)
         WishList.objects.create(user=self.user, name="Other")
 
-        response = client.get(reverse("favourites:favourites_page"), {"list": "nonexistent_id"})
+        response = client.get(reverse("favorites:favorites_page"), {"list": "nonexistent_id"})
         assert response.status_code == 200
         assert response.context["active_wishlist"].id == default_list.id
 
@@ -765,14 +765,14 @@ class TestWishlistDetailView(TestCase):
     def test_wishlist_detail_owner_can_view(self):
         client = Client()
         client.login(username="detail@example.com", password="testpass123")
-        response = client.get(reverse("favourites:wishlist_detail", args=[self.wishlist.id]))
+        response = client.get(reverse("favorites:wishlist_detail", args=[self.wishlist.id]))
         assert response.status_code == 200
         assert response.context["wishlist"].id == self.wishlist.id
 
     def test_wishlist_detail_other_user_forbidden(self):
         client = Client()
         client.login(username="detail2@example.com", password="testpass123")
-        response = client.get(reverse("favourites:wishlist_detail", args=[self.wishlist.id]))
+        response = client.get(reverse("favorites:wishlist_detail", args=[self.wishlist.id]))
         assert response.status_code == 404
 
 
@@ -791,7 +791,7 @@ class TestCreateWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="createedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:create_wishlist"),
+            reverse("favorites:create_wishlist"),
             {"name": "HTMX List"},
             HTTP_HX_REQUEST="true",
         )
@@ -804,7 +804,7 @@ class TestCreateWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="createedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:create_wishlist"),
+            reverse("favorites:create_wishlist"),
             {"name": ""},
             HTTP_HX_REQUEST="true",
         )
@@ -814,7 +814,7 @@ class TestCreateWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="createedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:create_wishlist"),
+            reverse("favorites:create_wishlist"),
             {"name": "x" * 101},
             HTTP_HX_REQUEST="true",
         )
@@ -826,7 +826,7 @@ class TestCreateWishlistViewEdgeCases(TestCase):
         WishList.objects.create(user=self.user, name="Holiday")
 
         response = client.post(
-            reverse("favourites:create_wishlist"),
+            reverse("favorites:create_wishlist"),
             {"name": "holiday"},
             HTTP_HX_REQUEST="true",
         )
@@ -834,7 +834,7 @@ class TestCreateWishlistViewEdgeCases(TestCase):
 
     def test_create_wishlist_anonymous(self):
         client = Client()
-        response = client.post(reverse("favourites:create_wishlist"), {"name": "Anon List"})
+        response = client.post(reverse("favorites:create_wishlist"), {"name": "Anon List"})
         assert response.status_code == 302
         session_key = client.session.session_key
         assert WishList.objects.filter(session_key=session_key, name="Anon List").exists()
@@ -856,7 +856,7 @@ class TestUpdateWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="updateedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:update_wishlist", args=[self.wishlist.id]),
+            reverse("favorites:update_wishlist", args=[self.wishlist.id]),
             {"name": "Updated", "description": "New desc"},
             HTTP_HX_REQUEST="true",
         )
@@ -869,7 +869,7 @@ class TestUpdateWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="updateedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:update_wishlist", args=[self.wishlist.id]),
+            reverse("favorites:update_wishlist", args=[self.wishlist.id]),
             {"name": ""},
             HTTP_HX_REQUEST="true",
         )
@@ -881,7 +881,7 @@ class TestUpdateWishlistViewEdgeCases(TestCase):
         WishList.objects.create(user=self.user, name="Duplicate")
 
         response = client.post(
-            reverse("favourites:update_wishlist", args=[self.wishlist.id]),
+            reverse("favorites:update_wishlist", args=[self.wishlist.id]),
             {"name": "Duplicate"},
             HTTP_HX_REQUEST="true",
         )
@@ -905,7 +905,7 @@ class TestDeleteWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="deleteedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:delete_wishlist", args=[self.default.id]),
+            reverse("favorites:delete_wishlist", args=[self.default.id]),
             HTTP_HX_REQUEST="true",
         )
         assert response.status_code == 200
@@ -915,7 +915,7 @@ class TestDeleteWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="deleteedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:delete_wishlist", args=[self.custom.id]),
+            reverse("favorites:delete_wishlist", args=[self.custom.id]),
             HTTP_HX_REQUEST="true",
         )
         assert response.status_code == 200
@@ -942,14 +942,14 @@ class TestAddToWishlistViewEdgeCases(TestCase):
 
     def test_add_to_wishlist_missing_product_id(self):
         client = Client()
-        response = client.post(reverse("favourites:add_to_wishlist"), {})
+        response = client.post(reverse("favorites:add_to_wishlist"), {})
         assert response.status_code == 400
 
     def test_add_to_wishlist_invalid_wishlist_id(self):
         client = Client()
         client.login(username="addedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:add_to_wishlist"),
+            reverse("favorites:add_to_wishlist"),
             {"product_id": self.product.id, "wishlist_id": 99999},
         )
         assert response.status_code == 404
@@ -965,7 +965,7 @@ class TestAddToWishlistViewEdgeCases(TestCase):
         )
 
         response = client.post(
-            reverse("favourites:add_to_wishlist"),
+            reverse("favorites:add_to_wishlist"),
             {"product_id": self.product.id, "wishlist_id": wishlist.id},
         )
         assert response.status_code == 400
@@ -975,7 +975,7 @@ class TestAddToWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="addedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:add_to_wishlist"),
+            reverse("favorites:add_to_wishlist"),
             {"product_id": self.product.id},
         )
         assert response.status_code == 200
@@ -1003,7 +1003,7 @@ class TestRemoveFromWishlistViewEdgeCases(TestCase):
 
     def test_remove_missing_ids(self):
         client = Client()
-        response = client.post(reverse("favourites:remove_from_wishlist"), {})
+        response = client.post(reverse("favorites:remove_from_wishlist"), {})
         assert response.status_code == 400
 
     def test_remove_by_item_id(self):
@@ -1017,7 +1017,7 @@ class TestRemoveFromWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="removeedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:remove_from_wishlist"),
+            reverse("favorites:remove_from_wishlist"),
             {"item_id": item.id},
         )
         assert response.status_code == 200
@@ -1034,7 +1034,7 @@ class TestRemoveFromWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="removeedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:remove_from_wishlist"),
+            reverse("favorites:remove_from_wishlist"),
             {"product_id": self.product.id, "wishlist_id": wishlist.id},
         )
         assert response.status_code == 200
@@ -1057,7 +1057,7 @@ class TestRemoveFromWishlistViewEdgeCases(TestCase):
         client = Client()
         client.login(username="removeedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:remove_from_wishlist"),
+            reverse("favorites:remove_from_wishlist"),
             {"product_id": self.product.id},
         )
         assert response.status_code == 200
@@ -1084,7 +1084,7 @@ class TestMoveItemViewEdgeCases(TestCase):
 
     def test_move_missing_params(self):
         client = Client()
-        response = client.post(reverse("favourites:move_item"), {})
+        response = client.post(reverse("favorites:move_item"), {})
         assert response.status_code == 400
 
     def test_move_to_list_with_duplicate_product(self):
@@ -1104,7 +1104,7 @@ class TestMoveItemViewEdgeCases(TestCase):
         client = Client()
         client.login(username="moveedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:move_item"),
+            reverse("favorites:move_item"),
             {"item_id": item.id, "target_wishlist_id": target.id},
         )
         assert response.status_code == 400
@@ -1138,7 +1138,7 @@ class TestAddAllToCartViewEdgeCases(TestCase):
 
     def test_add_all_to_cart_missing_wishlist_id(self):
         client = Client()
-        response = client.post(reverse("favourites:add_all_to_cart"), {})
+        response = client.post(reverse("favorites:add_all_to_cart"), {})
         assert response.status_code == 400
 
     def test_add_all_to_cart_mixed_availability(self):
@@ -1157,7 +1157,7 @@ class TestAddAllToCartViewEdgeCases(TestCase):
         client = Client()
         client.login(username="cartedge@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:add_all_to_cart"),
+            reverse("favorites:add_all_to_cart"),
             {"wishlist_id": wishlist.id},
         )
         assert response.status_code == 200
@@ -1171,7 +1171,7 @@ class TestAddAllToCartViewEdgeCases(TestCase):
         assert line.quantity == 1
 
         response = client.post(
-            reverse("favourites:add_all_to_cart"),
+            reverse("favorites:add_all_to_cart"),
             {"wishlist_id": wishlist.id},
         )
         assert response.status_code == 200
@@ -1199,7 +1199,7 @@ class TestGetWishlistsView(TestCase):
 
     def test_get_wishlists_creates_default_for_anonymous(self):
         client = Client()
-        response = client.get(reverse("favourites:get_wishlists"))
+        response = client.get(reverse("favorites:get_wishlists"))
         assert response.status_code == 200
         data = response.json()
         assert len(data["wishlists"]) == 1
@@ -1215,7 +1215,7 @@ class TestGetWishlistsView(TestCase):
 
         client = Client()
         client.login(username="getlists@example.com", password="testpass123")
-        response = client.get(reverse("favourites:get_wishlists"))
+        response = client.get(reverse("favorites:get_wishlists"))
         assert response.status_code == 200
         data = response.json()
         assert data["wishlists"][0]["item_count"] == 1
@@ -1247,7 +1247,7 @@ class TestCheckProductStatusEdgeCases(TestCase):
 
     def test_check_status_invalid_product_ids(self):
         client = Client()
-        response = client.get(reverse("favourites:check_product_status"), {"product_ids": "abc"})
+        response = client.get(reverse("favorites:check_product_status"), {"product_ids": "abc"})
         assert response.status_code == 200
         assert response.json()["status"] == {}
 
@@ -1262,7 +1262,7 @@ class TestCheckProductStatusEdgeCases(TestCase):
         client = Client()
         client.login(username="statusedge@example.com", password="testpass123")
         response = client.get(
-            reverse("favourites:check_product_status"),
+            reverse("favorites:check_product_status"),
             {"product_ids": f"{self.product_1.id},{self.product_2.id}"},
         )
         data = response.json()["status"]
@@ -1311,7 +1311,7 @@ class TestWishlistPartialsView(TestCase):
         client = Client()
         client.login(username="partials@example.com", password="testpass123")
         response = client.get(
-            reverse("favourites:wishlist_items_partial"),
+            reverse("favorites:wishlist_items_partial"),
             {"list": self.wishlist.share_id},
         )
         assert response.status_code == 200
@@ -1322,7 +1322,7 @@ class TestWishlistPartialsView(TestCase):
         client = Client()
         client.login(username="partials@example.com", password="testpass123")
         response = client.get(
-            reverse("favourites:wishlist_items_partial"),
+            reverse("favorites:wishlist_items_partial"),
             {"list": self.wishlist.share_id, "available": "1"},
         )
         assert response.status_code == 200
@@ -1333,9 +1333,9 @@ class TestWishlistPartialsView(TestCase):
     def test_wishlists_sidebar_partial(self):
         client = Client()
         client.login(username="partials@example.com", password="testpass123")
-        response = client.get(reverse("favourites:wishlists_sidebar_partial"))
+        response = client.get(reverse("favorites:wishlists_sidebar_partial"))
         assert response.status_code == 200
-        assert "Favourites" in response.content.decode() or "Ulubione" in response.content.decode()
+        assert "Favorites" in response.content.decode() or "Ulubione" in response.content.decode()
 
 
 # ============================================
@@ -1409,8 +1409,8 @@ class TestShareIdInViews(TestCase):
             stock=5,
         )
 
-    def test_favourites_page_with_share_id_param(self):
-        """Test that favourites page accepts share_id in ?list= parameter."""
+    def test_favorites_page_with_share_id_param(self):
+        """Test that favorites page accepts share_id in ?list= parameter."""
         client = Client()
         client.login(username="shareidview@example.com", password="testpass123")
         wishlist = WishList.get_or_create_default(user=self.user)
@@ -1421,33 +1421,33 @@ class TestShareIdInViews(TestCase):
         )
 
         response = client.get(
-            reverse("favourites:favourites_page"),
+            reverse("favorites:favorites_page"),
             {"list": wishlist.share_id},
         )
         assert response.status_code == 200
         assert response.context["active_wishlist"].id == wishlist.id
 
-    def test_favourites_page_with_invalid_share_id_falls_back(self):
+    def test_favorites_page_with_invalid_share_id_falls_back(self):
         """Test fallback to default when invalid share_id is provided."""
         client = Client()
         client.login(username="shareidview@example.com", password="testpass123")
         default_wl = WishList.get_or_create_default(user=self.user)
 
         response = client.get(
-            reverse("favourites:favourites_page"),
+            reverse("favorites:favorites_page"),
             {"list": "nonexistent"},
         )
         assert response.status_code == 200
         assert response.context["active_wishlist"].id == default_wl.id
 
-    def test_favourites_page_numeric_id_no_longer_works(self):
+    def test_favorites_page_numeric_id_no_longer_works(self):
         """Test that plain numeric IDs no longer resolve wishlists."""
         client = Client()
         client.login(username="shareidview@example.com", password="testpass123")
         wishlist = WishList.get_or_create_default(user=self.user)
 
         response = client.get(
-            reverse("favourites:favourites_page"),
+            reverse("favorites:favorites_page"),
             {"list": str(wishlist.id)},
         )
         assert response.status_code == 200
@@ -1466,7 +1466,7 @@ class TestShareIdInViews(TestCase):
         )
 
         response = client.get(
-            reverse("favourites:wishlist_items_partial"),
+            reverse("favorites:wishlist_items_partial"),
             {"list": wishlist.share_id},
         )
         assert response.status_code == 200
@@ -1476,7 +1476,7 @@ class TestShareIdInViews(TestCase):
         """Test items partial returns 400 when list param is missing."""
         client = Client()
         client.login(username="shareidview@example.com", password="testpass123")
-        response = client.get(reverse("favourites:wishlist_items_partial"))
+        response = client.get(reverse("favorites:wishlist_items_partial"))
         assert response.status_code == 400
 
     def test_wishlist_items_partial_invalid_share_id(self):
@@ -1484,7 +1484,7 @@ class TestShareIdInViews(TestCase):
         client = Client()
         client.login(username="shareidview@example.com", password="testpass123")
         response = client.get(
-            reverse("favourites:wishlist_items_partial"),
+            reverse("favorites:wishlist_items_partial"),
             {"list": "zzzzzzzzzz"},
         )
         assert response.status_code == 404
@@ -1496,7 +1496,7 @@ class TestShareIdInViews(TestCase):
         wishlist = WishList.get_or_create_default(user=self.user)
 
         response = client.get(
-            reverse("favourites:wishlists_sidebar_partial"),
+            reverse("favorites:wishlists_sidebar_partial"),
             {"active": wishlist.share_id},
         )
         assert response.status_code == 200
@@ -1543,7 +1543,7 @@ class TestBulkRemoveView(TestCase):
         client = Client()
         client.login(username="bulkremove@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:bulk_remove"),
+            reverse("favorites:bulk_remove"),
             {"item_ids": [str(item1.id), str(item2.id)]},
         )
         assert response.status_code == 200
@@ -1553,7 +1553,7 @@ class TestBulkRemoveView(TestCase):
     def test_bulk_remove_empty_selection(self):
         client = Client()
         client.login(username="bulkremove@example.com", password="testpass123")
-        response = client.post(reverse("favourites:bulk_remove"), {})
+        response = client.post(reverse("favorites:bulk_remove"), {})
         assert response.status_code == 400
 
 
@@ -1591,7 +1591,7 @@ class TestCopyItemsView(TestCase):
         client = Client()
         client.login(username="copyitems@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:copy_items"),
+            reverse("favorites:copy_items"),
             {"item_ids": [str(item.id)], "target_wishlist_id": target.id},
         )
         assert response.status_code == 200
@@ -1615,7 +1615,7 @@ class TestCopyItemsView(TestCase):
         client = Client()
         client.login(username="copyitems@example.com", password="testpass123")
         response = client.post(
-            reverse("favourites:copy_items"),
+            reverse("favorites:copy_items"),
             {"item_ids": [str(item.id)], "target_wishlist_id": target.id},
         )
         assert response.status_code == 200
@@ -1625,5 +1625,5 @@ class TestCopyItemsView(TestCase):
     def test_copy_items_missing_params(self):
         client = Client()
         client.login(username="copyitems@example.com", password="testpass123")
-        response = client.post(reverse("favourites:copy_items"), {})
+        response = client.post(reverse("favorites:copy_items"), {})
         assert response.status_code == 400

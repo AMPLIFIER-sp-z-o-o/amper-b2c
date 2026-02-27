@@ -166,9 +166,9 @@ class WishListAdmin(ModelAdmin):
 
     class Media:
         css = {
-            "all": ["css/admin_product_image_inline.css", "css/admin_favourites_wishlist.css"],
+            "all": ["css/admin_product_image_inline.css", "css/admin_favorites_wishlist.css"],
         }
-        js = ["js/admin_favourites_wishlist.js"]
+        js = ["js/admin_favorites_wishlist.js"]
 
     def changeform_view(self, request, object_id=None, form_url="", extra_context=None):
         self._current_request = request
@@ -244,7 +244,7 @@ class WishListAdmin(ModelAdmin):
         )
 
     def _build_share_url(self, obj):
-        relative_share_url = f"{reverse('favourites:favourites_page')}?list={obj.share_id}"
+        relative_share_url = f"{reverse('favorites:favorites_page')}?list={obj.share_id}"
 
         request = getattr(self, "_current_request", None)
         if request is not None:

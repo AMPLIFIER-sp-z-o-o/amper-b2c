@@ -80,7 +80,7 @@
 
   function initWishlistRowClick() {
     const body = document.body;
-    if (!body.classList.contains("app-favourites") || !body.classList.contains("model-wishlist")) {
+    if (!body.classList.contains("app-favorites") || !body.classList.contains("model-wishlist")) {
       return;
     }
     if (!body.classList.contains("change-list")) {

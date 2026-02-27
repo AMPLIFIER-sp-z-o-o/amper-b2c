@@ -78,8 +78,8 @@ def _filter_wishlist_items(items_qs, request: HttpRequest):
 
 
 @require_GET
-def favourites_page(request: HttpRequest) -> HttpResponse:
-    """Main favourites page showing all wishlists."""
+def favorites_page(request: HttpRequest) -> HttpResponse:
+    """Main favorites page showing all wishlists."""
     wishlists = (
         _get_user_wishlists(request)
         .annotate(item_count=Count("items"))
@@ -223,7 +223,7 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
                 status=400,
             )
         messages.error(request, _("Please enter a name for the list."))
-        return redirect("favourites:favourites_page")
+        return redirect("favorites:favorites_page")
 
     if len(name) > 64:
         if request.headers.get("HX-Request"):
@@ -232,7 +232,7 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
                 status=400,
             )
         messages.error(request, _("Name is too long (max 64 characters)."))
-        return redirect("favourites:favourites_page")
+        return redirect("favorites:favorites_page")
 
     # Check for existing name
     existing = _get_user_wishlists(request).filter(name__iexact=name).exists()
@@ -243,7 +243,7 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
                 status=400,
             )
         messages.error(request, _("A list with this name already exists."))
-        return redirect("favourites:favourites_page")
+        return redirect("favorites:favorites_page")
 
     # Create wishlist
     if request.user.is_authenticated:
@@ -288,7 +288,7 @@ def create_wishlist(request: HttpRequest) -> HttpResponse:
         )
 
     messages.success(request, _("List created successfully."))
-    return redirect("favourites:favourites_page")
+    return redirect("favorites:favorites_page")
 
 
 @require_POST
@@ -307,7 +307,7 @@ def update_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
                 status=400,
             )
         messages.error(request, _("Please enter a name for the list."))
-        return redirect("favourites:favourites_page")
+        return redirect("favorites:favorites_page")
 
     # Check for duplicate name (excluding current)
     existing = wishlists.filter(name__iexact=name).exclude(pk=pk).exists()
@@ -318,7 +318,7 @@ def update_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
                 status=400,
             )
         messages.error(request, _("A list with this name already exists."))
-        return redirect("favourites:favourites_page")
+        return redirect("favorites:favorites_page")
 
     wishlist.name = name
     wishlist.description = description
@@ -338,7 +338,7 @@ def update_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
         )
 
     messages.success(request, _("List updated successfully."))
-    return redirect(f"{reverse('favourites:favourites_page')}?list={wishlist.share_id}")
+    return redirect(f"{reverse('favorites:favorites_page')}?list={wishlist.share_id}")
 
 
 @require_POST
@@ -353,7 +353,7 @@ def delete_wishlist(request: HttpRequest, pk: int) -> HttpResponse:
         return JsonResponse({"success": True, "message": _("List deleted successfully.")})
 
     messages.success(request, _("List deleted successfully."))
-    return redirect("favourites:favourites_page")
+    return redirect("favorites:favorites_page")
 
 
 @require_POST
@@ -672,7 +672,7 @@ def check_product_status(request: HttpRequest) -> HttpResponse:
 
 
 @require_POST
-def toggle_favourite(request: HttpRequest) -> HttpResponse:
+def toggle_favorite(request: HttpRequest) -> HttpResponse:
     """Toggle a product in the default wishlist (quick add/remove)."""
     product_id = request.POST.get("product_id")
 
@@ -699,9 +699,9 @@ def toggle_favourite(request: HttpRequest) -> HttpResponse:
             {
                 "success": True,
                 "action": "removed",
-                "is_favourite": False,
+                "is_favorite": False,
                 "message": format_html(
-                    _("Removed <strong>{product_name}</strong> from Favourites."),
+                    _("Removed <strong>{product_name}</strong> from Favorites."),
                     product_name=product.name,
                 ),
                 "product_id": int(product_id),
@@ -725,9 +725,9 @@ def toggle_favourite(request: HttpRequest) -> HttpResponse:
             {
                 "success": True,
                 "action": "added",
-                "is_favourite": True,
+                "is_favorite": True,
                 "message": format_html(
-                    _("Added <strong>{product_name}</strong> to Favourites."),
+                    _("Added <strong>{product_name}</strong> to Favorites."),
                     product_name=product.name,
                 ),
                 "product_id": int(product_id),

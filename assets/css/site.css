@@ -42,7 +42,10 @@ textarea {
    Excluded: disabled/loading states.
    ============================================== */
 button:not(:disabled):not(.btn-loading):active,
-a:active,
+a.btn-press:active,
+a.add-to-cart-btn:active,
+a.remove-cart-line:active,
+a[data-nav-loading-btn]:active,
 label[for]:active,
 label.option-item:active,
 [role="button"]:not([aria-disabled="true"]):active {
@@ -467,12 +470,19 @@ button[disabled]:hover,
 
 .btn-loading {
   opacity: 0.6;
-  pointer-events: none;
-  cursor: not-allowed;
+  cursor: default !important;
 }
 
 .btn-loading * {
   pointer-events: none;
+}
+
+/* When a cart button inside a product card is loading, force default cursor
+   on the card wrapper and the stretched link so it's consistent across the
+   entire card area (overrides cursor-pointer on the wrapper div). */
+[data-product-card]:has(.add-to-cart-btn.btn-loading),
+[data-product-card]:has(.add-to-cart-btn.btn-loading) a[aria-hidden="true"] {
+  cursor: default !important;
 }
 
 .btn-spinner {
@@ -498,10 +508,10 @@ button[disabled]:hover,
 }
 
 /* ===========================================
-   Favourite Heart Pulse Animation
+   Favorite Heart Pulse Animation
    =========================================== */
 
-@keyframes favouritePulse {
+@keyframes favoritePulse {
   0% {
     transform: scale(1);
   }
@@ -516,12 +526,12 @@ button[disabled]:hover,
   }
 }
 
-.favourite-btn-pulse {
-  animation: favouritePulse 0.4s ease-in-out;
+.favorite-btn-pulse {
+  animation: favoritePulse 0.4s ease-in-out;
 }
 
 /*
- * Active Favourite Button State
+ * Active Favorite Button State
  * Intentionally no background styling; the icon swap (outline vs filled) is the only visual change.
  */
 

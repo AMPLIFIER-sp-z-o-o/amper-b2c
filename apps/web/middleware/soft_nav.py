@@ -9,6 +9,8 @@ without changing any view code.
 
 import re
 
+from django.utils.cache import patch_vary_headers
+
 _DIV_OPEN_RE = re.compile(r"<div\b", re.IGNORECASE)
 _DIV_CLOSE_RE = re.compile(r"</div>", re.IGNORECASE)
 _PAGE_CONTENT_START_RE = re.compile(r'<div\b[^>]*\bid="page-content"[^>]*>', re.IGNORECASE)
@@ -57,8 +59,22 @@ class SoftNavResponseMiddleware:
     def __call__(self, request):
         response = self.get_response(request)
 
+        is_soft_nav_request = request.headers.get("HX-Soft-Nav") == "true"
+
+        if is_soft_nav_request:
+            # Soft-nav responses are header-variant. Without Vary some caches may
+            # serve fragment HTML for normal full-page navigations.
+            patch_vary_headers(response, ("HX-Request", "HX-Soft-Nav"))
+
+            # Prevent storing a URL response body that contains only a fragment.
+            cache_control = response.get("Cache-Control", "")
+            if "no-store" not in cache_control.lower():
+                response["Cache-Control"] = (
+                    f"{cache_control}, no-store" if cache_control else "no-store"
+                )
+
         if (
-            request.headers.get("HX-Soft-Nav") == "true"
+            is_soft_nav_request
             and response.status_code == 200
             and "text/html" in response.get("Content-Type", "")
             and not getattr(response, "streaming", False)

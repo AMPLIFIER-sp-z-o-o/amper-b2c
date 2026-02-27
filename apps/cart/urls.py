@@ -4,6 +4,7 @@ from .views import (
     add_to_cart,
     apply_coupon,
     cart_page,
+    cart_state,
     checkout_page,
     checkout_save_details,
     clear_cart,
@@ -19,6 +20,7 @@ app_name = "cart"
 
 urlpatterns = [
     path("", cart_page, name="cart_page"),
+    path("state/", cart_state, name="cart_state"),
     path("set-cart-address/", set_cart_address, name="set_cart_address"),
     path("checkout/set-address-choice/", set_checkout_address_choice, name="set_checkout_address_choice"),
     path("clear/", clear_cart, name="clear_cart"),

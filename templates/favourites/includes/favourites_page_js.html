@@ -1,20 +1,23 @@
 {% load i18n %}
 
-<script>
+{# data-hist-no-reexec: tells reexecutePageScripts() in site.js to skip this script
+   on HTMX history restore. FavoritesPage registers document-level event listeners
+   that survive body replacement, so re-running the script would cause double-binding. #}
+<script data-hist-no-reexec="true">
 // Translation strings and context variables
-window.FAVOURITES_ITEM_TEXT = '{% translate "item" %}';
-window.FAVOURITES_ITEMS_TEXT = '{% translate "items" %}';
-window.FAVOURITES_SELECTED_TEXT = '{% translate "Selected" %}';
-window.FAVOURITES_TOTAL_TEXT = '{% translate "total" %}';
+window.FAVORITES_ITEM_TEXT = '{% translate "item" %}';
+window.FAVORITES_ITEMS_TEXT = '{% translate "items" %}';
+window.FAVORITES_SELECTED_TEXT = '{% translate "Selected" %}';
+window.FAVORITES_TOTAL_TEXT = '{% translate "total" %}';
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialize functionality (safe no-op if page doesn't have favourites UI)
-  if (window.FavouritesPage && typeof window.FavouritesPage.init === 'function') {
-    window.FavouritesPage.init();
+  // Initialize functionality (safe no-op if page doesn't have favorites UI)
+  if (window.FavoritesPage && typeof window.FavoritesPage.init === 'function') {
+    window.FavoritesPage.init();
   }
 });
 
-window.FavouritesPage = {
+window.FavoritesPage = {
   activeWishlistId: '{{ active_wishlist_share_id|default:"" }}',
   activeWishlistPk: '{{ active_wishlist_pk|default:"" }}',
   csrfToken: '{{ csrf_token }}',
@@ -22,7 +25,7 @@ window.FavouritesPage = {
   _isLoading: false,
 
   init: function() {
-    // If this page has none of the favourites UI, skip.
+    // If this page has none of the favorites UI, skip.
     const hasUi = Boolean(
       document.getElementById('create-list-btn') ||
       document.getElementById('wishlist-items-container') ||
@@ -198,7 +201,7 @@ window.FavouritesPage = {
         const id = btn.dataset.wishlistId;
         const name = btn.dataset.wishlistName;
         const form = document.getElementById('delete-form');
-        if (form) form.action = `/favourites/delete/${id}/`;
+        if (form) form.action = `/favorites/delete/${id}/`;
         const label = document.getElementById('delete-list-name');
         if (label) label.textContent = name;
         deleteModal?.classList.remove('hidden');
@@ -238,7 +241,7 @@ window.FavouritesPage = {
       const triggerBtn = this._pendingRemoveBtn;
       if (ids.length === 0) { modal?.classList.add('hidden'); return; }
       window.btnLoading?.(confirmBtn);
-      await this.bulkPost('{% url "favourites:bulk_remove" %}', { item_ids: ids.join(',') }, triggerBtn);
+      await this.bulkPost('{% url "favorites:bulk_remove" %}', { item_ids: ids.join(',') }, triggerBtn);
       window.btnReset?.(confirmBtn);
       modal?.classList.add('hidden');
       this._pendingRemoveItemIds = null;
@@ -274,14 +277,14 @@ window.FavouritesPage = {
     if (data) {
       title.textContent = '{% translate "Edit List" %}';
       submitBtn.textContent = '{% translate "Save Changes" %}';
-      form.action = `/favourites/update/${data.id}/`;
+      form.action = `/favorites/update/${data.id}/`;
       idInput.value = data.id;
       nameInput.value = data.name;
       pickerSection.classList.add('hidden');
     } else {
       title.textContent = '{% translate "Create New List" %}';
       submitBtn.textContent = '{% translate "Create List" %}';
-      form.action = '{% url "favourites:create_wishlist" %}';
+      form.action = '{% url "favorites:create_wishlist" %}';
       idInput.value = '';
       pickerSection.classList.remove('hidden');
 
@@ -421,7 +424,7 @@ window.FavouritesPage = {
     this._isLoading = true;
     this.showItemsLoading();
 
-    const url = `{% url "favourites:wishlist_items_partial" %}?${query.toString()}`;
+    const url = `{% url "favorites:wishlist_items_partial" %}?${query.toString()}`;
 
     try {
       htmx.ajax('GET', url, {
@@ -558,7 +561,7 @@ window.FavouritesPage = {
         itemIds.forEach(id => formData.append('item_ids', id));
         formData.append('target_wishlist_id', targetId);
 
-        await this.bulkPost('{% url "favourites:copy_items" %}', formData);
+        await this.bulkPost('{% url "favorites:copy_items" %}', formData);
         window.btnReset?.(btn);
         modal?.classList.add('hidden');
       };
@@ -596,7 +599,7 @@ window.FavouritesPage = {
     window.btnLoading?.(triggerBtn);
 
     try {
-      const res = await fetch('{% url "favourites:add_all_to_cart" %}', {
+      const res = await fetch('{% url "favorites:add_all_to_cart" %}', {
         method: 'POST',
         headers: { 'X-CSRFToken': this.csrfToken },
         body: formData,
@@ -641,8 +644,8 @@ window.FavouritesPage = {
   },
 
   bindItemActions: function() {
-    document.querySelectorAll('#wishlist-items-container .favourite-btn').forEach(btn => {
-      btn.dataset.favouritePageManaged = 'true';
+    document.querySelectorAll('#wishlist-items-container .favorite-btn').forEach(btn => {
+      btn.dataset.favoritePageManaged = 'true';
       btn.onclick = async (e) => {
         e.stopPropagation();
         e.preventDefault();
@@ -654,7 +657,7 @@ window.FavouritesPage = {
         formData.append('product_id', productId);
 
         try {
-          const r = await fetch('{% url "favourites:toggle_favourite" %}', {
+          const r = await fetch('{% url "favorites:toggle_favorite" %}', {
             method: 'POST',
             headers: { 'X-CSRFToken': this.csrfToken },
             body: formData
@@ -682,7 +685,7 @@ window.FavouritesPage = {
     const preSelected = new Set(preSelectProductIds.map(String));
 
     try {
-      const response = await fetch('{% url "favourites:get_all_products" %}');
+      const response = await fetch('{% url "favorites:get_all_products" %}');
       const data = await response.json();
 
       if (data.products && data.products.length > 0) {

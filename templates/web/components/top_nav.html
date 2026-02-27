@@ -230,6 +230,28 @@
   }
 }
 
+/* Auto-compact desktop search: if placeholder no longer fits,
+   switch the search area to the mobile-like layout before md breakpoint logic kicks in. */
+@media (min-width: 768px) {
+  .top-nav-standard.search-compact #search-container {
+    width: 100% !important;
+    flex: 0 0 100% !important;
+    order: 4 !important;
+  }
+
+  .top-nav-standard.search-compact #search-container .search-desktop-only {
+    display: none !important;
+  }
+
+  .top-nav-standard.search-compact #navbar-search {
+    border-top-right-radius: 0.5rem !important;
+    border-bottom-right-radius: 0.5rem !important;
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+    font-size: 1rem !important;
+  }
+}
+
 html.nav-scroll-locked,
 body.nav-scroll-locked {
   overflow: hidden;
@@ -292,12 +314,7 @@ body.nav-scroll-locked {
 /* Press feedback for desktop dropdown subcategory links and CTA */
 .subcategory-item > a,
 .subcategory-item a {
-  transition: transform 0.15s ease-out, background-color 0.2s, color 0.2s;
-}
-.subcategory-item > a:active,
-.subcategory-item a:active {
-  transform: scale(0.96);
-  transition: transform 0.06s ease-in;
+  transition: background-color 0.2s, color 0.2s;
 }
 
 /* Press feedback for mobile category links and toggles */
@@ -305,15 +322,8 @@ body.nav-scroll-locked {
 .mobile-category-item > a,
 .mobile-category-item li > div > a,
 .mobile-category-item li > a {
-  transition: transform 0.15s ease-out, background-color 0.2s;
+  transition: background-color 0.2s;
   display: block;
-}
-.mobile-category-item > div > a:active,
-.mobile-category-item > a:active,
-.mobile-category-item li > div > a:active,
-.mobile-category-item li > a:active {
-  transform: scale(0.96);
-  transition: transform 0.06s ease-in;
 }
 .mobile-category-toggle {
   transition: transform 0.15s ease-out, background-color 0.2s;
@@ -395,7 +405,7 @@ body.nav-scroll-locked {
             </div>
           </div>
 
-          {# Right side buttons: Account, Cart, Favourites, CMS #}
+          {# Right side buttons: Account, Cart, Favorites, CMS #}
           <div class="flex items-center justify-end md:order-3 gap-1">
             {# Account Button & Dropdown #}
             {% if user.is_authenticated %}
@@ -482,7 +492,7 @@ body.nav-scroll-locked {
                 </ul>
 
                 <div class="p-1.5">
-                  <a href="{% url 'account_logout' %}" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gray-200 dark:text-red-400 dark:hover:bg-gray-600 transition-colors duration-150">
+                  <a href="{% url 'account_logout' %}" data-soft-nav="false" class="group flex items-center gap-2 rounded-lg px-3 py-2 text-red-600 hover:bg-gray-200 dark:text-red-400 dark:hover:bg-gray-600 transition-colors duration-150">
                     <svg class="h-5 w-5 transition-colors duration-150" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 12H8m12 0-4 4m4-4-4-4M9 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h2"></path>
                     </svg>
@@ -532,16 +542,16 @@ body.nav-scroll-locked {
             </a>
             {% endif %}
 
-            {# Favourites Button — visible for all users (anonymous uses session) #}
+            {# Favorites Button — visible for all users (anonymous uses session) #}
             <a
-              href="{% url 'favourites:favourites_page' %}"
-              title="{% translate 'Favourites' %}"
+              href="{% url 'favorites:favorites_page' %}"
+              title="{% translate 'Favorites' %}"
               class="nav-icon-btn inline-flex items-center justify-center w-11 h-11 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 cursor-pointer transition-all duration-200"
             >
               <svg class="w-8 h-8" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
                 <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6C6.5 1 1 8 5.8 13l6.2 7 6.2-7C23 8 17.5 1 12 6Z"></path>
               </svg>
-              <span class="sr-only">{% translate "Favourites" %}</span>
+              <span class="sr-only">{% translate "Favorites" %}</span>
             </a>
 
             {# Cart Button #}
@@ -587,7 +597,7 @@ body.nav-scroll-locked {
                 </dl>
               </div>
 
-              <div class="max-h-96 overflow-y-auto overflow-x-hidden cursor-pointer">
+              <div data-cart-scroll-area class="overflow-y-auto overflow-x-hidden cursor-pointer">
                 <div id="nav-cart-lines" class="divide-y divide-gray-200 dark:divide-gray-600">
                   {% if nav_cart_lines %}
                     {% for line in nav_cart_lines %}
@@ -614,7 +624,7 @@ body.nav-scroll-locked {
                   <span data-cart-total data-price="{{ nav_cart_total }}" data-currency="{{ site_currency }}">{{ nav_cart_total }}</span>
                 </div>
                 <a href="{% url 'cart:cart_page' %}" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-colors duration-300" role="button">
-                  {% translate "See your cart" %}
+                  {% translate "View cart" %}
                 </a>
               </div>
             </div>
@@ -653,10 +663,10 @@ body.nav-scroll-locked {
             </div>
 
             {# Separator #}
-            <div class="hidden md:block w-px h-7 bg-gray-300 dark:bg-gray-600 self-center opacity-50"></div>
+            <div class="search-desktop-only hidden md:block w-px h-7 bg-gray-300 dark:bg-gray-600 self-center opacity-50"></div>
 
             {# Category Dropdown - Desktop only #}
-            <div class="hidden md:block relative px-2" id="search-category-wrapper">
+            <div class="search-desktop-only hidden md:block relative px-2" id="search-category-wrapper">
               <button type="button" id="search-category-btn" class="flex items-center gap-2 px-4 py-2 my-2 text-sm font-medium text-gray-500 dark:text-gray-400 bg-transparent hover:bg-gray-200 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer whitespace-nowrap rounded-lg">
                 <span id="search-category-label">{% translate "All categories" %}</span>
                 <svg class="w-2 h-2 transition-transform duration-200 text-gray-400" id="search-category-arrow" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
@@ -680,12 +690,12 @@ body.nav-scroll-locked {
             </div>
 
             {# Search Button Icon #}
-            <div class="hidden md:flex items-center p-1">
+            <div class="search-desktop-only hidden md:flex items-stretch self-stretch p-0">
               <button
                 type="button"
                 id="search-btn-desktop"
                 onmousedown="event.preventDefault()"
-                class="flex items-center justify-center w-10 h-10 bg-primary-600 text-white rounded-md hover:bg-primary-700 active:scale-95 origin-center transition-all duration-200 cursor-pointer border-none"
+                class="flex items-center justify-center px-4 bg-primary-600 text-white rounded-none rounded-r-lg hover:bg-primary-700 active:scale-95 origin-center transition-all duration-200 cursor-pointer border-none"
               >
                 <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"></path>
@@ -999,7 +1009,74 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchResultsContent = document.getElementById('search-results-content');
   const searchLoading = document.getElementById('search-loading');
   const searchContainer = document.getElementById('search-container');
+  const topNavElement = document.querySelector('.top-nav-standard');
   const navCategoryPreviewIcon = "{{ nav_category_preview_icon|default:''|escapejs }}";
+  const searchMobileBreakpoint = 768;
+  let searchCompactRaf = null;
+  let searchMeasureCanvas = null;
+
+  function measureTextWidth(text, font) {
+    if (!text) return 0;
+    if (!searchMeasureCanvas) {
+      searchMeasureCanvas = document.createElement('canvas');
+    }
+    const context = searchMeasureCanvas.getContext('2d');
+    if (!context) return 0;
+    context.font = font;
+    return context.measureText(text).width;
+  }
+
+  function shouldUseCompactSearchMode() {
+    if (!searchInput || !searchContainer || window.innerWidth < searchMobileBreakpoint) {
+      return false;
+    }
+
+    // Always measure against the baseline (non-compact) desktop layout.
+    // Measuring while compact is active would create a feedback loop and flicker.
+    const hadCompactClass = !!(topNavElement && topNavElement.classList.contains('search-compact'));
+    if (hadCompactClass && topNavElement) {
+      topNavElement.classList.remove('search-compact');
+    }
+
+    const styles = window.getComputedStyle(searchInput);
+    const font = styles.font || `${styles.fontWeight} ${styles.fontSize} ${styles.fontFamily}`;
+    const placeholder = searchInput.getAttribute('placeholder') || '';
+    const placeholderWidth = measureTextWidth(placeholder, font);
+    const horizontalPadding =
+      parseFloat(styles.paddingLeft || '0') + parseFloat(styles.paddingRight || '0');
+    const reserveForClearButton = 48;
+    const availableTextWidth = Math.max(
+      0,
+      searchInput.clientWidth - horizontalPadding - reserveForClearButton,
+    );
+
+    if (hadCompactClass && topNavElement) {
+      topNavElement.classList.add('search-compact');
+    }
+
+    return placeholderWidth > availableTextWidth;
+  }
+
+  function updateSearchLayoutMode() {
+    if (!topNavElement) return;
+
+    if (window.innerWidth < searchMobileBreakpoint) {
+      topNavElement.classList.remove('search-compact');
+      return;
+    }
+
+    topNavElement.classList.toggle('search-compact', shouldUseCompactSearchMode());
+  }
+
+  function scheduleSearchLayoutModeUpdate() {
+    if (searchCompactRaf) {
+      cancelAnimationFrame(searchCompactRaf);
+    }
+    searchCompactRaf = requestAnimationFrame(() => {
+      searchCompactRaf = null;
+      updateSearchLayoutMode();
+    });
+  }
 
   function escapeHtml(value) {
     return String(value)
@@ -1401,6 +1478,22 @@ document.addEventListener('DOMContentLoaded', function() {
     updateClearButton();
   }
 
+  updateSearchLayoutMode();
+  window.addEventListener('resize', scheduleSearchLayoutModeUpdate);
+  window.addEventListener('load', updateSearchLayoutMode);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(updateSearchLayoutMode);
+  }
+
+  if (typeof ResizeObserver !== 'undefined' && searchContainer) {
+    const searchLayoutObserver = new ResizeObserver(scheduleSearchLayoutModeUpdate);
+    searchLayoutObserver.observe(searchContainer);
+    if (searchInput) {
+      searchLayoutObserver.observe(searchInput);
+    }
+  }
+
   // ===========================
   // NAVIGATION DROPDOWN SYSTEM
   // ===========================
@@ -1727,7 +1820,19 @@ document.addEventListener('DOMContentLoaded', function() {
       if (availableHeight > 100) {
         dropdown.style.maxHeight = `${availableHeight}px`;
         // Only show scrollbar for simple dropdowns, not mega menu with sub-scrollers
-        if (dropdown.id !== 'dropdownMegaMenu' && !dropdown.id.startsWith('categoryDropdown')) {
+        if (dropdown.id === 'cartDropdown') {
+          // Keep only cart lines list scrollable so footer CTA stays visible.
+          dropdown.style.overflowY = 'hidden';
+          const header = dropdown.firstElementChild;
+          const footer = dropdown.querySelector('[data-cart-summary-footer]');
+          const scrollArea = dropdown.querySelector('[data-cart-scroll-area]');
+          if (scrollArea) {
+            const headerHeight = header ? header.offsetHeight : 0;
+            const footerHeight = footer && !footer.classList.contains('hidden') ? footer.offsetHeight : 0;
+            const maxScrollable = Math.max(80, availableHeight - headerHeight - footerHeight);
+            scrollArea.style.maxHeight = `${maxScrollable}px`;
+          }
+        } else if (dropdown.id !== 'dropdownMegaMenu' && !dropdown.id.startsWith('categoryDropdown')) {
           dropdown.style.overflowY = 'auto';
         } else {
           dropdown.style.overflowY = 'hidden';
@@ -1905,12 +2010,11 @@ document.addEventListener('DOMContentLoaded', function() {
                hoverTimeouts.delete(trigger);
              }
              openDropdown(trigger);
-        } else if (clickedLink) {
-             // Allow navigation for category links, but always close overlays
-             // first so stale backdrop state never persists after soft-nav.
-             closeAllDropdowns();
-             hideBackdrop(true);
-        }
+           } else if (clickedLink) {
+             // Let navigation continue and keep dropdown visible until the
+             // destination content is actually swapped in.
+             return;
+           }
     });
 
     // When leaving the trigger
@@ -1966,14 +2070,12 @@ document.addEventListener('DOMContentLoaded', function() {
       cancelScheduledClose();
     });
 
-    // Any navigation from dropdown content must clear overlays immediately
-    // so the backdrop can never block interactions on the destination page.
+    // Let links navigate first; overlays are closed after destination content
+    // is swapped to avoid premature dropdown closing during soft-nav.
     dropdown.addEventListener('click', (e) => {
       const link = e.target.closest('a[href]');
       if (!link) return;
-      closeAllDropdowns();
-      hideBackdrop(true);
-      setCategoriesRowDimmed(false);
+      return;
     });
 
     // When leaving the dropdown
@@ -2023,16 +2125,83 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Guard against stale overlay state when any soft-nav request swaps page content.
-  // This keeps the backdrop from blocking interactions (e.g. category filters)
-  // after navigation from an open dropdown.
-  document.addEventListener('htmx:beforeRequest', (event) => {
+  // Close overlays after the destination content has been swapped in.
+  // This keeps dropdowns visible during navigation and prevents stale overlay
+  // state on the new page.
+  document.addEventListener('htmx:afterSwap', (event) => {
     const targetId = event.detail && event.detail.target && event.detail.target.id;
     if (targetId === 'page-content-wrapper') {
       closeAllDropdowns();
       hideBackdrop(true);
       setCategoriesRowDimmed(false);
     }
+  });
+
+  function normalizeHistoryRestoredNavState() {
+    // Cancel any pending hover-open timers to avoid reopening stale dropdowns.
+    hoverTimeouts.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    hoverTimeouts.clear();
+
+    cancelScheduledClose();
+    if (cartUnlockCloseTimeout) {
+      clearTimeout(cartUnlockCloseTimeout);
+      cartUnlockCloseTimeout = null;
+    }
+
+    closeAllDropdowns();
+    hideBackdrop(true);
+    setCategoriesRowDimmed(false);
+
+    // Ensure search popovers do not remain visible from a restored snapshot.
+    searchResults?.classList.add('hidden');
+    searchCategoryDropdown?.classList.add('hidden');
+    searchCategoryBtn?.classList.remove('bg-gray-100', 'dark:bg-gray-600');
+    searchCategoryArrow?.classList.remove('rotate-180');
+
+    // Restore consistent mobile nav state when coming back from history entries.
+    closeMobileMenu();
+
+    // Keep nav cart badge/lines fresh if browser restores stale history snapshots.
+    requestCartHistoryResync();
+  }
+
+  function isBackForwardNavigation(event) {
+    if (event && event.persisted) return true;
+
+    try {
+      const navEntries = performance.getEntriesByType('navigation');
+      if (Array.isArray(navEntries) && navEntries.length > 0) {
+        return navEntries[0]?.type === 'back_forward';
+      }
+    } catch (_) {
+      // Ignore environments where navigation timing is unavailable.
+    }
+
+    return false;
+  }
+
+  function requestCartHistoryResync() {
+    const syncNow = () => {
+      if (window.Cart && typeof window.Cart.syncState === 'function') {
+        window.Cart.syncState();
+      }
+    };
+
+    syncNow();
+    // Fallback for deferred script timing: try once more shortly after restore.
+    window.setTimeout(syncNow, 120);
+  }
+
+  // Browser back/forward (including bfcache) can restore stale open overlays.
+  document.addEventListener('htmx:historyRestore', normalizeHistoryRestoredNavState);
+  window.addEventListener('pageshow', (event) => {
+    if (!isBackForwardNavigation(event)) return;
+    normalizeHistoryRestoredNavState();
+  });
+  window.addEventListener('popstate', () => {
+    window.requestAnimationFrame(normalizeHistoryRestoredNavState);
   });
 
   // ===========================

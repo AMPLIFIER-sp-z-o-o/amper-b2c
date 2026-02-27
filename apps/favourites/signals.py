@@ -1,5 +1,5 @@
 """
-Signals for the favourites app.
+Signals for the favorites app.
 
 Handles merging anonymous wishlists to user account on login.
 """

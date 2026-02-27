@@ -14,7 +14,7 @@
             </svg>
           </button>
         </div>
-        <form id="list-form" method="POST" action="{% url 'favourites:create_wishlist' %}">
+        <form id="list-form" method="POST" action="{% url 'favorites:create_wishlist' %}">
           {% csrf_token %}
           <input type="hidden" name="wishlist_id" id="form-wishlist-id" value="">
           <div class="mb-4">

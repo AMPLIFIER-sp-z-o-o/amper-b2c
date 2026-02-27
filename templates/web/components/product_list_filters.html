@@ -59,8 +59,9 @@
      <a href="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}{% if search_query %}?q={{ search_query }}{% endif %}" 
        id="clear-filters-link"
        data-clear-all-filters
+       data-soft-nav="false"
        data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
-       class="inline-flex items-center rounded-lg px-3 py-2 text-xs transition-all hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 {% if selected_attributes or current_price_min or current_price_max %}text-gray-900 dark:text-white font-bold cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
+      class="inline-flex items-center rounded-lg px-3 py-2 text-xs transition-all hover:bg-gray-200 dark:hover:bg-gray-700 {% if selected_attributes or current_price_min or current_price_max %}text-gray-900 dark:text-white font-bold cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
       {% trans "Clear all" %}
     </a>
   </div>
@@ -294,6 +295,8 @@ function updateClearAllLinkState() {
 }
 
 let productsLoadingFailsafeTimer;
+let priceDebounceTimer;
+let mobileCountDebounceTimer;
 
 // Show loading overlay on products container
 function showProductsLoading(options = {}) {
@@ -402,6 +405,17 @@ function hideProductsLoading() {
   const spinner = document.getElementById('products-loading-spinner');
   if (spinner) {
     spinner.remove();
+  }
+}
+
+function cancelPendingFilterTimers() {
+  if (priceDebounceTimer) {
+    clearTimeout(priceDebounceTimer);
+    priceDebounceTimer = null;
+  }
+  if (mobileCountDebounceTimer) {
+    clearTimeout(mobileCountDebounceTimer);
+    mobileCountDebounceTimer = null;
   }
 }
 
@@ -517,6 +531,10 @@ function applyFiltersWithHtmx(options = {}) {
 
 // Navigate to a page using AJAX with loader
 function navigateToPage(url, options = {}) {
+  // Prevent delayed debounce callbacks (price/mobile-count) from dispatching
+  // a second request right after explicit navigations like "Clear all".
+  cancelPendingFilterTimers();
+
   // Update browser URL without reload
   window.history.pushState({}, '', url);
   
@@ -699,14 +717,12 @@ function initActiveFilterChips() {
 }
 
 // Debounce function for price inputs
-let priceDebounceTimer;
 function debouncedApplyFilters() {
   clearTimeout(priceDebounceTimer);
   priceDebounceTimer = setTimeout(applyFiltersWithHtmx, 800);
 }
 
 // Mobile results count preview - fetch count without applying filters
-let mobileCountDebounceTimer;
 function debouncedUpdateMobileResultsCount() {
   clearTimeout(mobileCountDebounceTimer);
   mobileCountDebounceTimer = setTimeout(updateMobileResultsCount, 300);
@@ -1061,8 +1077,10 @@ function updateMobileResultsCount() {
   // Initialize Clear all state on first load
   updateClearAllLinkState();
 
-  // HTMX hooks for loader + re-init (guarded to prevent accumulation across soft-nav swaps)
-  if (window.htmx && !document.body.dataset.filterHtmxHooksAttached) {
+  // HTMX hooks for loader + re-init (guarded to prevent accumulation across soft-nav swaps).
+  // Attach unconditionally: HTMX is loaded with `defer`, so `window.htmx` may be undefined
+  // when this inline script runs during HTML parsing.
+  if (!document.body.dataset.filterHtmxHooksAttached) {
     document.body.dataset.filterHtmxHooksAttached = '1';
     document.addEventListener('htmx:beforeRequest', function(e) {
       const trigger = e.detail.elt;
@@ -1074,6 +1092,7 @@ function updateMobileResultsCount() {
       
       // Show loader for any request targeting products-container
       if (targetId === 'products-container') {
+        if (document.getElementById('products-loading-spinner')) return;
         if (isPaginationOrSort) {
           showProductsLoading({ scrollToTop: true, positionMode: 'visible-center' });
         } else {

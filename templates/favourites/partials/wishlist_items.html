@@ -19,7 +19,7 @@
         class="w-full pl-10 pr-10 py-2.5 bg-gray-100 dark:bg-gray-700 border-none rounded-lg text-sm text-gray-900 dark:text-white placeholder:font-medium placeholder-gray-500 dark:placeholder-gray-400 focus:ring-0 focus:bg-white dark:focus:bg-gray-600 focus:shadow-[0_4px_8px_0_rgba(0,0,0,0.16),0_0_2px_1px_rgba(0,0,0,0.08)] transition-all"
         data-wishlist-id="{{ wishlist.id }}"
       >
-      <button type="button" id="wishlist-search-clear" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover-bg transition-colors cursor-pointer {% if not search_query %}hidden{% endif %}" onclick="FavouritesPage.clearSearch();">
+      <button type="button" id="wishlist-search-clear" class="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover-bg transition-colors cursor-pointer {% if not search_query %}hidden{% endif %}" onclick="FavoritesPage.clearSearch();">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
         </svg>

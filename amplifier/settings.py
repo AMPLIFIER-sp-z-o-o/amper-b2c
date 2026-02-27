@@ -110,7 +110,7 @@ PROJECT_APPS = [
     "apps.homepage.apps.HomepageConfig",
     "apps.support.apps.SupportConfig",
     "apps.cart.apps.CartConfig",
-    "apps.favourites.apps.FavouritesConfig",
+    "apps.favourites.apps.FavoritesConfig",
     "apps.promotions.apps.PromotionsConfig",
     "apps.orders.apps.OrdersConfig",
 ]

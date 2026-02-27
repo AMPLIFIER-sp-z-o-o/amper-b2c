@@ -2,6 +2,7 @@
 window.Cart = (function () {
     const INLINE_SPINNER_SVG =
         '<svg class="w-5 h-5 animate-spin text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+    let cartStateSyncPromise = null;
 
     function getCartLinesLabelForCount(el, count) {
         const ds = el?.dataset || {};
@@ -211,6 +212,114 @@ window.Cart = (function () {
         }
     }
 
+    function replaceNavCartLines(linesHtml) {
+        const navCartLinesContainer = document.querySelector('#nav-cart-lines');
+        if (!navCartLinesContainer) return;
+
+        navCartLinesContainer
+            .querySelectorAll('[data-cart-line]')
+            .forEach((el) => el.remove());
+
+        const normalizedHtml = String(linesHtml || "").trim();
+        if (!normalizedHtml) return;
+
+        const temp = document.createElement("div");
+        temp.innerHTML = normalizedHtml;
+
+        const emptyStateEl = navCartLinesContainer.querySelector('[data-cart-empty-state]');
+        const fragment = document.createDocumentFragment();
+        Array.from(temp.children).forEach((child) => fragment.appendChild(child));
+
+        if (emptyStateEl) {
+            navCartLinesContainer.insertBefore(fragment, emptyStateEl);
+        } else {
+            navCartLinesContainer.appendChild(fragment);
+        }
+    }
+
+    function clearVisibleToasts() {
+        const toastContainer = document.getElementById("favorite-toast-container");
+        if (!toastContainer) return;
+
+        toastContainer.querySelectorAll('[role="alert"]').forEach((toast) => {
+            if (toast && toast._removeTimeout) {
+                clearTimeout(toast._removeTimeout);
+            }
+            toast.remove();
+        });
+    }
+
+    function setCartBadgeVisibility(hidden) {
+        const badge = document.querySelector("#cartDropdownButton [data-cart-badge]");
+        if (!badge) return;
+        badge.style.visibility = hidden ? "hidden" : "";
+    }
+
+    function syncCartStateFromServer() {
+        if (!window.CART_STATE_URL) {
+            return Promise.resolve(null);
+        }
+        if (cartStateSyncPromise) {
+            return cartStateSyncPromise;
+        }
+
+        cartStateSyncPromise = fetch(window.CART_STATE_URL, {
+            method: "GET",
+            headers: {
+                "X-Requested-With": "XMLHttpRequest",
+            },
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => {
+                if (!data || data.success !== true) return null;
+
+                if (data.nav_lines_html !== undefined) {
+                    replaceNavCartLines(data.nav_lines_html);
+                }
+
+                updateCartSummary({
+                    lines_count: data.lines_count,
+                    cart_total: data.cart_total,
+                    cart_subtotal: data.cart_subtotal,
+                    discount_total: data.discount_total,
+                    delivery_cost: data.delivery_cost,
+                });
+                setNavCartEmptyState(data.lines_count);
+
+                return data;
+            })
+            .catch(() => null)
+            .finally(() => {
+                cartStateSyncPromise = null;
+            });
+
+        return cartStateSyncPromise;
+    }
+
+    function handleHistoryRestoreSync() {
+        // bfcache/history snapshots can restore stale cart toasts and old cart badge values.
+        clearVisibleToasts();
+        setCartBadgeVisibility(true);
+        syncCartStateFromServer().finally(() => {
+            setCartBadgeVisibility(false);
+        });
+    }
+
+    function isBackForwardNavigation(event) {
+        if (event && event.persisted) return true;
+
+        try {
+            const navEntries = performance.getEntriesByType("navigation");
+            if (Array.isArray(navEntries) && navEntries.length > 0) {
+                return navEntries[0]?.type === "back_forward";
+            }
+        } catch (_) {
+            // Ignore environments where navigation timing is unavailable.
+        }
+
+        return false;
+    }
+
     function updateCartSummary(data) {
         const totalEls = document.querySelectorAll('[data-cart-total]');
         const subtotalEls = document.querySelectorAll('[data-cart-subtotal]');
@@ -296,6 +405,7 @@ window.Cart = (function () {
                     .querySelector("[data-cart-page-empty-state]")
                     ?.classList.remove("hidden");
                 document.querySelector("[data-cart-summary-card]")?.remove();
+                document.querySelector("[data-cart-page-actions]")?.remove();
             }
         }
 
@@ -1116,10 +1226,23 @@ window.Cart = (function () {
             });
     });
 
+    // Keep cart UI in sync when browser restores history snapshots/back-forward cache.
+    document.addEventListener("htmx:historyRestore", handleHistoryRestoreSync);
+
+    window.addEventListener("pageshow", function (event) {
+        if (!isBackForwardNavigation(event)) return;
+        handleHistoryRestoreSync();
+    });
+
+    window.addEventListener("popstate", function () {
+        handleHistoryRestoreSync();
+    });
+
 
     return {
         addToCart,
         removeLine,
+        syncState: syncCartStateFromServer,
         reinitCheckout: () => {
             updateProceedToSummaryDisabledState();
             updateCheckoutChoiceCardStates();

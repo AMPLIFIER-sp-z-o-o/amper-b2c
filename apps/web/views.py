@@ -753,9 +753,14 @@ def search_results(request):
         "search_category": search_category,
     }
 
-    # Return partial template for filter/pagination HTMX updates.
-    # HX-Soft-Nav requests are full-page soft navigations — return full HTML.
-    if request.headers.get("HX-Request") and not request.headers.get("HX-Soft-Nav"):
+    # Return partial template for in-place filter/pagination HTMX updates.
+    # History-restore requests must return full HTML, otherwise back/forward can
+    # restore only the fragment and lose page chrome/sidebar.
+    if (
+        request.headers.get("HX-Request")
+        and not request.headers.get("HX-Soft-Nav")
+        and not request.headers.get("HX-History-Restore-Request")
+    ):
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)
@@ -1271,9 +1276,14 @@ def product_list(request, category_id=None, category_slug=None):
             )
             context["recommended_products"] = list(recommended_products)
 
-    # Return partial template for filter/pagination HTMX updates.
-    # HX-Soft-Nav requests are full-page soft navigations — return full HTML.
-    if request.headers.get("HX-Request") and not request.headers.get("HX-Soft-Nav"):
+    # Return partial template for in-place filter/pagination HTMX updates.
+    # History-restore requests must return full HTML, otherwise back/forward can
+    # restore only the fragment and lose page chrome/sidebar.
+    if (
+        request.headers.get("HX-Request")
+        and not request.headers.get("HX-Soft-Nav")
+        and not request.headers.get("HX-History-Restore-Request")
+    ):
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)

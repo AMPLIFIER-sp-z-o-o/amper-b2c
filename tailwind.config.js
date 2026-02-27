@@ -23,8 +23,8 @@ module.exports = {
       },
     },
     fontFamily: {
-      body: ["Montserrat", "sans-serif"],
-      sans: ["Montserrat", "sans-serif"],
+      body: ["MontserratFixed", "Montserrat", "sans-serif"],
+      sans: ["MontserratFixed", "Montserrat", "sans-serif"],
     },
   },
   plugins: [require("flowbite-typography")],

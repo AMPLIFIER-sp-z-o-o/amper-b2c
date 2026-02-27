@@ -27,15 +27,15 @@
     white-space: nowrap;
 }
 
-.app-favourites.model-wishlist.change-form .field-share_id_copy .readonly,
-.app-favourites.model-wishlist.change-form .field-share_id_copy .readonly * {
+.app-favorites.model-wishlist.change-form .field-share_id_copy .readonly,
+.app-favorites.model-wishlist.change-form .field-share_id_copy .readonly * {
     cursor: pointer !important;
 }
 
-.app-favourites.model-wishlist.change-form .field-share_id_copy,
-.app-favourites.model-wishlist.change-form .field-share_id_copy *,
-.app-favourites.model-wishlist.change-form td.field-share_id_copy,
-.app-favourites.model-wishlist.change-form td.field-share_id_copy * {
+.app-favorites.model-wishlist.change-form .field-share_id_copy,
+.app-favorites.model-wishlist.change-form .field-share_id_copy *,
+.app-favorites.model-wishlist.change-form td.field-share_id_copy,
+.app-favorites.model-wishlist.change-form td.field-share_id_copy * {
     cursor: pointer !important;
 }
 
@@ -63,62 +63,62 @@
     background: var(--color-primary-50, #f5f3ff) !important;
 }
 
-.app-favourites.model-wishlist.change-list #result_list tbody tr {
+.app-favorites.model-wishlist.change-list #result_list tbody tr {
     cursor: pointer;
 }
 
-.app-favourites.model-wishlist.change-list #result_list td.field-user_display a {
+.app-favorites.model-wishlist.change-list #result_list td.field-user_display a {
     color: #111827 !important;
     font-weight: 400 !important;
 }
 
-.dark .app-favourites.model-wishlist.change-list #result_list td.field-user_display a {
+.dark .app-favorites.model-wishlist.change-list #result_list td.field-user_display a {
     color: #e5e7eb !important;
 }
 
-.app-favourites.model-wishlist #items-group table.unfold-table tbody td,
-.app-favourites.model-wishlist #items-group table.unfold-table tbody th,
-.app-favourites.model-wishlist #items-group table.unfold-table tbody tr {
+.app-favorites.model-wishlist #items-group table.unfold-table tbody td,
+.app-favorites.model-wishlist #items-group table.unfold-table tbody th,
+.app-favorites.model-wishlist #items-group table.unfold-table tbody tr {
     vertical-align: middle !important;
 }
 
-.app-favourites.model-wishlist #items-group td.field-product_image_display .readonly {
+.app-favorites.model-wishlist #items-group td.field-product_image_display .readonly {
     display: flex !important;
     align-items: center !important;
     min-height: 72px;
 }
 
-.app-favourites.model-wishlist #items-group td.field-product_link .readonly {
+.app-favorites.model-wishlist #items-group td.field-product_link .readonly {
     display: flex !important;
     align-items: center !important;
     min-height: 72px;
 }
 
-.app-favourites.model-wishlist #items-group td.field-product_link .readonly,
-.app-favourites.model-wishlist #items-group td.field-product_link .readonly * {
+.app-favorites.model-wishlist #items-group td.field-product_link .readonly,
+.app-favorites.model-wishlist #items-group td.field-product_link .readonly * {
     cursor: pointer !important;
 }
 
-.app-favourites.model-wishlist #items-group td.field-price_when_added_display .readonly,
-.app-favourites.model-wishlist #items-group td.field-current_price_display .readonly,
-.app-favourites.model-wishlist #items-group td.field-created_at .readonly {
+.app-favorites.model-wishlist #items-group td.field-price_when_added_display .readonly,
+.app-favorites.model-wishlist #items-group td.field-current_price_display .readonly,
+.app-favorites.model-wishlist #items-group td.field-created_at .readonly {
     min-height: 72px;
     display: flex !important;
     align-items: center !important;
 }
 
-.app-favourites.model-wishlist #items-group td.field-notes > div {
+.app-favorites.model-wishlist #items-group td.field-notes > div {
     display: flex !important;
     align-items: center !important;
     min-height: 72px;
 }
 
-.app-favourites.model-wishlist #items-group td.field-notes textarea {
+.app-favorites.model-wishlist #items-group td.field-notes textarea {
     margin: 0 !important;
 }
 
-.app-favourites.model-wishlist #items-group .product-image-upload img,
-.app-favourites.model-wishlist #items-group .product-image-upload a,
-.app-favourites.model-wishlist #items-group .product-image-upload a * {
+.app-favorites.model-wishlist #items-group .product-image-upload img,
+.app-favorites.model-wishlist #items-group .product-image-upload a,
+.app-favorites.model-wishlist #items-group .product-image-upload a * {
     cursor: pointer !important;
 }

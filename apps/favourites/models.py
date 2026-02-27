@@ -59,7 +59,7 @@ class WishList(BaseModel):
     is_default = models.BooleanField(
         default=False,
         verbose_name=_("Default"),
-        help_text=_("Whether this is the default shopping list (Favourites)"),
+        help_text=_("Whether this is the default shopping list (Favorites)"),
     )
     description = models.TextField(
         blank=True,
@@ -95,7 +95,7 @@ class WishList(BaseModel):
         return f"{self.name} - {owner}"
 
     def get_absolute_url(self) -> str:
-        return reverse("favourites:wishlist_detail", kwargs={"pk": self.pk})
+        return reverse("favorites:wishlist_detail", kwargs={"pk": self.pk})
 
     @property
     def product_count(self) -> int:
@@ -118,14 +118,14 @@ class WishList(BaseModel):
             wishlist, created = cls.objects.get_or_create(
                 user=user,
                 is_default=True,
-                defaults={"name": _("Favourites")},
+                defaults={"name": _("Favorites")},
             )
         elif session_key:
             wishlist, created = cls.objects.get_or_create(
                 session_key=session_key,
                 user__isnull=True,
                 is_default=True,
-                defaults={"name": _("Favourites")},
+                defaults={"name": _("Favorites")},
             )
         else:
             raise ValueError("Either user or session_key must be provided")

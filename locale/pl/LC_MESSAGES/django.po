@@ -924,7 +924,7 @@ msgid "Enter code"
 msgstr "Wpisz kod"
 
 #, python-format
-msgid "Add %(name)s to favourites"
+msgid "Add %(name)s to favorites"
 msgstr "Dodaj %(name)s do ulubionych"
 
 #: apps/orders/views.py

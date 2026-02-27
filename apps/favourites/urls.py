@@ -2,11 +2,11 @@ from django.urls import path
 
 from . import views
 
-app_name = "favourites"
+app_name = "favorites"
 
 urlpatterns = [
     # Main page
-    path("", views.favourites_page, name="favourites_page"),
+    path("", views.favorites_page, name="favorites_page"),
     # CRUD wishlists
     path("list/<int:pk>/", views.wishlist_detail, name="wishlist_detail"),
     path("create/", views.create_wishlist, name="create_wishlist"),
@@ -16,7 +16,7 @@ urlpatterns = [
     path("add/", views.add_to_wishlist, name="add_to_wishlist"),
     path("remove/", views.remove_from_wishlist, name="remove_from_wishlist"),
     path("move/", views.move_item, name="move_item"),
-    path("toggle/", views.toggle_favourite, name="toggle_favourite"),
+    path("toggle/", views.toggle_favorite, name="toggle_favorite"),
     # Bulk operations
     path("add-all-to-cart/", views.add_all_to_cart, name="add_all_to_cart"),
     path("copy-items/", views.copy_items, name="copy_items"),

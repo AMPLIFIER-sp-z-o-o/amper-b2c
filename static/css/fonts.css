@@ -80,6 +80,6 @@
 
 :root,
 :host {
-  --font-sans: "MontserratFixed", "Montserrat", "sans-serif";
-  --font-body: "MontserratFixed", "Montserrat", "sans-serif";
+  --font-sans: "MontserratFixed", "Montserrat", "sans-serif" !important;
+  --font-body: "MontserratFixed", "Montserrat", "sans-serif" !important;
 }

@@ -58,15 +58,15 @@
               <div class="flex items-center gap-1">
                 <button
                   type="button"
-                  class="pointer-events-auto favourite-btn inline-flex h-11 w-11 items-center justify-center rounded-full hover-bg btn-press cursor-pointer"
+                  class="pointer-events-auto favorite-btn inline-flex h-11 w-11 items-center justify-center rounded-full hover-bg btn-press cursor-pointer"
                   data-product-id="{{ line.product.id }}"
-                  aria-label="{% blocktranslate with name=line.product.name %}Add {{ name }} to favourites{% endblocktranslate %}"
-                  title="{% translate 'Add to Favourites' %}"
+                  aria-label="{% blocktranslate with name=line.product.name %}Add {{ name }} to favorites{% endblocktranslate %}"
+                  title="{% translate 'Add to Favorites' %}"
                 >
-                  <svg class="favourite-icon h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="favorite-icon h-5 w-5 text-gray-500 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
                   </svg>
-                  <svg class="favourite-icon-filled h-5 w-5 text-rose-500 hidden" fill="currentColor" viewBox="0 0 24 24">
+                  <svg class="favorite-icon-filled h-5 w-5 text-rose-500 hidden" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
                   </svg>
                 </button>
@@ -119,21 +119,20 @@
         </p>
       </div>
     {% endfor %}
-  {% else %}
-    <div
-      data-cart-page-empty-state
-      class="rounded-xl bg-white dark:bg-gray-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] p-6 sm:p-8"
-    >
-      <div class="flex min-h-44 flex-col items-center justify-center text-center">
-        <p class="text-base font-semibold text-gray-700 dark:text-gray-200">{% translate "Your cart is empty" %}</p>
-        <p class="mt-1 text-subtitle">{% translate "Continue shopping and add items to start checkout." %}</p>
-        <a
-          href="/"
-          class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-        >
-          {% translate "Continue shopping" %}
-        </a>
-      </div>
-    </div>
   {% endif %}
+  <div
+    data-cart-page-empty-state
+    class="rounded-xl bg-white dark:bg-gray-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] p-6 sm:p-8{% if lines %} hidden{% endif %}"
+  >
+    <div class="flex min-h-44 flex-col items-center justify-center text-center">
+      <p class="text-base font-semibold text-gray-700 dark:text-gray-200">{% translate "Your cart is empty" %}</p>
+      <p class="mt-1 text-subtitle">{% translate "Continue shopping and add items to start checkout." %}</p>
+      <a
+        href="/"
+        class="mt-4 inline-flex items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-colors duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+      >
+        {% translate "Continue shopping" %}
+      </a>
+    </div>
+  </div>
 </div>

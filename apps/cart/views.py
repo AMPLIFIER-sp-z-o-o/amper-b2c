@@ -7,9 +7,10 @@ from django.db.models import Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
+from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.utils import timezone
 from django.utils.translation import gettext as _
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from apps.catalog.models import Product, ProductStatus
 from apps.favourites.models import WishList, WishListItem
@@ -85,6 +86,20 @@ def _get_cart_items_count(cart: Cart) -> int:
     except Exception:
         total = None
     return int(total or 0)
+
+
+def _mark_response_no_store(response: JsonResponse) -> JsonResponse:
+    """Prevent stale cart-state reads from browser/intermediary caches."""
+    patch_cache_control(
+        response,
+        no_store=True,
+        no_cache=True,
+        must_revalidate=True,
+        private=True,
+    )
+    patch_vary_headers(response, ["Cookie"])
+    response["Pragma"] = "no-cache"
+    return response
 
 
 # Create your views here.
@@ -783,6 +798,56 @@ def remove_from_cart(request):
             "delivery_cost": delivery_cost,
         }
     )
+
+
+@require_GET
+def cart_state(request):
+    """Return current cart state for client-side UI re-sync after history restore."""
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
+
+    cart = _get_cart_from_request(request, cart_id)
+    if not cart and request.user.is_authenticated:
+        # Self-heal: stale cart pointer can be restored from browser history/session snapshots.
+        cart = Cart.objects.filter(customer=request.user).order_by("-id").first()
+        if cart:
+            request.session["cart_id"] = cart.id
+
+    if not cart:
+        response = JsonResponse(
+            {
+                "success": True,
+                "cart_total": "0.00",
+                "cart_subtotal": "0.00",
+                "discount_total": "0.00",
+                "lines_count": 0,
+                "delivery_cost": "0.00",
+                "nav_lines_html": "",
+            }
+        )
+        response = _mark_response_no_store(response)
+        return _clear_cart_id(request, response=response)
+
+    refresh_cart_totals_from_db(cart)
+    lines = list(cart.lines.select_related("product").all())
+    nav_lines_html = "".join(
+        render_to_string("Cart/nav_cart_line.html", {"line": line}, request=request)
+        for line in lines
+    )
+    delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
+
+    response = JsonResponse(
+        {
+            "success": True,
+            "cart_total": str(cart.total),
+            "cart_subtotal": str(cart.subtotal),
+            "discount_total": str(cart.discount_total),
+            "lines_count": _get_cart_items_count(cart),
+            "delivery_cost": str(delivery_cost),
+            "nav_lines_html": nav_lines_html,
+        }
+    )
+    response.set_cookie("cart_id", cart.id, max_age=60 * 60 * 24 * 10)
+    return _mark_response_no_store(response)
 
 
 def checkout_page(request):

@@ -290,11 +290,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // Set up soft navigation (partial page swaps that keep the nav intact)
   initSoftNavigation();
 
-  // Initialize favourites
-  initFavourites();
+  // Initialize favorites
+  initFavorites();
 
   // Initialize cart "Save as list" modal
   initCartSaveAsList();
+
+  // Initialize reorder-all submit loading state.
+  initReorderAllSubmitLoading(document);
 
   // Initialize product compare buttons state
   syncCompareButtons(document);
@@ -861,12 +864,11 @@ function resetBtnNow(btn) {
   btn.classList.remove("btn-loading");
   btn.removeAttribute("aria-disabled");
   btn.querySelector(".btn-spinner")?.remove();
-  // Restore hidden SVG icon
-  const hiddenIcon = btn.querySelector(":scope > svg[data-btn-hidden]");
-  if (hiddenIcon) {
+  // Restore hidden direct-child icon or icon wrapper.
+  btn.querySelectorAll(":scope > [data-btn-hidden]").forEach((hiddenIcon) => {
     delete hiddenIcon.dataset.btnHidden;
     hiddenIcon.style.display = "";
-  }
+  });
   // Remove temporarily added flex classes
   if (btn.dataset.btnFlexAdded) {
     btn.classList.remove(
@@ -919,10 +921,10 @@ function btnLoading(btn) {
       btn.dataset.btnGapAdded = "1";
     }
   }
-  // Hide existing SVG icon (direct child) to replace with spinner.
-  // Allow opting out for icons that must stay visible (e.g. cart/checkout arrows).
+  // Hide existing icon (direct child svg or wrapper with data-btn-icon)
+  // to replace it with spinner. Allow opting out with data-keep-on-loading.
   const existingIcon = btn.querySelector(
-    ":scope > svg:not([data-keep-on-loading])",
+    ":scope > svg:not([data-keep-on-loading]), :scope > [data-btn-icon]:not([data-keep-on-loading])",
   );
   if (existingIcon) {
     existingIcon.dataset.btnHidden = "1";
@@ -970,15 +972,89 @@ function btnReset(btn) {
 window.btnLoading = btnLoading;
 window.btnReset = btnReset;
 
-// Global guard: while a control is in loading state, prevent any click/keyboard re-activation.
+function initReorderAllSubmitLoading(scope = document) {
+  if (!scope || typeof scope.querySelectorAll !== "function") return;
+
+  scope.querySelectorAll("form[data-reorder-all-form]").forEach((form) => {
+    if (form.dataset.reorderAllLoadingInit === "1") return;
+    form.dataset.reorderAllLoadingInit = "1";
+
+    form.addEventListener("submit", function () {
+      const btn = form.querySelector("[data-reorder-all-btn]");
+      if (!btn || btn.classList.contains("btn-loading")) return;
+      window.btnLoading?.(btn);
+    });
+  });
+}
+
+window.initReorderAllSubmitLoading = initReorderAllSubmitLoading;
+
+function resetStaleLoadingState(scope = document) {
+  if (!scope || typeof scope.querySelectorAll !== "function") return;
+
+  scope.querySelectorAll(".btn-loading").forEach((el) => {
+    if (typeof window.btnReset === "function") {
+      window.btnReset(el);
+    } else {
+      el.classList.remove("btn-loading");
+      el.removeAttribute("aria-disabled");
+      el.querySelector(".btn-spinner")?.remove();
+    }
+
+    // Some controls (e.g. inline loaders in cart method rows) use a custom
+    // in-element spinner marker instead of the shared .btn-spinner helper.
+    el.querySelector(':scope > [data-inline-loader="1"]')?.remove();
+  });
+}
+
+// History snapshots and bfcache can restore stale loading visuals after back/forward.
+document.addEventListener("htmx:historyRestore", () => {
+  resetStaleLoadingState(document);
+  initReorderAllSubmitLoading(document);
+});
+
+window.addEventListener("pageshow", (event) => {
+  if (!event.persisted) return;
+  resetStaleLoadingState(document);
+  initReorderAllSubmitLoading(document);
+});
+
+document.addEventListener("htmx:afterSwap", (event) => {
+  const target = event?.target;
+  if (!target) return;
+  if (target.id === "page-content" || target.id === "page-content-wrapper") {
+    resetStaleLoadingState(target);
+    initReorderAllSubmitLoading(target);
+  }
+});
+
+// Global guard: while a control is in loading state or disabled, prevent any click/keyboard re-activation.
 // This keeps UX consistent across the whole storefront, even if some handlers forget to check btn-loading.
 document.addEventListener(
   "click",
   function (e) {
-    const el = e.target.closest(".btn-loading");
-    if (!el) return;
-    e.preventDefault();
-    e.stopPropagation();
+    // Guard 1: clicked on or inside a disabled/loading control.
+    const el = e.target.closest(".btn-loading, button[disabled]");
+    if (el) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    // Guard 2: browsers do not fire click events on <button disabled>, so the click
+    // "falls through" to the stretched card link (<a aria-hidden>) positioned behind
+    // the button. Block that fallthrough navigation when the card has a disabled or
+    // loading add-to-cart button.
+    const stretchedLink = e.target.closest("a[aria-hidden='true']");
+    if (stretchedLink) {
+      const card = stretchedLink.closest("[data-product-card]");
+      if (
+        card &&
+        card.querySelector(".add-to-cart-btn[disabled], .add-to-cart-btn.btn-loading")
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    }
   },
   true,
 );
@@ -1525,6 +1601,17 @@ document.addEventListener("htmx:afterSwap", updateSignInLink);
 document.addEventListener("htmx:pushedIntoHistory", updateSignInLink);
 // Update on browser back/forward navigation
 window.addEventListener("popstate", updateSignInLink);
+
+// Clean up stuck progress bar on browser back navigation (history cache restore)
+// or when a request is aborted by backward navigation.
+document.addEventListener("htmx:historyRestore", () => {
+  const snpBar = document.getElementById("soft-nav-progress");
+  if (snpBar) {
+    snpBar.classList.remove("snp-loading");
+    snpBar.classList.add("snp-done");
+    setTimeout(() => snpBar.classList.remove("snp-done"), 500);
+  }
+});
 document.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "products-container") {
     initCategoryRecommendedSlider();
@@ -1580,10 +1667,11 @@ document.addEventListener("htmx:afterSwap", (event) => {
       window.initFlowbite();
     }
     initCartSaveAsList();
+    initReorderAllSubmitLoading(event.target || document);
     initHeroBannerSlider();
     initCategoryRecommendedSlider();
     initCategoryBannerSlider();
-    initFavourites();
+    initFavorites();
     syncCompareButtons(document);
     formatPrices();
     // Re-init checkout disabled-state and choice-card state after HTMX swap
@@ -1631,41 +1719,41 @@ function initScrollToTop() {
 }
 
 /* ============================================
-   FAVOURITES / WISHLISTS
+   FAVORITES / WISHLISTS
    ============================================ */
 
 /**
- * Initialize favourites functionality.
- * - Loads favourite status for all product cards
- * - Attaches click handlers to favourite buttons
+ * Initialize favorites functionality.
+ * - Loads favorite status for all product cards
+ * - Attaches click handlers to favorite buttons
  * - Shows wishlists dropdown on click
  */
-function initFavourites() {
-  // Load favourite status for all visible products
-  loadFavouriteStatus();
+function initFavorites() {
+  // Load favorite status for all visible products
+  loadFavoriteStatus();
 
-  // Attach click handlers to favourite buttons
-  attachFavouriteHandlers();
+  // Attach click handlers to favorite buttons
+  attachFavoriteHandlers();
 }
 
-window.initFavourites = initFavourites;
+window.initFavorites = initFavorites;
 
 /**
- * Load favourite status for all product cards on the page.
+ * Load favorite status for all product cards on the page.
  * Updates the heart icon to filled if product is in any wishlist.
  */
-async function loadFavouriteStatus() {
-  // Get product IDs from product cards AND favourite buttons
+async function loadFavoriteStatus() {
+  // Get product IDs from product cards AND favorite buttons
   const productCards = document.querySelectorAll("[data-product-card]");
-  const favouriteButtons = document.querySelectorAll(
-    ".favourite-btn[data-product-id]",
+  const favoriteButtons = document.querySelectorAll(
+    ".favorite-btn[data-product-id]",
   );
 
   // Collect all product IDs
   const productIdsFromCards = Array.from(productCards).map(
     (card) => card.dataset.productCard,
   );
-  const productIdsFromButtons = Array.from(favouriteButtons).map(
+  const productIdsFromButtons = Array.from(favoriteButtons).map(
     (btn) => btn.dataset.productId,
   );
 
@@ -1677,7 +1765,7 @@ async function loadFavouriteStatus() {
 
   try {
     const response = await fetch(
-      `/favourites/api/status/?product_ids=${uniqueIds.join(",")}`,
+      `/favorites/api/status/?product_ids=${uniqueIds.join(",")}`,
       { cache: "no-store" },
     );
     if (!response.ok) return;
@@ -1685,50 +1773,58 @@ async function loadFavouriteStatus() {
     const data = await response.json();
     // status is a dict mapping product_id -> list of wishlist_ids
     const status = data.status || {};
-    const favouriteIds = new Set(
+    const favoriteIds = new Set(
       Object.keys(status).map((id) => parseInt(id, 10)),
     );
 
-    // Update all favourite buttons – set filled or unfilled
-    document.querySelectorAll(".favourite-btn").forEach((btn) => {
-      // Skip buttons managed by favourites page (it has its own logic)
-      if (btn.dataset.favouritePageManaged === "true") return;
+    // Update all favorite buttons – set filled or unfilled
+    document.querySelectorAll(".favorite-btn").forEach((btn) => {
+      // Skip buttons managed by favorites page (it has its own logic)
+      if (btn.dataset.favoritePageManaged === "true") return;
       const productId = parseInt(btn.dataset.productId, 10);
-      setFavouriteState(btn, favouriteIds.has(productId));
+      setFavoriteState(btn, favoriteIds.has(productId));
     });
   } catch (e) {
-    console.warn("Failed to load favourite status:", e);
+    console.warn("Failed to load favorite status:", e);
   }
 }
 
 /**
- * Attach click handlers to all favourite buttons.
+ * Attach click handlers to all favorite buttons.
+ *
+ * Uses document-level event delegation so the handler survives any DOM rebuild
+ * (HTMX swaps, history restore, bfcache). The document-level guard ensures the
+ * listener is registered once and never lost.
  */
-function attachFavouriteHandlers() {
-  document.querySelectorAll(".favourite-btn").forEach((btn) => {
-    if (btn.dataset.favouriteHandlerAttached) return;
-    btn.dataset.favouriteHandlerAttached = "true";
+function attachFavoriteHandlers() {
+  if (document.__favoriteClickHandlerInstalled) return;
+  document.__favoriteClickHandlerInstalled = true;
 
-    btn.addEventListener("click", handleFavouriteClick);
+  document.addEventListener("click", function (e) {
+    const btn = e.target.closest(".favorite-btn");
+    if (!btn) return;
+    if (btn.dataset.favoritePageManaged === "true") return;
+    handleFavoriteClick(e);
   });
 }
 
 /**
- * Handle click on favourite button.
+ * Handle click on favorite button.
  * Always shows wishlists dropdown when multiple lists exist so the user can
  * pick which list to add to / remove from.  For single-list users it
  * toggles the default list immediately.
  */
-async function handleFavouriteClick(e) {
+async function handleFavoriteClick(e) {
   e.preventDefault();
   e.stopPropagation();
 
-  const btn = e.currentTarget;
+  // Support event delegation (e.target.closest) and direct binding (e.currentTarget).
+  const btn = e.target.closest(".favorite-btn") || e.currentTarget;
   const productId = btn.dataset.productId;
   if (!productId) return;
 
-  // Skip if a page-specific handler is managing this button (e.g., FavouritesPage)
-  if (btn.dataset.favouritePageManaged === "true") return;
+  // Skip if a page-specific handler is managing this button (e.g., FavoritesPage)
+  if (btn.dataset.favoritePageManaged === "true") return;
 
   // If picker is already open for this button, close it
   const existingPicker = document.getElementById("wishlist-picker-dropdown");
@@ -1741,13 +1837,13 @@ async function handleFavouriteClick(e) {
   if (btn.classList.contains("btn-loading")) return;
 
   // Heart click animation
-  btn.classList.add("favourite-btn-pulse");
-  setTimeout(() => btn.classList.remove("favourite-btn-pulse"), 500);
+  btn.classList.add("favorite-btn-pulse");
+  setTimeout(() => btn.classList.remove("favorite-btn-pulse"), 500);
 
   try {
     // Fetch wishlists with containment info for this product
     const res = await fetch(
-      `/favourites/api/wishlists/?product_id=${productId}`,
+      `/favorites/api/wishlists/?product_id=${productId}`,
       { credentials: "same-origin" },
     );
     const data = await res.json();
@@ -1764,7 +1860,7 @@ async function handleFavouriteClick(e) {
       // Not in the list yet → add, then show picker
       try {
         const csrfToken = getCsrfToken();
-        const addRes = await fetch("/favourites/add/", {
+        const addRes = await fetch("/favorites/add/", {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -1776,8 +1872,8 @@ async function handleFavouriteClick(e) {
         if (addRes.ok) {
           const addData = await addRes.json();
           wl.contains_product = true;
-          setFavouriteState(btn, true);
-          updateAllFavouriteButtons(productId, true);
+          setFavoriteState(btn, true);
+          updateAllFavoriteButtons(productId, true);
           if (addData.message) showToast(addData.message, "success");
         }
       } catch (_) {
@@ -1794,19 +1890,19 @@ async function handleFavouriteClick(e) {
     }
 
     // No lists yet → add to default list (creates it), then show picker
-    const isFavourited =
+    const isFavorited =
       btn
-        .querySelector(".favourite-icon-filled")
+        .querySelector(".favorite-icon-filled")
         ?.classList.contains("hidden") === false;
 
-    if (isFavourited) {
+    if (isFavorited) {
       await removeFromSpecificWishlist(productId, null, btn);
     } else {
-      await addToFavourites(productId, btn);
+      await addToFavorites(productId, btn);
       // Re-fetch wishlists so the picker shows the newly created default list
       try {
         const res2 = await fetch(
-          `/favourites/api/wishlists/?product_id=${productId}`,
+          `/favorites/api/wishlists/?product_id=${productId}`,
           { credentials: "same-origin" },
         );
         const data2 = await res2.json();
@@ -1820,14 +1916,14 @@ async function handleFavouriteClick(e) {
     }
   } catch (_) {
     // Fetch failed → fall back to simple toggle
-    const isFavourited =
+    const isFavorited =
       btn
-        .querySelector(".favourite-icon-filled")
+        .querySelector(".favorite-icon-filled")
         ?.classList.contains("hidden") === false;
-    if (isFavourited) {
+    if (isFavorited) {
       await removeFromSpecificWishlist(productId, null, btn);
     } else {
-      await addToFavourites(productId, btn);
+      await addToFavorites(productId, btn);
     }
   }
 }
@@ -1839,7 +1935,7 @@ const CHECKBOX_UNCHECKED_SVG =
   '<svg class="w-5 h-5 text-gray-500 dark:text-gray-400 shrink-0" viewBox="0 0 24 24" fill="none"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5" stroke="currentColor" stroke-width="1.5"/></svg>';
 
 /**
- * Show a floating dropdown near the favourite button with per-list
+ * Show a floating dropdown near the favorite button with per-list
  * add / remove options.  Lists that already contain the product display a
  * checkbox and clicking them will remove the product from that list.
  */
@@ -1961,7 +2057,7 @@ function showWishlistPicker(btn, productId, wishlists) {
 
     try {
       const csrfToken = getCsrfToken();
-      const res = await fetch("/favourites/create/", {
+      const res = await fetch("/favorites/create/", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -2003,8 +2099,8 @@ function showWishlistPicker(btn, productId, wishlists) {
       createForm.classList.add("hidden");
       createBtn.classList.remove("hidden");
       // Update heart state
-      setFavouriteState(btn, true);
-      updateAllFavouriteButtons(productId, true);
+      setFavoriteState(btn, true);
+      updateAllFavoriteButtons(productId, true);
       showToast(data.message || `Created "${newWl.name}"`, "success");
     } catch (_e) {
       createError.textContent = "Something went wrong.";
@@ -2124,8 +2220,8 @@ function attachOptionHandler(optBtn, productId, btn, wishlists, picker) {
       '.wishlist-pick-option[data-contains-product="true"]',
     );
     const isInAny = !!anyInList;
-    setFavouriteState(btn, isInAny);
-    updateAllFavouriteButtons(productId, isInAny);
+    setFavoriteState(btn, isInAny);
+    updateAllFavoriteButtons(productId, isInAny);
   });
 }
 
@@ -2134,7 +2230,7 @@ function _closePickerOnOutsideClick(e) {
   if (
     picker &&
     !picker.contains(e.target) &&
-    !e.target.closest(".favourite-btn")
+    !e.target.closest(".favorite-btn")
   ) {
     closeWishlistPicker();
   }
@@ -2156,7 +2252,7 @@ function closeWishlistPicker() {
  */
 async function addToWishlist(productId, wishlistId, wishlistName, btn) {
   const csrfToken = getCsrfToken();
-  const response = await fetch("/favourites/add/", {
+  const response = await fetch("/favorites/add/", {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -2176,8 +2272,8 @@ async function addToWishlist(productId, wishlistId, wishlistName, btn) {
       throw new Error("add failed");
     }
   } else {
-    setFavouriteState(btn, true);
-    updateAllFavouriteButtons(productId, true);
+    setFavoriteState(btn, true);
+    updateAllFavoriteButtons(productId, true);
     showToast(data.message || `Added to ${wishlistName}`, "success");
   }
 }
@@ -2185,12 +2281,12 @@ async function addToWishlist(productId, wishlistId, wishlistName, btn) {
 /**
  * Add product to default wishlist (single-list shortcut).
  */
-async function addToFavourites(productId, btn) {
-  setFavouriteState(btn, true);
+async function addToFavorites(productId, btn) {
+  setFavoriteState(btn, true);
 
   try {
     const csrfToken = getCsrfToken();
-    const response = await fetch("/favourites/toggle/", {
+    const response = await fetch("/favorites/toggle/", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -2203,27 +2299,27 @@ async function addToFavourites(productId, btn) {
     const data = await response.json();
 
     if (!response.ok || data.status === "error") {
-      setFavouriteState(btn, false);
-      showToast(data.message || "Failed to add to favourites", "error");
+      setFavoriteState(btn, false);
+      showToast(data.message || "Failed to add to favorites", "error");
     } else {
-      updateAllFavouriteButtons(productId, data.action === "added");
-      showToast(data.message || "Added to favourites", "success");
+      updateAllFavoriteButtons(productId, data.action === "added");
+      showToast(data.message || "Added to favorites", "success");
 
-      if (isOnFavouritesPage() && data.wishlist_id) {
-        updateFavouritesSidebarCount(
+      if (isOnFavoritesPage() && data.wishlist_id) {
+        updateFavoritesSidebarCount(
           data.wishlist_id,
           data.wishlist_item_count,
         );
-        updateFavouritesHeaderStats(
+        updateFavoritesHeaderStats(
           data.wishlist_item_count,
           data.wishlist_total_value,
         );
-        updateFavouritesItemsCount(data.wishlist_item_count);
+        updateFavoritesItemsCount(data.wishlist_item_count);
       }
     }
   } catch (e) {
-    setFavouriteState(btn, false);
-    showToast("Failed to add to favourites", "error");
+    setFavoriteState(btn, false);
+    showToast("Failed to add to favorites", "error");
   }
 }
 
@@ -2238,11 +2334,11 @@ async function removeFromSpecificWishlist(productId, wishlistId, btn) {
 
     if (wishlistId) {
       // Remove from specific list
-      url = "/favourites/remove/";
+      url = "/favorites/remove/";
       body = `product_id=${productId}&wishlist_id=${wishlistId}`;
     } else {
       // Toggle off default list
-      url = "/favourites/toggle/";
+      url = "/favorites/toggle/";
       body = `product_id=${productId}`;
     }
 
@@ -2269,42 +2365,42 @@ async function removeFromSpecificWishlist(productId, wishlistId, btn) {
     // If picker is open, it will update via the caller.
     // For single-list mode, just unfill the heart.
     if (!wishlistId) {
-      setFavouriteState(btn, false);
-      updateAllFavouriteButtons(productId, false);
+      setFavoriteState(btn, false);
+      updateAllFavoriteButtons(productId, false);
     } else if (btn) {
       // Specific list removal — check if product is still in any other list
       try {
         const statusRes = await fetch(
-          `/favourites/api/status/?product_ids=${productId}`,
+          `/favorites/api/status/?product_ids=${productId}`,
           { cache: "no-store", credentials: "same-origin" },
         );
         const statusData = await statusRes.json();
         const stillInLists = (statusData.status || {})[productId];
         if (!stillInLists || stillInLists.length === 0) {
-          setFavouriteState(btn, false);
-          updateAllFavouriteButtons(productId, false);
+          setFavoriteState(btn, false);
+          updateAllFavoriteButtons(productId, false);
         }
       } catch (_) {
         // Assume removed if we can't verify
-        setFavouriteState(btn, false);
-        updateAllFavouriteButtons(productId, false);
+        setFavoriteState(btn, false);
+        updateAllFavoriteButtons(productId, false);
       }
     }
 
-    // Update favourites page UI if applicable
-    if (isOnFavouritesPage()) {
+    // Update favorites page UI if applicable
+    if (isOnFavoritesPage()) {
       if (data.wishlist_id) {
-        updateFavouritesSidebarCount(
+        updateFavoritesSidebarCount(
           data.wishlist_id,
           data.wishlist_item_count,
         );
-        updateFavouritesHeaderStats(
+        updateFavoritesHeaderStats(
           data.wishlist_item_count,
           data.wishlist_total_value,
         );
-        updateFavouritesItemsCount(data.wishlist_item_count);
+        updateFavoritesItemsCount(data.wishlist_item_count);
       }
-      removeProductCardFromFavouritesPage(productId, data);
+      removeProductCardFromFavoritesPage(productId, data);
     }
   } catch (e) {
     if (e.message !== "remove failed") {
@@ -2315,31 +2411,31 @@ async function removeFromSpecificWishlist(productId, wishlistId, btn) {
 }
 
 /**
- * Set the visual state of a favourite button.
+ * Set the visual state of a favorite button.
  */
-function setFavouriteState(btn, isFavourited) {
-  const outlineIcon = btn.querySelector(".favourite-icon");
-  const filledIcon = btn.querySelector(".favourite-icon-filled");
+function setFavoriteState(btn, isFavorited) {
+  const outlineIcon = btn.querySelector(".favorite-icon");
+  const filledIcon = btn.querySelector(".favorite-icon-filled");
 
-  if (isFavourited) {
+  if (isFavorited) {
     outlineIcon?.classList.add("hidden");
     filledIcon?.classList.remove("hidden");
-    btn.classList.add("is-favourited");
+    btn.classList.add("is-favorited");
   } else {
     outlineIcon?.classList.remove("hidden");
     filledIcon?.classList.add("hidden");
-    btn.classList.remove("is-favourited");
+    btn.classList.remove("is-favorited");
   }
 }
 
 /**
- * Update all favourite buttons for a specific product.
+ * Update all favorite buttons for a specific product.
  */
-function updateAllFavouriteButtons(productId, isFavourited) {
+function updateAllFavoriteButtons(productId, isFavorited) {
   document
-    .querySelectorAll(`.favourite-btn[data-product-id="${productId}"]`)
+    .querySelectorAll(`.favorite-btn[data-product-id="${productId}"]`)
     .forEach((btn) => {
-      setFavouriteState(btn, isFavourited);
+      setFavoriteState(btn, isFavorited);
     });
 }
 
@@ -2364,10 +2460,10 @@ function _positionToastContainer(container) {
 
 function showToast(message, type = "success") {
   // Check if there's an existing toast container
-  let toastContainer = document.getElementById("favourite-toast-container");
+  let toastContainer = document.getElementById("favorite-toast-container");
   if (!toastContainer) {
     toastContainer = document.createElement("div");
-    toastContainer.id = "favourite-toast-container";
+    toastContainer.id = "favorite-toast-container";
     toastContainer.className =
       "fixed right-4 sm:right-5 z-50 flex flex-col gap-2";
     document.body.appendChild(toastContainer);
@@ -2507,20 +2603,75 @@ function getCsrfToken() {
   return cookieValue;
 }
 
-// Re-initialize favourites after HTMX swaps
+// Re-initialize favorites and other common state after HTMX content swaps.
 document.addEventListener("htmx:afterSwap", () => {
-  attachFavouriteHandlers();
-  loadFavouriteStatus();
+  attachFavoriteHandlers(); // no-op after first call; kept for clarity
+  loadFavoriteStatus();
   syncCompareButtons(document);
   initRelativeTimes();
 });
 
-// Sync heart state when navigating back/forward via browser history (bfcache)
-// Always reload status on pageshow — on bfcache restore the DOM is stale,
-// and on fresh loads this is a harmless second call that ensures correctness.
+/**
+ * Re-execute inline <script> tags inside #page-content.
+ *
+ * HTMX history restoration re-injects a stored HTML snapshot but the browser
+ * does NOT execute <script> tags inserted via innerHTML.  This means
+ * page-specific initialisation code (event listeners, interactive widgets) is
+ * never run, leaving the page inert after a back/forward navigation.
+ *
+ * Additionally, element-level init guards (e.g. data-breadcrumb-init) are
+ * serialised into the snapshot with their "already initialised" value, so even
+ * if scripts ran they would silently skip initialisation.  We clear those
+ * guards before re-executing so every component initialises fresh.
+ */
+function reexecutePageScripts() {
+  const pageContent = document.getElementById("page-content");
+  if (!pageContent) return;
+
+  // Clear per-element init guards that are baked into the cached HTML snapshot.
+  // Add any new guard attributes here as new page-specific components are added.
+  pageContent
+    .querySelectorAll("[data-breadcrumb-init]")
+    .forEach((el) => delete el.dataset.breadcrumbInit);
+
+  // Re-execute every inline script in the restored page content.
+  // Skip scripts that explicitly opt out (e.g. those that register persistent
+  // document-level listeners and would double-bind if re-executed).
+  pageContent.querySelectorAll("script:not([src]):not([data-hist-no-reexec])").forEach((oldScript) => {
+    const newScript = document.createElement("script");
+    Array.from(oldScript.attributes).forEach((attr) =>
+      newScript.setAttribute(attr.name, attr.value),
+    );
+    newScript.textContent = oldScript.textContent;
+    oldScript.parentNode.replaceChild(newScript, oldScript);
+  });
+}
+
+// After HTMX history restoration reinitialise everything that was lost when the
+// stored HTML snapshot was re-injected.  htmx:afterSwap does NOT fire for history
+// restores, so this is the only hook available.
+document.addEventListener("htmx:historyRestore", () => {
+  // Re-run page-specific inline scripts (breadcrumb dropdowns, etc.).
+  reexecutePageScripts();
+  // Reload dynamic state that may have changed while the user was away.
+  attachFavoriteHandlers(); // ensures document-level delegation is registered
+  loadFavoriteStatus();
+  syncCompareButtons(document);
+  formatPrices();
+  initRelativeTimes();
+  updateSignInLink();
+  initCategoryRecommendedSlider();
+  initCategoryBannerSlider();
+});
+
+// Sync state when navigating back/forward via browser bfcache.
+// With bfcache, the DOM and all event listeners are fully preserved, so only
+// state that could have changed externally needs to be refreshed.
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) {
-    loadFavouriteStatus();
+    loadFavoriteStatus();
+    syncCompareButtons(document);
+    formatPrices();
   }
 });
 
@@ -2597,16 +2748,16 @@ function updateRelativeTimes() {
 window.initRelativeTimes = initRelativeTimes;
 
 /**
- * Check if currently on favourites page.
+ * Check if currently on favorites page.
  */
-function isOnFavouritesPage() {
-  return window.location.pathname.startsWith("/favourites");
+function isOnFavoritesPage() {
+  return window.location.pathname.startsWith("/favorites");
 }
 
 /**
- * Remove a product card from the favourites page and update stats.
+ * Remove a product card from the favorites page and update stats.
  */
-function removeProductCardFromFavouritesPage(productId, data) {
+function removeProductCardFromFavoritesPage(productId, data) {
   // Find all product cards with this product ID
   const productCards = document.querySelectorAll(
     `[data-product-card="${productId}"]`,
@@ -2619,29 +2770,29 @@ function removeProductCardFromFavouritesPage(productId, data) {
     card.style.opacity = "0";
     setTimeout(() => {
       card.remove();
-      checkIfFavouritesListEmpty();
+      checkIfFavoritesListEmpty();
     }, 300);
   });
 
   // Update sidebar item count
   if (data.wishlist_id) {
-    updateFavouritesSidebarCount(data.wishlist_id, data.wishlist_item_count);
+    updateFavoritesSidebarCount(data.wishlist_id, data.wishlist_item_count);
   }
 
   // Update header stats
-  updateFavouritesHeaderStats(
+  updateFavoritesHeaderStats(
     data.wishlist_item_count,
     data.wishlist_total_value,
   );
 
   // Update the items count display in the content area
-  updateFavouritesItemsCount(data.wishlist_item_count);
+  updateFavoritesItemsCount(data.wishlist_item_count);
 }
 
 /**
  * Update the item count in the sidebar for a specific wishlist.
  */
-function updateFavouritesSidebarCount(wishlistId, newCount) {
+function updateFavoritesSidebarCount(wishlistId, newCount) {
   const sidebarItem = document.querySelector(
     `.wishlist-nav-item[data-wishlist-id="${wishlistId}"]`,
   );
@@ -2651,8 +2802,8 @@ function updateFavouritesSidebarCount(wishlistId, newCount) {
   if (countSpan) {
     const itemsText =
       newCount === 1
-        ? window.FAVOURITES_ITEM_TEXT || "item"
-        : window.FAVOURITES_ITEMS_TEXT || "items";
+        ? window.FAVORITES_ITEM_TEXT || "item"
+        : window.FAVORITES_ITEMS_TEXT || "items";
     countSpan.textContent = `${newCount} ${itemsText}`;
   }
 }
@@ -2660,7 +2811,7 @@ function updateFavouritesSidebarCount(wishlistId, newCount) {
 /**
  * Update header stats (product count and total value).
  */
-function updateFavouritesHeaderStats(itemCount, totalValue) {
+function updateFavoritesHeaderStats(itemCount, totalValue) {
   // Find the header subtitle that shows "X products · Y total"
   const headerDiv = document.querySelector("#wishlist-content .text-subtitle");
   if (!headerDiv) return;
@@ -2685,9 +2836,9 @@ function updateFavouritesHeaderStats(itemCount, totalValue) {
 
   const productsText =
     itemCount === 1
-      ? window.FAVOURITES_PRODUCT_TEXT || "product"
-      : window.FAVOURITES_PRODUCTS_TEXT || "products";
-  const totalText = window.FAVOURITES_TOTAL_TEXT || "total";
+      ? window.FAVORITES_PRODUCT_TEXT || "product"
+      : window.FAVORITES_PRODUCTS_TEXT || "products";
+  const totalText = window.FAVORITES_TOTAL_TEXT || "total";
 
   headerDiv.innerHTML = `${itemCount} ${productsText} · <span data-price="${totalValue}" data-currency="${currency}">${formattedTotal}</span> ${totalText}`;
 }
@@ -2695,7 +2846,7 @@ function updateFavouritesHeaderStats(itemCount, totalValue) {
 /**
  * Update the items count display in the content view controls.
  */
-function updateFavouritesItemsCount(count) {
+function updateFavoritesItemsCount(count) {
   // Find the items count span in the view controls
   const countSpan = document.querySelector(
     "#wishlist-items-container .text-sm.text-gray-500",
@@ -2704,8 +2855,8 @@ function updateFavouritesItemsCount(count) {
 
   const itemsText =
     count === 1
-      ? window.FAVOURITES_ITEM_TEXT || "item"
-      : window.FAVOURITES_ITEMS_TEXT || "items";
+      ? window.FAVORITES_ITEM_TEXT || "item"
+      : window.FAVORITES_ITEMS_TEXT || "items";
   countSpan.textContent = `${count} ${itemsText}`;
 }
 
@@ -2726,9 +2877,9 @@ function renderWishlistEmptyState() {
 window.renderWishlistEmptyState = renderWishlistEmptyState;
 
 /**
- * Check if the favourites list is empty and show empty state if so.
+ * Check if the favorites list is empty and show empty state if so.
  */
-function checkIfFavouritesListEmpty() {
+function checkIfFavoritesListEmpty() {
   const container = document.getElementById("wishlist-items-container");
   if (!container) return;
 

@@ -27,6 +27,20 @@
             <p data-price="{{ line.line_total }}" data-currency="{{ order.currency|default:site_currency }}" class="text-sm sm:text-base font-bold text-gray-900 dark:text-white shrink-0 text-right w-16 sm:w-20 md:w-24">
               {{ line.line_total|floatformat:2 }}
             </p>
+            {% if reorder_mode %}
+            <button
+              data-product-id="{{ line.product.id }}"
+              data-quantity="{{ line.quantity }}"
+              data-add-to-cart-mode="set"
+              type="button"
+              class="add-to-cart-btn pointer-events-auto relative z-10 cursor-pointer inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary-600 px-3 py-2 text-xs font-semibold text-white transition-all duration-200 hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-500/30 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 sm:px-3.5 sm:py-2 sm:text-sm"
+            >
+              <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              <span>{% translate "Reorder" %}</span>
+            </button>
+            {% endif %}
           </div>
         {% empty %}
           <div class="p-6">
@@ -35,8 +49,8 @@
         {% endfor %}
       </div>
 
-      <div class="ml-auto mt-6 w-full space-y-6 rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 lg:mt-0 lg:max-w-sm xl:max-w-md">
-        <div class="space-y-4 px-6 pt-5 pb-6">
+      <div class="ml-auto mt-6 w-full rounded-lg bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] dark:bg-gray-800 sm:mt-8 lg:mt-0 lg:max-w-sm xl:max-w-md">
+        <div class="space-y-4 px-6 pt-5 pb-3">
           <h4 class="flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
             {% translate "Order amount" %}
           </h4>
@@ -44,6 +58,22 @@
             {% include "Cart/includes/cart_totals_list.html" with subtotal=order.subtotal discount_total=order.discount_total delivery_cost=order.delivery_cost total=order.total show_delivery_cost=True %}
           </div>
         </div>
+
+        {% if reorder_mode %}
+        <div class="px-6 pb-5 border-t border-gray-100 dark:border-gray-700 pt-4">
+          <form method="post" action="{% url 'orders:buy_again' token=order.tracking_token %}" data-reorder-all-form>
+            {% csrf_token %}
+            <button type="submit" data-reorder-all-btn class="w-full inline-flex cursor-pointer items-center justify-center gap-2 rounded-full bg-primary-600 px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-500/30 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 disabled:cursor-not-allowed disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:active:bg-gray-400 disabled:opacity-60 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 dark:disabled:bg-gray-600 dark:disabled:hover:bg-gray-600 dark:disabled:active:bg-gray-600">
+              <span data-reorder-all-icon data-btn-icon class="inline-flex items-center">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+              </span>
+              <span>{% translate "Reorder all" %}</span>
+            </button>
+          </form>
+        </div>
+        {% endif %}
 
         <div class="px-6 pt-5 pb-6 border-t border-gray-100 dark:border-gray-700">
           <h4 class="mb-4 flex items-center justify-center gap-3 text-xl font-semibold text-gray-900 dark:text-white">
@@ -95,3 +125,4 @@
   </div>
 </section>
 {% endblock %}
+

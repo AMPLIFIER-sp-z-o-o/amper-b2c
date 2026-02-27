@@ -2,7 +2,7 @@
 {% load i18n static %}
 
 {% block body %}
-<div id="favourites-page" class="min-h-screen bg-gray-100 dark:bg-gray-900">
+<div id="favorites-page" class="min-h-screen bg-gray-100 dark:bg-gray-900">
   {# Header Section #}
   <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
@@ -42,7 +42,7 @@
       <svg class="w-5 h-5 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z"/></svg>
       <p class="leading-relaxed">
         {% translate "Your lists are stored for 90 days. Sign in to save them permanently." %}
-        <a href="{% url 'account_login' %}?next={% url 'favourites:favourites_page' %}" class="font-semibold underline hover:text-amber-900 dark:hover:text-amber-200">{% translate "Sign in" %}</a>
+        <a href="{% url 'account_login' %}?next={% url 'favorites:favorites_page' %}" class="font-semibold underline hover:text-amber-900 dark:hover:text-amber-200">{% translate "Sign in" %}</a>
       </p>
     </div>
     {% endif %}
@@ -166,7 +166,7 @@
     {% elif is_shared_view and active_wishlist %}
     {# ===== SHARED LIST VIEW (anonymous / other user) ===== #}
     <div class="mb-6">
-      <a href="{% url 'favourites:favourites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
+      <a href="{% url 'favorites:favorites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         {% translate "View all shopping lists" %}
       </a>
@@ -214,7 +214,7 @@
     {# Back to overview link (only when multiple lists) #}
     {% if wishlists|length > 1 %}
     <div class="mb-4">
-      <a href="{% url 'favourites:favourites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
+      <a href="{% url 'favorites:favorites_page' %}" class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg px-3 py-2">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
         {% translate "View all shopping lists" %}
       </a>
@@ -299,7 +299,7 @@
             <div class="flex flex-wrap items-center gap-2">
               {% if not user.is_authenticated %}
               <a 
-                href="{% url 'account_login' %}?next={% url 'favourites:favourites_page' %}"
+                href="{% url 'account_login' %}?next={% url 'favorites:favorites_page' %}"
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors cursor-pointer"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,8 +381,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
               </svg>
             </div>
-            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{% translate "Start saving your favourites" %}</h3>
-            <p class="text-subtitle mb-6">{% translate "Click the heart icon on any product to add it to your Favourites list." %}</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">{% translate "Start saving your favorites" %}</h3>
+            <p class="text-subtitle mb-6">{% translate "Click the heart icon on any product to add it to your Favorites list." %}</p>
             <a href="{% url 'web:product_list' %}" class="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>

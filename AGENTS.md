@@ -280,7 +280,7 @@ This project uses a **two-tier text hierarchy** for secondary text. This is a st
 
 ### Default Subtitle Style
 
-All secondary/descriptive text under main headings (like "Start your shopping in seconds" on login or "Manage your lists" on favourites) MUST use the `.text-subtitle` utility class. This ensures a consistent look across the app with:
+All secondary/descriptive text under main headings (like "Start your shopping in seconds" on login or "Manage your lists" on favorites) MUST use the `.text-subtitle` utility class. This ensures a consistent look across the app with:
 
 - **Font**: `text-sm font-medium`
 - **Color**: `text-gray-900 dark:text-white`
@@ -305,7 +305,7 @@ Do not use Tailwind grays (`text-gray-500`, `text-gray-600`, `dark:text-gray-400
 #### ✅ Example Hierarchy
 
 ```html
-<h1 class="text-2xl font-bold">Favourites</h1>
+<h1 class="text-2xl font-bold">Favorites</h1>
 <p class="text-subtitle mt-1">Manage your shopping lists and saved products</p>
 
 <!-- Inside a list -->
@@ -449,7 +449,7 @@ document.addEventListener('click', function(e) {
 
 - All "Add to cart" buttons (`.add-to-cart-btn`) — handled by [static/js/cart.js](static/js/cart.js)
 - All "Remove from cart" buttons (`.remove-cart-line`) — handled by cart.js
-- All favourite/heart toggle buttons (`.favourite-btn`) — handled by [assets/js/site.js](assets/js/site.js)
+- All favorite/heart toggle buttons (`.favorite-btn`) — handled by [assets/js/site.js](assets/js/site.js)
 - All "Create List", "Save Changes", "Delete List" modal submit buttons
 - All bulk action buttons (bulk remove, copy to list, add to cart)
 - Any new button that triggers a network request
@@ -781,7 +781,7 @@ Example pattern from `homepage_product_section.html`:
 
 ### Shared Product Card Components (MUST Reuse)
 
-When displaying products in **any** view (category pages, favourites, search results, new features), you **MUST** reuse the existing shared card components via `{% include %}`. **NEVER** duplicate or copy-paste product card HTML into a new template. This is a **strict architectural rule** — every product tile in the application is a single shared component imported wherever needed. If you need to display a product in a new page or section, **always `{% include %}` one of the components below**. Do NOT create a new card template.
+When displaying products in **any** view (category pages, favorites, search results, new features), you **MUST** reuse the existing shared card components via `{% include %}`. **NEVER** duplicate or copy-paste product card HTML into a new template. This is a **strict architectural rule** — every product tile in the application is a single shared component imported wherever needed. If you need to display a product in a new page or section, **always `{% include %}` one of the components below**. Do NOT create a new card template.
 
 #### Available Card Components
 
@@ -798,7 +798,7 @@ These are all **the same shared component** imported in multiple places — no d
 
 - **List card** (`product_list_card.html`):
   - Category page list view → `templates/web/product_list_partial.html`
-  - Favourites page → `templates/favourites/partials/wishlist_items.html`
+  - Favorites page → `templates/favorites/partials/wishlist_items.html`
 - **Grid card** (`homepage_product_card.html`):
   - Category page grid view → `templates/web/product_list_partial.html`
   - Homepage product sections → `templates/web/components/homepage_product_section.html`
@@ -812,7 +812,7 @@ When adding a new page or feature that shows products, **pick from the table abo
 
 All card components accept a `product` variable. Additional optional context:
 
-- **`is_favourited`** (bool) – Pre-fills the heart/favourite icon as active. Used on the favourites page where all displayed products are already favourited.
+- **`is_favorited`** (bool) – Pre-fills the heart/favorite icon as active. Used on the favorites page where all displayed products are already favorited.
 
 #### Usage Examples
 
@@ -820,8 +820,8 @@ All card components accept a `product` variable. Additional optional context:
 {# Category page (list view) – standard usage #}
 {% include "web/components/product_list_card.html" with product=product %}
 
-{# Favourites page – pre-fill heart icon #}
-{% include "web/components/product_list_card.html" with product=item.product is_favourited=True %}
+{# Favorites page – pre-fill heart icon #}
+{% include "web/components/product_list_card.html" with product=item.product is_favorited=True %}
 
 {# Homepage grid #}
 {% include "web/components/homepage_product_card.html" with product=product %}
@@ -829,7 +829,7 @@ All card components accept a `product` variable. Additional optional context:
 
 #### Adding New Context Variables
 
-If a new view needs slightly different card behavior (e.g., a "compare" button), **extend the existing component** with a new optional context variable instead of forking the template. Follow the `is_favourited` pattern:
+If a new view needs slightly different card behavior (e.g., a "compare" button), **extend the existing component** with a new optional context variable instead of forking the template. Follow the `is_favorited` pattern:
 
 1. Add conditional logic inside the shared component that checks for the variable
 2. Default behavior when variable is absent must remain unchanged

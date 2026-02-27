@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.cart.checkout import clear_checkout_session, get_checkout_state
+from apps.cart.models import Cart, CartLine
 from apps.cart.services import (
     _annotate_lines_with_stock_issues,
     _clear_cart_id,
@@ -27,6 +28,9 @@ from apps.web.models import SiteSettings
 
 from .emails import send_order_confirmation_email
 from .models import Coupon, Order, OrderLine, OrderStatus
+
+
+ORDER_PLACED_MESSAGE_TOKEN_SESSION_KEY = "orders_order_placed_message_token"
 
 
 @require_GET
@@ -315,13 +319,25 @@ def place_order(request: HttpRequest) -> HttpResponse:
         payment_url=payment_url,
     )
 
-    messages.success(request, _("Order placed."))
+    # Defer the success toast until the user reaches order summary.
+    # This prevents consuming the message on the intermediate payment page.
+    request.session[ORDER_PLACED_MESSAGE_TOKEN_SESSION_KEY] = order.tracking_token
 
-    response = (
-        redirect("orders:pay", token=order.tracking_token)
-        if should_redirect_to_payment
-        else redirect("orders:summary", token=order.tracking_token)
-    )
+    is_htmx = request.headers.get("HX-Request") == "true"
+    if should_redirect_to_payment and is_htmx:
+        # For HTMX requests use HX-Redirect so the browser navigates to the payment
+        # page directly without HTMX pre-fetching it first. Pre-fetching would consume
+        # the Django session message before the browser ever renders the page, causing
+        # the "Order placed" toast to silently disappear.
+        payment_path = reverse("orders:pay", kwargs={"token": order.tracking_token})
+        response = HttpResponse(status=200)
+        response["HX-Redirect"] = payment_path
+    else:
+        response = (
+            redirect("orders:pay", token=order.tracking_token)
+            if should_redirect_to_payment
+            else redirect("orders:summary", token=order.tracking_token)
+        )
     # Clear stale cookie cart_id (session takes precedence but cookie can confuse other flows)
     response.delete_cookie("cart_id")
     return response
@@ -336,6 +352,10 @@ def order_summary(request: HttpRequest, token: str) -> HttpResponse:
         Order.objects.prefetch_related("lines__product", "lines__product__images"), tracking_token=token
     )
 
+    placed_token = request.session.pop(ORDER_PLACED_MESSAGE_TOKEN_SESSION_KEY, None)
+    if placed_token == token:
+        messages.success(request, _("Order placed."))
+
     if order.email_verified_at is None:
         try:
             Order.objects.filter(pk=order.pk, email_verified_at__isnull=True).update(email_verified_at=timezone.now())
@@ -344,6 +364,7 @@ def order_summary(request: HttpRequest, token: str) -> HttpResponse:
             pass
 
     user_order_number = Order.objects.filter(email__iexact=order.email, created_at__lte=order.created_at).count()
+    reorder_mode = request.GET.get("reorder") == "1"
 
     return render(
         request,
@@ -353,8 +374,99 @@ def order_summary(request: HttpRequest, token: str) -> HttpResponse:
             "lines": order.lines.all(),
             "now": timezone.now(),
             "user_order_number": user_order_number,
+            "reorder_mode": reorder_mode,
         },
     )
+
+
+@require_POST
+def buy_again(request: HttpRequest, token: str) -> HttpResponse:
+    """Re-add all products from a past order to the current cart."""
+    if not token:
+        raise Http404
+
+    order = get_object_or_404(Order.objects.prefetch_related("lines__product"), tracking_token=token)
+
+    lines = list(order.lines.select_related("product").all())
+    if not lines:
+        messages.error(request, _("This order has no items."))
+        return redirect("orders:summary", token=token)
+
+    # Resolve or create cart — mirrors the logic in add_to_cart.
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
+    cart = None
+    if cart_id:
+        cart = Cart.objects.filter(id=cart_id).first()
+
+    if cart and cart.customer_id:
+        if request.user.is_authenticated and cart.customer_id == request.user.id:
+            pass
+        elif request.user.is_authenticated:
+            cart = Cart.objects.filter(customer=request.user).order_by("-id").first()
+        else:
+            cart = None
+
+    if not cart and request.user.is_authenticated:
+        cart = Cart.objects.filter(customer=request.user).order_by("-id").first()
+
+    if not cart:
+        cart = Cart.objects.create(customer=request.user if request.user.is_authenticated else None)
+
+    added_count = 0
+    skipped_count = 0
+
+    with transaction.atomic():
+        for line in lines:
+            product = line.product
+            if not product or product.status != ProductStatus.ACTIVE or int(product.stock or 0) <= 0:
+                skipped_count += 1
+                continue
+
+            requested_quantity = int(line.quantity or 1)
+            if requested_quantity <= 0:
+                skipped_count += 1
+                continue
+
+            cart_line = CartLine.objects.select_for_update().filter(cart=cart, product=product).first()
+            current_quantity = int(cart_line.quantity or 0) if cart_line else 0
+            remaining_stock = max(int(product.stock or 0) - current_quantity, 0)
+            quantity_to_add = min(requested_quantity, remaining_stock)
+
+            if quantity_to_add <= 0:
+                skipped_count += 1
+                continue
+
+            if cart_line is None:
+                CartLine.objects.create(cart=cart, product=product, quantity=quantity_to_add, price=product.price)
+            else:
+                cart_line.quantity = current_quantity + quantity_to_add
+                cart_line.price = product.price
+                cart_line.save(update_fields=["quantity", "price"])
+
+            if quantity_to_add < requested_quantity:
+                skipped_count += 1
+
+            added_count += 1
+
+    if added_count > 0:
+        refresh_cart_totals_from_db(cart)
+        request.session["cart_id"] = cart.id
+
+    if added_count == 0:
+        messages.error(request, _("None of the products from this order are currently available."))
+        return redirect("orders:summary", token=token)
+
+    if skipped_count > 0:
+        messages.warning(
+            request,
+            _("Some products from this order are unavailable and were skipped."),
+        )
+    else:
+        messages.success(request, _("All products added to your cart."))
+
+    response = redirect("cart:cart_page")
+    response.set_cookie("cart_id", cart.id, max_age=60 * 60 * 24 * 10)
+    return response
 
 
 @require_GET

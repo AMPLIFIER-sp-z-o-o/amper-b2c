@@ -2,7 +2,7 @@
 
 {% if items %}
 {# Products Container (filtered results exist) #}
-<div id="favourites-products-grid" class="favourites-products-container animate-fade-in">
+<div id="favorites-products-grid" class="favorites-products-container animate-fade-in">
   <div class="flex flex-col gap-3">
     {% for item in items %}
     <div class="wishlist-item-row flex items-start gap-3" data-item-id="{{ item.id }}">
@@ -15,7 +15,7 @@
 
       {# Reuse the shared product list card component #}
       <div class="flex-1 min-w-0">
-        {% include "web/components/product_list_card.html" with product=item.product is_favourited=True hide_favourite=is_shared_view %}
+        {% include "web/components/product_list_card.html" with product=item.product is_favorited=True hide_favorite=is_shared_view %}
       </div>
     </div>
     {% endfor %}
@@ -32,7 +32,7 @@
     <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{% translate "No results found" %}</h3>
     <p class="text-subtitle mt-2">{% translate "Try adjusting your search or filters." %}</p>
     {% if search_query %}
-    <button type="button" onclick="document.getElementById('wishlist-search-input').value=''; FavouritesPage.reloadItems();" class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 underline cursor-pointer">
+    <button type="button" onclick="document.getElementById('wishlist-search-input').value=''; FavoritesPage.reloadItems();" class="mt-4 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 underline cursor-pointer">
       {% translate "Clear search" %}
     </button>
     {% endif %}
