@@ -61,9 +61,32 @@
   z-index: 1;
 }
 
+/* Keep navigation buttons hidden until Swiper finishes initialization
+   and confirms there are navigable slides. */
+.category-recommended-products .category-recommended-prev,
+.category-recommended-products .category-recommended-next {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.category-recommended-products.category-recommended-nav-ready .category-recommended-prev,
+.category-recommended-products.category-recommended-nav-ready .category-recommended-next {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.category-recommended-products .category-recommended-prev.swiper-button-lock,
+.category-recommended-products .category-recommended-next.swiper-button-lock {
+  display: none !important;
+}
+
 .category-recommended-carousel {
-  overflow-x: clip;
-  overflow-y: visible;
+  overflow: hidden;
+  /* Extend vertically so card shadows (top/bottom) are not clipped */
+  padding-top: 4px;
+  margin-top: -4px;
+  padding-bottom: 12px;
+  margin-bottom: -12px;
 }
 
 .category-recommended-swiper {
@@ -104,6 +127,42 @@
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* Pre-constrain slide widths AND gaps to match Swiper's final layout before init,
+   preventing the "squished tiles" flash caused by the wrapper lacking gap before
+   Swiper JS runs. Widths and gaps mirror the breakpoints in initCategoryRecommendedSlider(). */
+.category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
+  gap: 8px;
+}
+@media (min-width: 640px) {
+  .category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
+    gap: 12px;
+  }
+}
+@media (min-width: 768px) {
+  .category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
+    gap: 16px;
+  }
+}
+.category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
+  width: calc(50% - 4px);
+  flex-shrink: 0;
+}
+@media (min-width: 640px) {
+  .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
+    width: calc(50% - 6px);
+  }
+}
+@media (min-width: 768px) {
+  .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
+    width: calc(33.333% - 10.667px);
+  }
+}
+@media (min-width: 1024px) {
+  .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
+    width: calc(25% - 12px);
+  }
 }
 </style>
 {% endif %}

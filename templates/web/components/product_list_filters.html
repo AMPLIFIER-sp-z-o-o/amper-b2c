@@ -60,7 +60,7 @@
        id="clear-filters-link"
        data-clear-all-filters
        data-base-url="{% if current_category %}{{ current_category.get_absolute_url }}{% elif is_search_page %}{% url 'web:search_results' %}{% else %}{% url 'web:product_list' %}{% endif %}"
-       class="inline-flex items-center rounded-lg px-3 py-2 text-xs transition-colors hover:bg-gray-200 dark:hover:bg-gray-700 {% if selected_attributes or current_price_min or current_price_max %}text-gray-900 dark:text-white font-bold cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
+       class="inline-flex items-center rounded-lg px-3 py-2 text-xs transition-all hover:bg-gray-200 dark:hover:bg-gray-700 active:scale-95 {% if selected_attributes or current_price_min or current_price_max %}text-gray-900 dark:text-white font-bold cursor-pointer{% else %}text-gray-400 dark:text-gray-500 pointer-events-none cursor-default{% endif %}">
       {% trans "Clear all" %}
     </a>
   </div>
@@ -358,9 +358,14 @@ function showProductsLoading(options = {}) {
     const visibleHeight = visibleBottom - visibleTop;
     
     if (visibleHeight >= spinnerSize) {
-      // Enough visible space - center in the visible portion
+      // Center in the visible portion of the products container.
+      // When the visible slice is very small (< 30% of viewport height) the midpoint can
+      // land near the very top or bottom of the screen, which looks wrong.  In that case
+      // fall back to the viewport vertical centre so the spinner is always well-placed.
       const visibleCenterY = (visibleTop + visibleBottom) / 2;
-      spinner.style.top = `${visibleCenterY}px`;
+      spinner.style.top = visibleHeight < viewportHeight * 0.3
+        ? `${viewportHeight / 2}px`
+        : `${visibleCenterY}px`;
     } else {
       // Not enough visible space - center in viewport (but in upper half for better UX)
       spinner.style.top = `${viewportHeight / 3}px`;
@@ -596,94 +601,100 @@ function initPaginationLinks() {
   });
 }
 
-// Initialize active filter chip click handlers
+// Initialize active filter chip click handlers (event delegation — DOM-order independent)
 function initActiveFilterChips() {
-  // Only initialize elements that haven't been initialized yet
-  document.querySelectorAll('[data-remove-filter]:not([data-filter-initialized])').forEach(function(chip) {
-    chip.setAttribute('data-filter-initialized', 'true');
-    chip.addEventListener('click', function(e) {
-      e.preventDefault();
-      const filterType = this.getAttribute('data-filter-type');
-      const filterValue = this.getAttribute('data-filter-value');
-      
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      if (filterType === 'price_min') {
-        urlParams.delete('price_min');
-        // Also update the price input
-        const priceMinInput = document.getElementById('price_min');
-        if (priceMinInput) priceMinInput.value = '';
-      } else if (filterType === 'price_max') {
-        urlParams.delete('price_max');
-        // Also update the price input  
-        const priceMaxInput = document.getElementById('price_max');
-        if (priceMaxInput) priceMaxInput.value = '';
-      } else if (filterType.startsWith('attr_')) {
-        // Remove specific attribute value
-        const currentValues = urlParams.getAll(filterType);
-        urlParams.delete(filterType);
-        currentValues.forEach(function(val) {
-          if (val !== filterValue) {
-            urlParams.append(filterType, val);
-          }
-        });
-        // Also uncheck the checkbox in all sidebars
-        document.querySelectorAll('.filters-sidebar input[name="' + filterType + '"][value="' + filterValue + '"]').forEach(function(checkbox) {
-          checkbox.checked = false;
-        });
-      }
-      
-      // Reset to page 1 when removing filter
-      urlParams.delete('page');
-      
-      const baseUrl = window.location.pathname;
-      const newUrl = urlParams.toString() ? `${baseUrl}?${urlParams.toString()}` : baseUrl;
-      updateClearAllLinkState();
-      navigateToPage(newUrl);
-    });
-  });
-  
-  // Clear all filters button - only initialize elements that haven't been initialized yet
-  document.querySelectorAll('[data-clear-all-filters]:not([data-filter-initialized])').forEach(function(btn) {
-    btn.setAttribute('data-filter-initialized', 'true');
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      const baseUrl = this.getAttribute('data-base-url') || window.location.pathname;
-      // Preserve search query and category if present
-      const urlParams = new URLSearchParams(window.location.search);
-      const searchQuery = urlParams.get('q');
-      const searchPath = '{% url "web:search_results" %}';
-      const searchCategory = baseUrl === searchPath ? urlParams.get('category') : '';
-      const newParams = new URLSearchParams();
-      if (searchQuery) {
-        newParams.set('q', searchQuery);
-      }
-      if (searchCategory) {
-        newParams.set('category', searchCategory);
-      }
-      const newUrl = newParams.toString() ? `${baseUrl}?${newParams.toString()}` : baseUrl;
-      
-      // Clear all filter inputs in desktop sidebar
-      document.querySelectorAll('#filters-sidebar input[name^="attr_"]').forEach(function(cb) {
-        cb.checked = false;
-      });
-      // Clear all filter inputs in mobile drawer
-      document.querySelectorAll('#filters-sidebar-mobile input[name^="attr_"]').forEach(function(cb) {
-        cb.checked = false;
-      });
-      // Clear desktop price inputs
+  // Guard: set up delegation only once per page lifecycle (persists across soft-nav swaps)
+  if (document.body.dataset.filterChipsDelegationSetup) return;
+  document.body.dataset.filterChipsDelegationSetup = '1';
+
+  // Delegated: individual filter chip removal ([data-remove-filter])
+  document.addEventListener('click', function(e) {
+    const chip = e.target.closest('[data-remove-filter]');
+    if (!chip) return;
+    e.preventDefault();
+    const filterType = chip.getAttribute('data-filter-type');
+    const filterValue = chip.getAttribute('data-filter-value');
+
+    const urlParams = new URLSearchParams(window.location.search);
+
+    if (filterType === 'price_min') {
+      urlParams.delete('price_min');
       const priceMinInput = document.getElementById('price_min');
-      const priceMaxInput = document.getElementById('price_max');
       if (priceMinInput) priceMinInput.value = '';
+    } else if (filterType === 'price_max') {
+      urlParams.delete('price_max');
+      const priceMaxInput = document.getElementById('price_max');
       if (priceMaxInput) priceMaxInput.value = '';
-      // Clear mobile price inputs
-      const priceMinMobileInput = document.getElementById('price_min_mobile');
-      const priceMaxMobileInput = document.getElementById('price_max_mobile');
-      if (priceMinMobileInput) priceMinMobileInput.value = '';
-      if (priceMaxMobileInput) priceMaxMobileInput.value = '';
-      updateClearAllLinkState();
-      navigateToPage(newUrl);
+    } else if (filterType.startsWith('attr_')) {
+      const currentValues = urlParams.getAll(filterType);
+      urlParams.delete(filterType);
+      currentValues.forEach(function(val) {
+        if (val !== filterValue) {
+          urlParams.append(filterType, val);
+        }
+      });
+      document.querySelectorAll('.filters-sidebar input[name="' + filterType + '"][value="' + filterValue + '"]').forEach(function(checkbox) {
+        checkbox.checked = false;
+      });
+    }
+
+    urlParams.delete('page');
+    const baseUrl = window.location.pathname;
+    const newUrl = urlParams.toString() ? `${baseUrl}?${urlParams.toString()}` : baseUrl;
+    updateClearAllLinkState();
+    navigateToPage(newUrl);
+  });
+
+  // Delegated: clear all filters ([data-clear-all-filters])
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-clear-all-filters]');
+    if (!btn) return;
+    // Skip disabled state (desktop clear-all link when no filters are active)
+    if (btn.classList.contains('pointer-events-none')) return;
+    e.preventDefault();
+
+    const baseUrl = btn.getAttribute('data-base-url') || window.location.pathname;
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchQuery = urlParams.get('q');
+    const searchPath = '{% url "web:search_results" %}';
+    const searchCategory = baseUrl === searchPath ? urlParams.get('category') : '';
+    const newParams = new URLSearchParams();
+    if (searchQuery) {
+      newParams.set('q', searchQuery);
+    }
+    if (searchCategory) {
+      newParams.set('category', searchCategory);
+    }
+    const newUrl = newParams.toString() ? `${baseUrl}?${newParams.toString()}` : baseUrl;
+
+    // Clear all filter inputs in desktop sidebar
+    document.querySelectorAll('#filters-sidebar input[name^="attr_"]').forEach(function(cb) {
+      cb.checked = false;
     });
+    // Clear all filter inputs in mobile drawer
+    document.querySelectorAll('#filters-sidebar-mobile input[name^="attr_"]').forEach(function(cb) {
+      cb.checked = false;
+    });
+    // Clear desktop price inputs
+    const priceMinInput = document.getElementById('price_min');
+    const priceMaxInput = document.getElementById('price_max');
+    if (priceMinInput) priceMinInput.value = '';
+    if (priceMaxInput) priceMaxInput.value = '';
+    // Clear mobile price inputs
+    const priceMinMobileInput = document.getElementById('price_min_mobile');
+    const priceMaxMobileInput = document.getElementById('price_max_mobile');
+    if (priceMinMobileInput) priceMinMobileInput.value = '';
+    if (priceMaxMobileInput) priceMaxMobileInput.value = '';
+
+    // Close mobile filter drawer if this button lives inside it
+    const mobileFilterDrawer = document.getElementById('drawer-mobile-filter');
+    if (mobileFilterDrawer && mobileFilterDrawer.contains(btn)) {
+      const dismissBtn = mobileFilterDrawer.querySelector('[data-drawer-dismiss="drawer-mobile-filter"]');
+      if (dismissBtn) dismissBtn.click();
+    }
+
+    updateClearAllLinkState();
+    navigateToPage(newUrl);
   });
 }
 
@@ -738,8 +749,8 @@ function updateMobileResultsCount() {
   });
 }
 
-// Filter search functionality
-document.addEventListener('DOMContentLoaded', function() {
+// Filter search functionality — runs immediately so it works after HTMX soft-nav swaps
+(function() {
   // Expand all accordions by default (both desktop and mobile)
   document.querySelectorAll('#accordion-flush [data-accordion-target], #accordion-flush-mobile [data-accordion-target]').forEach(function(button) {
     const targetId = button.getAttribute('data-accordion-target');
@@ -754,50 +765,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  const searchInput = document.getElementById('filter-search-input');
-  if (searchInput) {
-    searchInput.addEventListener('input', function(e) {
-      const query = e.target.value.toLowerCase().trim();
-      const filterGroups = document.querySelectorAll('.filter-group');
-      
-      filterGroups.forEach(function(group) {
-        const filterName = group.getAttribute('data-filter-name').toLowerCase();
-        
-        // Check if filter name matches
-        if (query === '' || filterName.includes(query)) {
-          group.style.display = '';
-          // Show all options when filter name matches or empty query
-          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
-            const optionRow = checkbox.closest('label');
-            if (optionRow) {
-              optionRow.style.display = '';
-            }
-          });
-        } else {
-          // Search in option values
-          let hasMatchingOption = false;
-          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
-            const optionRow = checkbox.closest('label');
-            const optionText = optionRow ? optionRow.textContent.toLowerCase() : '';
-            
-            if (optionText.includes(query)) {
-              if (optionRow) {
-                optionRow.style.display = '';
-              }
-              hasMatchingOption = true;
-            } else {
-              if (optionRow) {
-                optionRow.style.display = 'none';
-              }
-            }
-          });
-          
-          // Show group if it has matching options, hide otherwise
-          group.style.display = hasMatchingOption ? '' : 'none';
-        }
-      });
-    });
-  }
+  // NOTE: filter-search-input listener is delegated globally below (filterGlobalListenersAttached guard)
   
   // Function to update attribute action link text (Select all / Clear)
   function updateAttributeActionLink(attrId) {
@@ -858,171 +826,184 @@ document.addEventListener('DOMContentLoaded', function() {
     toggleAttributeFromTile(attrId, optionSlug);
   }
 
-  document.addEventListener('click', function(event) {
-    const target = event.target.closest('[data-attr-id][data-option-slug]');
-    if (!target) return;
-    handleTileAttributeActivation(target, event);
-  });
+  // Guard: document-level listeners must only be attached once across soft-nav swaps.
+  // ALL listeners on specific elements (accordion, price inputs, search, attribute-action
+  // buttons) are placed here because HTMX executes inline scripts on pre-swap DOM elements,
+  // meaning any direct getElementById/querySelectorAll bindings target elements that get
+  // removed by the swap. Event delegation on document survives all swaps.
+  if (!document.body.dataset.filterGlobalListenersAttached) {
+    document.body.dataset.filterGlobalListenersAttached = '1';
 
-  document.addEventListener('keydown', function(event) {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    const target = event.target.closest('[data-attr-id][data-option-slug]');
-    if (!target) return;
-    handleTileAttributeActivation(target, event);
-  });
+    // Product tile attribute pill clicks
+    document.addEventListener('click', function(event) {
+      const target = event.target.closest('[data-attr-id][data-option-slug]');
+      if (!target) return;
+      handleTileAttributeActivation(target, event);
+    });
+    document.addEventListener('keydown', function(event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const target = event.target.closest('[data-attr-id][data-option-slug]');
+      if (!target) return;
+      handleTileAttributeActivation(target, event);
+    });
 
-  // Initial update of attribute action links and setup listeners
-  document.querySelectorAll('[data-attribute-action]').forEach(function(btn) {
-    const attrId = btn.getAttribute('data-attribute-action');
-    const attrName = btn.getAttribute('data-attr-name');
-    
-    // Initial update based on actual checked state from server
-    updateAttributeActionLink(attrId);
-    
-    // Handle click on the action link
-    btn.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      
-      // Target checkboxes within the same sidebar as the clicked button
+    // Desktop accordion checkbox changes → auto-apply filters
+    document.addEventListener('change', function(event) {
+      if (!event.target.closest('#accordion-flush')) return;
+      if (!event.target.matches('input[name^="attr_"]')) return;
+      const attrName = event.target.name;
+      const attrId = attrName.replace('attr_', '');
+      // Sync with mobile if it exists
+      const mobileSidebar = document.getElementById('filters-sidebar-mobile');
+      if (mobileSidebar) {
+        const mobileCheckbox = mobileSidebar.querySelector('input[name="' + attrName + '"][value="' + event.target.value + '"]');
+        if (mobileCheckbox) mobileCheckbox.checked = event.target.checked;
+      }
+      updateAttributeActionLink(attrId);
+      updateClearAllLinkState();
+      applyFiltersWithHtmx();
+    });
+
+    // Mobile accordion checkbox changes → sync desktop, update count preview
+    document.addEventListener('change', function(event) {
+      if (!event.target.closest('#accordion-flush-mobile')) return;
+      if (!event.target.matches('input[name^="attr_"]')) return;
+      const attrName = event.target.name;
+      const attrId = attrName.replace('attr_', '');
+      const desktopSidebar = document.getElementById('filters-sidebar');
+      if (desktopSidebar) {
+        const desktopCheckbox = desktopSidebar.querySelector('input[name="' + attrName + '"][value="' + event.target.value + '"]');
+        if (desktopCheckbox) desktopCheckbox.checked = event.target.checked;
+      }
+      updateAttributeActionLink(attrId);
+      updateClearAllLinkState();
+      debouncedUpdateMobileResultsCount();
+    });
+
+    // Price input changes → sync mobile/desktop, auto-apply (desktop) or update count (mobile)
+    document.addEventListener('input', function(event) {
+      const id = event.target.id;
+      if (id === 'price_min') {
+        const mob = document.getElementById('price_min_mobile');
+        if (mob) mob.value = event.target.value;
+        updateClearAllLinkState();
+        debouncedApplyFilters();
+      } else if (id === 'price_max') {
+        const mob = document.getElementById('price_max_mobile');
+        if (mob) mob.value = event.target.value;
+        updateClearAllLinkState();
+        debouncedApplyFilters();
+      } else if (id === 'price_min_mobile') {
+        const desk = document.getElementById('price_min');
+        if (desk) desk.value = event.target.value;
+        updateClearAllLinkState();
+        debouncedUpdateMobileResultsCount();
+      } else if (id === 'price_max_mobile') {
+        const desk = document.getElementById('price_max');
+        if (desk) desk.value = event.target.value;
+        updateClearAllLinkState();
+        debouncedUpdateMobileResultsCount();
+      }
+    });
+
+    // Filter search input → live filter group/option visibility
+    document.addEventListener('input', function(event) {
+      if (event.target.id !== 'filter-search-input') return;
+      const query = event.target.value.toLowerCase().trim();
+      document.querySelectorAll('.filter-group').forEach(function(group) {
+        const filterName = group.getAttribute('data-filter-name').toLowerCase();
+        if (query === '' || filterName.includes(query)) {
+          group.style.display = '';
+          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
+            const optionRow = checkbox.closest('label');
+            if (optionRow) optionRow.style.display = '';
+          });
+        } else {
+          let hasMatch = false;
+          group.querySelectorAll('[id^="attr-"]').forEach(function(checkbox) {
+            const optionRow = checkbox.closest('label');
+            const text = optionRow ? optionRow.textContent.toLowerCase() : '';
+            if (text.includes(query)) {
+              if (optionRow) optionRow.style.display = '';
+              hasMatch = true;
+            } else {
+              if (optionRow) optionRow.style.display = 'none';
+            }
+          });
+          group.style.display = hasMatch ? '' : 'none';
+        }
+      });
+    });
+
+    // Attribute-action button (Select all / Clear) clicks
+    document.addEventListener('click', function(event) {
+      const btn = event.target.closest('[data-attribute-action]');
+      if (!btn) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const attrId = btn.getAttribute('data-attribute-action');
+      const attrName = btn.getAttribute('data-attr-name');
       const sidebar = btn.closest('.filters-sidebar');
       if (!sidebar) return;
-      
       const checkboxes = sidebar.querySelectorAll('input[name="' + attrName + '"]');
       const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-      
       if (checkedCount > 0) {
-        // Clear all within this sidebar
-        checkboxes.forEach(function(cb) {
-          cb.checked = false;
-        });
+        checkboxes.forEach(function(cb) { cb.checked = false; });
       } else {
-        // Select all within this sidebar
-        checkboxes.forEach(function(cb) {
-          cb.checked = true;
-        });
+        checkboxes.forEach(function(cb) { cb.checked = true; });
       }
-
-      // If this sidebar has a counterpart (e.g. mobile vs desktop), sync it
       const isMobileSidebar = sidebar.id.includes('mobile');
       const otherSidebarId = isMobileSidebar ? 'filters-sidebar' : 'filters-sidebar-mobile';
       const otherSidebar = document.getElementById(otherSidebarId);
-      
       if (otherSidebar) {
         const otherCheckboxes = otherSidebar.querySelectorAll('input[name="' + attrName + '"]');
         otherCheckboxes.forEach((cb, index) => {
-          if (checkboxes[index]) {
-            cb.checked = checkboxes[index].checked;
-          }
+          if (checkboxes[index]) cb.checked = checkboxes[index].checked;
         });
-        // Update labels for the other sidebar too
-        // (updateAttributeActionLink will handle both sidebars anyway)
       }
-
       updateAttributeActionLink(attrId);
       updateClearAllLinkState();
-
-      // Only auto-apply if we're in the desktop sidebar
       if (!isMobileSidebar) {
         applyFiltersWithHtmx();
       }
     });
+  }
+
+  // Initialize attribute action link labels based on current checked state (server render).
+  // Click handling is now delegated globally in the filterGlobalListenersAttached guard above.
+  document.querySelectorAll('[data-attribute-action]').forEach(function(btn) {
+    const attrId = btn.getAttribute('data-attribute-action');
+    updateAttributeActionLink(attrId);
   });
   
-  // Listen for changes in checkboxes - use event delegation to handle dynamic content
-  // Only auto-apply for desktop accordion - mobile uses "Show results" button
-  const desktopAccordion = document.getElementById('accordion-flush');
-  if (desktopAccordion) {
-    desktopAccordion.addEventListener('change', function(e) {
-      if (e.target.matches('input[name^="attr_"]')) {
-        const attrName = e.target.name;
-        const attrId = attrName.replace('attr_', '');
-        
-        // Sync with mobile if it exists
-        const mobileSidebar = document.getElementById('filters-sidebar-mobile');
-        if (mobileSidebar) {
-          const mobileCheckbox = mobileSidebar.querySelector('input[name="' + attrName + '"][value="' + e.target.value + '"]');
-          if (mobileCheckbox) mobileCheckbox.checked = e.target.checked;
-        }
-
-        updateAttributeActionLink(attrId);
-        updateClearAllLinkState();
-        applyFiltersWithHtmx();
-      }
-    });
-  }
-  
-  // Also handle changes in mobile accordion (sync back to desktop but don't auto-apply)
-  const mobileAccordion = document.getElementById('accordion-flush-mobile');
-  if (mobileAccordion) {
-    mobileAccordion.addEventListener('change', function(e) {
-      if (e.target.matches('input[name^="attr_"]')) {
-        const attrName = e.target.name;
-        const attrId = attrName.replace('attr_', '');
-        
-        // Sync with desktop if it exists
-        const desktopSidebar = document.getElementById('filters-sidebar');
-        if (desktopSidebar) {
-          const desktopCheckbox = desktopSidebar.querySelector('input[name="' + attrName + '"][value="' + e.target.value + '"]');
-          if (desktopCheckbox) desktopCheckbox.checked = e.target.checked;
-        }
-
-        updateAttributeActionLink(attrId);
-        updateClearAllLinkState();
-        // mobile does not auto-apply filters, but preview the count
-        debouncedUpdateMobileResultsCount();
-      }
-    });
-  }
-  
-  // Auto-apply filters on price input change (with debounce) and sync mobile/desktop
-  const priceMin = document.getElementById('price_min');
-  const priceMax = document.getElementById('price_max');
-  const priceMinMobile = document.getElementById('price_min_mobile');
-  const priceMaxMobile = document.getElementById('price_max_mobile');
-
-  if (priceMin && priceMinMobile) {
-    priceMin.addEventListener('input', function() {
-      priceMinMobile.value = priceMin.value;
-      updateClearAllLinkState();
-      debouncedApplyFilters();
-    });
-    priceMinMobile.addEventListener('input', function() {
-      priceMin.value = priceMinMobile.value;
-      updateClearAllLinkState();
-      debouncedUpdateMobileResultsCount();
-    });
-  }
-  if (priceMax && priceMaxMobile) {
-    priceMax.addEventListener('input', function() {
-      priceMaxMobile.value = priceMax.value;
-      updateClearAllLinkState();
-      debouncedApplyFilters();
-    });
-    priceMaxMobile.addEventListener('input', function() {
-      priceMax.value = priceMaxMobile.value;
-      updateClearAllLinkState();
-      debouncedUpdateMobileResultsCount();
-    });
-  }
+  // NOTE: accordion change, mobile accordion change, and price input listeners are now
+  // all handled by document-level delegation in the filterGlobalListenersAttached guard above.
+  // The old direct getElementById bindings (desktopAccordion, mobileAccordion, priceMin, etc.)
+  // were removed because HTMX executes inline scripts on pre-swap elements — those bindings
+  // targeted elements that get replaced, so they stopped working after soft-nav.
 
   // Note: Click handling for option rows is now done via label elements wrapping checkboxes
   
-  // Show More / Less toggle functionality
-  document.querySelectorAll('.show-more-btn').forEach(function(btn) {
-    btn.addEventListener('click', function() {
+  // Show More / Less toggle functionality (event delegation — HTMX runs scripts on
+  // temporary elements before the final innerHTML swap, so direct listeners on the
+  // queried elements get lost; using document-level delegation avoids that entirely).
+  if (!document.body.dataset.filterShowMoreAttached) {
+    document.body.dataset.filterShowMoreAttached = '1';
+    document.addEventListener('click', function(event) {
+      const btn = event.target.closest('.show-more-btn');
+      if (!btn) return;
       const group = btn.closest('.filter-group');
       const container = group.querySelector('.options-container');
       const extraOptions = container.querySelectorAll('.extra-option');
       const isExpanded = btn.getAttribute('data-expanded') === 'true';
       const iconSpan = btn.querySelector('.icon');
       const textSpan = btn.querySelector('.text');
-      
+
       const moreText = btn.getAttribute('data-more-text') || 'More';
       const lessText = btn.getAttribute('data-less-text') || 'Less';
       const total = parseInt(btn.getAttribute('data-total'));
       const hiddenCount = total - 5;
-      
+
       if (isExpanded) {
         // Collapse
         extraOptions.forEach(function(opt) {
@@ -1041,17 +1022,21 @@ document.addEventListener('DOMContentLoaded', function() {
         textSpan.textContent = lessText;
       }
     });
-  });
+  }
   
-  // Custom accordion toggle for filter accordions
-  const accordionButtons = document.querySelectorAll('[data-accordion-target]');
-  accordionButtons.forEach(function(button) {
-    button.addEventListener('click', function(e) {
-      e.preventDefault();
+  // Custom accordion toggle for filter accordions (event delegation for same reason as show-more-btn)
+  if (!document.body.dataset.filterAccordionAttached) {
+    document.body.dataset.filterAccordionAttached = '1';
+    document.addEventListener('click', function(event) {
+      const button = event.target.closest('[data-accordion-target]');
+      if (!button) return;
+      // Only handle filter accordion buttons (not other accordions on the page)
+      if (!button.closest('#accordion-flush, #accordion-flush-mobile')) return;
+      event.preventDefault();
       const targetId = button.getAttribute('data-accordion-target');
       const target = document.querySelector(targetId);
       const icon = button.querySelector('[data-accordion-icon]');
-      
+
       if (target) {
         const isHidden = target.classList.contains('hidden');
         if (isHidden) {
@@ -1065,7 +1050,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       }
     });
-  });
+  }
 
   // Initialize pagination link handlers
   initPaginationLinks();
@@ -1076,8 +1061,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize Clear all state on first load
   updateClearAllLinkState();
 
-  // HTMX hooks for loader + re-init
-  if (window.htmx) {
+  // HTMX hooks for loader + re-init (guarded to prevent accumulation across soft-nav swaps)
+  if (window.htmx && !document.body.dataset.filterHtmxHooksAttached) {
+    document.body.dataset.filterHtmxHooksAttached = '1';
     document.addEventListener('htmx:beforeRequest', function(e) {
       const trigger = e.detail.elt;
       if (!trigger) return;
@@ -1159,6 +1145,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-});
+})();
 </script>
 {% endif %}

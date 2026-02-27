@@ -171,7 +171,13 @@
           </div>
 
           <div class="space-y-3 pt-3">
-              <a href="/cart/checkout/" data-nav-loading-btn
+                <a href="/cart/checkout/"
+                  hx-get="{% url 'cart:checkout_page' %}"
+                  hx-target="#page-content"
+                  hx-select="#page-content"
+                  hx-swap="outerHTML"
+                  hx-push-url="true"
+                  data-nav-loading-btn
                   {% if requires_cart_fix %}aria-disabled="true" tabindex="-1"{% endif %}
                   class="cart-checkout-btn relative flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white transition-all duration-200 hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 active:scale-95 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 cursor-pointer{% if requires_cart_fix %} opacity-60 pointer-events-none{% endif %}">
                   <span class="w-full text-center">{% translate "Continue to Checkout" %}</span>

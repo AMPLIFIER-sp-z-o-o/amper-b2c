@@ -11,14 +11,14 @@ def attach_guest_orders_on_login(sender, request, user, **kwargs):
     This enables a smooth "guest checkout → later create/sign in" flow where
     order history becomes visible under the account.
     """
-    if not getattr(user, "email", None):
+    email = (getattr(user, "email", "") or "").strip()
+    if not email:
         return
 
     try:
         Order.objects.filter(
             customer__isnull=True,
-            email__iexact=user.email,
-            email_verified_at__isnull=False,
+            email__iexact=email,
         ).update(customer=user)
     except Exception:
         # Never break login

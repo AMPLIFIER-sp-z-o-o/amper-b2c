@@ -3,9 +3,27 @@
 {% with first_banner=banners.0 %}
 {% if first_banner.banner_type == 'content' %}
 {# Content Banner Carousel - Flowbite style with text overlay #}
+<style>
+/* Hero banner height — placed before the element so it applies on first paint.
+   --hero-banner-top is set synchronously by the inline script below. */
+.content-banner-swiper {
+    height: calc(100dvh - var(--hero-banner-top, 0px));
+    min-height: 400px;
+}
+@media (max-width: 767px) {
+    .content-banner-swiper {
+        height: 580px !important;
+        min-height: 580px !important;
+    }
+}
+</style>
 <section id="hero-banner-{{ first_banner.css_hook|default:'draft' }}" class="hero-banner-section hero-banner-section-{{ first_banner.id|default:'draft' }} storefront-hero-banner storefront-hero-banner-{{ first_banner.id|default:'draft' }} section-hero-banner bg-gray-900 antialiased w-full overflow-hidden">
     <div class="mx-auto banner-carousel-container">
-        <div id="content-carousel" class="swiper content-banner-swiper relative w-full h-screen">
+        <!-- Pre-set --hero-banner-top before this element is painted to avoid CLS.
+             Reads the nav bottom position synchronously so the CSS calc() in site.css
+             resolves to the correct height on the very first paint. -->
+        <script>(function(){var el=document.getElementById('categories-row-wrapper');if(!el)el=document.querySelector('.top-nav-standard');if(el){var h=Math.round(el.getBoundingClientRect().bottom);if(h>0)document.documentElement.style.setProperty('--hero-banner-top',h+'px');}})()</script>
+        <div id="content-carousel" class="swiper content-banner-swiper relative w-full">
             <div class="swiper-wrapper">
                 {% for banner in banners %}
                 <div id="hero-banner-slide-{{ banner.css_hook|default:'draft' }}" class="swiper-slide hero-banner-slide hero-banner-slide-{{ banner.id|default:'draft' }} storefront-hero-banner-slide storefront-hero-banner-slide-{{ banner.id|default:'draft' }} relative overflow-hidden">
@@ -122,136 +140,19 @@
     </div>
 </section>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const swiperEl = document.querySelector('.content-banner-swiper');
-    if (!swiperEl) return;
-    
-    let swiperInstance = null;
 
-    // Dynamic height calculation to fit visible viewport area exactly
-    function updateBannerHeight() {
-        if (window.innerWidth < 768) {
-            // On mobile, use a larger fixed height to fit text content and avoid cropping
-            // instead of trying to fit viewport which creates too much empty space
-            swiperEl.style.height = '580px';
-            swiperEl.classList.remove('h-screen');
-            swiperEl.style.minHeight = '580px';
-            return;
-        }
-        
-        const scrollTop = window.scrollY || document.documentElement.scrollTop;
-        const rect = swiperEl.getBoundingClientRect();
-        const documentTop = rect.top + scrollTop;
-        
-        // Calculate remaining height in the viewport
-        let availableHeight = window.innerHeight - documentTop;
-        
-        // Ensure reasonable limits
-        const minHeight = 400;
-        let finalHeight = Math.max(availableHeight, minHeight);
-        
-        swiperEl.style.height = finalHeight + 'px';
-        
-        if (swiperInstance) {
-            swiperInstance.update();
-        }
-    }
-
-    // Run on load and resize
-    updateBannerHeight();
-    window.addEventListener('resize', updateBannerHeight);
-    
-    // Extra check for layout shifts
-    setTimeout(updateBannerHeight, 200);
-
-    const totalBanners = {{ banners|length }};
-    
-    const swiper = new Swiper('.content-banner-swiper', {
-        loop: totalBanners > 1,
-        autoplay: {
-            delay: 7000,
-            disableOnInteraction: false,
-        },
-        pagination: {
-            el: '.content-pagination',
-            clickable: true,
-            renderBullet: function(index, className) {
-                return '<button type="button" class="' + className + ' h-3 w-3 rounded-full" aria-label="Slide ' + (index + 1) + '"></button>';
-            },
-        },
-        navigation: {
-            nextEl: '.swiper-button-next',
-            prevEl: '.swiper-button-prev',
-        },
-        effect: 'slide',
-        speed: 600,
-        slidesPerView: 1,
-        spaceBetween: 0,
-    });
-
-    swiperInstance = swiper;
-    
-    // Full-height navigation areas (desktop)
-    const navPrev = document.querySelector('.content-banner-swiper .banner-nav-prev');
-    const navNext = document.querySelector('.content-banner-swiper .banner-nav-next');
-    if (navPrev) navPrev.addEventListener('click', () => swiper.slidePrev());
-    if (navNext) navNext.addEventListener('click', () => swiper.slideNext());
-
-    // Mobile navigation buttons
-    const contentMobilePrev = document.querySelector('.content-banner-swiper .banner-mobile-prev');
-    const contentMobileNext = document.querySelector('.content-banner-swiper .banner-mobile-next');
-    if (contentMobilePrev) contentMobilePrev.addEventListener('click', () => swiper.slidePrev());
-    if (contentMobileNext) contentMobileNext.addEventListener('click', () => swiper.slideNext());
-    
-    // Update mobile pagination dots
-    function updateMobilePagination() {
-        const container = document.querySelector('.content-banner-swiper .banner-mobile-pagination');
-        if (!container || !swiper || typeof swiper.realIndex === 'undefined') return;
-        
-        try {
-            const activeIndex = swiper.realIndex;
-            
-            let dotsHtml = '';
-            for (let i = 0; i < totalBanners; i++) {
-                const isActive = i === activeIndex;
-                dotsHtml += '<span class="mobile-dot ' + (isActive ? 'active' : '') + '"></span>';
-            }
-            container.innerHTML = dotsHtml;
-        } catch(e) {
-            // Silent catch
-        }
-    }
-    
-    if (totalBanners > 1) {
-        updateMobilePagination();
-        swiper.on('slideChange', updateMobilePagination);
-    }
-});
-</script>
 
 <style>
 /* Content Banner Carousel Styles - Full Hero Banner */
+/* Height is set via CSS variable in the <style> block at the top of this template */
 .content-banner-swiper {
     width: 100%;
-    /* Flexible height calculated by JS, fallback to 80vh */
-    height: 80vh;
-    height: 80dvh;
-    min-height: 400px;
     position: relative;
     overflow: hidden;
 }
 
 .content-banner-swiper .swiper-wrapper {
     height: 100%;
-}
-
-@media (max-width: 768px) {
-    .content-banner-swiper,
-    .content-banner-swiper .swiper-wrapper {
-        height: 580px !important;
-        min-height: 580px !important;
-    }
 }
 
 .content-banner-swiper .swiper-slide {
@@ -303,10 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 @media (max-width: 768px) {
     .content-banner-swiper .swiper-pagination {
-        bottom: 0 !important;
-        background: rgba(0, 0, 0, 0.4);
-        height: 36px;
-        backdrop-filter: blur(8px);
+        bottom: 16px !important;
     }
 }
 
@@ -428,7 +326,7 @@ document.addEventListener('DOMContentLoaded', function() {
     --swiper-theme-color: #ffffff;
     opacity: 1;
     visibility: visible;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: auto;
     border: 1px solid transparent;
     overflow: hidden;
@@ -485,6 +383,12 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: rgba(0, 0, 0, 0.6);
     border-color: rgba(255, 255, 255, 0.3);
     /* No scale transform to keep it stationary */
+}
+
+/* Prevent global active:scale(0.95) from overriding translateY(-50%) centering */
+.content-banner-swiper .swiper-button-prev:active,
+.content-banner-swiper .swiper-button-next:active {
+    transform: translateY(-50%);
 }
 
 /* Click effect (ripple) */
@@ -742,7 +646,7 @@ document.addEventListener('DOMContentLoaded', function() {
     border-radius: 0;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: auto;
     border: 1px solid transparent;
     overflow: hidden;
@@ -766,6 +670,12 @@ document.addEventListener('DOMContentLoaded', function() {
     background-color: rgba(0, 0, 0, 0.6);
     border-color: rgba(255, 255, 255, 0.3);
     /* Removed transform: scale(1.05) */
+}
+
+/* Prevent global active:scale(0.95) from overriding translateY(-50%) centering */
+.banner-swiper .swiper-button-prev:active,
+.banner-swiper .swiper-button-next:active {
+    transform: translateY(-50%);
 }
 
 /* Click effect (ripple) */

@@ -308,7 +308,9 @@ def account_addresses(request):
                     ShippingAddress.objects.filter(pk=replacement.pk).update(is_default=True)
 
             current_default = (
-                ShippingAddress.objects.filter(user=request.user, is_default=True).order_by("-updated_at", "-id").first()
+                ShippingAddress.objects.filter(user=request.user, is_default=True)
+                .order_by("-updated_at", "-id")
+                .first()
             ) or (ShippingAddress.objects.filter(user=request.user).order_by("-updated_at", "-id").first())
             _sync_checkout_with_address(current_default)
 

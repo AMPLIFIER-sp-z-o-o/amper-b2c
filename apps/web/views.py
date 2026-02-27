@@ -477,6 +477,7 @@ def search_results(request):
 
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
+    selected_attributes_by_attr = {}
     selected_attributes_slugs = set()
     applied_attribute_filter = False
     for key in request.GET.keys():
@@ -492,6 +493,7 @@ def search_results(request):
                         selected_attributes_slugs.add(slug_val)
                 if valid_option_ids:
                     selected_attributes.update(valid_option_ids)
+                    selected_attributes_by_attr[attr_id] = set(valid_option_ids)
                     # Filter products that have any of these attribute options
                     products = products.filter(attribute_values__option_id__in=valid_option_ids)
                     applied_attribute_filter = True
@@ -643,10 +645,23 @@ def search_results(request):
         )
 
         for attr in attr_definitions:
-            options_with_products = list(attr.options.all())
+            has_selected_options = bool(selected_attributes_by_attr.get(attr.id))
+            options_with_products = []
+            for opt in attr.options.all():
+                opt.product_count = filtered_option_id_to_count.get(opt.id, 0)
+
+                # Hide no-op options: when selecting it would not change current results.
+                # Keep currently selected options visible so users can unselect them.
+                if (
+                    total_count > 0
+                    and not has_selected_options
+                    and opt.id not in selected_attributes
+                    and opt.product_count == total_count
+                ):
+                    continue
+
+                options_with_products.append(opt)
             if options_with_products:
-                for opt in options_with_products:
-                    opt.product_count = filtered_option_id_to_count.get(opt.id, 0)
                 attr.filtered_options = options_with_products
                 available_attributes.append(attr)
 
@@ -738,8 +753,9 @@ def search_results(request):
         "search_category": search_category,
     }
 
-    # Return partial template for HTMX requests
-    if request.headers.get("HX-Request"):
+    # Return partial template for filter/pagination HTMX updates.
+    # HX-Soft-Nav requests are full-page soft navigations — return full HTML.
+    if request.headers.get("HX-Request") and not request.headers.get("HX-Soft-Nav"):
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)
@@ -919,6 +935,7 @@ def product_list(request, category_id=None, category_slug=None):
 
     # Attribute filtering - parse slug-based params (e.g., attr_1=4-hp)
     selected_attributes = set()
+    selected_attributes_by_attr = {}
     selected_attributes_slugs = set()
     applied_attribute_filter = False
     for key in request.GET.keys():
@@ -934,6 +951,7 @@ def product_list(request, category_id=None, category_slug=None):
                         selected_attributes_slugs.add(slug_val)
                 if valid_option_ids:
                     selected_attributes.update(valid_option_ids)
+                    selected_attributes_by_attr[attr_id] = set(valid_option_ids)
                     # Filter products that have any of these attribute options
                     products = products.filter(attribute_values__option_id__in=valid_option_ids)
                     applied_attribute_filter = True
@@ -1041,11 +1059,23 @@ def product_list(request, category_id=None, category_slug=None):
 
         for attr in attr_definitions:
             # Get all options for this attribute that exist in base category
-            options_with_products = list(attr.options.all())
+            has_selected_options = bool(selected_attributes_by_attr.get(attr.id))
+            options_with_products = []
+            for opt in attr.options.all():
+                opt.product_count = filtered_option_id_to_count.get(opt.id, 0)
+
+                # Hide no-op options: when selecting it would not change current results.
+                # Keep currently selected options visible so users can unselect them.
+                if (
+                    total_count > 0
+                    and not has_selected_options
+                    and opt.id not in selected_attributes
+                    and opt.product_count == total_count
+                ):
+                    continue
+
+                options_with_products.append(opt)
             if options_with_products:
-                # Add product count from filtered results (0 if not in filtered set)
-                for opt in options_with_products:
-                    opt.product_count = filtered_option_id_to_count.get(opt.id, 0)
                 attr.filtered_options = options_with_products
                 available_attributes.append(attr)
 
@@ -1241,8 +1271,9 @@ def product_list(request, category_id=None, category_slug=None):
             )
             context["recommended_products"] = list(recommended_products)
 
-    # Return partial template for HTMX requests
-    if request.headers.get("HX-Request"):
+    # Return partial template for filter/pagination HTMX updates.
+    # HX-Soft-Nav requests are full-page soft navigations — return full HTML.
+    if request.headers.get("HX-Request") and not request.headers.get("HX-Soft-Nav"):
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)

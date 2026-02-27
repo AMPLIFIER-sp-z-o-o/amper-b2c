@@ -826,7 +826,7 @@ class Command(BaseCommand):
             [
                 {
                     "id": 1,
-                    "code": "LATO2026",
+                    "code": "SUMMER2026",
                     "kind": CouponKind.PERCENT,
                     "value": Decimal("20.00"),
                     "is_active": True,

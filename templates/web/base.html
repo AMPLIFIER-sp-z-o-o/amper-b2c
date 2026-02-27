@@ -35,15 +35,28 @@
 {% endif %}
 {% endblock meta %}
 {% include 'web/components/favicon.html' %}
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  {% if banners and banners.0 and banners.0.image %}
+  <link rel="preload" as="image" href="{{ banners.0.image.url }}" fetchpriority="high">
+  {% if banners.0.mobile_image %}
+  <link rel="preload" as="image" href="{{ banners.0.mobile_image.url }}" media="(max-width: 768px)" fetchpriority="high">
+  {% endif %}
+  {% endif %}
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-400-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-ext-400-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-500-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-ext-500-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-600-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-ext-600-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-700-normal.woff2' %}" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="{% static 'fonts/montserrat-latin-ext-700-normal.woff2' %}" crossorigin>
     {# Swiper library - loaded globally for all slider components #}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js" defer></script>
     {# HTMX library - for partial page updates #}
-    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" defer></script>
     {% vite_hmr_client %}
+    <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'css/site-css.css' %}">
     {% vite_asset 'assets/js/site.js' %}
     {% if site_settings and site_settings.custom_css_active and site_settings.custom_css %}
     <style id="custom-css">
@@ -62,7 +75,11 @@
         -o-transition: none !important;
         transition: none !important;
       }
-      html, body {
+      html {
+        width: 100%;
+        overflow-x: hidden;
+      }
+      body {
         width: 100%;
       }
     </style>
@@ -72,79 +89,27 @@
   class="bg-base-100 no-transitions storefront-body"
   hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
   data-authenticated="{% if request.user.is_authenticated %}true{% else %}false{% endif %}"
-  style="opacity: 0;"
 >
 <script>
   (function() {
-    let bodyShown = false;
-
-    // Prevent FOUC - show body after styles are likely loaded
-    function showBody() {
-      if (bodyShown) return;
-      bodyShown = true;
-      document.body.style.opacity = '1';
-      // Allow a small delay for the browser to paint before enabling transitions
+    function enableTransitions() {
+      // Keep transitions disabled during initial paint to avoid animated layout jumps.
       setTimeout(function() {
+        if (!document.body) return;
         document.body.classList.remove('no-transitions');
       }, 50);
     }
 
-    function waitForFonts(maxWaitMs) {
-      if (!document.fonts || !document.fonts.ready) {
-        return Promise.resolve();
-      }
-
-      return Promise.race([
-        document.fonts.ready,
-        new Promise(function(resolve) {
-          setTimeout(resolve, maxWaitMs);
-        })
-      ]);
-    }
-
-    function waitForFirstHeroImage(maxWaitMs) {
-      const heroImage = document.querySelector('.hero-banner-section img');
-      if (!heroImage) {
-        return Promise.resolve();
-      }
-
-      if (heroImage.complete) {
-        return Promise.resolve();
-      }
-
-      return new Promise(function(resolve) {
-        let settled = false;
-
-        function finish() {
-          if (settled) return;
-          settled = true;
-          resolve();
-        }
-
-        heroImage.addEventListener('load', finish, { once: true });
-        heroImage.addEventListener('error', finish, { once: true });
-        setTimeout(finish, maxWaitMs);
-      });
-    }
-
-    function revealWhenReady() {
-      Promise.all([
-        waitForFonts(1500),
-        waitForFirstHeroImage(2000)
-      ]).then(showBody);
-    }
-
     if (document.readyState === 'complete') {
-        revealWhenReady();
+      enableTransitions();
     } else {
-        document.addEventListener('DOMContentLoaded', revealWhenReady, { once: true });
-        // Hard fallback: if any promise hangs, do not keep the page hidden forever.
-        window.addEventListener('load', showBody, { once: true });
-        setTimeout(showBody, 2500);
+      document.addEventListener('DOMContentLoaded', enableTransitions, { once: true });
+      window.addEventListener('load', enableTransitions, { once: true });
     }
   })();
 </script>
 {% block body_wrapper %}
+<div id="soft-nav-progress"></div>
   {% include 'web/components/draft_preview_notice.html' %}
 {% block email_verification_banner %}
   {% include 'web/components/email_verification_banner.html' %}
@@ -155,6 +120,8 @@
 {% block top_nav %}
   {% include 'web/components/top_nav.html' %}
 {% endblock %}
+<div id="page-content-wrapper">
+<div id="page-content">
 {% block hero_banner %}
   {% include 'web/components/hero_banner.html' %}
 {% endblock hero_banner %}
@@ -163,6 +130,10 @@
 {% endblock messages %}
 {% block body %}
 {% endblock body %}
+{% block page_js %}
+{% endblock page_js %}
+</div>
+</div>
 {% block footer %}
   {% include 'web/components/footer.html' %}
 {% endblock footer %}
@@ -171,13 +142,10 @@
 
 {% endblock body_wrapper %}
   {% include 'web/components/messages-js.html' %}
-
-{% block page_js %}
-{% endblock page_js %}
     <script src="https://cdn.jsdelivr.net/npm/flowbite@4.0.1/dist/flowbite.min.js"></script>
      <script>
       window.ADD_TO_CART_URL = "{% url 'cart:add_to_cart' %}";
       window.REMOVE_FROM_CART_URL = "{% url 'cart:remove_from_cart' %}";
     </script>
-    <script src="{% static 'js/cart.js' %}?v=20260225-2" defer></script>
+    <script src="{% static 'js/cart.js' %}?v=20260226-1" defer></script>
 </html>

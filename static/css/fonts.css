@@ -1,0 +1,85 @@
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src:
+    url("/static/fonts/montserrat-latin-400-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-400-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src:
+    url("/static/fonts/montserrat-latin-500-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-500-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src:
+    url("/static/fonts/montserrat-latin-600-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-600-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src:
+    url("/static/fonts/montserrat-latin-700-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-700-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src:
+    url("/static/fonts/montserrat-latin-ext-400-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-ext-400-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src:
+    url("/static/fonts/montserrat-latin-ext-500-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-ext-500-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src:
+    url("/static/fonts/montserrat-latin-ext-600-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-ext-600-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "MontserratFixed";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src:
+    url("/static/fonts/montserrat-latin-ext-700-normal.woff2") format("woff2"),
+    url("/static/fonts/montserrat-latin-ext-700-normal.woff") format("woff");
+}
+
+:root,
+:host {
+  --font-sans: "MontserratFixed", "Montserrat", "sans-serif";
+  --font-body: "MontserratFixed", "Montserrat", "sans-serif";
+}

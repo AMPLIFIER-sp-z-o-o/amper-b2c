@@ -79,14 +79,6 @@ window.Cart = (function () {
         });
     }
 
-    function setCheckoutInputsDisabled(disabled) {
-        document
-            .querySelectorAll('input[name="delivery-method"], input[name="payment-method"]')
-            .forEach((el) => {
-                el.disabled = disabled;
-            });
-    }
-
     function startInlineLoader(hostEl) {
         if (!hostEl) return;
         hostEl.classList.add("btn-loading");
@@ -104,26 +96,6 @@ window.Cart = (function () {
         if (!hostEl) return;
         hostEl.classList.remove("btn-loading");
         hostEl.querySelector(':scope > [data-inline-loader]')?.remove();
-    }
-
-    function setProceedToSummaryLoading(loading) {
-        const proceedBtn =
-            document.getElementById("proceed-to-summary-btn") ||
-            document.querySelector('a[href="/cart/summary/"][data-nav-loading-btn]');
-        if (!proceedBtn) return;
-        if (loading) {
-            if (typeof window.btnLoading === "function") {
-                window.btnLoading(proceedBtn);
-            } else {
-                proceedBtn.classList.add("btn-loading");
-            }
-        } else {
-            if (typeof window.btnReset === "function") {
-                window.btnReset(proceedBtn);
-            } else {
-                proceedBtn.classList.remove("btn-loading");
-            }
-        }
     }
 
     function updateCheckoutChoiceCardStates() {
@@ -560,6 +532,38 @@ window.Cart = (function () {
         if (!btn) return;
         if (btn.classList.contains("btn-loading")) return;
 
+        let submitForm = null;
+        if (btn instanceof HTMLButtonElement || btn instanceof HTMLInputElement) {
+            if (btn.form instanceof HTMLFormElement) {
+                submitForm = btn.form;
+            } else {
+                const formId = btn.getAttribute("form");
+                if (formId) {
+                    const linkedForm = document.getElementById(formId);
+                    if (linkedForm instanceof HTMLFormElement) {
+                        submitForm = linkedForm;
+                    }
+                }
+            }
+        }
+
+        if (
+            submitForm &&
+            typeof submitForm.checkValidity === "function" &&
+            !submitForm.checkValidity()
+        ) {
+            // Prevent the browser's native (silent) validation on hidden required fields.
+            // Instead, open the address modal so the user sees what needs to be filled in.
+            e.preventDefault();
+            const addressModalToggle = document.querySelector(
+                '[data-modal-toggle="shipping-details-modal"]'
+            );
+            if (addressModalToggle) {
+                addressModalToggle.click();
+            }
+            return;
+        }
+
         if (typeof window.btnLoading === "function") {
             window.btnLoading(btn);
         }
@@ -804,9 +808,7 @@ window.Cart = (function () {
         const form = input.closest("form");
 
         const hostLabel = input.closest("label");
-        setCheckoutInputsDisabled(true);
         startInlineLoader(hostLabel);
-        setProceedToSummaryLoading(true);
 
         fetch(form.action || window.location.href, {
             method: "POST",
@@ -848,8 +850,6 @@ window.Cart = (function () {
         .catch(console.error)
         .finally(() => {
             stopInlineLoader(hostLabel);
-            setProceedToSummaryLoading(false);
-            setCheckoutInputsDisabled(false);
         });
     });
 
@@ -864,9 +864,7 @@ window.Cart = (function () {
         const form = input.closest("form");
 
         const hostLabel = input.closest("label");
-        setCheckoutInputsDisabled(true);
         startInlineLoader(hostLabel);
-        setProceedToSummaryLoading(true);
 
         fetch(form.action || window.location.href, {
             method: "POST",
@@ -909,8 +907,6 @@ window.Cart = (function () {
         .catch(console.error)
         .finally(() => {
             stopInlineLoader(hostLabel);
-            setProceedToSummaryLoading(false);
-            setCheckoutInputsDisabled(false);
         });
     });
 
@@ -933,12 +929,73 @@ window.Cart = (function () {
         if (!form.matches("#checkout-details-form")) return;
 
         const submitter = e.submitter instanceof HTMLElement ? e.submitter : null;
-        if (!submitter?.matches("[data-checkout-save-btn]")) return;
-        if (submitter.classList.contains("btn-loading")) return;
+        const loadingBtn =
+            submitter?.matches("[data-checkout-save-btn], #proceed-to-summary-btn")
+                ? submitter
+                : null;
+        if (!loadingBtn) return;
+        if (loadingBtn.classList.contains("btn-loading")) return;
 
         if (typeof window.btnLoading === "function") {
-            window.btnLoading(submitter);
+            window.btnLoading(loadingBtn);
         }
+    });
+
+    // Intercept "Review Order" submit for soft-nav (no white-flash full-page reload).
+    document.addEventListener("submit", function (e) {
+        const form = e.target;
+        if (!form || !(form instanceof HTMLFormElement)) return;
+        if (!form.matches("#checkout-details-form")) return;
+
+        const submitter = e.submitter instanceof HTMLElement ? e.submitter : null;
+        if (!submitter || !submitter.matches("#proceed-to-summary-btn")) return;
+
+        const wrapper = document.getElementById("page-content-wrapper");
+        if (!wrapper) return;
+
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        formData.set("checkout_action", "review_order");
+
+        fetch(form.action, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCSRFToken() },
+            body: formData,
+            redirect: "follow",
+        })
+            .then(function (res) {
+                const finalUrl = res.url;
+                return res.text().then(function (html) {
+                    return { html: html, finalUrl: finalUrl };
+                });
+            })
+            .then(function (result) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(result.html, "text/html");
+                const newContent = doc.getElementById("page-content");
+                if (!newContent || !wrapper) return;
+
+                wrapper.innerHTML = newContent.outerHTML;
+                history.pushState({}, "", result.finalUrl);
+                window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+
+                // Trigger htmx:afterSwap so site.js re-initialises the swapped content.
+                wrapper.dispatchEvent(
+                    new CustomEvent("htmx:afterSwap", {
+                        bubbles: true,
+                        detail: { target: wrapper },
+                    })
+                );
+
+                if (typeof window.initSoftNavigation === "function") {
+                    window.initSoftNavigation();
+                }
+            })
+            .catch(function () {
+                // Fallback: native form submit
+                form.submit();
+            });
     });
 
     // Apply/remove coupon (standard POST form submit)
@@ -1062,6 +1119,12 @@ window.Cart = (function () {
 
     return {
         addToCart,
-        removeLine
+        removeLine,
+        reinitCheckout: () => {
+            updateProceedToSummaryDisabledState();
+            updateCheckoutChoiceCardStates();
+            initCheckoutCountryReload();
+            initCartCountrySubmit();
+        },
     };
 })();

@@ -8,7 +8,7 @@
     {% for wishlist in wishlists %}
     <a
       href="?list={{ wishlist.id }}"
-      class="wishlist-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if wishlist == active_wishlist %}bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-700{% endif %}"
+      class="wishlist-nav-item flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group {% if wishlist == active_wishlist %}bg-gray-100 dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm{% else %}text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
       data-wishlist-id="{{ wishlist.id }}"
     >
       {% if wishlist.is_default %}

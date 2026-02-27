@@ -26,6 +26,7 @@
     "vite": "^7.2.4"
   },
   "dependencies": {
+    "@fontsource/montserrat": "^5.2.8",
     "@tailwindcss/postcss": "^4.1.18",
     "flowbite": "^4.0.1",
     "htmx-ext-ws": "^2.0.4",

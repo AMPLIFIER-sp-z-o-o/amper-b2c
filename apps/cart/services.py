@@ -154,7 +154,17 @@ def refresh_cart_totals_from_db(cart: Cart, *, now=None) -> dict:
 
     coupon = Coupon.objects.filter(is_active=True, code__iexact=code).order_by("-updated_at").first()
     is_valid = True
-    if not coupon or coupon.valid_from and now < coupon.valid_from or coupon.valid_to and now > coupon.valid_to or coupon.usage_limit is not None and coupon.used_count >= coupon.usage_limit or coupon.min_subtotal is not None and cart.subtotal < coupon.min_subtotal:
+    if (
+        not coupon
+        or coupon.valid_from
+        and now < coupon.valid_from
+        or coupon.valid_to
+        and now > coupon.valid_to
+        or coupon.usage_limit is not None
+        and coupon.used_count >= coupon.usage_limit
+        or coupon.min_subtotal is not None
+        and cart.subtotal < coupon.min_subtotal
+    ):
         is_valid = False
 
     if not is_valid:

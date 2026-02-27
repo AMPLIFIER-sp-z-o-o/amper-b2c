@@ -1,7 +1,42 @@
-import "../css/site.css";
-
 const TAB_PARAM = "__tab";
 const TAB_HEADER = "X-Tab-ID";
+
+// Global compatibility shim:
+// If code registers DOMContentLoaded after the document is already ready
+// (e.g., scripts executed after HTMX soft-nav swap), run it automatically.
+(function installDomContentLoadedShim() {
+  if (document.__amperDomContentLoadedShimInstalled) return;
+  document.__amperDomContentLoadedShimInstalled = true;
+
+  const originalAddEventListener = document.addEventListener.bind(document);
+
+  function invokeDomReadyListener(listener) {
+    const event = new Event("DOMContentLoaded");
+    if (typeof listener === "function") {
+      listener.call(document, event);
+      return;
+    }
+    if (listener && typeof listener.handleEvent === "function") {
+      listener.handleEvent(event);
+    }
+  }
+
+  document.addEventListener = function (type, listener, options) {
+    if (type === "DOMContentLoaded" && document.readyState !== "loading") {
+      queueMicrotask(() => {
+        try {
+          invokeDomReadyListener(listener);
+        } catch (error) {
+          setTimeout(() => {
+            throw error;
+          }, 0);
+        }
+      });
+      return;
+    }
+    return originalAddEventListener(type, listener, options);
+  };
+})();
 
 function normalizeTabId(rawValue) {
   if (!rawValue) return null;
@@ -137,6 +172,103 @@ function initTabScopedNavigation() {
 
 initTabScopedNavigation();
 
+/**
+ * Soft navigation: converts all qualifying internal <a> links to HTMX partial
+ * page swaps (same pattern as cart-stepper links). The nav persists; only
+ * #page-content is replaced. Called on DOMContentLoaded and after each
+ * htmx:afterSwap to pick up freshly-injected links.
+ */
+function initSoftNavigation() {
+  if (typeof htmx === "undefined") return;
+
+  function processLinks(root) {
+    root.querySelectorAll("a[href]").forEach(function (link) {
+      if (link.dataset.softNavInit) return;
+      link.dataset.softNavInit = "1";
+
+      // Skip links that already carry explicit HTMX verbs
+      if (
+        link.hasAttribute("hx-get") ||
+        link.hasAttribute("hx-post") ||
+        link.hasAttribute("hx-put") ||
+        link.hasAttribute("hx-patch") ||
+        link.hasAttribute("hx-delete")
+      )
+        return;
+
+      // Skip opted-out links or containers
+      if (
+        link.dataset.softNav === "false" ||
+        link.closest("[data-soft-nav='false']")
+      )
+        return;
+
+      // Skip new-tab, download
+      if (link.target === "_blank") return;
+      if (link.hasAttribute("download")) return;
+
+      // Must resolve to a valid http/https URL
+      var href = link.href;
+      if (!href) return;
+      var url;
+      try {
+        url = new URL(href);
+      } catch (e) {
+        return;
+      }
+
+      // Same origin only
+      if (url.origin !== window.location.origin) return;
+
+      // Skip admin, API, media paths
+      var path = url.pathname;
+      if (
+        path.startsWith("/admin") ||
+        path.startsWith("/api/") ||
+        path.startsWith("/media/")
+      )
+        return;
+
+      // Skip non-http protocols (mailto, tel, …)
+      if (!url.protocol.startsWith("http")) return;
+
+      // Skip pure hash anchors on the same page
+      if (
+        path === window.location.pathname &&
+        url.search === window.location.search &&
+        url.hash
+      )
+        return;
+
+      // Only soft-nav if #page-content-wrapper exists
+      if (!document.getElementById("page-content-wrapper")) return;
+
+      // Target the stable outer wrapper; select only #page-content from the
+      // response and inject it as innerHTML of the wrapper.  This keeps the
+      // wrapper div permanently in the DOM (avoiding the HTMX 2.x bug where
+      // outerHTML-swapping an element from outside that element removes it).
+      link.setAttribute("hx-get", href);
+      link.setAttribute("hx-target", "#page-content-wrapper");
+      link.setAttribute("hx-select", "#page-content");
+      link.setAttribute("hx-swap", "innerHTML");
+      link.setAttribute("hx-push-url", "true");
+      // Tell the server this is a full-page soft-nav request (not a partial
+      // filter/pagination update) so it returns the complete page HTML.
+      link.setAttribute("hx-headers", '{"HX-Soft-Nav": "true"}');
+      htmx.process(link);
+    });
+  }
+
+  processLinks(document);
+
+  // Re-process links that arrive inside HTMX-swapped content
+  document.addEventListener("htmx:afterSwap", function (event) {
+    if (event.target) processLinks(event.target);
+  });
+}
+
+window.initSoftNavigation = initSoftNavigation;
+
 document.addEventListener("DOMContentLoaded", function () {
   // Format prices using browser locale with Intl.NumberFormat
   formatPrices();
@@ -153,6 +285,10 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize Swiper sliders
   initCategoryRecommendedSlider();
   initCategoryBannerSlider();
+  initHeroBannerSlider();
+
+  // Set up soft navigation (partial page swaps that keep the nav intact)
+  initSoftNavigation();
 
   // Initialize favourites
   initFavourites();
@@ -334,17 +470,58 @@ function ensureProductImageFullscreenOverlay() {
 
   overlay = document.createElement("div");
   overlay.id = "product-image-fullscreen-overlay";
-  overlay.className =
-    "fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 p-4";
+  overlay.className = "fixed inset-0 z-[90] hidden items-center justify-center";
+  overlay.style.cssText = "background: rgba(25,25,25,0.96); padding: 1.5rem;";
   overlay.innerHTML = `
-    <div class="absolute inset-0" data-fullscreen-backdrop></div>
-    <div class="relative w-full max-w-5xl">
-      <button type="button" class="absolute top-3 right-3 z-10 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-colors cursor-pointer" data-fullscreen-close aria-label="Close" title="Close">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    <div data-fullscreen-content style="position:relative;width:100%;max-width:72rem;margin:0 auto;">
+      <button
+        type="button"
+        data-fullscreen-close
+        aria-label="Close"
+        title="Close"
+        style="position:absolute;top:-1.25rem;right:-1.25rem;z-index:30;width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;border-radius:9999px;background:white;box-shadow:0 4px 14px rgba(0,0,0,0.35);cursor:pointer;border:none;color:#1f2937;"
+      >
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
-      <img data-fullscreen-img class="w-full max-h-[85vh] object-contain rounded-xl" alt="" src="" />
+
+      <div
+        class="product-gallery-swiper swiper"
+        data-gallery-main
+        style="height:calc(100vh - 8.5rem);background:#111;border-radius:0.75rem;overflow:hidden;"
+      >
+        <div class="swiper-wrapper" data-fullscreen-slides></div>
+        <button
+          type="button"
+          data-gallery-prev
+          aria-label="Previous image"
+          style="position:absolute;left:12px;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,0.95);box-shadow:0 2px 10px rgba(0,0,0,0.3);border:none;cursor:pointer;color:#1f2937;transition:background 0.15s,box-shadow 0.15s;"
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m15 19-7-7 7-7"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          data-gallery-next
+          aria-label="Next image"
+          style="position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:10;width:2.25rem;height:2.25rem;display:flex;align-items:center;justify-content:center;border-radius:6px;background:rgba(255,255,255,0.95);box-shadow:0 2px 10px rgba(0,0,0,0.3);border:none;cursor:pointer;color:#1f2937;transition:background 0.15s,box-shadow 0.15s;"
+        >
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="m9 5 7 7-7 7"/>
+          </svg>
+        </button>
+        <div class="swiper-pagination"></div>
+      </div>
+
+      <div
+        class="product-gallery-thumbs swiper"
+        data-gallery-thumbs
+        style="height:72px;margin-top:8px;"
+      >
+        <div class="swiper-wrapper" data-fullscreen-thumbs></div>
+      </div>
     </div>
   `;
 
@@ -354,11 +531,22 @@ function ensureProductImageFullscreenOverlay() {
     overlay.classList.add("hidden");
     overlay.classList.remove("flex");
     document.body.classList.remove("overflow-hidden");
-    const img = overlay.querySelector("[data-fullscreen-img]");
-    if (img) {
-      img.removeAttribute("src");
-      img.setAttribute("alt", "");
+    if (overlay._thumbsSwiper) {
+      try {
+        overlay._thumbsSwiper.destroy(true, true);
+      } catch (_) {}
+      overlay._thumbsSwiper = null;
     }
+    if (overlay._swiper) {
+      try {
+        overlay._swiper.destroy(true, true);
+      } catch (_) {}
+      overlay._swiper = null;
+    }
+    const sc = overlay.querySelector("[data-fullscreen-slides]");
+    if (sc) sc.innerHTML = "";
+    const tc = overlay.querySelector("[data-fullscreen-thumbs]");
+    if (tc) tc.innerHTML = "";
   };
 
   overlay
@@ -368,19 +556,39 @@ function ensureProductImageFullscreenOverlay() {
       e.stopPropagation();
       close();
     });
-  overlay
-    .querySelector("[data-fullscreen-backdrop]")
-    ?.addEventListener("click", (e) => {
-      e.preventDefault();
-      close();
-    });
-
+  overlay.addEventListener("click", (e) => {
+    const mEl = overlay.querySelector("[data-gallery-main]");
+    const tEl = overlay.querySelector("[data-gallery-thumbs]");
+    if (mEl?.contains(e.target) || tEl?.contains(e.target)) return;
+    close();
+  });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
     if (!overlay.classList.contains("hidden")) close();
   });
 
   overlay._close = close;
+
+  const prevBtnEl = overlay.querySelector("[data-gallery-prev]");
+  const nextBtnEl = overlay.querySelector("[data-gallery-next]");
+  [prevBtnEl, nextBtnEl].forEach((btn) => {
+    if (!btn) return;
+    btn.style.transition = "background 0.15s, box-shadow 0.15s, transform 0.1s";
+    btn.addEventListener("mouseenter", () => {
+      btn.style.background = "rgba(209,213,219,0.95)";
+    });
+    btn.addEventListener("mouseleave", () => {
+      btn.style.background = "rgba(255,255,255,0.95)";
+      btn.style.transform = "translateY(-50%)";
+    });
+    btn.addEventListener("mousedown", () => {
+      btn.style.transform = "translateY(-50%) scale(0.9)";
+    });
+    btn.addEventListener("mouseup", () => {
+      btn.style.transform = "translateY(-50%)";
+    });
+  });
+
   return overlay;
 }
 
@@ -476,16 +684,164 @@ document.addEventListener("click", async (e) => {
     const src = fsBtn.dataset.fullscreenSrc;
     if (!src) return;
 
-    const alt = fsBtn.dataset.fullscreenAlt || "";
+    // Collect all product image fullscreen buttons on the page to build the gallery
+    const allBtns = Array.from(
+      document.querySelectorAll(
+        ".product-image-fullscreen-btn[data-fullscreen-src]",
+      ),
+    );
+    const startIndex = Math.max(0, allBtns.indexOf(fsBtn));
+
     const overlay = ensureProductImageFullscreenOverlay();
-    const img = overlay.querySelector("[data-fullscreen-img]");
-    if (img) {
-      img.setAttribute("src", src);
-      img.setAttribute("alt", alt);
+    const slidesContainer = overlay.querySelector("[data-fullscreen-slides]");
+    const thumbsContainer = overlay.querySelector("[data-fullscreen-thumbs]");
+
+    if (slidesContainer) {
+      slidesContainer.innerHTML = allBtns
+        .map((btn) => {
+          const imgSrc = btn.dataset.fullscreenSrc || "";
+          const imgAlt = (btn.dataset.fullscreenAlt || "").replace(
+            /"/g,
+            "&quot;",
+          );
+          return `<div class="swiper-slide" style="display:flex;align-items:center;justify-content:center;background:#111;">
+  <div class="swiper-zoom-container">
+    <img src="${imgSrc}" alt="${imgAlt}" style="max-width:100%;max-height:calc(100vh - 11rem);object-fit:contain;display:block;" />
+  </div>
+</div>`;
+        })
+        .join("");
     }
+
+    if (thumbsContainer) {
+      thumbsContainer.innerHTML = allBtns
+        .map((btn) => {
+          const imgSrc = btn.dataset.fullscreenSrc || "";
+          const imgAlt = (btn.dataset.fullscreenAlt || "").replace(
+            /"/g,
+            "&quot;",
+          );
+          return `<div class="swiper-slide" style="width:64px!important;height:64px;border-radius:6px;overflow:hidden;cursor:pointer;border:2px solid transparent;box-sizing:border-box;opacity:0.5;transition:border-color 0.2s,opacity 0.2s;flex-shrink:0;">
+  <img src="${imgSrc}" alt="${imgAlt}" style="width:100%;height:100%;object-fit:cover;" />
+</div>`;
+        })
+        .join("");
+    }
+
     overlay.classList.remove("hidden");
     overlay.classList.add("flex");
     document.body.classList.add("overflow-hidden");
+
+    if (window.Swiper) {
+      const mainEl = overlay.querySelector("[data-gallery-main]");
+      const thumbsEl = overlay.querySelector("[data-gallery-thumbs]");
+      const prevBtn = overlay.querySelector("[data-gallery-prev]");
+      const nextBtn = overlay.querySelector("[data-gallery-next]");
+
+      const thumbsSwiper = new Swiper(thumbsEl, {
+        slidesPerView: "auto",
+        spaceBetween: 8,
+        watchSlidesProgress: true,
+        freeMode: true,
+        centeredSlides: false,
+      });
+      overlay._thumbsSwiper = thumbsSwiper;
+
+      const mainSwiper = new Swiper(mainEl, {
+        initialSlide: startIndex,
+        zoom: { maxRatio: 3, minRatio: 1 },
+        pagination: {
+          el: mainEl.querySelector(".swiper-pagination"),
+          type: "fraction",
+        },
+        thumbs: { swiper: thumbsSwiper },
+        keyboard: { enabled: true },
+        loop: true,
+        watchOverflow: true,
+      });
+      overlay._swiper = mainSwiper;
+
+      // Style the fraction pagination as a pill at top-right
+      const paginationEl = mainEl.querySelector(".swiper-pagination");
+      if (paginationEl) {
+        paginationEl.style.cssText =
+          "position:absolute;top:10px;right:10px;bottom:auto;left:auto;width:auto;background:rgba(0,0,0,0.5);color:white;font-size:0.8rem;font-weight:600;padding:3px 10px;border-radius:9999px;z-index:10;line-height:1.5;text-align:center;";
+      }
+
+      // Use onclick to avoid listener accumulation across re-opens
+      if (prevBtn) prevBtn.onclick = () => mainSwiper.slidePrev();
+      if (nextBtn) nextBtn.onclick = () => mainSwiper.slideNext();
+
+      // Zoom cursor management
+      const updateZoomCursor = () => {
+        const zoomed = mainSwiper.zoom.scale > 1;
+        mainEl.querySelectorAll(".swiper-zoom-container").forEach((zc) => {
+          zc.style.cursor = zoomed ? "zoom-out" : "zoom-in";
+        });
+      };
+
+      // Single click to zoom in/out; distinguish from drag so panning doesn't trigger zoom
+      // Compare pointerdown vs pointerup coordinates directly — no mousemove needed,
+      // which is important because Swiper intercepts mousemove during pan.
+      let _galleryPanStart = null;
+      mainEl.addEventListener(
+        "pointerdown",
+        (e) => {
+          if (
+            e.button !== 0 ||
+            e.target.closest("[data-gallery-prev],[data-gallery-next]")
+          )
+            return;
+          _galleryPanStart = { x: e.clientX, y: e.clientY };
+          if (mainSwiper.zoom.scale > 1) {
+            mainEl.querySelectorAll(".swiper-zoom-container").forEach((zc) => {
+              zc.style.cursor = "grabbing";
+            });
+          }
+        },
+        { passive: true },
+      );
+      mainEl.addEventListener("pointerup", (e) => {
+        if (
+          !_galleryPanStart ||
+          e.target.closest("[data-gallery-prev],[data-gallery-next]")
+        )
+          return;
+        const dx = Math.abs(e.clientX - _galleryPanStart.x);
+        const dy = Math.abs(e.clientY - _galleryPanStart.y);
+        _galleryPanStart = null;
+        updateZoomCursor();
+        if (dx > 8 || dy > 8) return; // drag/pan — don't toggle zoom
+        if (mainSwiper.zoom.scale > 1) {
+          mainSwiper.zoom.out();
+        } else {
+          mainSwiper.zoom.in();
+        }
+        updateZoomCursor();
+      });
+      mainSwiper.on("zoomChange", updateZoomCursor);
+      updateZoomCursor();
+
+      // Add click-to-navigate on thumbnail slides
+      thumbsEl.querySelectorAll(".swiper-slide").forEach((slide, i) => {
+        slide.onclick = () => mainSwiper.slideToLoop(i);
+      });
+
+      // Highlight active thumbnail
+      const updateThumbs = (index) => {
+        if (!thumbsEl) return;
+        thumbsEl.querySelectorAll(".swiper-slide").forEach((s, i) => {
+          s.style.borderColor = i === index ? "rgb(37,99,235)" : "transparent";
+          s.style.opacity = i === index ? "1" : "0.5";
+        });
+      };
+      mainSwiper.on("slideChange", () => {
+        _galleryPanStart = null;
+        updateThumbs(mainSwiper.realIndex);
+        updateZoomCursor();
+      });
+      updateThumbs(startIndex);
+    }
   }
 });
 
@@ -739,6 +1095,20 @@ function initCategoryRecommendedSlider() {
     const categoryId = swiperContainer.dataset.categoryId;
     if (!categoryId) return;
 
+    const recommendedSection = swiperContainer.closest(
+      ".category-recommended-products",
+    );
+    const nextButton = document.querySelector(
+      '.category-recommended-next[data-category-id="' + categoryId + '"]',
+    );
+    const prevButton = document.querySelector(
+      '.category-recommended-prev[data-category-id="' + categoryId + '"]',
+    );
+
+    if (recommendedSection) {
+      recommendedSection.classList.remove("category-recommended-nav-ready");
+    }
+
     if (window.__categoryRecommendedSwipers[categoryId]) {
       try {
         window.__categoryRecommendedSwipers[categoryId].destroy(true, true);
@@ -760,28 +1130,21 @@ function initCategoryRecommendedSlider() {
       parseInt(swiperContainer.dataset.productCount, 10) || 0;
 
     const swiper = new Swiper(swiperContainer, {
-      slidesPerView: 1,
-      slidesPerGroup: 1,
-      spaceBetween: 12,
+      slidesPerView: 2,
+      slidesPerGroup: 2,
+      spaceBetween: 8,
       loop: false,
       autoHeight: false,
       navigation: {
-        nextEl:
-          '.category-recommended-next[data-category-id="' + categoryId + '"]',
-        prevEl:
-          '.category-recommended-prev[data-category-id="' + categoryId + '"]',
+        nextEl: nextButton,
+        prevEl: prevButton,
         disabledClass: "swiper-button-disabled",
       },
       breakpoints: {
-        480: {
-          slidesPerView: 2,
-          slidesPerGroup: 2,
-          spaceBetween: 12,
-        },
         640: {
           slidesPerView: 2,
           slidesPerGroup: 2,
-          spaceBetween: 16,
+          spaceBetween: 12,
         },
         768: {
           slidesPerView: 3,
@@ -795,6 +1158,20 @@ function initCategoryRecommendedSlider() {
         },
       },
     });
+
+    const syncRecommendedNavState = () => {
+      if (!recommendedSection || !nextButton || !prevButton) return;
+      recommendedSection.classList.toggle(
+        "category-recommended-nav-ready",
+        !swiper.isLocked,
+      );
+    };
+
+    syncRecommendedNavState();
+    swiper.on("lock", syncRecommendedNavState);
+    swiper.on("unlock", syncRecommendedNavState);
+    swiper.on("resize", syncRecommendedNavState);
+    swiper.on("breakpoint", syncRecommendedNavState);
 
     window.__categoryRecommendedSwipers[categoryId] = swiper;
   });
@@ -927,6 +1304,187 @@ function initCategoryBannerSlider() {
 window.initCategoryBannerSlider = initCategoryBannerSlider;
 
 /**
+ * Initialize the hero banner / content-banner Swiper.
+ * Called on DOMContentLoaded and after HTMX swaps of #page-content.
+ * Banner count is read from data-banner-count on the swiper element.
+ * Cleans up existing instance and resize listener to prevent leaks on re-init.
+ */
+function initHeroBannerSlider() {
+  const swiperEl = document.querySelector(".content-banner-swiper");
+  if (!swiperEl) return;
+
+  if (typeof Swiper === "undefined") {
+    window.setTimeout(initHeroBannerSlider, 100);
+    return;
+  }
+
+  // Destroy previous instance if it exists
+  if (swiperEl.swiper) {
+    try {
+      swiperEl.swiper.destroy(true, true);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  // Remove previous resize listener to avoid accumulation
+  if (swiperEl._bannerResizeHandler) {
+    window.removeEventListener("resize", swiperEl._bannerResizeHandler);
+    delete swiperEl._bannerResizeHandler;
+  }
+
+  const totalBanners = parseInt(swiperEl.dataset.bannerCount, 10) || 1;
+  let swiperInstance = null;
+
+  function getHeroTopOffset() {
+    let anchor = document.getElementById("categories-row-wrapper");
+    if (!anchor || window.getComputedStyle(anchor).display === "none") {
+      anchor = document.querySelector(".top-nav-standard");
+    }
+    if (anchor) {
+      const bottom = Math.round(anchor.getBoundingClientRect().bottom);
+      if (bottom > 0) {
+        return bottom;
+      }
+    }
+
+    const fallbackTop = Math.round(swiperEl.getBoundingClientRect().top);
+    return Math.max(fallbackTop, 0);
+  }
+
+  // Prevent black/partial hero rendering by revealing the banner only
+  // after the first hero image is loaded (with a short failsafe fallback).
+  swiperEl.classList.remove("is-ready");
+  const markHeroReady = () => {
+    updateBannerHeight();
+    if (!swiperEl.classList.contains("is-ready")) {
+      swiperEl.classList.add("is-ready");
+    }
+  };
+  const firstHeroImage = swiperEl.querySelector(".swiper-slide img");
+  if (firstHeroImage) {
+    if (firstHeroImage.complete && firstHeroImage.naturalWidth > 0) {
+      window.requestAnimationFrame(markHeroReady);
+    } else {
+      firstHeroImage.addEventListener("load", markHeroReady, { once: true });
+      firstHeroImage.addEventListener("error", markHeroReady, { once: true });
+      window.setTimeout(markHeroReady, 1500);
+    }
+  } else {
+    markHeroReady();
+  }
+
+  function updateBannerHeight() {
+    if (window.innerWidth < 768) {
+      swiperEl.style.height = "580px";
+      swiperEl.classList.remove("h-screen");
+      swiperEl.style.minHeight = "580px";
+      if (swiperInstance) swiperInstance.update();
+      return;
+    }
+
+    const heroTopOffset = getHeroTopOffset();
+    // Update CSS variable so the calc() in the template <style> resolves correctly.
+    document.documentElement.style.setProperty(
+      "--hero-banner-top",
+      `${heroTopOffset}px`,
+    );
+    swiperEl.classList.remove("h-screen");
+    if (swiperInstance) swiperInstance.update();
+  }
+
+  updateBannerHeight();
+  swiperEl._bannerResizeHandler = updateBannerHeight;
+  window.addEventListener("resize", updateBannerHeight);
+  window.requestAnimationFrame(updateBannerHeight);
+  if (document.fonts?.ready) {
+    document.fonts.ready
+      .then(() => {
+        window.requestAnimationFrame(updateBannerHeight);
+      })
+      .catch(() => {
+        // no-op
+      });
+  }
+
+  if (document.readyState === "complete") {
+    window.requestAnimationFrame(updateBannerHeight);
+  } else {
+    window.addEventListener("load", updateBannerHeight, { once: true });
+  }
+
+  const swiper = new Swiper(swiperEl, {
+    loop: totalBanners > 1,
+    autoplay: {
+      delay: 7000,
+      disableOnInteraction: false,
+    },
+    pagination: {
+      el: swiperEl.querySelector(".content-pagination"),
+      clickable: true,
+      renderBullet: function (index, className) {
+        return (
+          '<button type="button" class="' +
+          className +
+          ' h-3 w-3 rounded-full" aria-label="Slide ' +
+          (index + 1) +
+          '"></button>'
+        );
+      },
+    },
+    navigation: {
+      nextEl: swiperEl.querySelector(".swiper-button-next"),
+      prevEl: swiperEl.querySelector(".swiper-button-prev"),
+    },
+    effect: "slide",
+    speed: 600,
+    slidesPerView: 1,
+    spaceBetween: 0,
+  });
+
+  swiperInstance = swiper;
+
+  // Full-height navigation areas (desktop)
+  const navPrev = swiperEl.querySelector(".banner-nav-prev");
+  const navNext = swiperEl.querySelector(".banner-nav-next");
+  if (navPrev) navPrev.addEventListener("click", () => swiper.slidePrev());
+  if (navNext) navNext.addEventListener("click", () => swiper.slideNext());
+
+  // Mobile navigation buttons
+  const mobilePrev = swiperEl.querySelector(".banner-mobile-prev");
+  const mobileNext = swiperEl.querySelector(".banner-mobile-next");
+  if (mobilePrev)
+    mobilePrev.addEventListener("click", () => swiper.slidePrev());
+  if (mobileNext)
+    mobileNext.addEventListener("click", () => swiper.slideNext());
+
+  function updateMobilePagination() {
+    const container = swiperEl.querySelector(".banner-mobile-pagination");
+    if (!container || typeof swiper.realIndex === "undefined") return;
+    try {
+      const activeIndex = swiper.realIndex;
+      let dotsHtml = "";
+      for (let i = 0; i < totalBanners; i++) {
+        dotsHtml +=
+          '<span class="mobile-dot ' +
+          (i === activeIndex ? "active" : "") +
+          '"></span>';
+      }
+      container.innerHTML = dotsHtml;
+    } catch (e) {
+      // silent
+    }
+  }
+
+  if (totalBanners > 1) {
+    updateMobilePagination();
+    swiper.on("slideChange", updateMobilePagination);
+  }
+}
+
+window.initHeroBannerSlider = initHeroBannerSlider;
+
+/**
  * Keep the navbar "Sign In" link in sync with the current browser URL.
  * Uses window.location instead of server-rendered request.get_full_path
  * so that HTMX pushState / filter changes are always reflected.
@@ -946,6 +1504,21 @@ function updateSignInLink() {
 window.updateSignInLink = updateSignInLink;
 
 // Re-format prices after HTMX swaps (for dynamic content)
+// Show top progress bar when a soft-nav page-change request begins
+document.addEventListener("htmx:beforeRequest", (event) => {
+  const targetId =
+    event.detail && event.detail.target && event.detail.target.id;
+  if (targetId === "page-content-wrapper") {
+    const snpBar = document.getElementById("soft-nav-progress");
+    if (snpBar) {
+      snpBar.classList.remove("snp-done", "snp-loading");
+      // Force reflow so width resets to 0 before animating
+      void snpBar.getBoundingClientRect();
+      snpBar.classList.add("snp-loading");
+    }
+  }
+});
+
 document.addEventListener("htmx:afterSwap", formatPrices);
 document.addEventListener("htmx:afterSwap", updateSignInLink);
 // Also update on htmx:pushedIntoHistory (fired after hx-push-url updates the URL)
@@ -956,6 +1529,68 @@ document.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "products-container") {
     initCategoryRecommendedSlider();
     initCategoryBannerSlider();
+  }
+
+  // Fires for cart-flow links (trigger inside #page-content, outerHTML swap)
+  // and for soft-nav links (trigger in nav, innerHTML swap on #page-content-wrapper)
+  const isPageContentSwap =
+    (event.target && event.target.id === "page-content") ||
+    (event.target && event.target.id === "page-content-wrapper");
+
+  if (isPageContentSwap) {
+    // Finish the progress bar
+    const snpBar = document.getElementById("soft-nav-progress");
+    if (snpBar) {
+      snpBar.classList.remove("snp-loading");
+      snpBar.classList.add("snp-done");
+      setTimeout(() => snpBar.classList.remove("snp-done"), 500);
+    }
+    // Re-apply entrance animation on every swap so page content fades in smoothly.
+    // Target the wrapper (stable element) rather than #page-content (the swapped-in element)
+    // because HTMX marks swapped-in elements with htmx-added and its settle phase clears
+    // ALL classes on those elements, wiping order-flow-enter before the animation can play.
+    // The wrapper only gets htmx-settling removed (via classList.remove), so order-flow-enter
+    // is preserved and the animation runs correctly.
+    const pw = document.getElementById("page-content-wrapper");
+    if (pw) {
+      pw.classList.remove("order-flow-enter");
+      void pw.offsetWidth;
+      pw.classList.add("order-flow-enter");
+      // Remove the class once the animation finishes so that the animation's
+      // `transform: translateY(0)` (kept by fill-mode:both) no longer creates a
+      // stacking context on this wrapper. Without this cleanup, every position:fixed
+      // modal inside page-content-wrapper is trapped in an isolated stacking context
+      // and cannot cover the navbar, and fixed-positioned backdrops are clipped to
+      // this wrapper instead of the full viewport.
+      pw.addEventListener(
+        "animationend",
+        () => {
+          pw.classList.remove("order-flow-enter");
+        },
+        { once: true },
+      );
+    }
+
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+
+    if (typeof window.initFlowbite === "function") {
+      window.initFlowbite();
+    }
+    initCartSaveAsList();
+    initHeroBannerSlider();
+    initCategoryRecommendedSlider();
+    initCategoryBannerSlider();
+    initFavourites();
+    syncCompareButtons(document);
+    formatPrices();
+    // Re-init checkout disabled-state and choice-card state after HTMX swap
+    // (these run at cart.js boot but the checkout DOM may not exist yet at that point).
+    if (typeof window.Cart?.reinitCheckout === "function") {
+      window.Cart.reinitCheckout();
+    }
   }
 });
 
@@ -1713,16 +2348,31 @@ function updateAllFavouriteButtons(productId, isFavourited) {
  * @param {string} message - The message to display
  * @param {string} type - The type of toast: 'success', 'warning' or 'error'
  */
+function _positionToastContainer(container) {
+  if (window.innerWidth < 640) {
+    // Mobile: anchor below the sticky navbar
+    const nav = document.querySelector(".storefront-top-nav");
+    const navBottom = nav ? Math.round(nav.getBoundingClientRect().bottom) : 72;
+    container.style.top = navBottom + 12 + "px";
+    container.style.bottom = "";
+  } else {
+    // Desktop: keep at bottom-right
+    container.style.top = "";
+    container.style.bottom = "1rem";
+  }
+}
+
 function showToast(message, type = "success") {
   // Check if there's an existing toast container
   let toastContainer = document.getElementById("favourite-toast-container");
   if (!toastContainer) {
     toastContainer = document.createElement("div");
     toastContainer.id = "favourite-toast-container";
-    toastContainer.className = "fixed right-4 z-50 flex flex-col gap-2";
+    toastContainer.className =
+      "fixed right-4 sm:right-5 z-50 flex flex-col gap-2";
     document.body.appendChild(toastContainer);
   }
-  toastContainer.classList.add("bottom-4");
+  _positionToastContainer(toastContainer);
 
   const normalizedType =
     type === "success" || type === "warning" || type === "error"
@@ -1780,7 +2430,7 @@ function showToast(message, type = "success") {
     toast.id = toastId;
     toast.setAttribute("role", "alert");
     toast.className =
-      "relative overflow-visible flex items-center w-full max-w-xs p-4 pr-10 mb-4 text-gray-900 bg-white rounded-lg shadow-lg dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
+      "relative flex items-center w-full max-w-xs p-4 mb-4 text-gray-900 bg-white rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_4px_20px_rgba(0,0,0,0.18),0_1px_6px_rgba(0,0,0,0.12)] dark:text-white dark:bg-gray-800 transform transition-all duration-300 ease-out opacity-0 translate-y-4";
     toast.innerHTML = `
       <div class="${iconWrapperClass}">
         <svg class="w-5 h-5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
@@ -1788,14 +2438,14 @@ function showToast(message, type = "success") {
         </svg>
         <span class="sr-only">${isSuccess ? "Check icon" : isWarning ? "Warning icon" : "Error icon"}</span>
       </div>
-      <div class="ms-3 text-sm font-medium transition-all duration-200">${message}</div>
+      <div class="ms-3 flex-1 min-w-0 text-sm font-medium transition-all duration-200">${message}</div>
     `;
 
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.setAttribute("aria-label", "Close");
     closeBtn.className =
-      "absolute -right-3 -top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-900 shadow-md hover-bg btn-press border border-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-700 cursor-pointer";
+      "absolute -top-3.5 -right-3.5 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white transition-colors cursor-pointer";
     closeBtn.innerHTML =
       '<svg class="h-4 w-4" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18 18 6M6 6l12 12"/></svg>';
     closeBtn.addEventListener("click", (e) => {
@@ -2098,33 +2748,6 @@ function checkIfFavouritesListEmpty() {
 function initEmailVerificationBanner() {
   const banner = document.getElementById("email-verification-banner");
   if (!banner) return;
-
-  // Use a user-specific dismiss key so dismissing as user A
-  // doesn't hide the banner for a newly-registered user B.
-  const userId = banner.dataset.userId || "";
-  const dismissKey = `email_verified_dismiss_${userId}`;
-
-  // Clean up legacy non-user-specific key
-  sessionStorage.removeItem("email_verified_dismiss");
-
-  // If already dismissed this browser session, hide immediately
-  if (sessionStorage.getItem(dismissKey) === "1") {
-    banner.style.display = "none";
-    return;
-  }
-
-  // Dismiss button – hide banner for this browser session
-  const dismissBtn = document.getElementById("dismiss-verification-banner");
-  if (dismissBtn) {
-    dismissBtn.addEventListener("click", () => {
-      banner.style.transition = "opacity .2s ease, max-height .3s ease";
-      banner.style.opacity = "0";
-      banner.style.maxHeight = "0";
-      banner.style.overflow = "hidden";
-      sessionStorage.setItem(dismissKey, "1");
-      setTimeout(() => banner.remove(), 300);
-    });
-  }
 
   // Resend button – POST to resend endpoint
   const resendBtn = document.getElementById("resend-verification-btn");

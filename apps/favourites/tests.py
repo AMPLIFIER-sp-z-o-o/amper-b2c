@@ -11,21 +11,19 @@ Tests cover:
 """
 
 from decimal import Decimal
-from unittest.mock import Mock, patch
 
 import pytest
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.backends.db import SessionStore
 from django.db import IntegrityError
-from django.test import Client, TestCase, RequestFactory
+from django.test import Client, RequestFactory, TestCase
 from django.urls import reverse
 
 from apps.cart.models import Cart, CartLine
 from apps.catalog.models import Category, Product
 from apps.favourites.models import WishList, WishListItem
 from apps.favourites.signals import merge_anonymous_wishlists_on_login
-
 
 User = get_user_model()
 
@@ -34,33 +32,23 @@ User = get_user_model()
 # MODEL TESTS
 # ============================================
 
+
 class TestWishListModel(TestCase):
     """Tests for WishList model."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="test@example.com",
-            email="test@example.com",
-            password="testpass123"
+            username="test@example.com", email="test@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Test Category",
-            slug="test-category"
-        )
+        cls.category = Category.objects.create(name="Test Category", slug="test-category")
         cls.product = Product.objects.create(
-            name="Test Product",
-            slug="test-product",
-            price=Decimal("99.99"),
-            category=cls.category
+            name="Test Product", slug="test-product", price=Decimal("99.99"), category=cls.category
         )
 
     def test_create_user_wishlist(self):
         """Test creating a wishlist for authenticated user."""
-        wishlist = WishList.objects.create(
-            user=self.user,
-            name="My Wishlist"
-        )
+        wishlist = WishList.objects.create(user=self.user, name="My Wishlist")
         assert wishlist.user == self.user
         assert wishlist.name == "My Wishlist"
         assert wishlist.is_default is False
@@ -69,29 +57,18 @@ class TestWishListModel(TestCase):
     def test_create_anonymous_wishlist(self):
         """Test creating a wishlist for anonymous user."""
         session_key = "test-session-123"
-        wishlist = WishList.objects.create(
-            session_key=session_key,
-            name="Anonymous Wishlist"
-        )
+        wishlist = WishList.objects.create(session_key=session_key, name="Anonymous Wishlist")
         assert wishlist.user is None
         assert wishlist.session_key == session_key
         assert wishlist.name == "Anonymous Wishlist"
 
     def test_default_wishlist_uniqueness_per_user(self):
         """Test that only one default wishlist per user is allowed."""
-        WishList.objects.create(
-            user=self.user,
-            name="Default",
-            is_default=True
-        )
+        WishList.objects.create(user=self.user, name="Default", is_default=True)
         # Creating another default wishlist should set the first to non-default
         # or rely on the constraint
         with pytest.raises(Exception):
-            WishList.objects.create(
-                user=self.user,
-                name="Another Default",
-                is_default=True
-            )
+            WishList.objects.create(user=self.user, name="Another Default", is_default=True)
 
     def test_get_or_create_default_for_user(self):
         """Test get_or_create_default creates default wishlist."""
@@ -113,10 +90,7 @@ class TestWishListModel(TestCase):
 
     def test_wishlist_str(self):
         """Test wishlist string representation."""
-        wishlist = WishList.objects.create(
-            user=self.user,
-            name="My Favourites"
-        )
+        wishlist = WishList.objects.create(user=self.user, name="My Favourites")
         # __str__ includes owner info
         assert "My Favourites" in str(wishlist)
 
@@ -125,11 +99,7 @@ class TestWishListModel(TestCase):
         wishlist = WishList.objects.create(user=self.user, name="Test")
         assert wishlist.product_count == 0
 
-        WishListItem.objects.create(
-            wishlist=wishlist,
-            product=self.product,
-            price_when_added=self.product.price
-        )
+        WishListItem.objects.create(wishlist=wishlist, product=self.product, price_when_added=self.product.price)
         # Refresh to get updated count
         wishlist.refresh_from_db()
         assert wishlist.product_count == 1
@@ -141,32 +111,22 @@ class TestWishListItemModel(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="testitem@example.com",
-            email="testitem@example.com",
-            password="testpass123"
+            username="testitem@example.com", email="testitem@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Item Category",
-            slug="item-category"
-        )
+        cls.category = Category.objects.create(name="Item Category", slug="item-category")
         cls.product = Product.objects.create(
             name="Item Product",
             slug="item-product",
             price=Decimal("49.99"),
             category=cls.category,
-            stock=10  # In stock for is_available test
+            stock=10,  # In stock for is_available test
         )
-        cls.wishlist = WishList.objects.create(
-            user=cls.user,
-            name="Test Wishlist"
-        )
+        cls.wishlist = WishList.objects.create(user=cls.user, name="Test Wishlist")
 
     def test_create_wishlist_item(self):
         """Test creating a wishlist item."""
         item = WishListItem.objects.create(
-            wishlist=self.wishlist,
-            product=self.product,
-            price_when_added=Decimal("49.99")
+            wishlist=self.wishlist, product=self.product, price_when_added=Decimal("49.99")
         )
         assert item.product == self.product
         assert item.price_when_added == Decimal("49.99")
@@ -175,9 +135,7 @@ class TestWishListItemModel(TestCase):
     def test_price_changed_property(self):
         """Test price_changed property detects price changes."""
         item = WishListItem.objects.create(
-            wishlist=self.wishlist,
-            product=self.product,
-            price_when_added=Decimal("49.99")
+            wishlist=self.wishlist, product=self.product, price_when_added=Decimal("49.99")
         )
         assert item.price_changed is False
 
@@ -189,16 +147,10 @@ class TestWishListItemModel(TestCase):
 
     def test_unique_product_per_wishlist(self):
         """Test that same product cannot be added twice to same wishlist."""
-        WishListItem.objects.create(
-            wishlist=self.wishlist,
-            product=self.product,
-            price_when_added=self.product.price
-        )
+        WishListItem.objects.create(wishlist=self.wishlist, product=self.product, price_when_added=self.product.price)
         with pytest.raises(Exception):
             WishListItem.objects.create(
-                wishlist=self.wishlist,
-                product=self.product,
-                price_when_added=self.product.price
+                wishlist=self.wishlist, product=self.product, price_when_added=self.product.price
             )
 
 
@@ -208,47 +160,24 @@ class TestWishListMerge(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="merge@example.com",
-            email="merge@example.com",
-            password="testpass123"
+            username="merge@example.com", email="merge@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Merge Category",
-            slug="merge-category"
-        )
+        cls.category = Category.objects.create(name="Merge Category", slug="merge-category")
         cls.product1 = Product.objects.create(
-            name="Merge Product 1",
-            slug="merge-product-1",
-            price=Decimal("10.00"),
-            category=cls.category
+            name="Merge Product 1", slug="merge-product-1", price=Decimal("10.00"), category=cls.category
         )
         cls.product2 = Product.objects.create(
-            name="Merge Product 2",
-            slug="merge-product-2",
-            price=Decimal("20.00"),
-            category=cls.category
+            name="Merge Product 2", slug="merge-product-2", price=Decimal("20.00"), category=cls.category
         )
 
     def test_merge_anonymous_wishlists(self):
         """Test merging anonymous wishlists to user account."""
         session_key = "merge-test-session"
-        
+
         # Create anonymous wishlist with items
-        anon_wishlist = WishList.objects.create(
-            session_key=session_key,
-            name="Ulubione",
-            is_default=True
-        )
-        WishListItem.objects.create(
-            wishlist=anon_wishlist,
-            product=self.product1,
-            price_when_added=self.product1.price
-        )
-        WishListItem.objects.create(
-            wishlist=anon_wishlist,
-            product=self.product2,
-            price_when_added=self.product2.price
-        )
+        anon_wishlist = WishList.objects.create(session_key=session_key, name="Ulubione", is_default=True)
+        WishListItem.objects.create(wishlist=anon_wishlist, product=self.product1, price_when_added=self.product1.price)
+        WishListItem.objects.create(wishlist=anon_wishlist, product=self.product2, price_when_added=self.product2.price)
 
         # Merge to user
         WishList.merge_anonymous_wishlists(self.user, session_key)
@@ -266,28 +195,16 @@ class TestWishListMerge(TestCase):
 
         # Create user's default wishlist with product1
         user_wishlist = WishList.get_or_create_default(user=self.user)
-        WishListItem.objects.create(
-            wishlist=user_wishlist,
-            product=self.product1,
-            price_when_added=self.product1.price
-        )
+        WishListItem.objects.create(wishlist=user_wishlist, product=self.product1, price_when_added=self.product1.price)
 
         # Create anonymous wishlist with product2 (and product1 - duplicate)
-        anon_wishlist = WishList.objects.create(
-            session_key=session_key,
-            name="Ulubione",
-            is_default=True
-        )
+        anon_wishlist = WishList.objects.create(session_key=session_key, name="Ulubione", is_default=True)
         WishListItem.objects.create(
             wishlist=anon_wishlist,
             product=self.product1,  # Duplicate
-            price_when_added=self.product1.price
+            price_when_added=self.product1.price,
         )
-        WishListItem.objects.create(
-            wishlist=anon_wishlist,
-            product=self.product2,
-            price_when_added=self.product2.price
-        )
+        WishListItem.objects.create(wishlist=anon_wishlist, product=self.product2, price_when_added=self.product2.price)
 
         # Merge
         WishList.merge_anonymous_wishlists(self.user, session_key)
@@ -327,15 +244,14 @@ class TestWishListMerge(TestCase):
 # VIEW TESTS
 # ============================================
 
+
 class TestFavouritesPageView(TestCase):
     """Tests for favourites page view."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="pageview@example.com",
-            email="pageview@example.com",
-            password="testpass123"
+            username="pageview@example.com", email="pageview@example.com", password="testpass123"
         )
 
     def test_favourites_page_anonymous(self):
@@ -359,28 +275,17 @@ class TestToggleFavouriteView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="toggle@example.com",
-            email="toggle@example.com",
-            password="testpass123"
+            username="toggle@example.com", email="toggle@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Toggle Category",
-            slug="toggle-category"
-        )
+        cls.category = Category.objects.create(name="Toggle Category", slug="toggle-category")
         cls.product = Product.objects.create(
-            name="Toggle Product",
-            slug="toggle-product",
-            price=Decimal("15.00"),
-            category=cls.category
+            name="Toggle Product", slug="toggle-product", price=Decimal("15.00"), category=cls.category
         )
 
     def test_toggle_add_favourite_anonymous(self):
         """Test anonymous user can add product to favourites."""
         client = Client()
-        response = client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": self.product.id}
-        )
+        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
@@ -389,15 +294,9 @@ class TestToggleFavouriteView(TestCase):
         """Test anonymous user can remove product from favourites."""
         client = Client()
         # First add
-        client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": self.product.id}
-        )
+        client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
         # Then remove
-        response = client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": self.product.id}
-        )
+        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "removed"
@@ -406,11 +305,8 @@ class TestToggleFavouriteView(TestCase):
         """Test authenticated user can toggle favourite."""
         client = Client()
         client.login(username="toggle@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": self.product.id}
-        )
+
+        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
@@ -422,10 +318,7 @@ class TestToggleFavouriteView(TestCase):
     def test_toggle_invalid_product(self):
         """Test toggle with invalid product ID."""
         client = Client()
-        response = client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": 99999}
-        )
+        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": 99999})
         assert response.status_code == 404
 
 
@@ -435,22 +328,17 @@ class TestCreateWishlistView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="create@example.com",
-            email="create@example.com",
-            password="testpass123"
+            username="create@example.com", email="create@example.com", password="testpass123"
         )
 
     def test_create_wishlist_authenticated(self):
         """Test creating a custom wishlist."""
         client = Client()
         client.login(username="create@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:create_wishlist"),
-            {"name": "My Custom List"}
-        )
+
+        response = client.post(reverse("favourites:create_wishlist"), {"name": "My Custom List"})
         assert response.status_code == 302  # Redirect on success
-        
+
         wishlist = WishList.objects.get(user=self.user, name="My Custom List")
         assert wishlist.is_default is False
 
@@ -458,11 +346,8 @@ class TestCreateWishlistView(TestCase):
         """Test creating wishlist with empty name fails."""
         client = Client()
         client.login(username="create@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:create_wishlist"),
-            {"name": ""}
-        )
+
+        response = client.post(reverse("favourites:create_wishlist"), {"name": ""})
         # Should redirect with error or show error
         assert response.status_code in [302, 400]
 
@@ -473,38 +358,28 @@ class TestDeleteWishlistView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="delete@example.com",
-            email="delete@example.com",
-            password="testpass123"
+            username="delete@example.com", email="delete@example.com", password="testpass123"
         )
 
     def test_delete_custom_wishlist(self):
         """Test deleting a custom wishlist."""
-        wishlist = WishList.objects.create(
-            user=self.user,
-            name="To Delete",
-            is_default=False
-        )
-        
+        wishlist = WishList.objects.create(user=self.user, name="To Delete", is_default=False)
+
         client = Client()
         client.login(username="delete@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:delete_wishlist", args=[wishlist.pk])
-        )
+
+        response = client.post(reverse("favourites:delete_wishlist", args=[wishlist.pk]))
         assert response.status_code == 302  # Redirect on success
         assert not WishList.objects.filter(pk=wishlist.pk).exists()
 
     def test_can_delete_default_wishlist(self):
         """Test that default wishlist can be deleted."""
         wishlist = WishList.get_or_create_default(user=self.user)
-        
+
         client = Client()
         client.login(username="delete@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:delete_wishlist", args=[wishlist.pk])
-        )
+
+        response = client.post(reverse("favourites:delete_wishlist", args=[wishlist.pk]))
         # Default wishlist should be deleted successfully
         assert response.status_code == 302
         assert not WishList.objects.filter(pk=wishlist.pk).exists()
@@ -516,34 +391,22 @@ class TestAddToWishlistView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="addto@example.com",
-            email="addto@example.com",
-            password="testpass123"
+            username="addto@example.com", email="addto@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="AddTo Category",
-            slug="addto-category"
-        )
+        cls.category = Category.objects.create(name="AddTo Category", slug="addto-category")
         cls.product = Product.objects.create(
-            name="AddTo Product",
-            slug="addto-product",
-            price=Decimal("25.00"),
-            category=cls.category
+            name="AddTo Product", slug="addto-product", price=Decimal("25.00"), category=cls.category
         )
 
     def test_add_to_specific_wishlist(self):
         """Test adding product to a specific wishlist."""
-        wishlist = WishList.objects.create(
-            user=self.user,
-            name="Specific List"
-        )
-        
+        wishlist = WishList.objects.create(user=self.user, name="Specific List")
+
         client = Client()
         client.login(username="addto@example.com", password="testpass123")
-        
+
         response = client.post(
-            reverse("favourites:add_to_wishlist"),
-            {"product_id": self.product.id, "wishlist_id": wishlist.id}
+            reverse("favourites:add_to_wishlist"), {"product_id": self.product.id, "wishlist_id": wishlist.id}
         )
         assert response.status_code == 200
         assert wishlist.items.filter(product=self.product).exists()
@@ -555,28 +418,17 @@ class TestCheckProductStatusView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="status@example.com",
-            email="status@example.com",
-            password="testpass123"
+            username="status@example.com", email="status@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Status Category",
-            slug="status-category"
-        )
+        cls.category = Category.objects.create(name="Status Category", slug="status-category")
         cls.product = Product.objects.create(
-            name="Status Product",
-            slug="status-product",
-            price=Decimal("30.00"),
-            category=cls.category
+            name="Status Product", slug="status-product", price=Decimal("30.00"), category=cls.category
         )
 
     def test_check_status_no_favourites(self):
         """Test status check when product is not in favourites."""
         client = Client()
-        response = client.get(
-            reverse("favourites:check_product_status"),
-            {"product_ids": str(self.product.id)}
-        )
+        response = client.get(reverse("favourites:check_product_status"), {"product_ids": str(self.product.id)})
         assert response.status_code == 200
         data = response.json()
         # status is a dict mapping product_id -> list of wishlist_ids
@@ -587,19 +439,12 @@ class TestCheckProductStatusView(TestCase):
         """Test status check when product is in favourites."""
         client = Client()
         client.login(username="status@example.com", password="testpass123")
-        
+
         # Add to favourites
         wishlist = WishList.get_or_create_default(user=self.user)
-        WishListItem.objects.create(
-            wishlist=wishlist,
-            product=self.product,
-            price_when_added=self.product.price
-        )
-        
-        response = client.get(
-            reverse("favourites:check_product_status"),
-            {"product_ids": str(self.product.id)}
-        )
+        WishListItem.objects.create(wishlist=wishlist, product=self.product, price_when_added=self.product.price)
+
+        response = client.get(reverse("favourites:check_product_status"), {"product_ids": str(self.product.id)})
         assert response.status_code == 200
         data = response.json()
         # status is a dict mapping product_id -> list of wishlist_ids
@@ -614,40 +459,25 @@ class TestMoveItemView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="move@example.com",
-            email="move@example.com",
-            password="testpass123"
+            username="move@example.com", email="move@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Move Category",
-            slug="move-category"
-        )
+        cls.category = Category.objects.create(name="Move Category", slug="move-category")
         cls.product = Product.objects.create(
-            name="Move Product",
-            slug="move-product",
-            price=Decimal("35.00"),
-            category=cls.category
+            name="Move Product", slug="move-product", price=Decimal("35.00"), category=cls.category
         )
 
     def test_move_item_between_wishlists(self):
         """Test moving item from one wishlist to another."""
         source = WishList.objects.create(user=self.user, name="Source")
         target = WishList.objects.create(user=self.user, name="Target")
-        item = WishListItem.objects.create(
-            wishlist=source,
-            product=self.product,
-            price_when_added=self.product.price
-        )
-        
+        item = WishListItem.objects.create(wishlist=source, product=self.product, price_when_added=self.product.price)
+
         client = Client()
         client.login(username="move@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:move_item"),
-            {"item_id": item.id, "target_wishlist_id": target.id}
-        )
+
+        response = client.post(reverse("favourites:move_item"), {"item_id": item.id, "target_wishlist_id": target.id})
         assert response.status_code == 200
-        
+
         # Item should be in target, not source
         assert not source.items.filter(product=self.product).exists()
         assert target.items.filter(product=self.product).exists()
@@ -659,37 +489,22 @@ class TestAddAllToCartView(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="cart@example.com",
-            email="cart@example.com",
-            password="testpass123"
+            username="cart@example.com", email="cart@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Cart Category",
-            slug="cart-category"
-        )
+        cls.category = Category.objects.create(name="Cart Category", slug="cart-category")
         cls.product = Product.objects.create(
-            name="Cart Product",
-            slug="cart-product",
-            price=Decimal("40.00"),
-            category=cls.category
+            name="Cart Product", slug="cart-product", price=Decimal("40.00"), category=cls.category
         )
 
     def test_add_all_to_cart(self):
         """Test adding all wishlist items to cart."""
         wishlist = WishList.get_or_create_default(user=self.user)
-        WishListItem.objects.create(
-            wishlist=wishlist,
-            product=self.product,
-            price_when_added=self.product.price
-        )
-        
+        WishListItem.objects.create(wishlist=wishlist, product=self.product, price_when_added=self.product.price)
+
         client = Client()
         client.login(username="cart@example.com", password="testpass123")
-        
-        response = client.post(
-            reverse("favourites:add_all_to_cart"),
-            {"wishlist_id": wishlist.id}
-        )
+
+        response = client.post(reverse("favourites:add_all_to_cart"), {"wishlist_id": wishlist.id})
         assert response.status_code == 200
         # Note: Actual cart functionality depends on cart app implementation
 
@@ -698,47 +513,37 @@ class TestAddAllToCartView(TestCase):
 # SIGNAL TESTS
 # ============================================
 
+
 class TestMergeOnLoginSignal(TestCase):
     """Tests for automatic merge on user login."""
 
     @classmethod
     def setUpTestData(cls):
         cls.user = User.objects.create_user(
-            username="signal@example.com",
-            email="signal@example.com",
-            password="testpass123"
+            username="signal@example.com", email="signal@example.com", password="testpass123"
         )
-        cls.category = Category.objects.create(
-            name="Signal Category",
-            slug="signal-category"
-        )
+        cls.category = Category.objects.create(name="Signal Category", slug="signal-category")
         cls.product = Product.objects.create(
-            name="Signal Product",
-            slug="signal-product",
-            price=Decimal("50.00"),
-            category=cls.category
+            name="Signal Product", slug="signal-product", price=Decimal("50.00"), category=cls.category
         )
 
     def test_merge_on_login(self):
         """Test that anonymous wishlists are merged on login."""
         client = Client()
-        
+
         # Add product as anonymous user
-        response = client.post(
-            reverse("favourites:toggle_favourite"),
-            {"product_id": self.product.id}
-        )
+        response = client.post(reverse("favourites:toggle_favourite"), {"product_id": self.product.id})
         assert response.status_code == 200
-        
+
         # Get the session key
         session_key = client.session.session_key
-        
+
         # Verify anonymous wishlist exists
         assert WishList.objects.filter(session_key=session_key).exists()
-        
+
         # Login
         client.login(username="signal@example.com", password="testpass123")
-        
+
         # Verify product is now in user's wishlist
         user_wishlist = WishList.objects.filter(user=self.user, is_default=True).first()
         if user_wishlist:
@@ -1557,16 +1362,14 @@ class TestShareIdGeneration(TestCase):
 
     def test_share_id_is_unique(self):
         """Test that each wishlist gets a unique share_id."""
-        wishlists = [
-            WishList.objects.create(user=self.user, name=f"List {i}")
-            for i in range(10)
-        ]
+        wishlists = [WishList.objects.create(user=self.user, name=f"List {i}") for i in range(10)]
         share_ids = [wl.share_id for wl in wishlists]
         assert len(set(share_ids)) == 10
 
     def test_share_id_alphanumeric_lowercase(self):
         """Test that share_id contains only lowercase letters and digits."""
         import string
+
         allowed = set(string.ascii_lowercase + string.digits)
         wishlist = WishList.objects.create(user=self.user, name="Chars Test")
         assert all(c in allowed for c in wishlist.share_id)
@@ -1597,9 +1400,7 @@ class TestShareIdInViews(TestCase):
             email="shareidview@example.com",
             password="testpass123",
         )
-        cls.category = Category.objects.create(
-            name="ShareId Category", slug="shareid-category"
-        )
+        cls.category = Category.objects.create(name="ShareId Category", slug="shareid-category")
         cls.product = Product.objects.create(
             name="ShareId Product",
             slug="shareid-product",
@@ -1716,9 +1517,7 @@ class TestBulkRemoveView(TestCase):
             email="bulkremove@example.com",
             password="testpass123",
         )
-        cls.category = Category.objects.create(
-            name="BulkRemove Category", slug="bulkremove-category"
-        )
+        cls.category = Category.objects.create(name="BulkRemove Category", slug="bulkremove-category")
         cls.product_1 = Product.objects.create(
             name="BulkRemove Product 1",
             slug="bulkremove-product-1",
@@ -1768,9 +1567,7 @@ class TestCopyItemsView(TestCase):
             email="copyitems@example.com",
             password="testpass123",
         )
-        cls.category = Category.objects.create(
-            name="CopyItems Category", slug="copyitems-category"
-        )
+        cls.category = Category.objects.create(name="CopyItems Category", slug="copyitems-category")
         cls.product_1 = Product.objects.create(
             name="CopyItems Product 1",
             slug="copyitems-product-1",
@@ -1813,9 +1610,7 @@ class TestCopyItemsView(TestCase):
             wishlist=source, product=self.product_1, price_when_added=self.product_1.price
         )
         # Already in target
-        WishListItem.objects.create(
-            wishlist=target, product=self.product_1, price_when_added=self.product_1.price
-        )
+        WishListItem.objects.create(wishlist=target, product=self.product_1, price_when_added=self.product_1.price)
 
         client = Client()
         client.login(username="copyitems@example.com", password="testpass123")
@@ -1832,4 +1627,3 @@ class TestCopyItemsView(TestCase):
         client.login(username="copyitems@example.com", password="testpass123")
         response = client.post(reverse("favourites:copy_items"), {})
         assert response.status_code == 400
-

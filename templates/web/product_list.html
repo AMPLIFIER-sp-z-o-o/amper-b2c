@@ -4,7 +4,14 @@
 {% block hero_banner %}{% endblock %}
 
 {% block extra_head %}
+<script>(function(){
+  var vm=localStorage.getItem('product_view_mode');
+  if(!vm&&window.innerWidth<640)vm='grid';
+  if(vm==='grid')document.documentElement.classList.add('pv-grid');
+})();</script>
 <style>
+  html.pv-grid .view-list{display:none!important;}
+  html.pv-grid .view-grid{display:grid!important;}
   /* Breadcrumb dropdown transition and persistent active state */
   .breadcrumb-item-container.is-open {
     background-color: rgb(243 244 246); /* bg-gray-100 */

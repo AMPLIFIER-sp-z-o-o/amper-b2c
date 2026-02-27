@@ -314,6 +314,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "hijack.middleware.HijackUserMiddleware",
+    "apps.web.middleware.soft_nav.SoftNavResponseMiddleware",
 ]
 
 MESSAGE_STORAGE = "apps.support.message_storage.AdminScopedFallbackStorage"

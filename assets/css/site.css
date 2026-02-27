@@ -6,6 +6,8 @@
 @source "../../templates";
 @config "../../tailwind.config.js";
 
+/* Font faces are provided by static/css/fonts.css loaded in base.html. */
+
 /* Prevent FOUC - hide Alpine elements until initialized */
 [x-cloak] {
   display: none !important;
@@ -23,36 +25,87 @@ input[type="checkbox"]:checked {
 /* Global smooth transitions for interactive elements */
 a,
 button,
+label[for],
+label.option-item,
 input,
 select,
 textarea {
   transition-property:
-    color, background-color, border-color, opacity, box-shadow;
+    color, background-color, border-color, opacity, box-shadow, transform;
   transition-duration: 150ms;
   transition-timing-function: ease-in-out;
+}
+
+/* ==============================================
+   Global Press Feedback (Scale on Active)
+   Default: full scale() for tactile press effect.
+   Excluded: disabled/loading states.
+   ============================================== */
+button:not(:disabled):not(.btn-loading):active,
+a:active,
+label[for]:active,
+label.option-item:active,
+[role="button"]:not([aria-disabled="true"]):active {
+  transform: scale(0.95);
+  transition-property:
+    color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: 60ms;
+  transition-timing-function: ease-in;
+}
+
+/* Wide option rows scale slightly less aggressively */
+label.option-item:active {
+  transform: scale(0.97);
+}
+
+/*
+ * No-drift press feedback for full-width rows with split layout (text on one side,
+ * icon/meta on the other). Scaling the whole row shifts one side horizontally,
+ * so we keep the container fixed and scale only its direct children.
+ */
+:is(button, a, label[for], [role="button"]).w-full.justify-between:active {
+  transform: none;
+}
+
+:is(button, a, label[for], [role="button"]).w-full.justify-between > * {
+  scale: 1;
+  transform-origin: center;
+  transition-property: transform, scale;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+:is(button, a, label[for], [role="button"]).w-full.justify-between:active > * {
+  scale: 0.95;
+  transition-duration: 60ms;
+  transition-timing-function: ease-in;
 }
 
 /*
  * Extend clickable hit area around button-like controls without changing visuals.
  * This helps edge clicks land reliably when controls have rounded corners/rings.
+ * Placed inside @layer components so Tailwind utility classes (absolute, fixed, etc.)
+ * can override position when needed.
  */
-button,
-a[data-nav-loading-btn],
-a.btn-press,
-a.add-to-cart-btn,
-a.remove-cart-line {
-  position: relative;
-}
+@layer components {
+  button,
+  a[data-nav-loading-btn],
+  a.btn-press,
+  a.add-to-cart-btn,
+  a.remove-cart-line {
+    position: relative;
+  }
 
-button::after,
-a[data-nav-loading-btn]::after,
-a.btn-press::after,
-a.add-to-cart-btn::after,
-a.remove-cart-line::after {
-  content: "";
-  position: absolute;
-  inset: -4px;
-  border-radius: inherit;
+  button::after,
+  a[data-nav-loading-btn]::after,
+  a.btn-press::after,
+  a.add-to-cart-btn::after,
+  a.remove-cart-line::after {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+  }
 }
 
 html {
@@ -60,8 +113,8 @@ html {
 }
 
 @theme {
-  --font-sans: "Montserrat", "sans-serif";
-  --font-body: "Montserrat", "sans-serif";
+  --font-sans: "MontserratFixed", "Montserrat", "sans-serif";
+  --font-body: "MontserratFixed", "Montserrat", "sans-serif";
   --control-surface-bg: #eceff3;
   --font-mono:
     "ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "Consolas",
@@ -199,17 +252,15 @@ select.bg-gray-100:focus,
 
 @keyframes orderFlowEnter {
   from {
-    opacity: 0;
     transform: translateY(8px);
   }
   to {
-    opacity: 1;
     transform: translateY(0);
   }
 }
 
 .order-flow-enter {
-  animation: orderFlowEnter 220ms ease-out both;
+  animation: orderFlowEnter 200ms ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -455,10 +506,10 @@ button[disabled]:hover,
     transform: scale(1);
   }
   30% {
-    transform: scale(1.25);
+    transform: scale(1.08);
   }
   60% {
-    transform: scale(0.95);
+    transform: scale(0.98);
   }
   100% {
     transform: scale(1);
@@ -499,4 +550,34 @@ button[disabled]:hover,
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+}
+
+/* Soft-nav top progress bar */
+#soft-nav-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #3b82f6, #6366f1);
+  z-index: 10000;
+  opacity: 0;
+  transition:
+    width 0.4s ease-out,
+    opacity 0.2s ease;
+  pointer-events: none;
+}
+#soft-nav-progress.snp-loading {
+  opacity: 1;
+  width: 70%;
+  transition:
+    width 2s ease-out,
+    opacity 0.1s ease;
+}
+#soft-nav-progress.snp-done {
+  opacity: 0;
+  width: 100%;
+  transition:
+    width 0.15s ease,
+    opacity 0.3s ease 0.15s;
 }

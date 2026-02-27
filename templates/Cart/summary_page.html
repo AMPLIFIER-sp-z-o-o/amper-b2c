@@ -6,7 +6,12 @@
 {% block body %}
 
 <section id="order-summary-page" class="bg-gray-100 pt-4 pb-4 antialiased dark:bg-gray-900 md:pt-8 md:pb-6">
-  <form action="{% url 'orders:place' %}" method="post" class="max-w-7xl mx-auto px-2">
+  <form action="{% url 'orders:place' %}" method="post" class="max-w-7xl mx-auto px-2"
+        hx-post="{% url 'orders:place' %}"
+        hx-target="#page-content-wrapper"
+        hx-select="#page-content"
+        hx-swap="innerHTML"
+        hx-push-url="true">
   {% csrf_token %}
     {% include "Cart/includes/cart_stepper.html" with active_step="summary" %}
     <h2 class="mt-8 flex items-center gap-3 text-xl font-bold tracking-tight text-gray-900 dark:text-white sm:mt-12 sm:text-2xl">
@@ -34,12 +39,12 @@
 
           <div class="min-w-0 flex-1">
             <a href="{{ line.product.get_absolute_url }}"
-               class="block font-medium text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word"
+               class="block text-base font-bold text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word"
                title="{{ line.product.name }}">{{ line.product.name }}</a>
           </div>
 
           <div class="flex shrink-0 items-center gap-6">
-            <p class="text-sm font-normal text-gray-900 dark:text-white">x{{ line.quantity }}</p>
+            <p class="text-sm font-medium text-gray-900 dark:text-white">x{{ line.quantity }}</p>
             <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}"
                class="w-24 text-right text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
           </div>
@@ -74,7 +79,13 @@
                 </svg>
               </button>
 
-              <a href="/cart/checkout/" class="btn-press flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
+              <a href="/cart/checkout/"
+                 hx-get="{% url 'cart:checkout_page' %}"
+                 hx-target="#page-content"
+                 hx-select="#page-content"
+                 hx-swap="outerHTML"
+                 hx-push-url="true"
+                 class="btn-press flex w-full items-center justify-center rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors cursor-pointer">
                 {% translate "Return to Checkout" %}
               </a>
 

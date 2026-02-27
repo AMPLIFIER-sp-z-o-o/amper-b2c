@@ -15,7 +15,9 @@ from apps.web.models import SiteSettings, SystemSettings
 from .models import Order
 
 
-def _send_email_sync(*, subject: str, body: str, from_email: str, recipient_list: list[str], html_message: str = "") -> None:
+def _send_email_sync(
+    *, subject: str, body: str, from_email: str, recipient_list: list[str], html_message: str = ""
+) -> None:
     """Send email synchronously using the configured Django backend."""
 
     connection = get_connection()
@@ -31,7 +33,9 @@ def _send_email_sync(*, subject: str, body: str, from_email: str, recipient_list
     message.send()
 
 
-def _build_and_send_order_confirmation_email(*, order_id: int, base_url: str, tracking_url: str, payment_url: str = "") -> None:
+def _build_and_send_order_confirmation_email(
+    *, order_id: int, base_url: str, tracking_url: str, payment_url: str = ""
+) -> None:
     """Prepare and send order confirmation email using configured dispatch mode."""
 
     try:

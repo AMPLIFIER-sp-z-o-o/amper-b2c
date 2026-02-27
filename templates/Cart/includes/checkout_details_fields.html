@@ -48,7 +48,7 @@
         required
       />
     </div>
-    <p class="mt-1 text-subtitle">{% translate "Makes it easier for the seller or courier to reach you. You don't need to re-enter the country code." %}</p>
+    <p class="mt-1 text-subtitle">{% translate "Makes it easier for the seller or courier to reach you." %}</p>
     {% if details_form.phone_number.errors %}
       <p class="mt-1 text-sm text-red-600 dark:text-red-300">{{ details_form.phone_number.errors|striptags }}</p>
     {% endif %}

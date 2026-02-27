@@ -217,7 +217,17 @@ def place_order(request: HttpRequest) -> HttpResponse:
             locked_coupon = Coupon.objects.select_for_update().filter(is_active=True, code__iexact=coupon_code).first()
 
             coupon_is_valid = True
-            if not locked_coupon or locked_coupon.valid_from and now < locked_coupon.valid_from or locked_coupon.valid_to and now > locked_coupon.valid_to or locked_coupon.usage_limit is not None and locked_coupon.used_count >= locked_coupon.usage_limit or locked_coupon.min_subtotal is not None and cart.subtotal < locked_coupon.min_subtotal:
+            if (
+                not locked_coupon
+                or locked_coupon.valid_from
+                and now < locked_coupon.valid_from
+                or locked_coupon.valid_to
+                and now > locked_coupon.valid_to
+                or locked_coupon.usage_limit is not None
+                and locked_coupon.used_count >= locked_coupon.usage_limit
+                or locked_coupon.min_subtotal is not None
+                and cart.subtotal < locked_coupon.min_subtotal
+            ):
                 coupon_is_valid = False
 
             if not coupon_is_valid:
@@ -333,9 +343,7 @@ def order_summary(request: HttpRequest, token: str) -> HttpResponse:
         except Exception:
             pass
 
-    user_order_number = (
-        Order.objects.filter(email__iexact=order.email, created_at__lte=order.created_at).count()
-    )
+    user_order_number = Order.objects.filter(email__iexact=order.email, created_at__lte=order.created_at).count()
 
     return render(
         request,

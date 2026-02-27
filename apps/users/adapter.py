@@ -176,6 +176,53 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
             return ""
 
     @staticmethod
+    def _is_local_base_url(url: str) -> bool:
+        """Return True for loopback/test hosts that should not leak into user emails."""
+        if not url:
+            return False
+        try:
+            parsed = urlparse(url)
+            host = (parsed.hostname or "").lower()
+        except Exception:
+            return False
+        return host in {"localhost", "127.0.0.1", "0.0.0.0", "::1", "testserver"}
+
+    def _get_request_base_url(self) -> str:
+        """Build absolute root URL from current request when available.
+
+        Reads from allauth's ContextVar-based request context (allauth ≥ 65).
+        """
+        try:
+            from allauth.core import context as allauth_context
+
+            request = allauth_context.request
+        except Exception:
+            request = None
+        if not request:
+            return ""
+        try:
+            return request.build_absolute_uri("/").rstrip("/")
+        except Exception:
+            return ""
+
+    def _resolve_email_base_url(self, site_url: str) -> str:
+        """Pick the best public URL for email links.
+
+        Prefer explicit non-local configuration. If config is local/test and
+        the current request host is public (qa/prod), use the request host.
+        """
+        configured_base_url = self._get_site_base_url(site_url)
+        request_base_url = self._get_request_base_url()
+
+        if configured_base_url and not self._is_local_base_url(configured_base_url):
+            return configured_base_url
+
+        if request_base_url and not self._is_local_base_url(request_base_url):
+            return request_base_url
+
+        return configured_base_url or request_base_url
+
+    @staticmethod
     def _is_absolute_url(url: str) -> bool:
         if not url:
             return False
@@ -215,7 +262,7 @@ class EmailAsUsernameAdapter(DefaultAccountAdapter):
             store_name = ""
 
         # Resolve the base URL (SiteSettings → django.contrib.sites fallback)
-        base_url = self._get_site_base_url(site_url)
+        base_url = self._resolve_email_base_url(site_url)
 
         # Email clients (Gmail, Outlook) do not support SVG images.
         # Fall back to text-only branding when the logo is SVG.
