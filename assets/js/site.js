@@ -1049,7 +1049,9 @@ document.addEventListener(
       const card = stretchedLink.closest("[data-product-card]");
       if (
         card &&
-        card.querySelector(".add-to-cart-btn[disabled], .add-to-cart-btn.btn-loading")
+        card.querySelector(
+          ".add-to-cart-btn[disabled], .add-to-cart-btn.btn-loading",
+        )
       ) {
         e.preventDefault();
         e.stopPropagation();
@@ -2306,10 +2308,7 @@ async function addToFavorites(productId, btn) {
       showToast(data.message || "Added to favorites", "success");
 
       if (isOnFavoritesPage() && data.wishlist_id) {
-        updateFavoritesSidebarCount(
-          data.wishlist_id,
-          data.wishlist_item_count,
-        );
+        updateFavoritesSidebarCount(data.wishlist_id, data.wishlist_item_count);
         updateFavoritesHeaderStats(
           data.wishlist_item_count,
           data.wishlist_total_value,
@@ -2390,10 +2389,7 @@ async function removeFromSpecificWishlist(productId, wishlistId, btn) {
     // Update favorites page UI if applicable
     if (isOnFavoritesPage()) {
       if (data.wishlist_id) {
-        updateFavoritesSidebarCount(
-          data.wishlist_id,
-          data.wishlist_item_count,
-        );
+        updateFavoritesSidebarCount(data.wishlist_id, data.wishlist_item_count);
         updateFavoritesHeaderStats(
           data.wishlist_item_count,
           data.wishlist_total_value,
@@ -2637,14 +2633,16 @@ function reexecutePageScripts() {
   // Re-execute every inline script in the restored page content.
   // Skip scripts that explicitly opt out (e.g. those that register persistent
   // document-level listeners and would double-bind if re-executed).
-  pageContent.querySelectorAll("script:not([src]):not([data-hist-no-reexec])").forEach((oldScript) => {
-    const newScript = document.createElement("script");
-    Array.from(oldScript.attributes).forEach((attr) =>
-      newScript.setAttribute(attr.name, attr.value),
-    );
-    newScript.textContent = oldScript.textContent;
-    oldScript.parentNode.replaceChild(newScript, oldScript);
-  });
+  pageContent
+    .querySelectorAll("script:not([src]):not([data-hist-no-reexec])")
+    .forEach((oldScript) => {
+      const newScript = document.createElement("script");
+      Array.from(oldScript.attributes).forEach((attr) =>
+        newScript.setAttribute(attr.name, attr.value),
+      );
+      newScript.textContent = oldScript.textContent;
+      oldScript.parentNode.replaceChild(newScript, oldScript);
+    });
 }
 
 // After HTMX history restoration reinitialise everything that was lost when the

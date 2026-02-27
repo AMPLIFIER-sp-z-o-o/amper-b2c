@@ -35,6 +35,8 @@ ENABLE_DEBUG_TOOLBAR = env.bool("ENABLE_DEBUG_TOOLBAR", default=False) and "test
 
 # Note: It is not recommended to set ALLOWED_HOSTS to "*" in production
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["*"])
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 
 # Application definition
