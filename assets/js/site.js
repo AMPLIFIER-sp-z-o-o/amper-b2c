@@ -1582,20 +1582,6 @@ function updateSignInLink() {
 window.updateSignInLink = updateSignInLink;
 
 // Re-format prices after HTMX swaps (for dynamic content)
-// Show top progress bar when a soft-nav page-change request begins
-document.addEventListener("htmx:beforeRequest", (event) => {
-  const targetId =
-    event.detail && event.detail.target && event.detail.target.id;
-  if (targetId === "page-content-wrapper") {
-    const snpBar = document.getElementById("soft-nav-progress");
-    if (snpBar) {
-      snpBar.classList.remove("snp-done", "snp-loading");
-      // Force reflow so width resets to 0 before animating
-      void snpBar.getBoundingClientRect();
-      snpBar.classList.add("snp-loading");
-    }
-  }
-});
 
 document.addEventListener("htmx:afterSwap", formatPrices);
 document.addEventListener("htmx:afterSwap", updateSignInLink);
@@ -1604,16 +1590,6 @@ document.addEventListener("htmx:pushedIntoHistory", updateSignInLink);
 // Update on browser back/forward navigation
 window.addEventListener("popstate", updateSignInLink);
 
-// Clean up stuck progress bar on browser back navigation (history cache restore)
-// or when a request is aborted by backward navigation.
-document.addEventListener("htmx:historyRestore", () => {
-  const snpBar = document.getElementById("soft-nav-progress");
-  if (snpBar) {
-    snpBar.classList.remove("snp-loading");
-    snpBar.classList.add("snp-done");
-    setTimeout(() => snpBar.classList.remove("snp-done"), 500);
-  }
-});
 document.addEventListener("htmx:afterSwap", (event) => {
   if (event.target && event.target.id === "products-container") {
     initCategoryRecommendedSlider();
@@ -1627,37 +1603,49 @@ document.addEventListener("htmx:afterSwap", (event) => {
     (event.target && event.target.id === "page-content-wrapper");
 
   if (isPageContentSwap) {
-    // Finish the progress bar
-    const snpBar = document.getElementById("soft-nav-progress");
-    if (snpBar) {
-      snpBar.classList.remove("snp-loading");
-      snpBar.classList.add("snp-done");
-      setTimeout(() => snpBar.classList.remove("snp-done"), 500);
-    }
-    // Re-apply entrance animation on every swap so page content fades in smoothly.
+    // Keep page-enter animation only in the order flow (cart/checkout/summary).
+    // For all other pages, remove it to avoid adding perceived navigation latency.
+    const isCartFlowPath = (path) => {
+      if (!path) return false;
+      return /(^|\/)cart(\/|$)/.test(path);
+    };
+
+    const resolveSwapPathname = () => {
+      const pathInfo = event?.detail?.pathInfo;
+      const candidate =
+        pathInfo?.finalRequestPath ||
+        pathInfo?.requestPath ||
+        event?.detail?.xhr?.responseURL ||
+        window.location.pathname;
+
+      try {
+        return new URL(candidate, window.location.origin).pathname;
+      } catch {
+        return window.location.pathname;
+      }
+    };
+
+    const shouldAnimateOrderFlow =
+      isCartFlowPath(resolveSwapPathname()) ||
+      isCartFlowPath(window.location.pathname);
+
     // Target the wrapper (stable element) rather than #page-content (the swapped-in element)
-    // because HTMX marks swapped-in elements with htmx-added and its settle phase clears
-    // ALL classes on those elements, wiping order-flow-enter before the animation can play.
-    // The wrapper only gets htmx-settling removed (via classList.remove), so order-flow-enter
-    // is preserved and the animation runs correctly.
+    // because HTMX may clear classes on swapped content during settle.
     const pw = document.getElementById("page-content-wrapper");
     if (pw) {
       pw.classList.remove("order-flow-enter");
-      void pw.offsetWidth;
-      pw.classList.add("order-flow-enter");
-      // Remove the class once the animation finishes so that the animation's
-      // `transform: translateY(0)` (kept by fill-mode:both) no longer creates a
-      // stacking context on this wrapper. Without this cleanup, every position:fixed
-      // modal inside page-content-wrapper is trapped in an isolated stacking context
-      // and cannot cover the navbar, and fixed-positioned backdrops are clipped to
-      // this wrapper instead of the full viewport.
-      pw.addEventListener(
-        "animationend",
-        () => {
-          pw.classList.remove("order-flow-enter");
-        },
-        { once: true },
-      );
+      if (shouldAnimateOrderFlow) {
+        void pw.offsetWidth;
+        pw.classList.add("order-flow-enter");
+        // Remove the class after animation to prevent transform-induced stacking context.
+        pw.addEventListener(
+          "animationend",
+          () => {
+            pw.classList.remove("order-flow-enter");
+          },
+          { once: true },
+        );
+      }
     }
 
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });

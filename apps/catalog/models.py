@@ -148,8 +148,9 @@ class Product(BaseModel):
         max_value_length = 25
         attrs = []
 
-        # Check if data was prefetched (tile_attributes_prefetch)
-        if hasattr(self, "_prefetched_objects_cache") and "tile_attributes_prefetch" in self._prefetched_objects_cache:
+        # Prefetch(..., to_attr="tile_attributes_prefetch") stores data directly
+        # on the model instance, not in _prefetched_objects_cache.
+        if hasattr(self, "tile_attributes_prefetch"):
             # Use prefetched data - already filtered and sorted
             attr_values = list(self.tile_attributes_prefetch)[:max_attrs]
         else:

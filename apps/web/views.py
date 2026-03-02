@@ -398,10 +398,13 @@ def search_suggestions(request):
     descendant_ids = None
     if category_id:
         try:
-            category = Category.objects.get(id=int(category_id))
-            descendant_ids = _get_descendant_category_ids(category)
-            products = products.filter(category_id__in=descendant_ids)
-        except (ValueError, Category.DoesNotExist):
+            selected_category_id = int(category_id)
+            category_children_map, all_categories_by_id = _build_category_children_map()
+            category = all_categories_by_id.get(selected_category_id)
+            if category:
+                descendant_ids = _get_descendant_category_ids_from_cache(category, category_children_map)
+                products = products.filter(category_id__in=descendant_ids)
+        except ValueError:
             pass
 
     # Search products by name
@@ -453,18 +456,9 @@ def search_results(request):
     if category_slug:
         try:
             search_category = Category.objects.get(slug=category_slug)
-            # Get all descendant category IDs (including the category itself)
-            descendant_ids = [search_category.id]
-
-            def get_all_children(cat):
-                children = list(cat.children.all())
-                all_children = children[:]
-                for child in children:
-                    all_children.extend(get_all_children(child))
-                return all_children
-
-            descendants = get_all_children(search_category)
-            descendant_ids.extend([d.id for d in descendants])
+            category_children_map, all_categories_by_id = _build_category_children_map()
+            hierarchy_category = all_categories_by_id.get(search_category.id, search_category)
+            descendant_ids = _get_descendant_category_ids_from_cache(hierarchy_category, category_children_map)
             products = products.filter(category_id__in=descendant_ids)
         except Category.DoesNotExist:
             search_category = None
@@ -552,11 +546,6 @@ def search_results(request):
         ),
     )
 
-    # Get total count before pagination
-    total_count = products.count()
-    if highlighted_product:
-        total_count += 1
-
     # Get per_page from request
     per_page_param = request.GET.get("per_page", "")
     try:
@@ -568,6 +557,10 @@ def search_results(request):
 
     # Pagination
     paginator = Paginator(products, per_page)
+    total_count = paginator.count
+    if highlighted_product:
+        total_count += 1
+
     page_number = request.GET.get("page", 1)
     try:
         products_page = paginator.page(page_number)
@@ -857,6 +850,21 @@ def _build_category_filter_tree(current_category=None):
         return list(Category.objects.filter(parent__isnull=True))
 
 
+def _build_category_filter_tree_from_cache(current_category, category_children_map):
+    """Build category filter tree using a pre-loaded hierarchy map."""
+    if current_category:
+        children = category_children_map.get(current_category.id, [])
+        if children:
+            return list(children)
+
+        if current_category.parent_id:
+            return list(category_children_map.get(current_category.parent_id, []))
+
+        return list(category_children_map.get(None, []))
+
+    return list(category_children_map.get(None, []))
+
+
 def _build_breadcrumb(category):
     """Build breadcrumb path from root to current category."""
     breadcrumb = []
@@ -870,6 +878,25 @@ def _build_breadcrumb(category):
             },
         )
         current = current.parent
+    return breadcrumb
+
+
+def _build_breadcrumb_from_cache(category, category_children_map, all_categories_by_id):
+    """Build breadcrumb path using pre-loaded category hierarchy."""
+    breadcrumb = []
+    current = category
+
+    while current:
+        siblings = list(category_children_map.get(current.parent_id, []))
+        breadcrumb.insert(
+            0,
+            {
+                "category": current,
+                "siblings": siblings,
+            },
+        )
+        current = all_categories_by_id.get(current.parent_id)
+
     return breadcrumb
 
 
@@ -896,11 +923,24 @@ def product_list(request, category_id=None, category_slug=None):
     # Start with active products
     products = Product.objects.filter(status__in=VISIBLE_STATUSES)
 
+    category_children_map = None
+    all_categories_by_id = None
+
+    def ensure_category_hierarchy_loaded():
+        nonlocal category_children_map, all_categories_by_id
+        if category_children_map is None or all_categories_by_id is None:
+            category_children_map, all_categories_by_id = _build_category_children_map()
+        return category_children_map, all_categories_by_id
+
+    current_category_descendant_ids = None
+
     # Category filtering
     if current_category:
         # Include products from this category and all its descendants
-        category_ids = _get_descendant_category_ids(current_category)
-        products = products.filter(category_id__in=category_ids)
+        category_children_map, all_categories_by_id = ensure_category_hierarchy_loaded()
+        hierarchy_category = all_categories_by_id.get(current_category.id, current_category)
+        current_category_descendant_ids = _get_descendant_category_ids_from_cache(hierarchy_category, category_children_map)
+        products = products.filter(category_id__in=current_category_descendant_ids)
     else:
         # Check for category query parameters (multiple selection)
         category_params = request.GET.getlist("category")
@@ -908,12 +948,13 @@ def product_list(request, category_id=None, category_slug=None):
             try:
                 selected_cat_ids = [int(c) for c in category_params if c.isdigit()]
                 if selected_cat_ids:
+                    category_children_map, all_categories_by_id = ensure_category_hierarchy_loaded()
                     # For each selected category, include its descendants too
-                    all_category_ids = []
+                    all_category_ids = set()
                     for cat_id in selected_cat_ids:
-                        cat = Category.objects.filter(id=cat_id).first()
+                        cat = all_categories_by_id.get(cat_id)
                         if cat:
-                            all_category_ids.extend(_get_descendant_category_ids(cat))
+                            all_category_ids.update(_get_descendant_category_ids_from_cache(cat, category_children_map))
                     if all_category_ids:
                         products = products.filter(category_id__in=all_category_ids)
             except (ValueError, TypeError):
@@ -989,9 +1030,6 @@ def product_list(request, category_id=None, category_slug=None):
         ),
     )
 
-    # Get total count before pagination
-    total_count = products.count()
-
     # Get per_page from request (mobile only, default to PRODUCTS_PER_PAGE)
     per_page_param = request.GET.get("per_page", "")
     try:
@@ -1003,6 +1041,8 @@ def product_list(request, category_id=None, category_slug=None):
 
     # Pagination
     paginator = Paginator(products, per_page)
+    total_count = paginator.count
+
     page_number = request.GET.get("page", 1)
     try:
         products_page = paginator.page(page_number)
@@ -1022,8 +1062,13 @@ def product_list(request, category_id=None, category_slug=None):
     # First, get the base product set (before attribute filtering) for the category
     base_products = Product.objects.filter(status__in=VISIBLE_STATUSES)
     if current_category:
-        category_ids = _get_descendant_category_ids(current_category)
-        base_products = base_products.filter(category_id__in=category_ids)
+        if current_category_descendant_ids is None:
+            category_children_map, all_categories_by_id = ensure_category_hierarchy_loaded()
+            hierarchy_category = all_categories_by_id.get(current_category.id, current_category)
+            current_category_descendant_ids = _get_descendant_category_ids_from_cache(
+                hierarchy_category, category_children_map
+            )
+        base_products = base_products.filter(category_id__in=current_category_descendant_ids)
 
     base_product_ids = list(base_products.values_list("id", flat=True)[:1000])
 
@@ -1085,7 +1130,11 @@ def product_list(request, category_id=None, category_slug=None):
                 available_attributes.append(attr)
 
     # Build filter categories
-    filter_categories = _build_category_filter_tree(current_category)
+    if current_category or request.GET.getlist("category"):
+        category_children_map, all_categories_by_id = ensure_category_hierarchy_loaded()
+        filter_categories = _build_category_filter_tree_from_cache(current_category, category_children_map)
+    else:
+        filter_categories = _build_category_filter_tree(current_category)
 
     # Get selected category IDs from query params
     selected_category_ids = [str(c) for c in request.GET.getlist("category") if c.isdigit()]
@@ -1109,7 +1158,11 @@ def product_list(request, category_id=None, category_slug=None):
     end_index = min(products_page.number * per_page, total_count)
 
     # Build breadcrumb
-    breadcrumb = _build_breadcrumb(current_category) if current_category else []
+    breadcrumb = (
+        _build_breadcrumb_from_cache(current_category, category_children_map, all_categories_by_id)
+        if current_category
+        else []
+    )
 
     # Build subcategories navigation for sidebar with optimized batch loading
     subcategories_nav = []
@@ -1118,7 +1171,7 @@ def product_list(request, category_id=None, category_slug=None):
 
     if current_category:
         # Load all category data and product counts in batch (avoid N+1)
-        category_children_map, all_categories_by_id = _build_category_children_map()
+        category_children_map, all_categories_by_id = ensure_category_hierarchy_loaded()
 
         # Get all category IDs we need counts for
         all_category_ids = list(all_categories_by_id.keys())
