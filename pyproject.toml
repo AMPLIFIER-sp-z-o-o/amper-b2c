@@ -76,6 +76,7 @@ dependencies = [
     "djangorestframework-api-key",
     "drf-spectacular",
     "pillow>=12.1.0",
+    "markdown",
     "psycopg2-binary",
     "redis",
     "tinycss2>=1.5.1",
