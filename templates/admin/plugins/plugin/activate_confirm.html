@@ -1,0 +1,82 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate "Home" %}</a>
+  &rsaquo; <a href="{% url 'admin:plugins_plugin_changelist' %}">{% translate "Plugins" %}</a>
+  &rsaquo; <a href="{% url 'admin:plugins_plugin_change' plugin.id %}">{{ plugin.name }}</a>
+  &rsaquo; {% translate "Activation confirmation" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="space-y-6">
+
+    <section class="rounded-default border border-base-200 bg-base-50 p-4 dark:border-base-700 dark:bg-base-900">
+      <h1 class="text-xl font-semibold text-font-important-light dark:text-font-important-dark">{{ title }}</h1>
+      <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+        {% blocktranslate with plugin_name=plugin.name %}
+          You are about to activate plugin "{{ plugin_name }}".
+        {% endblocktranslate %}
+      </p>
+    </section>
+
+    <section class="rounded-default border border-base-200 bg-white p-4 dark:border-base-700 dark:bg-base-900">
+      <div class="grid gap-4 sm:grid-cols-2">
+
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-font-subtle-light dark:text-font-subtle-dark">
+            {% translate "Requested scopes" %}
+          </h2>
+          {% if plugin.scopes %}
+            <ul class="mt-2 space-y-1">
+              {% for scope in plugin.scopes %}
+                <li>
+                  <span class="inline-block rounded bg-primary-50 px-2 py-0.5 font-mono text-xs font-medium text-primary-700 dark:bg-primary-900 dark:text-primary-300">{{ scope }}</span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">{% translate "No explicit scopes requested." %}</p>
+          {% endif %}
+        </div>
+
+        <div>
+          <h2 class="text-sm font-semibold uppercase tracking-wide text-font-subtle-light dark:text-font-subtle-dark">
+            {% translate "Dependencies" %}
+          </h2>
+          {% if plugin.dependencies %}
+            <ul class="mt-2 space-y-1">
+              {% for dep in plugin.dependencies %}
+                <li class="text-sm text-font-important-light dark:text-font-important-dark">
+                  <code class="font-mono text-xs">{{ dep.slug|default:dep }}</code>
+                  {% if dep.min_version %}<span class="text-font-subtle-light dark:text-font-subtle-dark">&nbsp;(&gt;= {{ dep.min_version }})</span>{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">{% translate "No dependencies declared." %}</p>
+          {% endif %}
+        </div>
+
+      </div>
+    </section>
+
+    <form method="post">
+      {% csrf_token %}
+      <div class="flex flex-wrap items-center gap-3">
+        <button type="submit" class="inline-flex items-center gap-2 rounded-default bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 transition-colors">
+          <span class="material-symbols-outlined md-18">play_circle</span>
+          {% translate "Confirm activation" %}
+        </button>
+        <a href="{% url 'admin:plugins_plugin_change' plugin.id %}" class="text-sm font-medium text-primary-600 hover:underline">
+          {% translate "Cancel" %}
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

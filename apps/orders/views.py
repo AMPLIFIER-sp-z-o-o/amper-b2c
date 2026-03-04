@@ -23,6 +23,8 @@ from apps.cart.services import (
     refresh_cart_totals_from_db,
 )
 from apps.catalog.models import Product, ProductStatus
+from apps.plugins.engine.registry import registry
+from apps.plugins.hook_names import CHECKOUT_REDIRECT_URL_RESOLVE, LEGACY_CHECKOUT_REDIRECT_URL_RESOLVE
 from apps.utils.tasks import send_email_task  # noqa: F401
 from apps.web.models import SiteSettings
 
@@ -41,6 +43,28 @@ def payment_gateway_placeholder(request: HttpRequest, token: str) -> HttpRespons
     order = get_object_or_404(
         Order.objects.prefetch_related("lines__product", "lines__product__images"), tracking_token=token
     )
+
+    # If checkout resolved a provider flow for this order, forward there from the
+    # fallback pay URL as well (e.g. old bookmarks or retries).
+    # Skip this when provider_error=1 to avoid redirect loops after a failed
+    # provider initialization.
+    if request.GET.get("provider_error") != "1":
+        fallback_payment_path = reverse("orders:pay", kwargs={"token": order.tracking_token})
+        redirect_hook_name = (
+            CHECKOUT_REDIRECT_URL_RESOLVE
+            if registry.has_filter(CHECKOUT_REDIRECT_URL_RESOLVE)
+            else LEGACY_CHECKOUT_REDIRECT_URL_RESOLVE
+        )
+        resolved_payment_path = registry.apply_filters(
+            redirect_hook_name,
+            fallback_payment_path,
+            request=request,
+            order=order,
+        )
+        if isinstance(resolved_payment_path, str):
+            resolved_payment_path = resolved_payment_path.strip()
+            if resolved_payment_path and resolved_payment_path != fallback_payment_path:
+                return redirect(resolved_payment_path)
 
     return render(
         request,
@@ -308,9 +332,26 @@ def place_order(request: HttpRequest) -> HttpResponse:
     tracking_url = f"{base_url}{tracking_path}" if base_url else tracking_path
 
     payment_url = ""
+    payment_path = ""
     if should_redirect_to_payment:
         payment_path = reverse("orders:pay", kwargs={"token": order.tracking_token})
-        payment_url = f"{base_url}{payment_path}" if base_url else payment_path
+        redirect_hook_name = (
+            CHECKOUT_REDIRECT_URL_RESOLVE
+            if registry.has_filter(CHECKOUT_REDIRECT_URL_RESOLVE)
+            else LEGACY_CHECKOUT_REDIRECT_URL_RESOLVE
+        )
+        resolved_payment_path = registry.apply_filters(
+            redirect_hook_name,
+            payment_path,
+            request=request,
+            order=order,
+        )
+        if isinstance(resolved_payment_path, str) and resolved_payment_path.strip():
+            payment_path = resolved_payment_path.strip()
+        if payment_path.startswith(("http://", "https://")):
+            payment_url = payment_path
+        else:
+            payment_url = f"{base_url}{payment_path}" if base_url else payment_path
 
     send_order_confirmation_email(
         order=order,
@@ -329,15 +370,10 @@ def place_order(request: HttpRequest) -> HttpResponse:
         # page directly without HTMX pre-fetching it first. Pre-fetching would consume
         # the Django session message before the browser ever renders the page, causing
         # the "Order placed" toast to silently disappear.
-        payment_path = reverse("orders:pay", kwargs={"token": order.tracking_token})
         response = HttpResponse(status=200)
         response["HX-Redirect"] = payment_path
     else:
-        response = (
-            redirect("orders:pay", token=order.tracking_token)
-            if should_redirect_to_payment
-            else redirect("orders:summary", token=order.tracking_token)
-        )
+        response = redirect(payment_path) if should_redirect_to_payment else redirect("orders:summary", token=order.tracking_token)
     # Clear stale cookie cart_id (session takes precedence but cookie can confuse other flows)
     response.delete_cookie("cart_id")
     return response

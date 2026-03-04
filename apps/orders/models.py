@@ -15,6 +15,7 @@ class OrderStatus(models.TextChoices):
     PENDING = "pending", _("Pending")
     CONFIRMED = "confirmed", _("Confirmed")
     PAID = "paid", _("Paid")
+    SHIPPED = "shipped", _("Shipped")
     CANCELLED = "cancelled", _("Cancelled")
 
 

@@ -115,6 +115,7 @@ PROJECT_APPS = [
     "apps.favourites.apps.FavoritesConfig",
     "apps.promotions.apps.PromotionsConfig",
     "apps.orders.apps.OrdersConfig",
+    "apps.plugins.apps.PluginsConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -285,6 +286,25 @@ UNFOLD = {
                     },
                 ],
             },
+            {
+                "title": gettext_lazy("Plugins"),
+                "icon": "extension",
+                "collapsible": True,
+                "items": [
+                    {
+                        "title": gettext_lazy("Plugins"),
+                        "link": reverse_lazy("admin:plugins_plugin_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Plugin logs"),
+                        "link": reverse_lazy("admin:plugins_pluginlog_changelist"),
+                    },
+                    {
+                        "title": gettext_lazy("Developer guide"),
+                        "link": reverse_lazy("admin:plugins_developer_guide"),
+                    },
+                ],
+            },
         ],
     },
 }
@@ -317,6 +337,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "hijack.middleware.HijackUserMiddleware",
     "apps.web.middleware.soft_nav.SoftNavResponseMiddleware",
+    "apps.plugins.middleware.PluginHTMLInjectionMiddleware",
 ]
 
 MESSAGE_STORAGE = "apps.support.message_storage.AdminScopedFallbackStorage"
@@ -664,6 +685,10 @@ CACHES = {
 }
 
 CELERY_BROKER_URL = CELERY_RESULT_BACKEND = REDIS_URL
+
+# Plugin execution limits – override via .env if needed
+PLUGIN_REQUEST_BUDGET_MS = env.int("PLUGIN_REQUEST_BUDGET_MS", default=1200)
+PLUGIN_DEFAULT_HOOK_TIMEOUT_MS = env.int("PLUGIN_DEFAULT_HOOK_TIMEOUT_MS", default=350)
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_BROKER_CONNECTION_TIMEOUT = 2  # seconds – fail fast when broker is unavailable
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = False

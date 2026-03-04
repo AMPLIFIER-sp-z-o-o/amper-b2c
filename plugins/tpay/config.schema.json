@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "required": ["client_id", "client_secret"],
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "title": "Client ID",
+      "description": "Tpay Open API client identifier (from Merchant Panel -> Integration -> API)"
+    },
+    "client_secret": {
+      "type": "string",
+      "title": "Client Secret",
+      "format": "password",
+      "description": "Tpay Open API client secret"
+    },
+    "environment": {
+      "type": "string",
+      "title": "Environment",
+      "default": "sandbox",
+      "enum": ["sandbox", "production"],
+      "description": "Use sandbox for testing and production for live payments. Can be overridden by PAYMENTS_TPAY_SANDBOX env var."
+    }
+  }
+}

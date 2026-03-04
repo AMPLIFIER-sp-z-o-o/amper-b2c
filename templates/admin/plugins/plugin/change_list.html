@@ -1,0 +1,35 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  <div class="flex flex-row items-center gap-2">
+    <div class="flex flex-row items-center gap-1">
+      <a
+        href="{% url 'admin:plugins_developer_guide' %}"
+        class="addlink bg-white border border-base-200 dark:border-base-700 dark:bg-base-900 flex items-center h-[38px] justify-center -my-1 rounded-full w-[38px]"
+        title="{% translate 'Plugin developer guide — how to create and upload plugins' %}"
+        aria-label="{% translate 'Developer Guide' %}"
+      >
+        <span class="material-symbols-outlined text-base-700 dark:text-base-200">menu_book</span>
+      </a>
+      <a
+        href="{% url 'admin:plugins_scaffold' %}"
+        class="addlink bg-white border border-base-200 dark:border-base-700 dark:bg-base-900 flex items-center h-[38px] justify-center -my-1 rounded-full w-[38px]"
+        title="{% translate 'Generate plugin scaffold ZIP' %}"
+        aria-label="{% translate 'Generate scaffold' %}"
+      >
+        <span class="material-symbols-outlined text-base-700 dark:text-base-200">auto_fix_high</span>
+      </a>
+      <a
+        href="{% url 'admin:plugins_sync_from_disk' %}"
+        class="addlink bg-white border border-base-200 dark:border-base-700 dark:bg-base-900 flex items-center h-[38px] justify-center -my-1 rounded-full w-[38px]"
+        title="{% translate 'Sync plugins from disk (scan plugin directories and refresh registry)' %}"
+        aria-label="{% translate 'Sync plugins from disk' %}"
+      >
+        <span class="material-symbols-outlined text-base-700 dark:text-base-200">sync</span>
+      </a>
+    </div>
+
+    {{ block.super }}
+  </div>
+{% endblock %}

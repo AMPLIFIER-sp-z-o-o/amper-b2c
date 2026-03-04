@@ -1,0 +1,23 @@
+{
+    "slug":  "przelewy24",
+    "name":  "Przelewy24",
+    "version":  "0.1.0",
+    "entrypoint":  "entrypoint.py",
+    "scopes":  [
+                   "payments:write",
+                   "http:outbound"
+               ],
+    "dependencies":  [
+
+                     ],
+    "default_config":  {
+                           "environment":  "sandbox",
+                           "auto_capture":  true
+                       },
+    "env_vars":  {
+                     "merchant_id":  "PAYMENTS_P24_MERCHANT_ID",
+                     "pos_id":  "PAYMENTS_P24_POS_ID",
+                     "crc_key":  "PAYMENTS_P24_CRC",
+                     "api_key":  "PAYMENTS_P24_API_KEY"
+                 }
+}

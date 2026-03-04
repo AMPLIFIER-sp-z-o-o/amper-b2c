@@ -48,6 +48,22 @@ def admin_logout_redirect(request):
     return redirect("web:home")
 
 
+from apps.plugins.admin_views import plugin_developer_guide_view
+
+_admin_site_get_urls = admin.site.get_urls
+
+def custom_admin_get_urls():
+    from django.urls import path
+    return [
+        path(
+            "plugins/developer-guide/",
+            admin.site.admin_view(plugin_developer_guide_view),
+            name="plugins_developer_guide",
+        ),
+    ] + _admin_site_get_urls()
+
+admin.site.get_urls = custom_admin_get_urls
+
 urlpatterns = [
     path("__reload__/", include("django_browser_reload.urls")),
     # redirect Django admin login to main login page
@@ -95,6 +111,7 @@ urlpatterns = [
     path("cart/", include("apps.cart.urls")),
     path("favorites/", include("apps.favourites.urls")),
     path("orders/", include("apps.orders.urls")),
+    path("plugins/", include("apps.plugins.urls")),
     # API docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     # Optional UI - you may wish to remove one of these depending on your preference

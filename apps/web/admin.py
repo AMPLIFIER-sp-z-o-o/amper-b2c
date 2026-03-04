@@ -56,6 +56,7 @@ class TopBarForm(forms.ModelForm):
 
 @admin.register(TopBar)
 class TopBarAdmin(AutoReorderMixin, BaseModelAdmin):
+    draft_preview_home = True
     form = TopBarForm
     change_form_template = "admin/web/topbar/change_form.html"
     list_display = ("name", "content_type", "text", "is_active", "available_from", "available_to", "order")
@@ -100,6 +101,7 @@ class TopBarAdmin(AutoReorderMixin, BaseModelAdmin):
 
 @admin.register(CustomCSS)
 class CustomCSSAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    draft_preview_home = True
     change_form_template = "admin/web/customcss/change_form.html"
     list_display = ("custom_css_active", "updated_at")
     fieldsets = (
@@ -155,6 +157,7 @@ class SiteSettingsForm(forms.ModelForm):
 
 @admin.register(SiteSettings)
 class SiteSettingsAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    draft_preview_home = True
     form = SiteSettingsForm
     list_display = ("store_name", "currency", "updated_at")
     readonly_fields = ()
@@ -283,12 +286,14 @@ class FooterSectionLinkInline(TabularInline):
 
 @admin.register(FooterSectionLink)
 class FooterSectionLinkAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     form = FooterSectionLinkForm
     has_module_permission = lambda self, r: False
 
 
 @admin.register(FooterSection)
 class FooterSectionAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     inlines = [FooterSectionLinkInline]
     list_display = ("name", "order")
     ordering = ("order", "id")
@@ -335,6 +340,7 @@ class FooterSocialMediaInline(TabularInline):
 
 @admin.register(Footer)
 class FooterAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    draft_preview_home = True
     form = FooterForm
     change_form_template = "admin/web/footer/change_form.html"
     inlines = [FooterSocialMediaInline, FooterSectionInline]
@@ -375,11 +381,13 @@ class BottomBarLinkInline(TabularInline):
 
 @admin.register(BottomBarLink)
 class BottomBarLinkAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     has_module_permission = lambda self, r: False
 
 
 @admin.register(BottomBar)
 class BottomBarAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    draft_preview_home = True
     inlines = [BottomBarLinkInline]
     list_display = ("__str__", "is_active")
     fieldsets = (
@@ -496,6 +504,7 @@ class NavbarItemInline(TabularInline):
 
 @admin.register(NavbarItem)
 class NavbarItemAdmin(AutoReorderMixin, HistoryModelAdmin):
+    draft_preview_home = True
     form = NavbarItemForm
     list_display = ("__str__", "item_type", "order", "is_active")
     list_filter = ("item_type", "is_active")
@@ -550,6 +559,7 @@ class NavbarForm(forms.ModelForm):
 
 @admin.register(Navbar)
 class NavbarAdmin(SingletonAdminMixin, HistoryModelAdmin):
+    draft_preview_home = True
     form = NavbarForm
     change_form_template = "admin/web/navbar/change_form.html"
     inlines = [NavbarItemInline]

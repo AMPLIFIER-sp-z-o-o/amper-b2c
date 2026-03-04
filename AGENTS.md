@@ -60,6 +60,11 @@
 
 **Superuser credentials**: `admin@example.com` / `admin` (always use these credentials during testing)
 
+## Plugin Documentation Sync
+
+- Any change to plugin onboarding/installation flow (ZIP upload, preflight validation, slug matching, disk sync, scaffold, activation prerequisites, or admin UX around adding plugins) MUST be reflected in `docs/plugins/HOW_TO_ADD_PLUGIN.md` in the same task/PR.
+- Treat `docs/plugins/HOW_TO_ADD_PLUGIN.md` as the canonical "how to add plugin" source used by admin Developer Guide rendering; do not ship behavior changes without updating this document.
+
 ## Environment & Integrations
 
 - **Config**: `.env` via django-environ; defaults: Postgres port 7432, Redis port 7379.

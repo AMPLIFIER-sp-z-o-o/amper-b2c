@@ -23,7 +23,7 @@
              Reads the nav bottom position synchronously so the CSS calc() in site.css
              resolves to the correct height on the very first paint. -->
         <script>(function(){var el=document.getElementById('categories-row-wrapper');if(!el)el=document.querySelector('.top-nav-standard');if(el){var h=Math.round(el.getBoundingClientRect().bottom);if(h>0)document.documentElement.style.setProperty('--hero-banner-top',h+'px');}})()</script>
-        <div id="content-carousel" class="swiper content-banner-swiper relative w-full">
+        <div id="content-carousel" class="swiper content-banner-swiper relative w-full" data-banner-count="{{ banners|length }}">
             <div class="swiper-wrapper">
                 {% for banner in banners %}
                 <div id="hero-banner-slide-{{ banner.css_hook|default:'draft' }}" class="swiper-slide hero-banner-slide hero-banner-slide-{{ banner.id|default:'draft' }} storefront-hero-banner-slide storefront-hero-banner-slide-{{ banner.id|default:'draft' }} relative overflow-hidden">
@@ -35,7 +35,7 @@
                         <img 
                             src="{{ banner.image.url }}" 
                             alt="{{ banner.name }}"
-                            class="w-full h-full object-cover object-{{ banner.image_alignment }}"
+                            class="w-full h-full object-cover object-{{ banner.image_alignment|default:'top' }}"
                             loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
                             fetchpriority="{% if forloop.first %}high{% else %}auto{% endif %}"
                             decoding="async"

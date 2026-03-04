@@ -9,6 +9,8 @@ from django.core.mail import EmailMultiAlternatives, get_connection
 from django.template.loader import render_to_string
 from django.utils.translation import gettext as _
 
+from apps.plugins.engine.registry import registry
+from apps.plugins.hook_names import NOTIFICATION_EMAIL_BEFORE_SEND
 from apps.utils.tasks import send_email_task
 from apps.web.models import SiteSettings, SystemSettings
 
@@ -90,6 +92,15 @@ def _build_and_send_order_confirmation_email(
         "recipient_list": [to_email],
         "html_message": str(html_message),
     }
+
+    filtered_email_kwargs = registry.apply_filters(
+        NOTIFICATION_EMAIL_BEFORE_SEND,
+        dict(email_kwargs),
+        order=order,
+        notification_type="order_confirmation",
+    )
+    if isinstance(filtered_email_kwargs, dict):
+        email_kwargs = filtered_email_kwargs
 
     use_celery = bool(getattr(settings, "ORDER_EMAIL_USE_CELERY", not settings.DEBUG))
     if use_celery:

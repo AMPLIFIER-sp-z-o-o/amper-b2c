@@ -16,6 +16,8 @@ from apps.catalog.models import Product, ProductStatus
 from apps.favourites.models import WishList, WishListItem
 from apps.orders.forms import CheckoutDetailsForm
 from apps.orders.models import Coupon, CouponKind
+from apps.plugins.engine.registry import registry
+from apps.plugins.hook_names import DELIVERY_METHODS_LOAD, PAYMENT_METHODS_LOAD
 from apps.users.models import ShippingAddress
 
 from .checkout import (
@@ -1026,6 +1028,24 @@ def checkout_page(request):
     payment_methods = PaymentMethod.objects.filter(is_active=True)
     delivery_methods = delivery_methods.order_by("name")
     payment_methods = payment_methods.order_by("name")
+
+    filtered_delivery_methods = registry.apply_filters(
+        DELIVERY_METHODS_LOAD,
+        delivery_methods,
+        request=request,
+        cart=cart,
+    )
+    if filtered_delivery_methods is not None:
+        delivery_methods = filtered_delivery_methods
+
+    filtered_payment_methods = registry.apply_filters(
+        PAYMENT_METHODS_LOAD,
+        payment_methods,
+        request=request,
+        cart=cart,
+    )
+    if filtered_payment_methods is not None:
+        payment_methods = filtered_payment_methods
 
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
 

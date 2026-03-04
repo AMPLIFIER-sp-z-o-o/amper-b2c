@@ -1,0 +1,98 @@
+{% load i18n %}
+{% load admin_urls %}
+{% load getattribute from getattributes %}
+
+<table id="change-history" class="border-base-200 border-spacing-none border-separate mb-6 w-full lg:border lg:rounded-default lg:shadow-xs lg:dark:border-base-800">
+    <thead class="hidden text-font-important-light lg:table-header-group dark:text-font-important-dark">
+        <tr>
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Object' %}</th>
+            {% for column in history_list_display %}
+                <th class="align-middle font-semibold px-3 py-2 text-left">{% trans column %}</th>
+            {% endfor %}
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Date/time' %}</th>
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Comment' %}</th>
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Changed by' %}</th>
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Change reason' %}</th>
+            <th class="align-middle font-semibold px-3 py-2 text-left">{% trans 'Changes' %}</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for record in page_obj %}
+            {% url opts|admin_urlname:'simple_history' object.pk record.pk as record_url %}
+            <tr
+                class="block border mb-3 rounded-default shadow-xs lg:table-row lg:border-none lg:mb-0 lg:shadow-none dark:border-base-800 cursor-pointer transition-colors hover:bg-base-50 dark:hover:bg-base-800"
+                data-history-url="{{ record_url }}"
+            >
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans 'Object' %}">
+                    <a href="{{ record_url }}" class="text-primary-600 hover:underline">{{ record.history_object }}</a>
+                </td>
+
+                {% for column in history_list_display %}
+                    <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans column %}">
+                        {{ record|getattribute:column }}
+                    </td>
+                {% endfor %}
+
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans 'Date/time' %}">
+                    {{ record.history_date }}
+                </td>
+
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans 'Comment' %}">
+                    {{ record.get_history_type_display }}
+                </td>
+
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans 'Changed by' %}">
+                    {% if record.history_user %}
+                        {% url admin_user_view record.history_user_id as admin_user_url %}
+                        {% if admin_user_url %}
+                            <a href="{{ admin_user_url }}" class="text-primary-600 hover:underline">{{ record.history_user }}</a>
+                        {% else %}
+                            {{ record.history_user }}
+                        {% endif %}
+                    {% else %}
+                        {% trans "None" %}
+                    {% endif %}
+                </td>
+
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 wrap-break-word whitespace-normal" data-label="{% trans 'Change reason' %}">
+                    {{ record.history_change_reason }}
+                </td>
+
+                <td class="align-middle flex border-t border-base-200 font-normal px-3 py-2 text-left before:flex before:capitalize before:content-[attr(data-label)] before:items-center before:mr-auto first:border-t-0 lg:before:hidden lg:first:border-t lg:py-3 lg:table-cell dark:border-base-800 max-w-195 wrap-break-word whitespace-normal" data-label="{% trans 'Changes' %}">
+                    {% if record.history_delta_changes %}
+                        <ul class="list-none p-0 m-0">
+                            {% for change in record.history_delta_changes %}
+                                <li class="flex flex-wrap items-start gap-1 py-0.5">
+                                    <strong class="font-medium">{{ change.field }}:</strong>
+                                    {% if change.old %}
+                                        <span>{{ change.old }}</span>
+                                    {% endif %}
+                                    {% if change.old and change.new %}
+                                        <span class="align-text-top material-symbols-outlined md-18">arrow_right_alt</span>
+                                    {% endif %}
+                                    {% if change.new %}
+                                        <span>{{ change.new }}</span>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+  (function () {
+    const rows = document.querySelectorAll("tr[data-history-url]");
+    rows.forEach((row) => {
+      row.addEventListener("click", function (event) {
+        if (event.target.closest("a,button,input,label,select,textarea")) return;
+        const url = row.getAttribute("data-history-url");
+        if (url) window.location.href = url;
+      });
+    });
+  })();
+</script>

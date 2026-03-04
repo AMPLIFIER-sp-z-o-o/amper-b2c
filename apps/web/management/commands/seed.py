@@ -24,6 +24,7 @@ import json
 import os
 from contextlib import contextmanager
 from decimal import Decimal
+from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -51,6 +52,7 @@ from apps.catalog.models import (
 )
 from apps.homepage.models import (
     Banner,
+    BannerImageAlignment,
     BannerGroup,
     BannerSettings,
     BannerType,
@@ -63,6 +65,9 @@ from apps.homepage.models import (
 from apps.media.models import MediaStorageSettings
 from apps.media.storage import DynamicMediaStorage
 from apps.orders.models import Coupon, CouponKind
+from apps.plugins.engine.lifecycle import PluginLifecycleManager, get_plugin_dir
+from apps.plugins.engine.loader import sync_and_load_plugins
+from apps.plugins.models import Plugin, PluginExecutionMode, PluginStatus
 from apps.users.models import CustomUser, SocialAppSettings
 from apps.web.management.seed_media import (
     collect_seed_media_paths_from_generated_data,
@@ -267,6 +272,8 @@ DELIVERY_METHODS_DATA = _load_generated_seed_list("delivery_methods_data.json")
 
 PAYMENT_METHODS_DATA = _load_generated_seed_list("payment_methods_data.json")
 
+PLUGINS_DATA = _load_generated_seed_list("plugins_data.json")
+
 
 def _build_product_images_data():
     images = [
@@ -421,6 +428,7 @@ class Command(BaseCommand):
             self._seed_storefront_hero_section()
             self._seed_delivery_methods()
             self._seed_payment_methods()
+            self._seed_plugins()
             self._seed_coupons()
             # MediaFile entries are auto-created by signals when Banner, ProductImage etc. are saved
             self._seed_social_apps()
@@ -430,6 +438,10 @@ class Command(BaseCommand):
 
             # Fix PostgreSQL sequences after inserting with explicit IDs
             self._fix_sequences()
+
+        # Runtime plugin loading may execute plugin code that writes to DB (e.g. payment method binding).
+        # Keep it outside the main atomic seed transaction so plugin failures cannot poison the seed block.
+        self._sync_runtime_plugins()
 
         # Populate history outside the big seed transaction to avoid one huge final COMMIT.
         # Create initial history only once; skip when any historical records already exist.
@@ -441,6 +453,13 @@ class Command(BaseCommand):
             self._populate_history()
 
         self.stdout.write(self.style.SUCCESS("Database seeded successfully!"))
+
+    def _sync_runtime_plugins(self):
+        synced = sync_and_load_plugins()
+        if synced:
+            self.stdout.write("  Plugin runtime sync: complete")
+        else:
+            self.stdout.write(self.style.WARNING("  Plugin runtime sync: skipped or failed (see logs)"))
 
     def _is_s3_storage(self, storage):
         return hasattr(storage, "bucket") or storage.__class__.__name__ == "S3Boto3Storage"
@@ -1237,6 +1256,12 @@ class Command(BaseCommand):
                 "name": item["name"],
                 "image": item["image"],
                 "mobile_image": item["mobile_image"],
+                "image_alignment": item.get(
+                    "image_alignment",
+                    BannerImageAlignment.TOP
+                    if item["banner_type"] == BannerType.CONTENT
+                    else BannerImageAlignment.CENTER,
+                ),
                 "url": item.get("url", ""),
                 "is_active": item["is_active"],
                 "order": item["order"],
@@ -1678,3 +1703,119 @@ class Command(BaseCommand):
         )
 
         self.stdout.write(f"  PaymentMethod: {len(PAYMENT_METHODS_DATA)} records")
+
+    @staticmethod
+    def _is_truthy_env(raw_value):
+        return str(raw_value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _apply_przelewy24_env_overrides(self, config):
+        merged = dict(config or {})
+
+        field_env_map = {
+            "merchant_id": "PAYMENTS_P24_MERCHANT_ID",
+            "pos_id": "PAYMENTS_P24_POS_ID",
+            "crc_key": "PAYMENTS_P24_CRC",
+            "api_key": "PAYMENTS_P24_API_KEY",
+        }
+        for field_name, env_name in field_env_map.items():
+            env_value = os.environ.get(env_name, "")
+            if env_value:
+                merged[field_name] = env_value
+
+        sandbox_raw = os.environ.get("PAYMENTS_P24_SANDBOX")
+        if sandbox_raw is not None and str(sandbox_raw).strip() != "":
+            merged["environment"] = "sandbox" if self._is_truthy_env(sandbox_raw) else "production"
+
+        return merged
+
+    def _resolve_package_zip_path(self, package_zip):
+        package_zip = str(package_zip or "").strip()
+        if not package_zip:
+            return None
+
+        candidate = Path(package_zip)
+        if candidate.is_absolute():
+            return candidate
+        return settings.BASE_DIR / candidate
+
+    def _resolve_seed_plugin_zip_path(self, slug, plugin_seed):
+        explicit_zip_path = self._resolve_package_zip_path(plugin_seed.get("package_zip"))
+        if explicit_zip_path is not None:
+            return explicit_zip_path
+        return settings.BASE_DIR / "plugins" / "dist" / f"{slug}.zip"
+
+    def _seed_plugins(self):
+        """Seed plugins from generated plugin data and sync runtime registry."""
+        if not PLUGINS_DATA:
+            self.stdout.write("  Plugins: 0 records (no data)")
+            return
+
+        valid_execution_modes = {choice for choice, _label in PluginExecutionMode.choices}
+        seeded_count = 0
+
+        for plugin_seed in PLUGINS_DATA:
+            if not isinstance(plugin_seed, dict):
+                continue
+
+            slug = str(plugin_seed.get("slug") or "").strip()
+            if not slug:
+                continue
+
+            plugin = None
+            plugin_dir = get_plugin_dir(slug)
+            package_zip_path = self._resolve_seed_plugin_zip_path(slug, plugin_seed)
+
+            try:
+                # Prefer checked-in plugin source directory over packaged ZIP so
+                # seed uses the current repository code during activation checks.
+                # If source directory is missing (e.g. deleted from admin), restore from ZIP artifact.
+                if plugin_dir.exists() and (plugin_dir / "manifest.json").exists():
+                    plugin = PluginLifecycleManager.install_or_update_from_directory(plugin_dir)
+                elif package_zip_path and package_zip_path.exists():
+                    plugin = PluginLifecycleManager.install_or_update_from_zip(package_zip_path)
+                else:
+                    plugin = Plugin.objects.filter(slug=slug).first()
+
+                if plugin is None:
+                    self.stdout.write(self.style.WARNING(f"  Plugin skipped (not found): {slug}"))
+                    continue
+
+                update_fields = []
+
+                execution_mode = str(plugin_seed.get("execution_mode") or plugin.execution_mode).strip()
+                if execution_mode not in valid_execution_modes:
+                    execution_mode = PluginExecutionMode.LIVE
+                if plugin.execution_mode != execution_mode:
+                    plugin.execution_mode = execution_mode
+                    update_fields.append("execution_mode")
+
+                merged_config = dict(plugin.config or {})
+                seed_config = plugin_seed.get("config")
+                if isinstance(seed_config, dict):
+                    merged_config.update(seed_config)
+
+                should_activate = bool(plugin_seed.get("activate"))
+                if slug == "przelewy24":
+                    merged_config = self._apply_przelewy24_env_overrides(merged_config)
+                    is_enabled_raw = os.environ.get("PAYMENTS_P24_IS_ENABLED")
+                    if is_enabled_raw is not None and str(is_enabled_raw).strip() != "":
+                        should_activate = self._is_truthy_env(is_enabled_raw)
+
+                if plugin.config != merged_config:
+                    plugin.config = merged_config
+                    update_fields.append("config")
+
+                if update_fields:
+                    plugin.save(update_fields=[*update_fields, "updated_at"])
+
+                desired_status = PluginStatus.ACTIVATED if should_activate else PluginStatus.DEACTIVATED
+                if desired_status == PluginStatus.ACTIVATED and plugin.status != PluginStatus.ACTIVATED:
+                    PluginLifecycleManager.activate(plugin)
+                elif desired_status == PluginStatus.DEACTIVATED and plugin.status != PluginStatus.DEACTIVATED:
+                    PluginLifecycleManager.deactivate(plugin)
+
+                seeded_count += 1
+            except Exception as exc:
+                self.stdout.write(self.style.WARNING(f"  Plugin seed warning ({slug}): {exc}"))
+
+        self.stdout.write(f"  Plugins: {seeded_count} records")

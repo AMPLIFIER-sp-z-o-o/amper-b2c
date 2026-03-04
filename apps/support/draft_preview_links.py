@@ -43,6 +43,32 @@ def _safe_get_absolute_url(obj: object) -> str | None:
     return url or None
 
 
+def _model_admin_has_home_preview(model_class: type) -> bool:
+    """Return True only if the model's ModelAdmin declares draft_preview_home = True."""
+    model_admin = admin.site._registry.get(model_class)
+    if not model_admin:
+        return False
+    return bool(getattr(model_admin, "draft_preview_home", False))
+
+
+def _templates_exist_for_model(app_label: str, model_name: str) -> bool:
+    """Return True if any generic detail template exists for this model."""
+    from django.template import TemplateDoesNotExist
+    from django.template.loader import get_template
+
+    for candidate in [
+        f"web/{model_name}s/detail.html",
+        f"web/{app_label}/{model_name}_detail.html",
+        f"{app_label}/{model_name}_detail.html",
+    ]:
+        try:
+            get_template(candidate)
+            return True
+        except TemplateDoesNotExist:
+            continue
+    return False
+
+
 def _label_for_object(obj: models.Model) -> str:
     """Format label as 'Open Draft (ModelName: ObjectLabel)'."""
     model_label = str(obj._meta.verbose_name).title() if hasattr(obj, "_meta") else ""
@@ -78,12 +104,18 @@ def _get_new_record_preview_url(draft: DraftChange) -> str | None:
     if model_class not in admin.site._registry:
         return None
 
+    # Only provide preview when a detail template actually exists for the model
+    app_label = draft.content_type.app_label
+    model_name = draft.content_type.model
+    if not _templates_exist_for_model(app_label, model_name):
+        return None
+
     try:
         return reverse(
             "support:generic_draft_preview",
             kwargs={
-                "app_label": draft.content_type.app_label,
-                "model_name": draft.content_type.model,
+                "app_label": app_label,
+                "model_name": model_name,
             },
         )
     except NoReverseMatch:
@@ -104,8 +136,8 @@ def _get_link_for_draft(draft: DraftChange) -> dict[str, str] | None:
         if url:
             return {"label": _label_for_object(instance), "url": url}
 
-        # Fallback for site-wide models (registered in admin but no absolute URL)
-        if instance._meta.model in admin.site._registry:
+        # Fallback for site-wide models that explicitly opt-in via draft_preview_home = True
+        if _model_admin_has_home_preview(instance._meta.model):
             home_url = _home_url()
             return {"label": str(_("Open Draft")) + f" ({_('Home')})", "url": home_url}
 
@@ -118,10 +150,10 @@ def _get_link_for_draft(draft: DraftChange) -> dict[str, str] | None:
         model_name = model_class._meta.verbose_name.title() if model_class else "Record"
         return {"label": str(_("Open Draft")) + f" (New {model_name})", "url": new_record_url}
 
-    # Fallback for models registered in admin - link to home
+    # Fallback for site-wide models that explicitly opt-in via draft_preview_home = True
     if draft.content_type:
         model_class = draft.content_type.model_class()
-        if model_class and model_class in admin.site._registry:
+        if model_class and _model_admin_has_home_preview(model_class):
             home_url = _home_url()
             return {"label": str(_("Open Draft")) + f" ({_('Home')})", "url": home_url}
 

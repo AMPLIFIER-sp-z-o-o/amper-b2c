@@ -1,0 +1,15 @@
+{
+  "slug": "tpay",
+  "name": "Tpay",
+  "version": "1.0.0",
+  "entrypoint": "entrypoint.py",
+  "scopes": ["payments:write", "http:outbound", "data:write"],
+  "dependencies": [],
+  "default_config": {
+    "environment": "sandbox"
+  },
+  "env_vars": {
+    "client_id": "PAYMENTS_TPAY_CLIENT_ID",
+    "client_secret": "PAYMENTS_TPAY_CLIENT_SECRET"
+  }
+}

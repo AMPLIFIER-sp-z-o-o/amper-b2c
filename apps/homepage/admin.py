@@ -58,6 +58,7 @@ class BannerForm(forms.ModelForm):
 
 @admin.register(BannerSettings)
 class BannerSettingsAdmin(BaseModelAdmin):
+    draft_preview_home = True
     """Admin for Banner Settings singleton - hidden from sidebar, kept for backwards compatibility."""
 
     list_display = ("__str__", "active_banner_type", "display_status")
@@ -132,6 +133,7 @@ class BannerInline(TabularInline):
 
 @admin.register(BannerGroup)
 class BannerGroupAdmin(BaseModelAdmin):
+    draft_preview_home = True
     """Admin for Banner Groups - the main interface for managing homepage banners."""
 
     list_display = ("banner_type_display", "banner_count", "display_status", "is_active")
@@ -200,6 +202,7 @@ class BannerGroupAdmin(BaseModelAdmin):
 
 @admin.register(Banner)
 class BannerAdmin(AutoReorderMixin, ImportExportModelAdmin, BaseModelAdmin):
+    draft_preview_home = True
     """Admin for Banner with conditional fieldsets based on banner_type.
     Hidden from sidebar - access through BannerGroup admin."""
 
@@ -345,11 +348,13 @@ class BannerAdmin(AutoReorderMixin, ImportExportModelAdmin, BaseModelAdmin):
 
 @admin.register(HomepageSectionBanner)
 class HomepageSectionBannerAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     has_module_permission = lambda self, r: False
 
 
 @admin.register(HomepageSectionProduct)
 class HomepageSectionProductAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     has_module_permission = lambda self, r: False
 
 
@@ -437,6 +442,7 @@ class HomepageSectionBannerInline(TabularInline):
 
 @admin.register(HomepageSectionCategoryItem)
 class HomepageSectionCategoryItemAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     """Hidden admin for media library source links."""
 
     has_module_permission = lambda self, r: False
@@ -472,6 +478,7 @@ class HomepageSectionCategoryItemInline(TabularInline):
 
 @admin.register(HomepageSectionCategoryBox)
 class HomepageSectionCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
+    draft_preview_home = True
     """Admin for managing HomepageSectionCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -585,6 +592,7 @@ class HomepageSectionForm(forms.ModelForm):
 
 @admin.register(HomepageSection)
 class HomepageSectionAdmin(AutoReorderMixin, BaseModelAdmin):
+    draft_preview_home = True
     form = HomepageSectionForm
     change_form_template = "admin/homepage/homepagesection/change_form.html"
     list_display = (
@@ -723,6 +731,7 @@ class HomepageSectionAdmin(AutoReorderMixin, BaseModelAdmin):
 
 @admin.register(StorefrontCategoryItem)
 class StorefrontCategoryItemAdmin(HistoryModelAdmin):
+    draft_preview_home = True
     """Hidden admin for media library source links."""
 
     has_module_permission = lambda self, r: False
@@ -758,6 +767,7 @@ class StorefrontCategoryItemInline(TabularInline):
 
 @admin.register(StorefrontCategoryBox)
 class StorefrontCategoryBoxAdmin(AutoReorderMixin, BaseModelAdmin):
+    draft_preview_home = True
     """Admin for managing StorefrontCategoryBox with items inline."""
 
     list_display = ("title", "section", "shop_link_text", "order")
@@ -807,6 +817,7 @@ class StorefrontCategoryBoxInline(TabularInline):
 
 @admin.register(StorefrontHeroSection)
 class StorefrontHeroSectionAdmin(BaseModelAdmin):
+    draft_preview_home = True
     """Admin for Storefront Hero Section (DEPRECATED - kept for backwards compatibility)."""
 
     list_display = (

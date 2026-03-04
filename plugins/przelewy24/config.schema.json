@@ -1,0 +1,49 @@
+{
+  "type": "object",
+  "required": [
+    "environment",
+    "merchant_id",
+    "crc_key",
+    "api_key"
+  ],
+  "properties": {
+    "environment": {
+      "type": "string",
+      "title": "Environment",
+      "description": "Choose sandbox or live mode.",
+      "default": "sandbox",
+      "enum": [
+        "sandbox",
+        "production"
+      ]
+    },
+    "merchant_id": {
+      "type": "string",
+      "title": "Merchant ID",
+      "description": "Merchant identifier from Przelewy24 dashboard."
+    },
+    "pos_id": {
+      "type": "string",
+      "title": "POS ID",
+      "description": "POS identifier from Przelewy24 dashboard (falls back to Merchant ID)."
+    },
+    "crc_key": {
+      "type": "string",
+      "title": "CRC Key",
+      "description": "CRC key used to sign requests.",
+      "format": "password"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Private API key for Przelewy24 requests.",
+      "format": "password"
+    },
+    "auto_capture": {
+      "type": "boolean",
+      "title": "Auto capture",
+      "description": "Capture payment automatically after positive callback.",
+      "default": true
+    }
+  }
+}

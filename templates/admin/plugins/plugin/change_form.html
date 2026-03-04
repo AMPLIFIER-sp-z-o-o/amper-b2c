@@ -1,0 +1,135 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block form_after %}
+  {{ block.super }}
+
+  {% if add %}
+    <div class="mt-8 space-y-6">
+      <section class="border border-base-200 rounded-default p-4 bg-base-50 dark:bg-base-900 dark:border-base-700">
+        <h2 class="text-lg font-semibold text-font-important-light dark:text-font-important-dark">
+          {% translate "Install Plugin ZIP On This Page" %}
+        </h2>
+        <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+          {% translate "You can upload and install a plugin package directly from this Add Plugin page." %}
+        </p>
+
+        <form
+          action="{% url 'admin:plugins_upload_zip' %}"
+          method="post"
+          enctype="multipart/form-data"
+          class="mt-4 rounded-default border border-base-200 p-4 bg-white dark:bg-base-900 dark:border-base-700"
+        >
+          {% csrf_token %}
+
+          <div class="space-y-4">
+            <div>
+              <label for="{{ zip_form.archive.id_for_label }}" class="block text-sm font-medium text-font-important-light dark:text-font-important-dark">
+                {{ zip_form.archive.label }}
+              </label>
+
+              {{ zip_form.archive.errors }}
+              <input
+                id="{{ zip_form.archive.id_for_label }}"
+                name="{{ zip_form.archive.html_name }}"
+                type="file"
+                accept=".zip,application/zip"
+                class="sr-only"
+              >
+
+              <div class="mt-2 flex flex-wrap items-center gap-3">
+                <label
+                  for="{{ zip_form.archive.id_for_label }}"
+                  class="inline-flex items-center rounded-default border border-base-300 bg-white px-3 py-2 text-sm font-medium text-font-important-light cursor-pointer hover:bg-base-100 transition-colors dark:bg-base-800 dark:border-base-600 dark:text-font-important-dark dark:hover:bg-base-700"
+                >
+                  {% translate "Choose ZIP file" %}
+                </label>
+                <span id="embedded-zip-file-name" class="text-sm text-font-subtle-light dark:text-font-subtle-dark">
+                  {% translate "No file selected" %}
+                </span>
+              </div>
+
+              {% if zip_form.archive.help_text %}
+                <p class="mt-1 text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ zip_form.archive.help_text }}</p>
+              {% endif %}
+            </div>
+
+            <div class="flex items-start gap-2">
+              {{ zip_form.activate_after_install }}
+              <label for="{{ zip_form.activate_after_install.id_for_label }}" class="text-sm font-medium text-font-important-light dark:text-font-important-dark">
+                {{ zip_form.activate_after_install.label }}
+              </label>
+            </div>
+
+            <div class="flex items-start gap-2">
+              {{ zip_form.strict_validation }}
+              <div>
+                <label for="{{ zip_form.strict_validation.id_for_label }}" class="text-sm font-medium text-font-important-light dark:text-font-important-dark">
+                  {{ zip_form.strict_validation.label }}
+                </label>
+                {% if zip_form.strict_validation.help_text %}
+                  <p class="mt-1 text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ zip_form.strict_validation.help_text }}</p>
+                {% endif %}
+              </div>
+            </div>
+
+            {% if zip_form.activate_after_install.help_text %}
+              <p class="text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ zip_form.activate_after_install.help_text }}</p>
+            {% endif %}
+          </div>
+
+          <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="submit"
+              class="bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium px-4 py-2 rounded-default transition-colors"
+            >
+              {% translate "Upload and install" %}
+            </button>
+            <a href="{% url 'admin:plugins_upload_zip' %}" class="text-sm font-medium text-primary-600 hover:underline">
+              {% translate "Open dedicated upload page" %}
+            </a>
+          </div>
+        </form>
+      </section>
+
+      <section class="border border-base-200 rounded-default p-4 bg-white dark:bg-base-900 dark:border-base-700">
+        <h2 class="text-lg font-semibold text-font-important-light dark:text-font-important-dark">
+          {% translate "Plugin creation instructions" %}
+        </h2>
+        <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+          {% translate "Use Developer Guide as the single source of truth for architecture and manifest fields." %}
+        </p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a
+            href="{% url 'admin:plugins_developer_guide' %}"
+            class="inline-flex items-center gap-2 rounded-default border border-base-300 bg-base-50 px-3 py-2 text-sm font-medium text-font-important-light hover:bg-base-100 transition-colors dark:border-base-600 dark:bg-base-800 dark:text-font-important-dark dark:hover:bg-base-700"
+          >
+            <span class="material-symbols-outlined md-18">menu_book</span>
+            {% translate "Open Developer Guide" %}
+          </a>
+          <a
+            href="{% url 'admin:plugins_scaffold' %}"
+            class="inline-flex items-center gap-2 rounded-default border border-base-300 bg-base-50 px-3 py-2 text-sm font-medium text-font-important-light hover:bg-base-100 transition-colors dark:border-base-600 dark:bg-base-800 dark:text-font-important-dark dark:hover:bg-base-700"
+          >
+            <span class="material-symbols-outlined md-18">auto_fix_high</span>
+            {% translate "Generate scaffold ZIP" %}
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <script>
+      (function () {
+        const fileInput = document.getElementById("{{ zip_form.archive.id_for_label }}");
+        const fileName = document.getElementById("embedded-zip-file-name");
+        if (!fileInput || !fileName) return;
+
+        fileInput.addEventListener("change", function () {
+          const selected = fileInput.files && fileInput.files.length ? fileInput.files[0].name : "{% translate 'No file selected' %}";
+          fileName.textContent = selected;
+        });
+      })();
+    </script>
+  {% endif %}
+
+{% endblock %}

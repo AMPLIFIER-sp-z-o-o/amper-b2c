@@ -1,0 +1,27 @@
+[
+  {
+    "slug": "przelewy24",
+    "package_zip": "plugins/dist/przelewy24.zip",
+    "activate": true,
+    "config": {
+      "environment": "sandbox",
+      "merchant_id": "seed-merchant-id",
+      "pos_id": "seed-pos-id",
+      "crc_key": "seed-crc-key",
+      "api_key": "seed-api-key",
+      "auto_capture": true
+    }
+  },
+  {
+    "slug": "tpay",
+    "package_zip": "plugins/dist/tpay.zip",
+    "activate": true,
+    "config": {
+      "environment": "sandbox",
+      "client_id": "seed-client-id",
+      "client_secret": "seed-client-secret",
+      "security_code": "",
+      "merchant_id": ""
+    }
+  }
+]

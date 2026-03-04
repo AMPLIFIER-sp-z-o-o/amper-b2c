@@ -1,0 +1,248 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    input[data-secret-field="true"] { padding-right: 2.5rem !important; }
+    /* Tailwind right-2 / top-1/2 / -translate-y-1/2 are not compiled into Unfold's admin CSS,
+       so we define the eye-toggle positioning explicitly here. */
+    [data-secret-toggle] {
+      right: 0.5rem !important;
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+      padding: 0.25rem !important;
+    }
+  </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate "Home" %}</a>
+  &rsaquo; <a href="{% url 'admin:plugins_plugin_changelist' %}">{% translate "Plugins" %}</a>
+  &rsaquo; <a href="{% url 'admin:plugins_plugin_change' plugin.id %}">{{ plugin.name }}</a>
+  &rsaquo; {% translate "Configure" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+  <div class="space-y-6">
+    <section class="rounded-default border border-base-200 bg-base-50 p-4 dark:border-base-700 dark:bg-base-900">
+      <h1 class="text-xl font-semibold text-font-important-light dark:text-font-important-dark">{{ title }}</h1>
+      <p class="mt-2 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+        {% translate "Configure runtime settings for this plugin. Required fields should be completed before activating in production." %}
+      </p>
+
+      <div class="mt-4 grid gap-3 md:grid-cols-3">
+        <div class="rounded-default border border-base-200 bg-white p-3 dark:border-base-700 dark:bg-base-800">
+          <p class="text-xs uppercase tracking-wide text-font-subtle-light dark:text-font-subtle-dark">{% translate "Plugin" %}</p>
+          <p class="mt-1 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{{ plugin.name }}</p>
+        </div>
+        <div class="rounded-default border border-base-200 bg-white p-3 dark:border-base-700 dark:bg-base-800">
+          <p class="text-xs uppercase tracking-wide text-font-subtle-light dark:text-font-subtle-dark">{% translate "Slug" %}</p>
+          <p class="mt-1 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{{ plugin.slug }}</p>
+        </div>
+        <div class="rounded-default border border-base-200 bg-white p-3 dark:border-base-700 dark:bg-base-800">
+          <p class="text-xs uppercase tracking-wide text-font-subtle-light dark:text-font-subtle-dark">{% translate "Status" %}</p>
+          <p class="mt-1 text-sm font-semibold text-font-important-light dark:text-font-important-dark">{{ plugin.get_status_display }}</p>
+        </div>
+      </div>
+
+      {% if required_field_labels %}
+        <div class="mt-4 rounded-default border border-amber-200 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+          <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">{% translate "Required fields" %}</p>
+          <div class="mt-2 flex flex-wrap gap-2">
+            {% for label in required_field_labels %}
+              <span class="inline-flex rounded-full border border-amber-300 bg-white px-2 py-1 text-xs font-medium text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-300">{{ label }}</span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if env_vars_mapping %}
+        <div class="mt-4 rounded-default border border-teal-200 bg-teal-50 p-3 dark:border-teal-900/40 dark:bg-teal-900/20">
+          <p class="text-sm font-semibold text-teal-800 dark:text-teal-300">{% translate "Environment variable mapping" %}</p>
+          <p class="mt-1 text-xs text-teal-700 dark:text-teal-400">
+            {% translate "This plugin supports configuration via environment variables. Set them in your .env file to override values below." %}
+          </p>
+          <div class="mt-3 overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="border-b border-teal-200 dark:border-teal-800">
+                  <th class="pb-1.5 text-left font-semibold text-teal-800 dark:text-teal-300">{% translate "Config field" %}</th>
+                  <th class="pb-1.5 text-left font-semibold text-teal-800 dark:text-teal-300">{% translate "Environment variable" %}</th>
+                  <th class="pb-1.5 text-left font-semibold text-teal-800 dark:text-teal-300">{% translate "Status" %}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for mapping in env_vars_mapping %}
+                  <tr class="border-b border-teal-100 dark:border-teal-900/40">
+                    <td class="py-1.5 text-teal-700 dark:text-teal-400">{{ mapping.label }}</td>
+                    <td class="py-1.5">
+                      <code class="rounded bg-teal-100 px-1.5 py-0.5 font-mono text-teal-800 dark:bg-teal-900/60 dark:text-teal-300">{{ mapping.env_var }}</code>
+                    </td>
+                    <td class="py-1.5">
+                      {% if mapping.is_set %}
+                        <span class="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
+                          <span class="inline-block w-1.5 h-1.5 rounded-full bg-green-500"></span>
+                          {% translate "Active" %}
+                        </span>
+                      {% else %}
+                        <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          {% translate "Not set" %}
+                        </span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if test_payload %}
+      <section class="rounded-default border p-3 {% if test_payload.success %}border-green-300 bg-green-50 dark:border-green-800/40 dark:bg-green-900/20{% else %}border-red-300 bg-red-50 dark:border-red-800/40 dark:bg-red-900/20{% endif %}">
+        <p class="text-sm font-semibold {% if test_payload.success %}text-green-800 dark:text-green-300{% else %}text-red-800 dark:text-red-300{% endif %}">
+          {% if test_payload.success %}{% translate "Connection check passed" %}{% else %}{% translate "Connection check failed" %}{% endif %}
+        </p>
+        <p class="mt-1 text-sm {% if test_payload.success %}text-green-700 dark:text-green-300{% else %}text-red-700 dark:text-red-300{% endif %}">
+          {{ test_payload.message }}
+        </p>
+      </section>
+    {% endif %}
+
+    {% if form.fields %}
+      <form method="post" novalidate class="space-y-4">
+        {% csrf_token %}
+
+        <section class="rounded-default border border-base-200 bg-white p-4 dark:border-base-700 dark:bg-base-900">
+          <h2 class="text-lg font-semibold text-font-important-light dark:text-font-important-dark">{% translate "Plugin configuration" %}</h2>
+          <p class="mt-1 text-sm text-font-subtle-light dark:text-font-subtle-dark">
+            {% translate "Sensitive fields are masked and never displayed as plaintext." %}
+          </p>
+
+          <div class="mt-4 grid gap-4 md:grid-cols-2">
+            {% for field in form %}
+              <div class="{% if field.field.widget.input_type == 'textarea' %}md:col-span-2{% endif %}">
+                <label for="{{ field.id_for_label }}" class="flex items-center gap-2 text-sm font-medium text-font-important-light dark:text-font-important-dark">
+                  {{ field.label }}
+                  {% if field.name in env_resolved_fields %}
+                    <span class="inline-flex items-center gap-1 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-teal-700 dark:bg-teal-900/40 dark:text-teal-300" title="{% translate 'Value overridden by environment variable' %}">
+                      <span class="inline-block w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+                      ENV
+                    </span>
+                  {% endif %}
+                </label>
+
+                <div class="mt-1" data-field-container="{{ field.id_for_label }}">
+                  {% if field.field.widget.input_type == "password" %}
+                    <div class="relative">
+                      {{ field }}
+                      <button
+                        type="button"
+                        data-secret-toggle="{{ field.id_for_label }}"
+                        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-default p-1 text-base-500 hover:text-base-700 dark:text-base-400 dark:hover:text-base-200"
+                        aria-label="{% translate 'Toggle secret visibility' %}"
+                      >
+                        <span class="material-symbols-outlined text-base" data-toggle-show>visibility</span>
+                        <span class="material-symbols-outlined text-base hidden" data-toggle-hide>visibility_off</span>
+                      </button>
+                    </div>
+                  {% else %}
+                    {{ field }}
+                  {% endif %}
+                </div>
+
+                {% if field.help_text %}
+                  <p class="mt-1 text-xs text-font-subtle-light dark:text-font-subtle-dark">{{ field.help_text }}</p>
+                {% endif %}
+
+                {% if field.errors %}
+                  <div class="mt-1 text-sm text-red-600 dark:text-red-400">{{ field.errors }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <div id="submit-row" class="relative lg:sticky lg:bottom-0 z-40">
+          <div class="backdrop-blur-xs bg-white/80 rounded-b-default py-4 px-4 dark:bg-base-900/80 lg:border-t lg:border-base-200 relative lg:scrollable-top lg:py-0 dark:border-base-800">
+            <div class="flex flex-col-reverse gap-3 items-center mx-auto lg:flex-row-reverse container lg:h-16">
+              <button type="submit" class="bg-primary-600 border border-transparent cursor-pointer font-medium px-4 py-2 rounded-default text-sm text-white transition-colors w-full lg:w-auto hover:bg-primary-700">
+                {% translate "Save configuration" %}
+              </button>
+              <button type="submit" name="_save_and_test" value="1" class="border border-base-300 cursor-pointer font-medium px-4 py-2 rounded-default text-sm text-font-important-light transition-colors w-full lg:w-auto hover:bg-base-100 dark:border-base-600 dark:bg-base-800 dark:text-font-important-dark dark:hover:bg-base-700">
+                {% translate "Save and test connection" %}
+              </button>
+              <a href="{% url 'admin:plugins_plugin_change' plugin.id %}" class="mr-auto border border-base-200 cursor-pointer font-medium px-4 py-2 rounded-default text-center text-sm transition-all w-full lg:w-auto hover:bg-base-50 dark:border-base-700 dark:hover:text-base-200 dark:hover:bg-base-900">
+                {% translate "Cancel" %}
+              </a>
+            </div>
+          </div>
+        </div>
+      </form>
+    {% else %}
+      <section class="rounded-default border border-base-200 bg-white p-4 dark:border-base-700 dark:bg-base-900">
+        <p class="text-sm text-font-subtle-light dark:text-font-subtle-dark">{% translate "This plugin does not expose configurable fields in its schema." %}</p>
+        <a href="{% url 'admin:plugins_plugin_change' plugin.id %}" class="mt-3 inline-flex text-sm font-medium text-primary-600 hover:underline">{% translate "Back to plugin" %}</a>
+      </section>
+    {% endif %}
+  </div>
+</div>
+<script>
+  (function () {
+    const SECRET_UNCHANGED = "__secret_unchanged__";
+    const toggles = document.querySelectorAll("[data-secret-toggle]");
+
+    document.querySelectorAll('input[data-secret-field="true"]').forEach((input) => {
+      const statusEl = document.createElement("div");
+      statusEl.className = "mt-1.5 text-xs font-medium flex items-center gap-1.5";
+      const isSentinel = input.value === SECRET_UNCHANGED;
+      if (isSentinel) {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-green-500"></span>'
+          + '<span class="text-green-700 dark:text-green-400">{% translate "Secret value is set" %}</span>'
+          + ' <span class="text-base-400 dark:text-base-500">- {% translate "focus and type a new value to replace" %}</span>';
+      } else {
+        statusEl.innerHTML = '<span class="inline-block w-2 h-2 rounded-full bg-yellow-500"></span>'
+          + '<span class="text-yellow-700 dark:text-yellow-400">{% translate "No secret value set" %}</span>';
+      }
+
+      const parent = input.closest('[data-field-container]');
+      if (parent && parent.parentElement) {
+        parent.parentElement.appendChild(statusEl);
+      }
+
+      if (isSentinel) {
+        input.addEventListener('focus', function onFocus() {
+          if (input.value === SECRET_UNCHANGED) {
+            input.value = '';
+          }
+          input.removeEventListener('focus', onFocus);
+        });
+      }
+    });
+
+    toggles.forEach((btn) => {
+      const inputId = btn.getAttribute("data-secret-toggle");
+      const input = document.getElementById(inputId);
+      if (!input) return;
+
+      const showIcon = btn.querySelector("[data-toggle-show]");
+      const hideIcon = btn.querySelector("[data-toggle-hide]");
+
+      btn.addEventListener("click", function () {
+        const isHidden = input.type === "password";
+        input.type = isHidden ? "text" : "password";
+        if (showIcon && hideIcon) {
+          showIcon.classList.toggle("hidden", isHidden);
+          hideIcon.classList.toggle("hidden", !isHidden);
+        }
+      });
+    });
+  })();
+</script>
+{% endblock %}
