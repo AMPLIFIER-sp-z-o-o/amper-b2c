@@ -135,7 +135,7 @@
                                 data-price="{{ method.price }}" 
                                 data-currency="{{ site_currency }}"
                             >
-                                {{ method.price }}
+                              {{ method.price|floatformat:2 }} {{ site_currency }}
                             </span>
                             - {{ method.name }}
                         {% endif %}

@@ -25,7 +25,7 @@
             </a>
             <p class="text-sm sm:text-base font-medium text-gray-900 dark:text-white shrink-0">x{{ line.quantity }}</p>
             <p data-price="{{ line.line_total }}" data-currency="{{ order.currency|default:site_currency }}" class="text-sm sm:text-base font-bold text-gray-900 dark:text-white shrink-0 text-right w-16 sm:w-20 md:w-24">
-              {{ line.line_total|floatformat:2 }}
+              {{ line.line_total|floatformat:2 }} {{ order.currency|default:site_currency }}
             </p>
             {% if reorder_mode %}
             <button

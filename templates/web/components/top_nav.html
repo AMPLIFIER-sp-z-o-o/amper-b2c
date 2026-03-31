@@ -621,7 +621,7 @@ body.nav-scroll-locked {
               >
                 <div class="flex items-center justify-between text-lg font-bold text-gray-900 dark:text-white">
                   <span>{% translate "Total" %}</span>
-                  <span data-cart-total data-price="{{ nav_cart_total }}" data-currency="{{ site_currency }}">{{ nav_cart_total }}</span>
+                  <span data-cart-total data-price="{{ nav_cart_total }}" data-currency="{{ site_currency }}">{{ nav_cart_total|floatformat:2 }} {{ site_currency }}</span>
                 </div>
                 <a href="{% url 'cart:cart_page' %}" class="inline-flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 transition-colors duration-300" role="button">
                   {% translate "View cart" %}

@@ -61,7 +61,7 @@ def project_meta(request):
         "KEYWORDS": settings.PROJECT_METADATA.get("KEYWORDS", ""),
     }
 
-    site_currency = "USD"  # default
+    site_currency = SiteSettings.Currency.USD
     site_settings_obj = _safe_call(SiteSettings.get_settings)
     if site_settings_obj:
         if site_settings_obj.store_name:
@@ -72,7 +72,7 @@ def project_meta(request):
             project_data["DESCRIPTION"] = site_settings_obj.description
         if site_settings_obj.keywords:
             project_data["KEYWORDS"] = site_settings_obj.keywords
-        site_currency = site_settings_obj.currency or "USD"
+        site_currency = site_settings_obj.currency or SiteSettings.Currency.USD
         if site_settings_obj.default_image:
             project_data["IMAGE"] = site_settings_obj.default_image.url
 

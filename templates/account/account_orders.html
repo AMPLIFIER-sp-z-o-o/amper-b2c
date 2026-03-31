@@ -28,7 +28,7 @@
             </div>
             <div class="flex flex-wrap items-center justify-between sm:justify-end gap-2 sm:gap-4 mt-2 sm:mt-0 w-full sm:w-auto">
               <p class="text-base font-bold text-gray-900 dark:text-white mr-auto sm:mb-0 w-full sm:w-auto text-right sm:text-left">
-                <span data-price="{{ order.total }}" data-currency="{{ order.currency }}">{{ order.total }}</span>
+                <span data-price="{{ order.total }}" data-currency="{{ order.currency|default:site_currency }}">{{ order.total|floatformat:2 }} {{ order.currency|default:site_currency }}</span>
               </p>
               <div class="flex items-center gap-2">
                 <a href="{% url 'orders:summary' token=order.tracking_token %}?reorder=1" class="btn-press inline-flex items-center justify-center rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer whitespace-nowrap">
