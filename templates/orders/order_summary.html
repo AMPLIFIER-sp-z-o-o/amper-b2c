@@ -20,9 +20,16 @@
                 </a>
               {% endif %}
             {% endwith %}
-            <a href="{{ line.product.get_absolute_url }}" class="flex-1 min-w-0 text-base font-bold text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">
-              {{ line.product.name }}
-            </a>
+            <div class="flex-1 min-w-0">
+              <a href="{{ line.product.get_absolute_url }}" class="text-base font-bold text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word" title="{{ line.product.name }}">
+                {{ line.product.name }}
+              </a>
+              {% if line.product.is_unavailable %}
+              <span class="mt-2 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                {{ line.product.availability_label }}
+              </span>
+              {% endif %}
+            </div>
             <p class="text-sm sm:text-base font-medium text-gray-900 dark:text-white shrink-0">x{{ line.quantity }}</p>
             <p data-price="{{ line.line_total }}" data-currency="{{ order.currency|default:site_currency }}" class="text-sm sm:text-base font-bold text-gray-900 dark:text-white shrink-0 text-right w-16 sm:w-20 md:w-24">
               {{ line.line_total|floatformat:2 }} {{ order.currency|default:site_currency }}

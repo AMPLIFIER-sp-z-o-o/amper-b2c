@@ -35,9 +35,11 @@
           <div class="flex h-full w-full items-center justify-center text-xs text-gray-400">No photo</div>
         {% endif %}
       {% endwith %}
+      {% if product.is_unavailable %}
       <div class="absolute bottom-1.5 left-1.5 right-1.5 z-10 pointer-events-none">
-        <span class="inline-flex w-full items-center justify-center rounded px-2 py-0.5 text-[10px] font-semibold sm:text-xs {% if product.is_unavailable %}bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300{% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300{% endif %}">{{ product.availability_label }}</span>
+        <span class="inline-flex w-full items-center justify-center rounded px-2 py-0.5 text-[10px] font-semibold sm:text-xs bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300">{{ product.availability_label }}</span>
       </div>
+      {% endif %}
     </div>
   </div>
   
