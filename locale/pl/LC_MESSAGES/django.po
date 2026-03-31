@@ -238,35 +238,6 @@ msgstr ""
 msgid "Logo"
 msgstr ""
 
-msgid "Available"
-msgstr "Dostępny"
-
-msgid "Unavailable"
-msgstr "Niedostępny"
-
-msgid "Warehouse"
-msgstr "Magazyn"
-
-msgid "Warehouses"
-msgstr "Magazyny"
-
-msgid "Default warehouse"
-msgstr "Magazyn domyślny"
-
-msgid "Source warehouse"
-msgstr "Magazyn źródłowy"
-
-msgid "Warehouse allocations"
-msgstr "Alokacje magazynowe"
-
-msgid "No warehouse allocations recorded."
-msgstr "Brak zapisanych alokacji magazynowych."
-
-msgid "Mixed"
-msgstr "Mieszany"
-
-msgid "Order line warehouse allocation"
-msgstr "Alokacja magazynowa linii zamówienia"
 
 msgid "Order line warehouse allocations"
 msgstr "Alokacje magazynowe linii zamówienia"
