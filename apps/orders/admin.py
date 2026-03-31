@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import reverse
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin, TabularInline
 
@@ -18,11 +18,21 @@ class OrderLineInline(TabularInline):
     can_delete = False
     show_change_link = False
     hide_title = True
-    fields = ["product_image_preview", "product_name_display", "quantity", "unit_price_display", "line_total_display"]
+    fields = [
+        "product_image_preview",
+        "product_name_display",
+        "quantity",
+        "warehouse_display",
+        "warehouse_allocations_display",
+        "unit_price_display",
+        "line_total_display",
+    ]
     readonly_fields = [
         "product_image_preview",
         "product_name_display",
         "quantity",
+        "warehouse_display",
+        "warehouse_allocations_display",
         "unit_price_display",
         "line_total_display",
     ]
@@ -40,8 +50,11 @@ class OrderLineInline(TabularInline):
         return (
             super()
             .get_queryset(request)
-            .select_related("product")
-            .prefetch_related(Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id")))
+            .select_related("product", "source_warehouse")
+            .prefetch_related(
+                Prefetch("product__images", queryset=ProductImage.objects.order_by("sort_order", "id")),
+                "warehouse_allocations__warehouse",
+            )
         )
 
     @admin.display(description=_("Image"))
@@ -88,6 +101,26 @@ class OrderLineInline(TabularInline):
             obj.unit_price,
             currency,
             obj.unit_price,
+        )
+
+    @admin.display(description=_("Source warehouse"))
+    def warehouse_display(self, obj):
+        if not obj.source_warehouse_id:
+            return format_html('<span class="text-gray-400 dark:text-gray-500">{}</span>', _("Mixed"))
+        return obj.source_warehouse.name
+
+    @admin.display(description=_("Warehouse allocations"))
+    def warehouse_allocations_display(self, obj):
+        allocations = list(obj.warehouse_allocations.all())
+        if not allocations:
+            return format_html(
+                '<span class="text-gray-400 dark:text-gray-500">{}</span>',
+                _("No warehouse allocations recorded."),
+            )
+        return format_html_join(
+            "<br>",
+            "<span>{}: <strong>{}</strong></span>",
+            ((allocation.warehouse.name, allocation.quantity) for allocation in allocations),
         )
 
     @admin.display(description=_("Line total"))

@@ -1,0 +1,3 @@
+PRODUCT_MODEL_NAME = "Products"
+STOCKS_MODEL_NAME = "Stocks"
+STOCKS_LOCATION_MODEL_NAME = "StocksLocation"

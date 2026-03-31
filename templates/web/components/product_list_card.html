@@ -39,17 +39,11 @@
           <div class="flex h-full w-full items-center justify-center text-xs text-gray-400">No photo</div>
         {% endif %}
       {% endwith %}
-      {% if product.is_unavailable %}
-        <div class="absolute bottom-1 left-1 right-1 z-10">
-          <span class="inline-flex w-full items-center justify-center rounded bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-700 dark:bg-red-900/60 dark:text-red-300 sm:text-xs">
-            {% if product.stock <= 0 %}
-              {% translate "Out of stock" %}
-            {% else %}
-              {% translate "Temporarily unavailable" %}
-            {% endif %}
-          </span>
-        </div>
-      {% endif %}
+      <div class="absolute bottom-1 left-1 right-1 z-10">
+        <span class="inline-flex w-full items-center justify-center rounded px-2 py-0.5 text-[10px] font-semibold sm:text-xs {% if product.is_unavailable %}bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300{% else %}bg-emerald-100 text-emerald-700 dark:bg-emerald-900/60 dark:text-emerald-300{% endif %}">
+          {{ product.availability_label }}
+        </span>
+      </div>
     </div>
   </div>
   
@@ -69,7 +63,7 @@
     {# Price and Add to Cart #}
     <div class="mt-3 flex items-center justify-between gap-3 sm:mt-0">
       <div class="text-base font-bold tracking-tight text-gray-900 dark:text-white sm:text-lg md:text-xl" data-price="{{ product.price }}" data-currency="{{ site_currency }}">
-        {{ product.price }}
+        {{ product.price|floatformat:2 }} {{ site_currency }}
       </div>
       
       {% if product.is_unavailable %}
@@ -77,13 +71,7 @@
         <svg class="-ml-0.5 mr-1.5 h-5 w-5 sm:h-5 sm:w-5 sm:mr-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h1.5L8 16m0 0h8m-8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm8 0a2 2 0 1 0 0 4 2 2 0 0 0 0-4Zm.75-3H7.5M11 7H6.312M17 4v6m-3-3h6" />
         </svg>
-        <span class="hidden sm:inline">
-          {% if product.stock <= 0 %}
-            {% translate "Out of stock" %}
-          {% else %}
-            {% translate "Temporarily unavailable" %}
-          {% endif %}
-        </span>
+        <span class="hidden sm:inline">{{ product.availability_label }}</span>
         <span class="sm:hidden">{% translate "N/A" %}</span>
       </button>
       {% else %}

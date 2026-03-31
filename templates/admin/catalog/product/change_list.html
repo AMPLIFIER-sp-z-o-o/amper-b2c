@@ -1,0 +1,23 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block content %}
+  <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4 text-sm text-gray-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-white">
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div class="space-y-1">
+        <p class="font-semibold text-amber-900 dark:text-amber-200">{% translate "Missing stock setup" %}</p>
+        <p>
+          {% translate "Product import creates products only. Products without warehouse rows stay in Missing stock setup until you import Product stocks or create default warehouse stock rows." %}
+        </p>
+      </div>
+      <a
+        href="{% url 'admin:catalog_productstock_import' %}"
+        class="inline-flex items-center justify-center rounded-full border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-400/40 dark:bg-base-900 dark:text-amber-200 dark:hover:bg-amber-500/20"
+      >
+        {% translate "Import Product stocks" %}
+      </a>
+    </div>
+  </div>
+
+  {{ block.super }}
+{% endblock %}

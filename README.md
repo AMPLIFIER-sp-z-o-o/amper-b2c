@@ -60,6 +60,121 @@ After running `make seed`, the following superuser is available:
 | Email    | admin@example.com |
 | Password | admin             |
 
+## Warehouse Stock Import API
+
+Use the connector endpoints below to import warehouses and stock rows:
+
+```text
+POST /api/connector/stock-locations/import/
+POST /api/connector/stocks/import/
+```
+
+Authentication uses a user API key in the `Authorization` header:
+
+```text
+Authorization: Api-Key <your-api-key>
+```
+
+You can generate the key from the signed-in account area in the `API Keys` section.
+
+### 1. Import stock locations
+
+Use this endpoint to create or update warehouses / stock locations.
+
+```json
+[
+	{
+		"external_id": "ERP-WH-001",
+		"name": "Main warehouse"
+	},
+	{
+		"external_id": "ERP-WH-002",
+		"name": "Outlet warehouse"
+	}
+]
+```
+
+### 2. Import stock rows
+
+Use this endpoint to import stock per product and warehouse.
+
+```json
+[
+	{
+		"external_id": "ERP-STOCK-001",
+		"product_external_id": "ERP-PROD-001",
+		"stock_level_external_id": "ERP-WH-001",
+		"quantity": 25
+	},
+	{
+		"external_id": "ERP-STOCK-002",
+		"product_external_id": "ERP-PROD-001",
+		"stock_level_external_id": "ERP-WH-002",
+		"quantity": 4
+	},
+	{
+		"external_id": "ERP-STOCK-003",
+		"product_external_id": "ERP-PROD-002",
+		"stock_level_external_id": "ERP-WH-001",
+		"quantity": 0
+	}
+]
+```
+
+Example request for stock locations:
+
+```bash
+curl -X POST http://localhost:8000/api/connector/stock-locations/import/ \
+	-H "Content-Type: application/json" \
+	-H "Authorization: Api-Key <your-api-key>" \
+	-d '[
+		{
+			"external_id": "ERP-WH-001",
+			"name": "Main warehouse"
+		},
+		{
+			"external_id": "ERP-WH-002",
+			"name": "Outlet warehouse"
+		}
+	]'
+```
+
+Example request for stocks:
+
+```bash
+curl -X POST http://localhost:8000/api/connector/stocks/import/ \
+	-H "Content-Type: application/json" \
+	-H "Authorization: Api-Key <your-api-key>" \
+	-d '[
+		{
+			"external_id": "ERP-STOCK-001",
+			"product_external_id": "ERP-PROD-001",
+			"stock_level_external_id": "ERP-WH-001",
+			"quantity": 25
+		},
+		{
+			"external_id": "ERP-STOCK-002",
+			"product_external_id": "ERP-PROD-001",
+			"stock_level_external_id": "ERP-WH-002",
+			"quantity": 4
+		},
+		{
+			"external_id": "ERP-STOCK-003",
+			"product_external_id": "ERP-PROD-002",
+			"stock_level_external_id": "ERP-WH-001",
+			"quantity": 0
+		}
+	]'
+
+### Notes
+
+- Send `stock-locations/import/` when you want to add new warehouses or update their names.
+- Send `stocks/import/` to update stock rows for products in warehouses.
+- `quantity` is the final stock value, not a delta.
+- `quantity = 0` is allowed.
+- `stocks/import/` works with existing product and warehouse mappings.
+- On success, both endpoints return `201 Created` with an empty body.
+
 ## Quickstart
 
 ### Prerequisites
