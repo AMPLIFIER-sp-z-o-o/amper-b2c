@@ -32,13 +32,13 @@
         data-price="{{ line.subtotal }}"
         data-currency="{{ site_currency }}"
       >
-        {{ line.subtotal }}
+        {{ line.subtotal|floatformat:2 }} {{ site_currency }}
       </p>
 
       {% if line.quantity > 1 %}
         <p class="text-sm font-semibold text-gray-700 dark:text-gray-200 text-end">
           {% translate "Per item" %}:
-          <span data-cart-line-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price }}</span>
+          <span data-cart-line-price data-price="{{ line.price }}" data-currency="{{ site_currency }}">{{ line.price|floatformat:2 }} {{ site_currency }}</span>
         </p>
       {% endif %}
     </div>

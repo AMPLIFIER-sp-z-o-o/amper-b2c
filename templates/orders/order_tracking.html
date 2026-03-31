@@ -28,7 +28,7 @@
             <div class="flex items-center gap-3 md:contents">
               <p class="text-base font-normal text-gray-900 dark:text-white shrink-0">x{{ line.quantity }}</p>
               <p data-price="{{ line.line_total }}" data-currency="{{ order.currency|default:site_currency }}" class="text-base font-bold text-gray-900 dark:text-white md:w-24 md:text-right">
-                {{ line.line_total|floatformat:2 }}
+                {{ line.line_total|floatformat:2 }} {{ order.currency|default:site_currency }}
               </p>
             </div>
           </div>

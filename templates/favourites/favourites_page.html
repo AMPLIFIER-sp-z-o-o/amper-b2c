@@ -144,7 +144,7 @@
           </div>
           {% endif %}
         </div>
-        <p class="text-sm font-semibold text-gray-900 dark:text-white"><span data-price="{{ wishlist.total_value }}" data-currency="{{ site_currency }}">{{ wishlist.total_value }}</span></p>
+        <p class="text-sm font-semibold text-gray-900 dark:text-white"><span data-price="{{ wishlist.total_value }}" data-currency="{{ site_currency }}">{{ wishlist.total_value|floatformat:2 }} {{ site_currency }}</span></p>
         {% else %}
         <div class="flex items-center gap-2 py-2">
           <svg class="w-5 h-5 text-gray-400 dark:text-gray-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -196,7 +196,7 @@
                   <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ active_wishlist.name }}</h2>
                   <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">{% translate "Shared" %}</span>
                 </div>
-                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value }}</span> {% translate "total" %}</p>
+                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value|floatformat:2 }} {{ site_currency }}</span> {% translate "total" %}</p>
               </div>
             </div>
           </div>
@@ -293,7 +293,7 @@
               {% endif %}
               <div>
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white tracking-tight">{{ active_wishlist.name }}</h2>
-                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value }}</span> {% translate "total" %}</p>
+                <p class="text-subtitle mt-1">{{ active_wishlist.product_count }} {% translate "product" %}{{ active_wishlist.product_count|pluralize }} · <span data-price="{{ active_wishlist.total_value }}" data-currency="{{ site_currency }}">{{ active_wishlist.total_value|floatformat:2 }} {{ site_currency }}</span> {% translate "total" %}</p>
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">

@@ -46,7 +46,7 @@
           <div class="flex shrink-0 items-center gap-6">
             <p class="text-sm font-medium text-gray-900 dark:text-white">x{{ line.quantity }}</p>
             <p data-price="{{ line.subtotal }}" data-currency="{{ site_currency }}"
-               class="w-24 text-right text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }}</p>
+              class="w-24 text-right text-base font-bold text-gray-900 dark:text-white">{{ line.subtotal|floatformat:2 }} {{ site_currency }}</p>
           </div>
 
         </div>
