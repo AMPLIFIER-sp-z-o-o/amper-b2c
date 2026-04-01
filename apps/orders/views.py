@@ -22,14 +22,14 @@ from apps.cart.services import (
     ensure_cart_methods_active,
     refresh_cart_totals_from_db,
 )
-from apps.catalog.models import Product, ProductStatus
+from apps.catalog.models import Product, ProductStatus, ProductStock, Warehouse
 from apps.plugins.engine.registry import registry
 from apps.plugins.hook_names import CHECKOUT_REDIRECT_URL_RESOLVE, LEGACY_CHECKOUT_REDIRECT_URL_RESOLVE
 from apps.utils.tasks import send_email_task  # noqa: F401
 from apps.web.models import SiteSettings
 
 from .emails import send_order_confirmation_email
-from .models import Coupon, Order, OrderLine, OrderStatus
+from .models import Coupon, Order, OrderLine, OrderLineWarehouseAllocation, OrderStatus
 
 
 ORDER_PLACED_MESSAGE_TOKEN_SESSION_KEY = "orders_order_placed_message_token"
@@ -216,12 +216,29 @@ def place_order(request: HttpRequest) -> HttpResponse:
         locked_products = list(
             Product.objects.select_for_update().filter(id__in=list(required_by_product_id.keys())).order_by("id")
         )
+        locked_product_stocks = list(
+            ProductStock.objects.select_for_update()
+            .filter(product_id__in=list(required_by_product_id.keys()))
+            .select_related("warehouse")
+            .order_by("product_id", "warehouse__name", "warehouse_id", "id")
+        )
+
+        stocks_by_product_id: dict[int, list[ProductStock]] = {}
+        available_by_product_id: dict[int, int] = {}
+        allocations_by_product_id: dict[int, list[tuple[int, int]]] = {}
+        for stock in locked_product_stocks:
+            stocks_by_product_id.setdefault(stock.product_id, []).append(stock)
+            available_by_product_id[stock.product_id] = available_by_product_id.get(stock.product_id, 0) + int(
+                stock.quantity or 0
+            )
 
         # Validate stock/availability again under the lock.
         for product in locked_products:
             required_qty = required_by_product_id.get(product.id, 0)
             if required_qty <= 0:
                 continue
+
+            available_qty = available_by_product_id.get(product.id, 0)
 
             if product.status != ProductStatus.ACTIVE or int(product.stock or 0) <= 0:
                 messages.error(
@@ -231,6 +248,13 @@ def place_order(request: HttpRequest) -> HttpResponse:
                 return redirect("cart:cart_page")
 
             if int(product.stock or 0) < required_qty:
+                messages.error(
+                    request,
+                    _("Some items in your cart are no longer available. Please review your cart."),
+                )
+                return redirect("cart:cart_page")
+
+            if available_qty < required_qty:
                 messages.error(
                     request,
                     _("Some items in your cart are no longer available. Please review your cart."),
@@ -275,11 +299,26 @@ def place_order(request: HttpRequest) -> HttpResponse:
             if required_qty <= 0:
                 continue
 
+            remaining_qty = required_qty
+            for stock in stocks_by_product_id.get(product.id, []):
+                if remaining_qty <= 0:
+                    break
+
+                available_in_warehouse = int(stock.quantity or 0)
+                decrement = min(available_in_warehouse, remaining_qty)
+                if decrement <= 0:
+                    continue
+
+                ProductStock.objects.filter(pk=stock.pk).update(quantity=F("quantity") - decrement)
+                allocations_by_product_id.setdefault(product.id, []).append((stock.warehouse_id, decrement))
+                remaining_qty -= decrement
+
             revenue_delta = (revenue_by_product_id.get(product.id) or Decimal("0.00")).quantize(Decimal("0.01"))
+            remaining_total_stock = max(available_by_product_id.get(product.id, 0) - required_qty, 0)
 
             # Keep these counters consistent under concurrency.
             Product.objects.filter(pk=product.pk).update(
-                stock=F("stock") - required_qty,
+                stock=remaining_total_stock,
                 sales_total=F("sales_total") + required_qty,
                 revenue_total=ExpressionWrapper(
                     F("revenue_total") + Value(revenue_delta),
@@ -309,18 +348,35 @@ def place_order(request: HttpRequest) -> HttpResponse:
             currency=currency,
         )
 
-        OrderLine.objects.bulk_create(
-            [
-                OrderLine(
-                    order=order,
-                    product=line.product,
-                    quantity=line.quantity,
-                    unit_price=line.price,
-                    line_total=line.subtotal,
+        warehouse_lookup = {
+            warehouse.id: warehouse
+            for warehouse in Warehouse.objects.filter(
+                id__in={warehouse_id for allocations in allocations_by_product_id.values() for warehouse_id, _qty in allocations}
+            )
+        }
+
+        for line in lines:
+            allocations = allocations_by_product_id.get(line.product_id, [])
+            source_warehouse = warehouse_lookup.get(allocations[0][0]) if len(allocations) == 1 else None
+            order_line = OrderLine.objects.create(
+                order=order,
+                product=line.product,
+                source_warehouse=source_warehouse,
+                quantity=line.quantity,
+                unit_price=line.price,
+                line_total=line.subtotal,
+            )
+            if allocations:
+                OrderLineWarehouseAllocation.objects.bulk_create(
+                    [
+                        OrderLineWarehouseAllocation(
+                            order_line=order_line,
+                            warehouse=warehouse_lookup[warehouse_id],
+                            quantity=quantity,
+                        )
+                        for warehouse_id, quantity in allocations
+                    ]
                 )
-                for line in lines
-            ]
-        )
 
         # Clear cart after successful order placement
         cart.delete()

@@ -238,6 +238,10 @@ msgstr ""
 msgid "Logo"
 msgstr ""
 
+
+msgid "Order line warehouse allocations"
+msgstr "Alokacje magazynowe linii zamówienia"
+
 #: templates/account/components/social/login_with_social_button.html:8
 msgid "Continue with"
 msgstr ""

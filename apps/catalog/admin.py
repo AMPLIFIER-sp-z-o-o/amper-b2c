@@ -1,12 +1,12 @@
 from decimal import Decimal, InvalidOperation
 
 from django import forms
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils.html import format_html, mark_safe
-from django.utils.translation import gettext_lazy as _
+from django.utils.translation import gettext_lazy as _, ngettext
 from import_export import resources
 from import_export.admin import ImportExportModelAdmin
 from unfold.admin import TabularInline
@@ -25,7 +25,9 @@ from .models import (
     Product,
     ProductAttributeValue,
     ProductImage,
+    ProductStock,
     ProductStatus,
+    Warehouse,
 )
 
 
@@ -81,6 +83,21 @@ class ProductAttributeValueInline(TabularInline):
         else:
             self.verbose_name_plural = _("Product attribute values")
         return super().get_formset(request, obj, **kwargs)
+
+
+class ProductStockInline(TabularInline):
+    model = ProductStock
+    extra = 1
+    autocomplete_fields = ["warehouse"]
+    fields = ["warehouse", "quantity"]
+    hide_title = True
+    verbose_name_plural = format_html(
+        '{}<span style="margin-left: 10px; font-weight: normal; font-size: 12px; color: #64748b;">{}</span>',
+        _("Product stocks"),
+        _(
+            "No rows means Missing stock setup. Add a warehouse row here, or use the admin action after saving/importing."
+        ),
+    )
 
 
 class CategoryBannerInline(TabularInline):
@@ -281,7 +298,6 @@ class ProductResource(resources.ModelResource):
             "category",
             "status",
             "price",
-            "stock",
             "description",
             "created_at",
             "updated_at",
@@ -290,8 +306,31 @@ class ProductResource(resources.ModelResource):
         import_id_fields = ["id"]
 
 
+class WarehouseStockStateFilter(admin.SimpleListFilter):
+    title = _("Warehouse stock state")
+    parameter_name = "warehouse_stock_state"
+
+    def lookups(self, request, model_admin):
+        return [
+            ("missing", _("Missing stock setup")),
+            ("zero", _("Out of stock")),
+            ("positive", _("In stock")),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == "missing":
+            return queryset.filter(warehouse_stocks__isnull=True)
+        if value == "zero":
+            return queryset.filter(stock=0).exclude(warehouse_stocks__isnull=True).distinct()
+        if value == "positive":
+            return queryset.filter(stock__gt=0)
+        return queryset
+
+
 @admin.register(Product)
 class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
+    change_list_template = "admin/catalog/product/change_list.html"
     resource_class = ProductResource
     import_form_class = ImportForm
     export_form_class = ExportForm
@@ -300,11 +339,12 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     show_full_result_count = False
 
     def get_queryset(self, request):
-        from django.db.models import Prefetch
+        from django.db.models import Count, Prefetch
 
         return (
             super()
             .get_queryset(request)
+            .annotate(warehouse_stock_rows_count=models.Count("warehouse_stocks", distinct=True))
             .prefetch_related(Prefetch("images", queryset=ProductImage.objects.order_by("sort_order", "id")))
         )
 
@@ -315,18 +355,24 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         "category",
         "price_display",
         "stock",
+        "warehouse_rows_display",
+        "warehouse_stock_status_display",
         "sales_total_list",
         "revenue_display",
         "updated_at",
     )
-    list_filter = ("status", "category")
+    list_filter = ("status", "category", WarehouseStockStateFilter)
     search_fields = ("name", "slug")
     ordering = ("-updated_at",)
     autocomplete_fields = ["category"]
-    inlines = [ProductImageInline, ProductAttributeValueInline]
+    inlines = [ProductStockInline, ProductImageInline, ProductAttributeValueInline]
+    actions = ["create_default_stock_rows"]
     readonly_fields = (
         "created_at",
         "updated_at",
+        "stock",
+        "warehouse_rows_display",
+        "warehouse_stock_status_display",
         "sales_total_display",
         "revenue_total_display",
         "sales_per_day_display",
@@ -342,7 +388,7 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         (
             _("Pricing & Inventory"),
             {
-                "fields": ("price", "stock"),
+                "fields": ("price", "stock", "warehouse_rows_display", "warehouse_stock_status_display"),
             },
         ),
         (
@@ -410,6 +456,60 @@ class ProductAdmin(HistoryModelAdmin, ImportExportModelAdmin):
     @admin.display(description=_("Sales"), ordering="sales_total")
     def sales_total_list(self, obj):
         return obj.sales_total
+
+    def _warehouse_stock_rows_count(self, obj):
+        annotated_value = getattr(obj, "warehouse_stock_rows_count", None)
+        if annotated_value is not None:
+            return annotated_value
+        return obj.warehouse_stocks.count()
+
+    @admin.display(description=_("Warehouses"), ordering="warehouse_stock_rows_count")
+    def warehouse_rows_display(self, obj):
+        rows_count = self._warehouse_stock_rows_count(obj)
+        if rows_count == 0:
+            return format_html('<span class="text-amber-600 font-medium">{}</span>', _("No warehouse rows"))
+        if rows_count == 1:
+            return _("1 warehouse")
+        return _("%(count)s warehouses") % {"count": rows_count}
+
+    @admin.display(description=_("Stock state"))
+    def warehouse_stock_status_display(self, obj):
+        rows_count = self._warehouse_stock_rows_count(obj)
+        if rows_count == 0:
+            return format_html(
+                '<span class="inline-flex rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">{}</span>',
+                _("Missing stock setup"),
+            )
+        if obj.stock > 0:
+            return format_html(
+                '<span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">{}</span>',
+                _("In stock"),
+            )
+        return format_html(
+            '<span class="inline-flex rounded-full bg-rose-100 px-2.5 py-1 text-xs font-medium text-rose-800 dark:bg-rose-500/20 dark:text-rose-300">{}</span>',
+            _("Out of stock"),
+        )
+
+    @admin.action(description=_("Create default warehouse stock rows for selected products"))
+    def create_default_stock_rows(self, request, queryset):
+        default_warehouse = Warehouse.objects.filter(is_default=True).first()
+        if default_warehouse is None:
+            self.message_user(request, _("No default warehouse is configured."), level=messages.ERROR)
+            return
+
+        created_count = 0
+        for product in queryset:
+            if product.warehouse_stocks.exists():
+                continue
+            ProductStock.objects.create(product=product, warehouse=default_warehouse, quantity=0)
+            created_count += 1
+
+        message = ngettext(
+            "Created default warehouse stock row for %(count)s product.",
+            "Created default warehouse stock rows for %(count)s products.",
+            created_count,
+        ) % {"count": created_count}
+        self.message_user(request, message, level=messages.SUCCESS)
 
     @admin.display(description=_("Units sold (total)"))
     def sales_total_display(self, obj):
@@ -590,6 +690,60 @@ class CategoryAdmin(HistoryModelAdmin, ImportExportModelAdmin):
         return mark_safe("".join(str(p) for p in parts))
 
     product_count_detail.short_description = _("Product Count")
+
+
+class WarehouseResource(resources.ModelResource):
+    class Meta:
+        model = Warehouse
+        fields = ("id", "name", "slug", "is_default", "created_at", "updated_at")
+        export_order = fields
+        import_id_fields = ["id"]
+
+
+@admin.register(Warehouse)
+class WarehouseAdmin(HistoryModelAdmin, ImportExportModelAdmin):
+    resource_class = WarehouseResource
+    import_form_class = ImportForm
+    export_form_class = ExportForm
+    list_display = ("name", "is_default", "updated_at")
+    search_fields = ("name", "slug")
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("name", "is_default")} ),
+        (_("Timestamps"), {"fields": ("created_at", "updated_at")}),
+    )
+
+
+class ProductStockResource(resources.ModelResource):
+    def before_import_row(self, row, **kwargs):
+        super().before_import_row(row, **kwargs)
+
+        quantity = row.get("quantity")
+        if quantity not in (None, "") and int(quantity) < 0:
+            raise ValidationError(_("Quantity cannot be negative."))
+
+    class Meta:
+        model = ProductStock
+        fields = ("id", "product", "warehouse", "quantity", "created_at", "updated_at")
+        export_order = fields
+        import_id_fields = ["id"]
+
+
+@admin.register(ProductStock)
+class ProductStockAdmin(HistoryModelAdmin, ImportExportModelAdmin):
+    resource_class = ProductStockResource
+    import_form_class = ImportForm
+    export_form_class = ExportForm
+    list_display = ("product", "warehouse", "quantity", "updated_at")
+    list_select_related = ["product", "warehouse"]
+    autocomplete_fields = ["product", "warehouse"]
+    search_fields = ("product__name", "product__slug", "warehouse__name")
+    list_filter = ("warehouse",)
+    readonly_fields = ("created_at", "updated_at")
+    fieldsets = (
+        (None, {"fields": ("product", "warehouse", "quantity")} ),
+        (_("Timestamps"), {"fields": ("created_at", "updated_at")}),
+    )
 
 
 class AttributeDefinitionResource(resources.ModelResource):

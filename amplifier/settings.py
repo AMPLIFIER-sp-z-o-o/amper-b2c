@@ -106,6 +106,7 @@ THIRD_PARTY_APPS = [
 PROJECT_APPS = [
     "apps.users.apps.UserConfig",
     "apps.api.apps.APIConfig",
+    "apps.connector.apps.ConnectorConfig",
     "apps.web.apps.WebConfig",
     "apps.catalog.apps.CatalogConfig",
     "apps.media.apps.MediaConfig",

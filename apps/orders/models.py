@@ -7,7 +7,7 @@ from django.db import models
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 
-from apps.catalog.models import Product
+from apps.catalog.models import Product, Warehouse
 from apps.utils.models import BaseModel
 
 
@@ -97,6 +97,14 @@ class Order(BaseModel):
 class OrderLine(BaseModel):
     order = models.ForeignKey(Order, related_name="lines", on_delete=models.CASCADE, verbose_name=_("Order"))
     product = models.ForeignKey(Product, on_delete=models.PROTECT, verbose_name=_("Product"))
+    source_warehouse = models.ForeignKey(
+        Warehouse,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="order_lines",
+        verbose_name=_("Source warehouse"),
+    )
 
     quantity = models.PositiveIntegerField(default=1, verbose_name=_("Quantity"))
     unit_price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name=_("Unit price"))
@@ -107,6 +115,25 @@ class OrderLine(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.product} x{self.quantity}"
+
+
+class OrderLineWarehouseAllocation(BaseModel):
+    order_line = models.ForeignKey(
+        OrderLine,
+        related_name="warehouse_allocations",
+        on_delete=models.CASCADE,
+        verbose_name=_("Order line"),
+    )
+    warehouse = models.ForeignKey(Warehouse, on_delete=models.PROTECT, verbose_name=_("Warehouse"))
+    quantity = models.PositiveIntegerField(default=0, verbose_name=_("Quantity"))
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = _("Order line warehouse allocation")
+        verbose_name_plural = _("Order line warehouse allocations")
+
+    def __str__(self) -> str:
+        return f"{self.order_line} @ {self.warehouse}: {self.quantity}"
 
 
 class CouponKind(models.TextChoices):

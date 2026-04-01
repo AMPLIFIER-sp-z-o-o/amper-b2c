@@ -40,6 +40,8 @@ from django.db.utils import NotSupportedError
 from django.utils.dateparse import parse_datetime
 
 from apps.cart.models import DeliveryMethod, PaymentMethod
+from apps.connector.models import Connector
+from apps.connector.names import PRODUCT_MODEL_NAME, STOCKS_LOCATION_MODEL_NAME
 from apps.catalog.models import (
     AttributeDefinition,
     AttributeOption,
@@ -49,6 +51,8 @@ from apps.catalog.models import (
     Product,
     ProductAttributeValue,
     ProductImage,
+    ProductStock,
+    Warehouse,
 )
 from apps.homepage.models import (
     Banner,
@@ -267,6 +271,7 @@ ATTRIBUTE_DEFINITIONS_DATA = _load_generated_seed_list("attribute_definitions_da
 ATTRIBUTE_OPTIONS_DATA = _load_generated_seed_list("attribute_options_data.json")
 
 PRODUCTS_DATA = _load_generated_seed_list("products_data.json")
+WAREHOUSES_DATA = _load_generated_seed_list("warehouses_data.json")
 
 DELIVERY_METHODS_DATA = _load_generated_seed_list("delivery_methods_data.json")
 
@@ -306,9 +311,27 @@ def _build_product_images_data():
     return images
 
 
+def _build_product_stocks_data():
+    default_warehouse = next((item for item in WAREHOUSES_DATA if item.get("is_default")), None)
+    if default_warehouse is None:
+        return []
+
+    warehouse_id = default_warehouse["id"]
+    return [
+        {
+            "id": index,
+            "product_id": product["id"],
+            "warehouse_id": warehouse_id,
+            "quantity": int(product.get("stock") or 0),
+        }
+        for index, product in enumerate(PRODUCTS_DATA, start=1)
+    ]
+
+
 PRODUCT_ATTRIBUTE_VALUES_DATA = _load_generated_seed_list("product_attribute_values_data.json")
 
 PRODUCT_IMAGES_DATA = _build_product_images_data()
+PRODUCT_STOCKS_DATA = _build_product_stocks_data()
 
 BANNER_SETTINGS_DATA = _load_generated_seed_dict("banner_settings_data.json")
 
@@ -1144,6 +1167,21 @@ class Command(BaseCommand):
     def _seed_products(self):
         """Seed Product and related models."""
         self._bulk_upsert_by_id(
+            Warehouse,
+            [
+                {
+                    "id": item["id"],
+                    "name": item["name"],
+                    "slug": item["slug"],
+                    "is_default": item.get("is_default", False),
+                }
+                for item in WAREHOUSES_DATA
+            ],
+            update_fields=["name", "slug", "is_default"],
+        )
+        self.stdout.write(f"  Warehouse: {len(WAREHOUSES_DATA)} records")
+
+        self._bulk_upsert_by_id(
             Product,
             [
                 {
@@ -1153,7 +1191,7 @@ class Command(BaseCommand):
                     "category_id": item["category_id"],
                     "status": item["status"],
                     "price": Decimal(item["price"]),
-                    "stock": item["stock"],
+                    "stock": 0,
                     "sales_total": Decimal(item["sales_total"]),
                     "revenue_total": Decimal(item["revenue_total"]),
                     "sales_per_day": Decimal(item["sales_per_day"]),
@@ -1177,6 +1215,50 @@ class Command(BaseCommand):
             ],
         )
         self.stdout.write(f"  Product: {len(PRODUCTS_DATA)} records")
+
+        self._bulk_upsert_by_id(
+            ProductStock,
+            [
+                {
+                    "id": item["id"],
+                    "product_id": item["product_id"],
+                    "warehouse_id": item["warehouse_id"],
+                    "quantity": item["quantity"],
+                }
+                for item in PRODUCT_STOCKS_DATA
+            ],
+            update_fields=["product", "warehouse", "quantity"],
+        )
+        self.stdout.write(f"  ProductStock: {len(PRODUCT_STOCKS_DATA)} records")
+
+        for product_id in [item["id"] for item in PRODUCTS_DATA]:
+            Product.sync_total_stock(product_id)
+
+        connector_rows = []
+        for item in PRODUCTS_DATA:
+            connector_rows.append(
+                {
+                    "object_type": PRODUCT_MODEL_NAME,
+                    "external_id": item["slug"],
+                    "internal_id": str(item["id"]),
+                }
+            )
+        for item in WAREHOUSES_DATA:
+            connector_rows.append(
+                {
+                    "object_type": STOCKS_LOCATION_MODEL_NAME,
+                    "external_id": item["slug"],
+                    "internal_id": str(item["id"]),
+                }
+            )
+
+        for row in connector_rows:
+            Connector.objects.update_or_create(
+                object_type=row["object_type"],
+                external_id=row["external_id"],
+                defaults={"internal_id": row["internal_id"]},
+            )
+        self.stdout.write(f"  Connector: {len(connector_rows)} seeded product/location mappings")
 
         seeded_image_ids = {item["id"] for item in PRODUCT_IMAGES_DATA}
         ProductImage.objects.exclude(id__in=seeded_image_ids).delete()
@@ -1580,7 +1662,9 @@ class Command(BaseCommand):
             "catalog_category",
             "catalog_categorybanner",
             "catalog_categoryrecommendedproduct",
+            "catalog_warehouse",
             "catalog_product",
+            "catalog_productstock",
             "catalog_productimage",
             "catalog_attributedefinition",
             "catalog_attributeoption",

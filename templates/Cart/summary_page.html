@@ -41,6 +41,11 @@
             <a href="{{ line.product.get_absolute_url }}"
                class="block text-base font-bold text-gray-900 hover:underline dark:text-white line-clamp-2 wrap-break-word"
                title="{{ line.product.name }}">{{ line.product.name }}</a>
+            {% if line.product.is_unavailable %}
+            <span class="mt-2 inline-flex items-center rounded-md px-2.5 py-1 text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+              {{ line.product.availability_label }}
+            </span>
+            {% endif %}
           </div>
 
           <div class="flex shrink-0 items-center gap-6">

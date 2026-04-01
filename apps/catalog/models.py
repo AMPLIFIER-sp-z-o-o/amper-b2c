@@ -4,6 +4,7 @@ import re
 
 from autoslug import AutoSlugField
 from django.db import models
+from django.db.models import Sum
 from django.urls import reverse
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
@@ -57,6 +58,29 @@ class Category(BaseModel):
         return reverse("web:product_list_category", args=[self.id, self.slug])
 
 
+class Warehouse(BaseModel):
+    name = models.CharField(max_length=200, unique=True, verbose_name=_("Name"))
+    slug = AutoSlugField(populate_from="name", unique=True, always_update=False)
+    is_default = models.BooleanField(
+        default=False,
+        verbose_name=_("Default warehouse"),
+        help_text=_("Marks the primary warehouse used by seeded stock data."),
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("Warehouse")
+        verbose_name_plural = _("Warehouses")
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        if self.is_default:
+            self.__class__.objects.exclude(pk=self.pk).filter(is_default=True).update(is_default=False)
+
+
 class Product(BaseModel):
     name = models.CharField(max_length=255)
     slug = AutoSlugField(populate_from="name", unique=True, always_update=False)
@@ -66,7 +90,7 @@ class Product(BaseModel):
         choices=ProductStatus.choices,
         default=ProductStatus.HIDDEN,
         help_text=_(
-            "Controls product visibility and availability. 'Disabled' products are shown but marked as temporarily unavailable."
+            "Controls product visibility and availability. 'Disabled' products are shown but marked as unavailable."
         ),
     )
     price = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -118,10 +142,20 @@ class Product(BaseModel):
     def get_absolute_url(self) -> str:
         return reverse("catalog:product_detail", kwargs={"slug": self.slug, "id": self.id})
 
+    @classmethod
+    def sync_total_stock(cls, product_id: int) -> int:
+        total = ProductStock.objects.filter(product_id=product_id).aggregate(total=Sum("quantity"))["total"] or 0
+        cls.objects.filter(pk=product_id).update(stock=total)
+        return int(total)
+
     @property
     def is_unavailable(self) -> bool:
         """Check if the product is unavailable (out of stock or disabled)."""
         return self.stock <= 0 or self.status == ProductStatus.DISABLED
+
+    @property
+    def availability_label(self) -> str:
+        return _("Available") if not self.is_unavailable else _("Unavailable")
 
     @property
     def tile_display_attributes(self) -> list:
@@ -232,6 +266,32 @@ class ProductImage(BaseModel):
             if max_order is not None:
                 self.sort_order = max_order + 1
         super().save(*args, **kwargs)
+
+
+class ProductStock(BaseModel):
+    product = models.ForeignKey(Product, related_name="warehouse_stocks", on_delete=models.CASCADE)
+    warehouse = models.ForeignKey(Warehouse, related_name="product_stocks", on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=0, verbose_name=_("Quantity"))
+
+    class Meta:
+        ordering = ["warehouse__name", "product__name"]
+        constraints = [
+            models.UniqueConstraint(fields=["product", "warehouse"], name="uniq_product_warehouse_stock"),
+        ]
+        verbose_name = _("Product stock")
+        verbose_name_plural = _("Product stocks")
+
+    def __str__(self) -> str:
+        return f"{self.product.name} @ {self.warehouse.name}: {self.quantity}"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        Product.sync_total_stock(self.product_id)
+
+    def delete(self, *args, **kwargs):
+        product_id = self.product_id
+        super().delete(*args, **kwargs)
+        Product.sync_total_stock(product_id)
 
 
 class AttributeDefinition(BaseModel):

@@ -1,0 +1,8 @@
+[
+  {
+    "id": 1,
+    "name": "Main warehouse",
+    "slug": "main-warehouse",
+    "is_default": true
+  }
+]
