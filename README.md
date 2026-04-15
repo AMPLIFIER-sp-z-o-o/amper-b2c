@@ -165,6 +165,7 @@ curl -X POST http://localhost:8000/api/connector/stocks/import/ \
 			"quantity": 0
 		}
 	]'
+```
 
 ### Notes
 
