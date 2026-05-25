@@ -811,3 +811,72 @@ msgstr ""
 
 msgid "terms of use"
 msgstr ""
+
+msgid "Connection test"
+msgstr "Connection test"
+
+msgid "Save settings first."
+msgstr "Save settings first."
+
+msgid "Test connection"
+msgstr "Test connection"
+
+msgid "LAS base URL and store API key are required."
+msgstr "LAS base URL and store API key are required."
+
+msgid "Invalid store API key."
+msgstr "Invalid store API key."
+
+#, python-format
+msgid "LAS rejected the API key (HTTP %(code)s)."
+msgstr "LAS rejected the API key (HTTP %(code)s)."
+
+#, python-format
+msgid "LAS connection failed: %(error)s"
+msgstr "LAS connection failed: %(error)s"
+
+#, python-format
+msgid "Connection to %(store)s works correctly."
+msgstr "Connection to %(store)s works correctly."
+
+msgid "Enabled"
+msgstr "Enabled"
+
+msgid "LAS base URL"
+msgstr "LAS base URL"
+
+msgid "Store API key"
+msgstr "Store API key"
+
+msgid "Last test status"
+msgstr "Last test status"
+
+msgid "Last test message"
+msgstr "Last test message"
+
+msgid "Last test at"
+msgstr "Last test at"
+
+msgid "Live Assisted Sales settings"
+msgstr "Live Assisted Sales settings"
+
+msgid "Unsupported event type."
+msgstr "Unsupported event type."
+
+msgid "Event could not be queued for Live Assisted Sales."
+msgstr "Event could not be queued for Live Assisted Sales."
+
+msgid "Cross-origin event requests are not allowed."
+msgstr "Cross-origin event requests are not allowed."
+
+msgid "Payload too large."
+msgstr "Payload too large."
+
+msgid "Invalid JSON."
+msgstr "Invalid JSON."
+
+msgid "Invalid events payload."
+msgstr "Invalid events payload."
+
+msgid "Invalid event object."
+msgstr "Invalid event object."

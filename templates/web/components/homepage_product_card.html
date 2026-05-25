@@ -1,5 +1,5 @@
 {% load i18n %}
-<div class="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 sm:p-4 cursor-pointer" data-product-card="{{ product.id }}" title="{{ product.name }}">
+<div class="group relative flex h-full flex-col overflow-hidden rounded-xl bg-white p-3 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 sm:p-4 cursor-pointer" data-product-card="{{ product.id }}" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-url="{{ product.get_absolute_url }}" title="{{ product.name }}">
   {# Stretched link - makes entire card clickable #}
   <a href="{{ product.get_absolute_url }}" class="absolute inset-0 z-0" aria-hidden="true" title="{{ product.name }}"></a>
   

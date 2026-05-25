@@ -1,0 +1,140 @@
+{% if live_assisted_sales.enabled %}
+{{ live_assisted_sales.initial_cart|json_script:"las-initial-cart" }}
+<script>
+  (function () {
+    const endpoint = "{{ live_assisted_sales.events_url|escapejs }}";
+    let sessionEnded = false;
+
+    function uuid() {
+      if (window.crypto && typeof window.crypto.randomUUID === "function") {
+        return window.crypto.randomUUID();
+      }
+      return "las-" + Date.now() + "-" + Math.random().toString(16).slice(2);
+    }
+
+    function visitorId() {
+      const key = "las_visitor_id";
+      let value = storageGet(localStorage, key);
+      if (!value) {
+        value = uuid();
+        storageSet(localStorage, key, value);
+      }
+      writeCookie(key, value);
+      return value;
+    }
+
+    function sessionId() {
+      const key = "las_session_id";
+      let value = storageGet(sessionStorage, key);
+      if (!value) {
+        value = uuid();
+        storageSet(sessionStorage, key, value);
+      }
+      writeCookie(key, value);
+      return value;
+    }
+
+    function storageGet(storage, key) {
+      try {
+        return storage.getItem(key);
+      } catch (error) {
+        return "";
+      }
+    }
+
+    function storageSet(storage, key, value) {
+      try {
+        storage.setItem(key, value);
+      } catch (error) {}
+    }
+
+    function writeCookie(name, value) {
+      document.cookie = name + "=" + encodeURIComponent(value) + "; path=/; SameSite=Lax";
+    }
+
+    function send(event) {
+      const payload = Object.assign({
+        event_id: uuid(),
+        visitor_id: visitorId(),
+        session_id: sessionId(),
+        occurred_at: new Date().toISOString(),
+        url: window.location.href
+      }, event);
+
+      navigator.sendBeacon
+        ? navigator.sendBeacon(endpoint, new Blob([JSON.stringify(payload)], { type: "application/json" }))
+        : fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "same-origin",
+            body: JSON.stringify(payload),
+            keepalive: true
+          }).catch(function () {});
+    }
+
+    function initialCartPayload() {
+      const script = document.getElementById("las-initial-cart");
+      if (!script) return null;
+      try {
+        return JSON.parse(script.textContent || "{}");
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function cartFingerprint(cart) {
+      if (!cart || typeof cart !== "object") return "";
+      return JSON.stringify({
+        items_count: cart.items_count || 0,
+        total: cart.total || "0.00",
+        currency: cart.currency || "",
+        items: Array.isArray(cart.items)
+          ? cart.items.map(function (item) {
+              return [item.product_id, item.quantity, item.line_total].join(":");
+            })
+          : []
+      });
+    }
+
+    function sendCartSnapshotIfChanged() {
+      const cart = initialCartPayload();
+      const fingerprint = cartFingerprint(cart);
+      if (!fingerprint) return;
+      const storageKey = "las:last-cart-snapshot";
+      if (storageGet(sessionStorage, storageKey) === fingerprint) return;
+      storageSet(sessionStorage, storageKey, fingerprint);
+      send({
+        event_type: "cart_snapshot",
+        cart: cart,
+        page: { title: document.title || "" }
+      });
+    }
+
+    function sendInitialEvents() {
+      sendCartSnapshotIfChanged();
+    }
+
+    function sendSessionEnd() {
+      if (sessionEnded) return;
+      sessionEnded = true;
+      send({
+        event_type: "session_end",
+        page: {
+          title: document.title || "",
+          path: window.location.pathname
+        }
+      });
+    }
+
+    window.addEventListener("pagehide", function () {
+      sendSessionEnd();
+    });
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", sendInitialEvents, { once: true });
+    } else {
+      sendInitialEvents();
+    }
+  })();
+</script>
+{% endif %}

@@ -30,3 +30,5 @@ static/css/site.css
 static/js/*-bundle.js
 static/js/*.js.map
 static/.vite/
+devserver-*.log
+playwright-*.png

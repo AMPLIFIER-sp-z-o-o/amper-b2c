@@ -30,6 +30,7 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
+from apps.live_assisted_sales.events import track_category_view, track_search
 from apps.support.draft_utils import (
     apply_draft_to_existing_instance,
     apply_draft_to_instance,
@@ -745,6 +746,7 @@ def search_results(request):
         "highlighted_product_id": int(highlight_product_id) if highlight_product_id.isdigit() else None,
         "search_category": search_category,
     }
+    track_search(request, search_query)
 
     # Return partial template for in-place filter/pagination HTMX updates.
     # History-restore requests must return full HTML, otherwise back/forward can
@@ -1328,6 +1330,11 @@ def product_list(request, category_id=None, category_slug=None):
                 .order_by("order", "id")[:12]
             )
             context["recommended_products"] = list(recommended_products)
+
+    if current_category:
+        track_category_view(request, current_category)
+    if search_query:
+        track_search(request, search_query)
 
     # Return partial template for in-place filter/pagination HTMX updates.
     # History-restore requests must return full HTML, otherwise back/forward can

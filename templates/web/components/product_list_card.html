@@ -1,6 +1,6 @@
 {% load i18n %}
 {# Product card for list view - horizontal layout with more details #}
-<div class="product-list-item group relative flex gap-4 overflow-hidden rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 cursor-pointer" data-product-card="{{ product.id }}">
+<div class="product-list-item group relative flex gap-4 overflow-hidden rounded-xl bg-white p-4 shadow-[0_2px_8px_rgba(0,0,0,0.08)] transition-shadow duration-300 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)] dark:bg-gray-800 cursor-pointer" data-product-card="{{ product.id }}" data-product-id="{{ product.id }}" data-product-name="{{ product.name }}" data-product-url="{{ product.get_absolute_url }}">
   {# Stretched link - makes entire card clickable #}
   <a href="{{ product.get_absolute_url }}" class="absolute inset-0 z-0" aria-hidden="true"></a>
   

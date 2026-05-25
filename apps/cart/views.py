@@ -7,13 +7,14 @@ from django.db.models import Sum
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
-from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.utils import timezone
+from django.utils.cache import patch_cache_control, patch_vary_headers
 from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.catalog.models import Product, ProductStatus
 from apps.favourites.models import WishList, WishListItem
+from apps.live_assisted_sales.events import track_cart_item_added, track_cart_item_removed
 from apps.orders.forms import CheckoutDetailsForm
 from apps.orders.models import Coupon, CouponKind
 from apps.plugins.engine.registry import registry
@@ -733,6 +734,7 @@ def add_to_cart(request):
     )
 
     response.set_cookie("cart_id", cart.id, max_age=60 * 60 * 24 * 10)
+    track_cart_item_added(request, cart, product)
     return response
 
 
@@ -781,13 +783,14 @@ def remove_from_cart(request):
 
     line_id = line.id
     product_name = line.product.name
+    removed_product = line.product
 
     line.delete()
     refresh_cart_totals_from_db(cart)
 
     delivery_cost = cart.delivery_method.get_cost_for_cart(cart.subtotal) if cart.delivery_method else Decimal("0.00")
 
-    return JsonResponse(
+    response = JsonResponse(
         {
             "success": True,
             "cart_total": str(cart.total),
@@ -800,6 +803,8 @@ def remove_from_cart(request):
             "delivery_cost": delivery_cost,
         }
     )
+    track_cart_item_removed(request, cart, removed_product)
+    return response
 
 
 @require_GET

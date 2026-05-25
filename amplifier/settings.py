@@ -117,6 +117,7 @@ PROJECT_APPS = [
     "apps.promotions.apps.PromotionsConfig",
     "apps.orders.apps.OrdersConfig",
     "apps.plugins.apps.PluginsConfig",
+    "apps.live_assisted_sales.apps.LiveAssistedSalesConfig",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + PROJECT_APPS
@@ -297,6 +298,10 @@ UNFOLD = {
                         "link": reverse_lazy("admin:plugins_plugin_changelist"),
                     },
                     {
+                        "title": gettext_lazy("Live Assisted Sales"),
+                        "link": reverse_lazy("admin:live_assisted_sales_liveassistedsalessettings_changelist"),
+                    },
+                    {
                         "title": gettext_lazy("Plugin logs"),
                         "link": reverse_lazy("admin:plugins_pluginlog_changelist"),
                     },
@@ -387,6 +392,7 @@ TEMPLATES = [
                 "apps.support.context_processors.admin_extra_userlinks",
                 "apps.support.context_processors.draft_preview",
                 "apps.cart.context_processors.cart_context",
+                "apps.live_assisted_sales.context_processors.live_assisted_sales",
             ],
             "loaders": _DEFAULT_LOADERS if DEBUG else _CACHED_LOADERS,
         },

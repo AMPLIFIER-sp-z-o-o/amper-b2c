@@ -958,3 +958,72 @@ msgstr "Ilość"
 #: templates/orders/email/order_confirmation_message.txt
 msgid "Track your order"
 msgstr "Śledź swoje zamówienie"
+
+msgid "Connection test"
+msgstr "Test połączenia"
+
+msgid "Save settings first."
+msgstr "Najpierw zapisz ustawienia."
+
+msgid "Test connection"
+msgstr "Testuj połączenie"
+
+msgid "LAS base URL and store API key are required."
+msgstr "Adres bazowy LAS i klucz API sklepu są wymagane."
+
+msgid "Invalid store API key."
+msgstr "Nieprawidłowy klucz API sklepu."
+
+#, python-format
+msgid "LAS rejected the API key (HTTP %(code)s)."
+msgstr "LAS odrzucił klucz API (HTTP %(code)s)."
+
+#, python-format
+msgid "LAS connection failed: %(error)s"
+msgstr "Połączenie z LAS nie powiodło się: %(error)s"
+
+#, python-format
+msgid "Connection to %(store)s works correctly."
+msgstr "Połączenie ze sklepem %(store)s działa poprawnie."
+
+msgid "Enabled"
+msgstr "Włączone"
+
+msgid "LAS base URL"
+msgstr "Adres bazowy LAS"
+
+msgid "Store API key"
+msgstr "Klucz API sklepu"
+
+msgid "Last test status"
+msgstr "Status ostatniego testu"
+
+msgid "Last test message"
+msgstr "Komunikat ostatniego testu"
+
+msgid "Last test at"
+msgstr "Data ostatniego testu"
+
+msgid "Live Assisted Sales settings"
+msgstr "Ustawienia Live Assisted Sales"
+
+msgid "Unsupported event type."
+msgstr "Nieobsługiwany typ zdarzenia."
+
+msgid "Event could not be queued for Live Assisted Sales."
+msgstr "Nie udało się przekazać zdarzenia do Live Assisted Sales."
+
+msgid "Cross-origin event requests are not allowed."
+msgstr "Żądania zdarzeń z innej domeny są niedozwolone."
+
+msgid "Payload too large."
+msgstr "Treść żądania jest za duża."
+
+msgid "Invalid JSON."
+msgstr "Nieprawidłowy JSON."
+
+msgid "Invalid events payload."
+msgstr "Nieprawidłowa treść zdarzeń."
+
+msgid "Invalid event object."
+msgstr "Nieprawidłowy obiekt zdarzenia."

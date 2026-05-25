@@ -112,6 +112,7 @@ urlpatterns = [
     path("favorites/", include("apps.favourites.urls")),
     path("orders/", include("apps.orders.urls")),
     path("plugins/", include("apps.plugins.urls")),
+    path("live-assisted-sales/", include("apps.live_assisted_sales.urls")),
     path("api/connector/", include("apps.connector.urls")),
     # API docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
