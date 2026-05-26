@@ -80,8 +80,11 @@ def send_event(settings_obj, payload):
     try:
         LiveAssistedSalesClient(settings_obj.las_base_url, settings_obj.store_api_key, timeout=0.8).send_event(payload)
         return True
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        logger.warning("Live Assisted Sales event dispatch failed: %s", exc)
+        return False
     except Exception:
-        logger.exception("Live Assisted Sales event dispatch failed.")
+        logger.exception("Live Assisted Sales event dispatch failed unexpectedly.")
         return False
 
 

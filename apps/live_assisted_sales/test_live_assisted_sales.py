@@ -9,7 +9,7 @@ from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 from apps.web.models import SiteSettings
 
 from .admin import LiveAssistedSalesSettingsForm
-from .client import run_settings_connection_test
+from .client import run_settings_connection_test, send_event
 from .events import build_event_payload, cart_payload, category_payload, dispatch_event, product_payload
 from .models import LiveAssistedSalesSettings
 
@@ -87,6 +87,22 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertIn("API key (HTTP 403)", message)
         self.assertIn("Invalid store API key", message)
         self.assertNotIn("site_sk_secret", message)
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.send_event")
+    def test_send_event_logs_timeout_without_traceback(self, send_event_mock):
+        send_event_mock.side_effect = TimeoutError("timed out")
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+        )
+
+        with self.assertLogs("apps.live_assisted_sales.client", level="WARNING") as logs:
+            result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertFalse(result)
+        self.assertIn("Live Assisted Sales event dispatch failed: timed out", logs.output[0])
+        self.assertNotIn("Traceback", "\n".join(logs.output))
 
 
 class BrowserEventEndpointTests(TestCase):
