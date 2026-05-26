@@ -4,13 +4,26 @@ from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
 from django.contrib.auth import get_user_model
-from django.test import Client, RequestFactory, TestCase
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 
 from apps.web.models import SiteSettings
 
+from .admin import LiveAssistedSalesSettingsForm
 from .client import run_settings_connection_test
 from .events import build_event_payload, cart_payload, category_payload, dispatch_event, product_payload
 from .models import LiveAssistedSalesSettings
+
+
+class LiveAssistedSalesSettingsAdminFormTests(SimpleTestCase):
+    def test_admin_settings_form_prevents_credential_autofill(self):
+        form = LiveAssistedSalesSettingsForm()
+
+        self.assertEqual(form.fields["las_base_url"].widget.attrs["autocomplete"], "off")
+        self.assertEqual(form.fields["las_base_url"].widget.attrs["data-lpignore"], "true")
+        self.assertEqual(form.fields["las_base_url"].widget.attrs["data-1p-ignore"], "true")
+        self.assertEqual(form.fields["store_api_key"].widget.attrs["autocomplete"], "new-password")
+        self.assertEqual(form.fields["store_api_key"].widget.attrs["data-lpignore"], "true")
+        self.assertEqual(form.fields["store_api_key"].widget.attrs["data-1p-ignore"], "true")
 
 
 class LiveAssistedSalesSettingsTests(TestCase):

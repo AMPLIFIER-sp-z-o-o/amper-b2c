@@ -17,10 +17,19 @@ class LiveAssistedSalesSettingsForm(forms.ModelForm):
         model = LiveAssistedSalesSettings
         fields = "__all__"
         widgets = {
-            "las_base_url": UnfoldAdminTextInputWidget,
+            "las_base_url": UnfoldAdminTextInputWidget(
+                attrs={
+                    "autocomplete": "off",
+                    "data-lpignore": "true",
+                    "data-1p-ignore": "true",
+                }
+            ),
             "store_api_key": UnfoldAdminPasswordInput(
                 attrs={
+                    "autocomplete": "new-password",
                     "data-las-secret": "true",
+                    "data-lpignore": "true",
+                    "data-1p-ignore": "true",
                     "data-show-label": _("Show store API key"),
                     "data-hide-label": _("Hide store API key"),
                 },
