@@ -14,7 +14,6 @@ SUPPORTED_EVENT_TYPES = {
     "product_view",
     "category_view",
     "search",
-    "cart_snapshot",
     "cart_item_added",
     "cart_item_removed",
     "session_end",
@@ -79,7 +78,8 @@ def build_event_payload(request, event_type, **data):
         "product": data.pop("product", {}),
         "category": data.pop("category", {}),
         "search": data.pop("search", {}),
-        "cart": data.pop("cart", {}),
+        "cart": data.pop("cart", None)
+        or cart_payload(None if request is None else _current_cart_from_request(request), request=request),
         "cursor": data.pop("cursor", {}),
         "metadata": metadata,
     }
@@ -186,6 +186,33 @@ def cart_payload(cart, request=None):
             for line in lines[:50]
         ],
     }
+
+
+def _current_cart_from_request(request):
+    if not request:
+        return None
+    try:
+        from apps.cart.models import Cart
+        from apps.cart.services import _get_cart_from_request
+
+        cart_id = _cart_id_from_request(request)
+        cart = _get_cart_from_request(request, cart_id) if cart_id else None
+        user = getattr(request, "user", None)
+        if not cart and user and user.is_authenticated:
+            cart = (
+                Cart.objects.prefetch_related("lines__product").filter(customer=user).order_by("-id").first()
+            )
+        return cart
+    except Exception:
+        logger.exception("Live Assisted Sales cart payload lookup failed.")
+        return None
+
+
+def _cart_id_from_request(request):
+    cart_id = request.session.get("cart_id") or request.COOKIES.get("cart_id")
+    if cart_id in (None, ""):
+        return None
+    return cart_id if isinstance(cart_id, int | str) else None
 
 
 def track_product_view(request, product):

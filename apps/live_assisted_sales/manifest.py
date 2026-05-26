@@ -8,7 +8,6 @@ PLUGIN_MANIFEST = {
         "product_view",
         "category_view",
         "search",
-        "cart_snapshot",
         "cart_item_added",
         "cart_item_removed",
     ],

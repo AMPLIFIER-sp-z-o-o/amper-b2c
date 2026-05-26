@@ -53,6 +53,10 @@
     }
 
     function send(event) {
+      const cart = initialCartPayload();
+      if (event.cart === undefined && cart) {
+        event.cart = cart;
+      }
       const payload = Object.assign({
         event_id: uuid(),
         visitor_id: visitorId(),
@@ -82,36 +86,9 @@
       }
     }
 
-    function cartFingerprint(cart) {
-      if (!cart || typeof cart !== "object") return "";
-      return JSON.stringify({
-        items_count: cart.items_count || 0,
-        total: cart.total || "0.00",
-        currency: cart.currency || "",
-        items: Array.isArray(cart.items)
-          ? cart.items.map(function (item) {
-              return [item.product_id, item.quantity, item.line_total].join(":");
-            })
-          : []
-      });
-    }
-
-    function sendCartSnapshotIfChanged() {
-      const cart = initialCartPayload();
-      const fingerprint = cartFingerprint(cart);
-      if (!fingerprint) return;
-      const storageKey = "las:last-cart-snapshot";
-      if (storageGet(sessionStorage, storageKey) === fingerprint) return;
-      storageSet(sessionStorage, storageKey, fingerprint);
-      send({
-        event_type: "cart_snapshot",
-        cart: cart,
-        page: { title: document.title || "" }
-      });
-    }
-
     function sendInitialEvents() {
-      sendCartSnapshotIfChanged();
+      visitorId();
+      sessionId();
     }
 
     function sendSessionEnd() {

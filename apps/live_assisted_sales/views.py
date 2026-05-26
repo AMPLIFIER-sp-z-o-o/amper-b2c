@@ -42,7 +42,7 @@ def _dispatch_browser_event(request, data):
         product=data.get("product") or {},
         category=data.get("category") or {},
         search=data.get("search") or {},
-        cart=data.get("cart") or {},
+        cart=data["cart"] if "cart" in data else None,
         cursor=data.get("cursor") or {},
         metadata=data.get("metadata") or {},
     )

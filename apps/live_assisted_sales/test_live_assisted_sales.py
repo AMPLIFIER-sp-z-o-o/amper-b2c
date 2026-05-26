@@ -146,7 +146,7 @@ class BrowserEventEndpointTests(TestCase):
         self.assertEqual(payload["metadata"]["user"]["status"], "anonymous")
 
     @patch("apps.live_assisted_sales.views.enqueue_event")
-    def test_browser_endpoint_accepts_browser_state_events(self, enqueue_mock):
+    def test_browser_endpoint_rejects_cart_snapshot_events(self, enqueue_mock):
         enqueue_mock.return_value = True
         self.configure(
             enabled=True,
@@ -166,10 +166,9 @@ class BrowserEventEndpointTests(TestCase):
             content_type="application/json",
         )
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["sent"], 1)
-        event_types = [call.args[1]["event_type"] for call in enqueue_mock.call_args_list]
-        self.assertEqual(event_types, ["cart_snapshot"])
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["sent"], 0)
+        enqueue_mock.assert_not_called()
 
     @patch("apps.live_assisted_sales.views.enqueue_event")
     def test_browser_endpoint_accepts_session_end_event(self, enqueue_mock):
