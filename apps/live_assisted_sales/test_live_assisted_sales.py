@@ -215,6 +215,34 @@ class BrowserEventEndpointTests(TestCase):
         self.assertEqual(payload["session_id"], "session-1")
 
     @patch("apps.live_assisted_sales.views.enqueue_event")
+    def test_browser_endpoint_accepts_session_start_event(self, enqueue_mock):
+        enqueue_mock.return_value = True
+        self.configure(
+            enabled=True,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+        )
+
+        response = self.client.post(
+            "/live-assisted-sales/events/",
+            data=json.dumps(
+                {
+                    "event_type": "session_start",
+                    "visitor_id": "visitor-1",
+                    "session_id": "session-1",
+                    "page": {"title": "Homepage", "path": "/"},
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sent"], 1)
+        payload = enqueue_mock.call_args.args[1]
+        self.assertEqual(payload["event_type"], "session_start")
+        self.assertEqual(payload["page"]["title"], "Homepage")
+
+    @patch("apps.live_assisted_sales.views.enqueue_event")
     def test_browser_endpoint_marks_logged_in_user_without_returning_api_key(self, enqueue_mock):
         enqueue_mock.return_value = True
         self.configure(

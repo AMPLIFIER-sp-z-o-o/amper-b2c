@@ -89,6 +89,13 @@
     function sendInitialEvents() {
       visitorId();
       sessionId();
+      send({
+        event_type: "session_start",
+        page: {
+          title: document.title || "",
+          path: window.location.pathname
+        }
+      });
     }
 
     function sendSessionEnd() {

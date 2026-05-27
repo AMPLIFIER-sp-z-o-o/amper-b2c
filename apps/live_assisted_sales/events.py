@@ -11,6 +11,7 @@ from .models import LiveAssistedSalesSettings
 
 logger = logging.getLogger(__name__)
 SUPPORTED_EVENT_TYPES = {
+    "session_start",
     "product_view",
     "category_view",
     "search",
