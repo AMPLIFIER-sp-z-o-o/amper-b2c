@@ -110,11 +110,22 @@ if _MEDIA_CDN_DOMAIN_URL.startswith(("http://", "https://")):
     _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.split("://", 1)[1]
 _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.strip("/")
 
+_LOCAL_SITE_DOMAINS = {"localhost:8000", "127.0.0.1:8000"}
+_DEFAULT_LAS_BASE_URL = "https://qa.live-assisted-sales.com/"
+_DEFAULT_LAS_STORE_API_KEY = (
+    "-ZZOAA5i7fX5dfCE-vcw6KbSQ5AWF_DylK4foQV1lp-JLZTNvrLMXx5_rGgJLAQvYiM-w4zQTajLSqHGr8O8xaWIBZ7vdyVd8Z4zeB-wE4XqMoOdX3bAHSUHqBtNXOxZ"
+)
+if _SITE_DOMAIN in _LOCAL_SITE_DOMAINS:
+    _DEFAULT_LAS_BASE_URL = "http://localhost:8001/"
+    _DEFAULT_LAS_STORE_API_KEY = (
+        "5EsSYXmZVJhIlgy4H7jHkUUVgR-27O0D8JPNjZsD_adRyopGpvBmULhQv4a46dtYPeJswPpGwiKO25VL1z51gry2RxsEZH1aL5bnDkE3bya9persfzeeny3KlAvdfrRb"
+    )
+
 LIVE_ASSISTED_SALES_SETTINGS_DATA = {
     "id": 1,
     "enabled": True,
-    "las_base_url": "https://qa.live-assisted-sales.com/",
-    "store_api_key": "-ZZOAA5i7fX5dfCE-vcw6KbSQ5AWF_DylK4foQV1lp-JLZTNvrLMXx5_rGgJLAQvYiM-w4zQTajLSqHGr8O8xaWIBZ7vdyVd8Z4zeB-wE4XqMoOdX3bAHSUHqBtNXOxZ",
+    "las_base_url": _DEFAULT_LAS_BASE_URL,
+    "store_api_key": _DEFAULT_LAS_STORE_API_KEY,
 }
 
 
