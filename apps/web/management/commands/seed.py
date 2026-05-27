@@ -66,6 +66,7 @@ from apps.homepage.models import (
     HomepageSectionCategoryItem,
     HomepageSectionProduct,
 )
+from apps.live_assisted_sales.models import LiveAssistedSalesSettings
 from apps.media.models import MediaStorageSettings
 from apps.media.storage import DynamicMediaStorage
 from apps.orders.models import Coupon, CouponKind
@@ -108,6 +109,13 @@ _MEDIA_CDN_DOMAIN_URL = os.environ.get("MEDIA_CDN_DOMAIN_URL", "").strip()
 if _MEDIA_CDN_DOMAIN_URL.startswith(("http://", "https://")):
     _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.split("://", 1)[1]
 _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.strip("/")
+
+LIVE_ASSISTED_SALES_SETTINGS_DATA = {
+    "id": 1,
+    "enabled": True,
+    "las_base_url": "https://amper-b2c.ampliapps.com/",
+    "store_api_key": "-ZZOAA5i7fX5dfCE-vcw6KbSQ5AWF_DylK4foQV1lp-JLZTNvrLMXx5_rGgJLAQvYiM-w4zQTajLSqHGr8O8xaWIBZ7vdyVd8Z4zeB-wE4XqMoOdX3bAHSUHqBtNXOxZ",
+}
 
 
 def _load_generated_seed_overrides(filename):
@@ -437,6 +445,7 @@ class Command(BaseCommand):
             self._seed_static_media_assets()
             self._seed_site_settings()
             self._seed_system_settings()
+            self._seed_live_assisted_sales_settings()
             self._seed_dynamic_pages()
             self._seed_footer()
             self._seed_bottombar()
@@ -816,6 +825,18 @@ class Command(BaseCommand):
             update_fields=update_fields,
         )
         self.stdout.write(f"  SystemSettings: {len(SYSTEM_SETTINGS_DATA)} records")
+
+    def _seed_live_assisted_sales_settings(self):
+        """Seed Live Assisted Sales integration settings."""
+        LiveAssistedSalesSettings.objects.update_or_create(
+            pk=LIVE_ASSISTED_SALES_SETTINGS_DATA["id"],
+            defaults={
+                "enabled": LIVE_ASSISTED_SALES_SETTINGS_DATA["enabled"],
+                "las_base_url": LIVE_ASSISTED_SALES_SETTINGS_DATA["las_base_url"],
+                "store_api_key": LIVE_ASSISTED_SALES_SETTINGS_DATA["store_api_key"],
+            },
+        )
+        self.stdout.write("  LiveAssistedSalesSettings: 1 record")
 
     def _seed_dynamic_pages(self):
         """Seed DynamicPage model."""
