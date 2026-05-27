@@ -113,7 +113,7 @@ _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.strip("/")
 LIVE_ASSISTED_SALES_SETTINGS_DATA = {
     "id": 1,
     "enabled": True,
-    "las_base_url": "https://amper-b2c.ampliapps.com/",
+    "las_base_url": "https://qa.live-assisted-sales.com/",
     "store_api_key": "-ZZOAA5i7fX5dfCE-vcw6KbSQ5AWF_DylK4foQV1lp-JLZTNvrLMXx5_rGgJLAQvYiM-w4zQTajLSqHGr8O8xaWIBZ7vdyVd8Z4zeB-wE4XqMoOdX3bAHSUHqBtNXOxZ",
 }
 
