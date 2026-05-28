@@ -201,6 +201,11 @@ for _site in SITES_DATA:
     _site["domain"] = _SITE_DOMAIN
 
 TOPBAR_DATA = _load_generated_seed_list("topbar_data.json")
+_PRODUCTION_STOREFRONT_URL = "https://amper-b2c.ampliapps.com"
+for _topbar in TOPBAR_DATA:
+    _link_url = str(_topbar.get("link_url") or "")
+    if _link_url.startswith(f"{_PRODUCTION_STOREFRONT_URL}/") and _SITE_URL != _PRODUCTION_STOREFRONT_URL:
+        _topbar["link_url"] = _link_url.replace(_PRODUCTION_STOREFRONT_URL, _SITE_URL, 1)
 
 CUSTOM_CSS_DATA = _load_generated_seed_list("custom_css_data.json")
 
@@ -1648,6 +1653,7 @@ class Command(BaseCommand):
             defaults={
                 "username": email,
                 "first_name": "Admin",
+                "language": settings.LANGUAGE_CODE,
                 "is_staff": True,
                 "is_superuser": True,
                 "is_active": True,
@@ -1661,6 +1667,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"  Superuser created: {email} / {password}"))
         else:
             user.first_name = "Admin"
+            user.language = settings.LANGUAGE_CODE
             user.is_staff = True
             user.is_superuser = True
             user.set_password(password)
