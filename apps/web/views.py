@@ -39,6 +39,38 @@ from apps.support.draft_utils import (
 from apps.web.models import DynamicPage, SiteSettings
 
 
+SEARCH_TERM_ALIASES = {
+    "perfume": ("perfumes", "fragrance", "fragrances"),
+    "perfumes": ("perfume", "fragrance", "fragrances"),
+    "fragrance": ("fragrances", "perfume", "perfumes"),
+    "fragrances": ("fragrance", "perfume", "perfumes"),
+}
+
+
+def _expand_product_search_terms(query: str) -> list[str]:
+    normalized = query.strip().lower()
+    terms = [query.strip()]
+    for alias in SEARCH_TERM_ALIASES.get(normalized, ()):
+        if alias not in terms:
+            terms.append(alias)
+    return [term for term in terms if term]
+
+
+def _build_product_search_query(query: str) -> Q:
+    search_filter = Q()
+    for term in _expand_product_search_terms(query):
+        search_filter |= (
+            Q(name__icontains=term)
+            | Q(description__icontains=term)
+            | Q(category__name__icontains=term)
+            | Q(category__slug__icontains=term)
+            | Q(category__parent__name__icontains=term)
+            | Q(attribute_values__option__value__icontains=term)
+            | Q(attribute_values__option__attribute__name__icontains=term)
+        )
+    return search_filter
+
+
 def server_error(request, *args, **kwargs):
     return render(request, "500.html", status=500)
 
@@ -408,14 +440,19 @@ def search_suggestions(request):
         except ValueError:
             pass
 
-    # Search products by name
-    products = products.filter(Q(name__icontains=query)).select_related("category").order_by("name")[:8]
+    # Search products by visible customer-facing text.
+    products = (
+        products.filter(_build_product_search_query(query))
+        .select_related("category")
+        .distinct()
+        .order_by("name")[:8]
+    )
 
     # Get total count for "See all results" link
     total_products = Product.objects.filter(status__in=VISIBLE_STATUSES)
     if descendant_ids:
         total_products = total_products.filter(category_id__in=descendant_ids)
-    total_count = total_products.filter(Q(name__icontains=query)).count()
+    total_count = total_products.filter(_build_product_search_query(query)).distinct().count()
 
     suggestions = []
     for product in products:
@@ -465,7 +502,7 @@ def search_results(request):
             search_category = None
 
     # Apply search filter
-    products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
+    products = products.filter(_build_product_search_query(search_query)).distinct()
 
     # Store base products for attribute computation (before attribute filtering)
     base_search_products = products
@@ -965,7 +1002,7 @@ def product_list(request, category_id=None, category_slug=None):
     # Search filter
     search_query = request.GET.get("q", "").strip()
     if search_query:
-        products = products.filter(Q(name__icontains=search_query) | Q(description__icontains=search_query))
+        products = products.filter(_build_product_search_query(search_query)).distinct()
 
     # Price filtering
     current_price_min = request.GET.get("price_min", "").strip()

@@ -260,6 +260,7 @@ class TestFavoritesPageView(TestCase):
         response = client.get(reverse("favorites:favorites_page"))
         assert response.status_code == 200
         assert "Favorites" in response.content.decode() or "Ulubione" in response.content.decode()
+        assert "{# data-hist-no-reexec" not in response.content.decode()
 
     def test_favorites_page_authenticated(self):
         """Test authenticated user can access favorites page."""
@@ -289,6 +290,7 @@ class TestToggleFavoriteView(TestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
+        assert "for this session" in data["message"]
 
     def test_toggle_remove_favorite_anonymous(self):
         """Test anonymous user can remove product from favorites."""
@@ -310,6 +312,7 @@ class TestToggleFavoriteView(TestCase):
         assert response.status_code == 200
         data = response.json()
         assert data["action"] == "added"
+        assert "for this session" not in data["message"]
 
         # Verify it's in user's wishlist
         wishlist = WishList.objects.get(user=self.user, is_default=True)
@@ -981,6 +984,15 @@ class TestAddToWishlistViewEdgeCases(TestCase):
         assert response.status_code == 200
         wishlist = WishList.get_or_create_default(user=self.user)
         assert wishlist.items.filter(product=self.product).exists()
+
+    def test_add_to_wishlist_anonymous_message_is_session_scoped(self):
+        client = Client()
+        response = client.post(
+            reverse("favorites:add_to_wishlist"),
+            {"product_id": self.product.id},
+        )
+        assert response.status_code == 200
+        assert "for this session" in response.json()["message"]
 
 
 class TestRemoveFromWishlistViewEdgeCases(TestCase):

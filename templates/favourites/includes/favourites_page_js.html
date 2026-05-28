@@ -1,8 +1,5 @@
 {% load i18n %}
 
-{# data-hist-no-reexec: tells reexecutePageScripts() in site.js to skip this script
-   on HTMX history restore. FavoritesPage registers document-level event listeners
-   that survive body replacement, so re-running the script would cause double-binding. #}
 <script data-hist-no-reexec="true">
 // Translation strings and context variables
 window.FAVORITES_ITEM_TEXT = '{% translate "item" %}';

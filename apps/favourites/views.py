@@ -50,6 +50,20 @@ def _get_product_wishlist_status(request: HttpRequest, product_ids: list[int]) -
     return status
 
 
+def _favorite_added_message(request: HttpRequest, product_name: str, list_name: str):
+    if request.user.is_authenticated:
+        return format_html(
+            _("Added <strong>{product_name}</strong> to {list_name}."),
+            product_name=product_name,
+            list_name=list_name,
+        )
+    return format_html(
+        _("Saved <strong>{product_name}</strong> to {list_name} for this session. Sign in to keep it."),
+        product_name=product_name,
+        list_name=list_name,
+    )
+
+
 def _get_sorted_items(items_qs, sort_param: str):
     """Apply sorting to wishlist items queryset."""
     if sort_param == "oldest":
@@ -405,11 +419,7 @@ def add_to_wishlist(request: HttpRequest) -> HttpResponse:
     return JsonResponse(
         {
             "success": True,
-            "message": format_html(
-                _("Added <strong>{product_name}</strong> to {list_name}."),
-                product_name=product.name,
-                list_name=wishlist.name,
-            ),
+            "message": _favorite_added_message(request, product.name, wishlist.name),
             "item": {
                 "id": item.id,
                 "wishlist_id": wishlist.id,
@@ -726,10 +736,7 @@ def toggle_favorite(request: HttpRequest) -> HttpResponse:
                 "success": True,
                 "action": "added",
                 "is_favorite": True,
-                "message": format_html(
-                    _("Added <strong>{product_name}</strong> to Favorites."),
-                    product_name=product.name,
-                ),
+                "message": _favorite_added_message(request, product.name, _("Favorites")),
                 "product_id": int(product_id),
                 "product_name": product.name,
                 "wishlist_id": wishlist.id,
