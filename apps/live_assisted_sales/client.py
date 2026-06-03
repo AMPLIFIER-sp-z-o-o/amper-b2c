@@ -44,6 +44,7 @@ class LiveAssistedSalesClient:
 
 def run_settings_connection_test(settings_obj):
     if not settings_obj.las_base_url or not settings_obj.store_api_key:
+        settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", _("LAS base URL and store API key are required."))
         return False, settings_obj.last_test_message
 
@@ -61,14 +62,19 @@ def run_settings_connection_test(settings_obj):
         message = _("LAS rejected the API key (HTTP %(code)s).") % {"code": exc.code}
         if detail:
             message = f"{message} {detail}"
+        settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", message)
         return False, message
     except (URLError, TimeoutError, OSError, ValueError) as exc:
         message = _("LAS connection failed: %(error)s") % {"error": exc}
+        settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", message)
         return False, message
 
-    store_name = (data.get("store") or {}).get("display_name") or "store"
+    store_data = data.get("store") or {}
+    store_name = store_data.get("display_name") or "store"
+    public_key = str(store_data.get("public_key") or "").strip()
+    settings_obj.site_public_key = public_key
     message = _("Connection to %(store)s works correctly.") % {"store": store_name}
     settings_obj.record_test_result("success", message)
     return True, message

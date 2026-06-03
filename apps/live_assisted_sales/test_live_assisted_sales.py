@@ -4,12 +4,14 @@ from unittest.mock import Mock, patch
 from urllib.error import HTTPError
 
 from django.contrib.auth import get_user_model
+from django.template.loader import render_to_string
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase
 
 from apps.web.models import SiteSettings
 
 from .admin import LiveAssistedSalesSettingsForm
 from .client import run_settings_connection_test, send_event
+from .context_processors import live_assisted_sales
 from .events import build_event_payload, cart_payload, category_payload, dispatch_event, product_payload
 from .models import LiveAssistedSalesSettings
 
@@ -32,11 +34,15 @@ class LiveAssistedSalesSettingsTests(TestCase):
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
     def test_connection_success_updates_settings_without_exposing_key(self, test_connection_mock):
-        test_connection_mock.return_value = (200, {"store": {"display_name": "Zielony Koszyk"}})
+        test_connection_mock.return_value = (
+            200,
+            {"store": {"display_name": "Zielony Koszyk", "public_key": "site_pk_live"}},
+        )
         settings_obj = LiveAssistedSalesSettings.objects.create(
             enabled=True,
             las_base_url="http://localhost:8001",
             store_api_key="site_sk_secret",
+            site_public_key="site_pk_stale",
         )
 
         ok, message = run_settings_connection_test(settings_obj)
@@ -44,9 +50,203 @@ class LiveAssistedSalesSettingsTests(TestCase):
         settings_obj.refresh_from_db()
         self.assertTrue(ok)
         self.assertEqual(settings_obj.last_test_status, "success")
+        self.assertEqual(settings_obj.site_public_key, "site_pk_live")
         self.assertIn("Zielony Koszyk", message)
         self.assertIn("works correctly", message)
         self.assertNotIn("site_sk_secret", message)
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
+    def test_connection_success_without_public_key_keeps_widget_disabled(self, test_connection_mock):
+        test_connection_mock.return_value = (200, {"store": {"display_name": "Zielony Koszyk"}})
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+            site_public_key="site_pk_stale",
+        )
+
+        ok, _message = run_settings_connection_test(settings_obj)
+
+        settings_obj.refresh_from_db()
+        self.assertTrue(ok)
+        self.assertEqual(settings_obj.site_public_key, "")
+        self.assertFalse(settings_obj.is_widget_configured)
+
+    def test_context_processor_requires_public_key_only_for_widget(self):
+        LiveAssistedSalesSettings.objects.create(
+            pk=1,
+            enabled=True,
+            las_base_url="http://localhost:8001/",
+            store_api_key="site_sk_secret",
+            site_public_key="",
+        )
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = Mock(is_authenticated=False)
+
+        context = live_assisted_sales(request)["live_assisted_sales"]
+
+        self.assertTrue(context["enabled"])
+        self.assertFalse(context["widget_enabled"])
+        self.assertEqual(context["widget_script_url"], "http://localhost:8001/widget/v1/chat.js")
+
+        settings_obj = LiveAssistedSalesSettings.get_solo()
+        settings_obj.site_public_key = "site_pk_live"
+        settings_obj.save(update_fields=["site_public_key"])
+
+        context = live_assisted_sales(request)["live_assisted_sales"]
+        self.assertTrue(context["widget_enabled"])
+        self.assertEqual(context["site_public_key"], "site_pk_live")
+
+    def test_context_processor_exposes_widget_accent_with_brand_default(self):
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            pk=1,
+            enabled=True,
+            las_base_url="http://localhost:8001/",
+            store_api_key="site_sk_secret",
+            site_public_key="site_pk_live",
+        )
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = Mock(is_authenticated=False)
+
+        context = live_assisted_sales(request)["live_assisted_sales"]
+        self.assertEqual(context["widget_accent"], "#2563eb")
+
+        settings_obj.widget_accent_color = "#16a34a"
+        settings_obj.save(update_fields=["widget_accent_color"])
+        context = live_assisted_sales(request)["live_assisted_sales"]
+        self.assertEqual(context["widget_accent"], "#16a34a")
+
+    def test_tracker_renders_widget_accent_attribute(self):
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": True,
+                    "widget_script_url": "https://las.example/widget/v1/chat.js",
+                    "site_public_key": "site_pk_live",
+                    "widget_accent": "#16a34a",
+                }
+            },
+        )
+
+        self.assertIn('data-las-accent="#16a34a"', html)
+
+    def test_context_processor_exposes_authenticated_customer_for_widget(self):
+        LiveAssistedSalesSettings.objects.create(
+            pk=1,
+            enabled=True,
+            las_base_url="http://localhost:8001/",
+            store_api_key="site_sk_secret",
+            site_public_key="site_pk_live",
+        )
+        user = get_user_model().objects.create_user(
+            username="shopper@example.com",
+            email="shopper@example.com",
+            first_name="Shopper",
+        )
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = user
+
+        context = live_assisted_sales(request)["live_assisted_sales"]
+
+        self.assertEqual(
+            context["customer"],
+            {
+                "id": str(user.pk),
+                "external_id": str(user.pk),
+                "email": "shopper@example.com",
+                "name": "Shopper",
+                "display": "Shopper",
+            },
+        )
+
+    def test_tracker_renders_widget_script_only_with_public_key(self):
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": True,
+                    "widget_script_url": "https://las.example/widget/v1/chat.js",
+                    "site_public_key": "site_pk_live",
+                }
+            },
+        )
+
+        self.assertIn('src="https://las.example/widget/v1/chat.js"', html)
+        self.assertIn('data-las-site="site_pk_live"', html)
+
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": False,
+                    "widget_script_url": "",
+                    "site_public_key": "",
+                }
+            },
+        )
+
+        self.assertNotIn("/widget/v1/chat.js", html)
+
+    def test_tracker_does_not_render_any_las_scripts_when_disabled(self):
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": False,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": True,
+                    "widget_script_url": "https://las.example/widget/v1/chat.js",
+                    "site_public_key": "site_pk_live",
+                }
+            },
+        )
+
+        self.assertNotIn("/live-assisted-sales/events/", html)
+        self.assertNotIn("/widget/v1/chat.js", html)
+
+    def test_tracker_publishes_widget_customer_before_loading_widget(self):
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {
+                        "id": "7",
+                        "external_id": "7",
+                        "email": "shopper@example.com",
+                        "name": "Shopper",
+                        "display": "Shopper",
+                    },
+                    "widget_enabled": True,
+                    "widget_script_url": "https://las.example/widget/v1/chat.js",
+                    "site_public_key": "site_pk_live",
+                }
+            },
+        )
+
+        self.assertIn('id="las-customer"', html)
+        self.assertIn("window.LAS_CUSTOMER", html)
+        self.assertLess(html.index("window.LAS_CUSTOMER"), html.index('src="https://las.example/widget/v1/chat.js"'))
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
     def test_connection_failure_updates_settings(self, test_connection_mock):
@@ -55,6 +255,7 @@ class LiveAssistedSalesSettingsTests(TestCase):
             enabled=True,
             las_base_url="http://localhost:8001",
             store_api_key="site_sk_secret",
+            site_public_key="site_pk_stale",
         )
 
         ok, message = run_settings_connection_test(settings_obj)
@@ -62,6 +263,7 @@ class LiveAssistedSalesSettingsTests(TestCase):
         settings_obj.refresh_from_db()
         self.assertFalse(ok)
         self.assertEqual(settings_obj.last_test_status, "failed")
+        self.assertEqual(settings_obj.site_public_key, "")
         self.assertIn("LAS connection failed", message)
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
@@ -84,6 +286,7 @@ class LiveAssistedSalesSettingsTests(TestCase):
         settings_obj.refresh_from_db()
         self.assertFalse(ok)
         self.assertEqual(settings_obj.last_test_status, "failed")
+        self.assertEqual(settings_obj.site_public_key, "")
         self.assertIn("API key (HTTP 403)", message)
         self.assertIn("Invalid store API key", message)
         self.assertNotIn("site_sk_secret", message)
@@ -385,6 +588,20 @@ class EventBuilderTests(TestCase):
 
         self.assertEqual(payload["visitor_id"], "visitor-cookie")
         self.assertEqual(payload["session_id"], "session-cookie")
+
+    @patch("apps.live_assisted_sales.events.SiteSettings.get_settings")
+    def test_build_event_payload_sends_store_logo_on_session_start(self, get_settings_mock):
+        get_settings_mock.return_value = Mock(logo_url="/media/logo.png")
+        request = RequestFactory().get("/", HTTP_HOST="shop.example.test")
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        start = build_event_payload(request, "session_start")
+        self.assertEqual(start["metadata"]["widget"]["logo_url"], "http://shop.example.test/media/logo.png")
+
+        # The logo is sent once per session, not on every event.
+        view = build_event_payload(request, "product_view")
+        self.assertNotIn("widget", view["metadata"])
 
     def test_build_event_payload_does_not_trust_browser_user_metadata(self):
         request = RequestFactory().get("/")

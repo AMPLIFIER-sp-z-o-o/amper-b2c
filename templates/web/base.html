@@ -55,6 +55,23 @@
     {# HTMX library - for partial page updates #}
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.8/dist/htmx.min.js" defer></script>
     {% vite_hmr_client %}
+    {% if debug %}
+    <script>
+      (function () {
+        if (!/^localhost:8000$|^127\.0\.0\.1:8000$/.test(window.location.host)) return;
+        if (!window.EventSource) return;
+        var source = new EventSource("http://localhost:8001/__reload__/events/");
+        source.onmessage = function (event) {
+          try {
+            var data = JSON.parse(event.data || "{}");
+            if (data.type === "reload") {
+              window.location.reload();
+            }
+          } catch (error) {}
+        };
+      })();
+    </script>
+    {% endif %}
     <link rel="stylesheet" href="{% static 'css/fonts.css' %}">
     <link rel="stylesheet" href="{% static 'css/site-css.css' %}">
     {% vite_asset 'assets/js/site.js' %}
@@ -149,4 +166,5 @@
       window.CART_STATE_URL = "{% url 'cart:cart_state' %}";
     </script>
     <script src="{% static 'js/cart.js' %}?v=20260227-2" defer></script>
+</body>
 </html>

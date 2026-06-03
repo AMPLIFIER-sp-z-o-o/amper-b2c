@@ -1,5 +1,6 @@
 {% if live_assisted_sales.enabled %}
 {{ live_assisted_sales.initial_cart|json_script:"las-initial-cart" }}
+{{ live_assisted_sales.customer|json_script:"las-customer" }}
 <script>
   (function () {
     const endpoint = "{{ live_assisted_sales.events_url|escapejs }}";
@@ -86,9 +87,21 @@
       }
     }
 
+    function publishWidgetCustomer() {
+      const script = document.getElementById("las-customer");
+      if (!script) return;
+      try {
+        const customer = JSON.parse(script.textContent || "{}");
+        window.LAS_CUSTOMER = customer && typeof customer === "object" ? customer : {};
+      } catch (error) {
+        window.LAS_CUSTOMER = {};
+      }
+    }
+
     function sendInitialEvents() {
       visitorId();
       sessionId();
+      publishWidgetCustomer();
       send({
         event_type: "session_start",
         page: {
@@ -110,6 +123,8 @@
       });
     }
 
+    publishWidgetCustomer();
+
     window.addEventListener("pagehide", function () {
       sendSessionEnd();
     });
@@ -121,4 +136,7 @@
     }
   })();
 </script>
+{% if live_assisted_sales.widget_enabled %}
+<script async src="{{ live_assisted_sales.widget_script_url }}" data-las-site="{{ live_assisted_sales.site_public_key }}"{% if live_assisted_sales.widget_accent %} data-las-accent="{{ live_assisted_sales.widget_accent }}"{% endif %}{% if live_assisted_sales.widget_logo_url %} data-las-logo="{{ live_assisted_sales.widget_logo_url }}"{% endif %}></script>
+{% endif %}
 {% endif %}

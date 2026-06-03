@@ -60,6 +60,19 @@ def user_metadata_from_request(request):
     return {"status": "anonymous", "authenticated": False}
 
 
+def _absolute_logo_url(request):
+    """Absolute URL of the store logo, or "" if unset/unavailable. Mirrors the value the chat widget
+    embed passes via data-las-logo, so the agent console shows the same brand avatar."""
+    if request is None:
+        return ""
+    try:
+        logo_url = SiteSettings.get_settings().logo_url
+    except Exception:
+        logger.exception("Live Assisted Sales logo lookup failed.")
+        return ""
+    return request.build_absolute_uri(logo_url) if logo_url else ""
+
+
 def build_event_payload(request, event_type, **data):
     occurred_at = data.pop("occurred_at", None) or timezone.now()
     if hasattr(occurred_at, "isoformat"):
@@ -68,6 +81,13 @@ def build_event_payload(request, event_type, **data):
     if not isinstance(metadata, dict):
         metadata = {}
     metadata["user"] = user_metadata_from_request(request)
+    # Propagate the store's brand logo once per session so the LAS agent console can show it as the
+    # support-team avatar, matching the customer-facing widget. Only on session_start to avoid
+    # repeating it on every event.
+    if event_type == "session_start":
+        logo_url = _absolute_logo_url(request)
+        if logo_url:
+            metadata["widget"] = {**metadata.get("widget", {}), "logo_url": logo_url}
     return {
         "event_id": str(data.pop("event_id", uuid4())),
         "event_type": event_type,

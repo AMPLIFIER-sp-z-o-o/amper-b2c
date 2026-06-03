@@ -41,10 +41,18 @@ class LiveAssistedSalesSettingsForm(forms.ModelForm):
 @admin.register(LiveAssistedSalesSettings)
 class LiveAssistedSalesSettingsAdmin(ModelAdmin):
     form = LiveAssistedSalesSettingsForm
-    list_display = ("enabled", "las_base_url", "last_test_status", "last_test_at", "test_connection_link")
-    readonly_fields = ("connection_status_panel",)
+    list_display = (
+        "enabled",
+        "las_base_url",
+        "site_public_key",
+        "last_test_status",
+        "last_test_at",
+        "test_connection_link",
+    )
+    readonly_fields = ("connection_status_panel", "site_public_key")
     fieldsets = (
-        (_("LAS integration"), {"fields": ("enabled", "las_base_url", "store_api_key")}),
+        (_("LAS integration"), {"fields": ("enabled", "las_base_url", "store_api_key", "site_public_key")}),
+        (_("Widget appearance"), {"fields": ("widget_accent_color",)}),
         (_("Connection health"), {"fields": ("connection_status_panel",)}),
     )
 
