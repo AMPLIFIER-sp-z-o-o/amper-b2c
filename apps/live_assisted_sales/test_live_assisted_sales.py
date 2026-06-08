@@ -576,6 +576,21 @@ class EventBuilderTests(TestCase):
         self.assertEqual(payload["page"]["title"], "Demo")
         self.assertNotIn("store_api_key", payload)
 
+    def test_build_event_payload_captures_real_visitor_ip(self):
+        # Events are forwarded server-to-server, so LAS only sees this app's server IP. The shopper's
+        # real address must be captured from their request and carried in the payload.
+        request = RequestFactory().get(
+            "/products/demo/",
+            HTTP_X_FORWARDED_FOR="198.51.100.7, 172.17.0.5",
+            REMOTE_ADDR="172.17.0.5",
+        )
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        payload = build_event_payload(request, "product_view")
+
+        self.assertEqual(payload["metadata"]["client_ip"], "198.51.100.7")
+
     def test_build_event_payload_uses_tracker_cookies_for_anonymous_identity(self):
         request = RequestFactory().get(
             "/products/demo/",

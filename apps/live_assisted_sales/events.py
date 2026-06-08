@@ -37,6 +37,18 @@ def session_id_from_request(request):
     )
 
 
+def client_ip_from_request(request):
+    """Real shopper IP for the event. Events are forwarded server-to-server to LAS, so LAS only sees
+    this app's server IP — we must capture the visitor's address here and pass it in the payload.
+    Honours X-Forwarded-For (first hop) when behind a proxy, else REMOTE_ADDR."""
+    if request is None:
+        return ""
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
+    if forwarded:
+        return forwarded.split(",", 1)[0].strip()
+    return request.META.get("REMOTE_ADDR", "") or ""
+
+
 def user_metadata_from_request(request):
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
@@ -81,6 +93,9 @@ def build_event_payload(request, event_type, **data):
     if not isinstance(metadata, dict):
         metadata = {}
     metadata["user"] = user_metadata_from_request(request)
+    client_ip = client_ip_from_request(request)
+    if client_ip:
+        metadata["client_ip"] = client_ip
     # Propagate the store's brand logo once per session so the LAS agent console can show it as the
     # support-team avatar, matching the customer-facing widget. Only on session_start to avoid
     # repeating it on every event.
