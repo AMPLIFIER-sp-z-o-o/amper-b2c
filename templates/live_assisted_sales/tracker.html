@@ -10,6 +10,15 @@
       if (window.crypto && typeof window.crypto.randomUUID === "function") {
         return window.crypto.randomUUID();
       }
+      // visitor_id is a bearer-ish identifier (it scopes anonymous chat history), so even the
+      // fallback must be cryptographically random — never Math.random()/Date.now().
+      if (window.crypto && typeof window.crypto.getRandomValues === "function") {
+        const bytes = new Uint8Array(16);
+        window.crypto.getRandomValues(bytes);
+        let hex = "";
+        for (let i = 0; i < bytes.length; i++) hex += ("0" + bytes[i].toString(16)).slice(-2);
+        return "las-" + hex;
+      }
       return "las-" + Date.now() + "-" + Math.random().toString(16).slice(2);
     }
 

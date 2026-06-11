@@ -1,4 +1,7 @@
+import hashlib
+import hmac
 import json
+import time
 from io import BytesIO
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
@@ -156,16 +159,42 @@ class LiveAssistedSalesSettingsTests(TestCase):
 
         context = live_assisted_sales(request)["live_assisted_sales"]
 
-        self.assertEqual(
-            context["customer"],
-            {
-                "id": str(user.pk),
-                "external_id": str(user.pk),
-                "email": "shopper@example.com",
-                "name": "Shopper",
-                "display": "Shopper",
-            },
+        customer = context["customer"]
+        self.assertEqual(customer["id"], str(user.pk))
+        self.assertEqual(customer["external_id"], str(user.pk))
+        self.assertEqual(customer["email"], "shopper@example.com")
+        self.assertEqual(customer["name"], "Shopper")
+        self.assertEqual(customer["display"], "Shopper")
+        # The identity claims are HMAC-signed with the shared store API key so las-backend can
+        # verify them; the key itself never reaches the browser.
+        self.assertNotIn("site_sk_secret", str(customer))
+        self.assertGreater(int(customer["exp"]), int(time.time()))
+        expected = hmac.new(
+            b"site_sk_secret",
+            f"{user.pk}|shopper@example.com|{customer['exp']}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        self.assertEqual(customer["sig"], expected)
+
+    def test_customer_identity_is_not_signed_without_store_api_key(self):
+        LiveAssistedSalesSettings.objects.create(
+            pk=1,
+            enabled=True,
+            las_base_url="http://localhost:8001/",
+            store_api_key="",
+            site_public_key="site_pk_live",
         )
+        user = get_user_model().objects.create_user(
+            username="nokey@example.com", email="nokey@example.com"
+        )
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = user
+
+        context = live_assisted_sales(request)["live_assisted_sales"]
+
+        self.assertNotIn("sig", context["customer"])
+        self.assertNotIn("exp", context["customer"])
 
     def test_tracker_renders_widget_script_only_with_public_key(self):
         html = render_to_string(

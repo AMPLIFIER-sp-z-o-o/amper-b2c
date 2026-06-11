@@ -1,4 +1,7 @@
+import hashlib
+import hmac
 import logging
+import time
 
 from apps.cart.services import _get_cart_from_request
 
@@ -22,7 +25,25 @@ def _initial_cart_payload(request):
         return {}
 
 
-def _widget_customer_payload(request):
+# How long a signed identity stays valid. Server-rendered pages refresh the signature on
+# every navigation, so this only needs to outlive a long-idle open tab, not be eternal.
+CUSTOMER_SIGNATURE_TTL_SECONDS = 2 * 60 * 60
+
+
+def _sign_customer_identity(external_id, email, store_api_key):
+    """HMAC proof for window.LAS_CUSTOMER, verified by las-backend with the same store key.
+
+    Canonical message (must match las-backend's identity_signature_message):
+    ``external_id|lowercased email|unix exp``. The key itself never reaches the browser —
+    only the signature does, so devtools can't mint identities for other accounts.
+    """
+    exp = int(time.time()) + CUSTOMER_SIGNATURE_TTL_SECONDS
+    message = f"{external_id}|{email.strip().lower()}|{exp}"
+    signature = hmac.new(store_api_key.encode("utf-8"), message.encode("utf-8"), hashlib.sha256).hexdigest()
+    return exp, signature
+
+
+def _widget_customer_payload(request, store_api_key=""):
     user = getattr(request, "user", None)
     if not user or not user.is_authenticated:
         return {}
@@ -32,13 +53,18 @@ def _widget_customer_payload(request):
     full_name = str(getattr(user, "get_full_name", lambda: "")() or "").strip()
     first_name = str(getattr(user, "first_name", "") or "").strip()
     display_name = full_name or first_name or email or username
-    return {
+    payload = {
         "id": str(getattr(user, "pk", "") or ""),
         "external_id": str(getattr(user, "pk", "") or ""),
         "email": email,
         "name": display_name,
         "display": display_name,
     }
+    if store_api_key:
+        exp, signature = _sign_customer_identity(payload["external_id"], email, store_api_key)
+        payload["exp"] = exp
+        payload["sig"] = signature
+    return payload
 
 
 def _widget_logo_url(request):
@@ -56,7 +82,7 @@ def live_assisted_sales(request):
             "enabled": enabled,
             "events_url": "/live-assisted-sales/events/",
             "initial_cart": _initial_cart_payload(request) if enabled else {},
-            "customer": _widget_customer_payload(request) if enabled else {},
+            "customer": _widget_customer_payload(request, settings_obj.store_api_key or "") if enabled else {},
             "site_public_key": settings_obj.site_public_key,
             "widget_enabled": settings_obj.is_widget_configured,
             "widget_script_url": f"{las_base_url}/widget/v1/chat.js" if las_base_url else "",
