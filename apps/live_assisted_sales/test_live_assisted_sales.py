@@ -336,6 +336,23 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertIn("Live Assisted Sales event dispatch failed: timed out", logs.output[0])
         self.assertNotIn("Traceback", "\n".join(logs.output))
 
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
+    def test_send_event_uses_generous_dispatch_timeout(self, client_cls_mock):
+        # Delivery runs off the request path, so the timeout must be generous enough that a healthy
+        # backend taking ~1s does not get its events dropped. Guards against regressing to ~0.8s.
+        client_cls_mock.return_value.send_event.return_value = (200, {"ok": True})
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+        )
+
+        result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertTrue(result)
+        _args, kwargs = client_cls_mock.call_args
+        self.assertGreaterEqual(kwargs["timeout"], 3.0)
+
 
 class BrowserEventEndpointTests(TestCase):
     def setUp(self):

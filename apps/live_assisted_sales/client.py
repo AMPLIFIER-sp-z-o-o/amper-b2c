@@ -10,6 +10,11 @@ from django.utils.translation import gettext as _
 logger = logging.getLogger(__name__)
 _delivery_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="las-events")
 
+# Event delivery runs off the request path in `_delivery_executor`, so a generous timeout never
+# slows the shopper down. The previous 0.8s was tight enough that a healthy LAS backend taking ~1s
+# (cold start, load, network latency) would have its events dropped with "dispatch failed: timed out".
+EVENT_DISPATCH_TIMEOUT = 5.0
+
 
 class LiveAssistedSalesClient:
     def __init__(self, base_url, api_key, timeout=1.5):
@@ -84,7 +89,9 @@ def send_event(settings_obj, payload):
     if not settings_obj.is_configured:
         return False
     try:
-        LiveAssistedSalesClient(settings_obj.las_base_url, settings_obj.store_api_key, timeout=0.8).send_event(payload)
+        LiveAssistedSalesClient(
+            settings_obj.las_base_url, settings_obj.store_api_key, timeout=EVENT_DISPATCH_TIMEOUT
+        ).send_event(payload)
         return True
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
         logger.warning("Live Assisted Sales event dispatch failed: %s", exc)
@@ -98,7 +105,7 @@ def notify_disconnected(base_url, api_key):
     if not base_url or not api_key:
         return False
     try:
-        LiveAssistedSalesClient(base_url, api_key, timeout=0.8).disconnect()
+        LiveAssistedSalesClient(base_url, api_key, timeout=EVENT_DISPATCH_TIMEOUT).disconnect()
         return True
     except Exception:
         logger.exception("Live Assisted Sales disconnect notification failed.")
