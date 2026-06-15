@@ -40,6 +40,11 @@ class LiveAssistedSalesClient:
     def test_connection(self):
         return self._request("/api/ingest/store-events/test/")
 
+    # The connection test reaches a possibly cold-starting LAS backend, so it gets a generous
+    # timeout. A previously-fetched site_public_key must NOT be wiped just because one probe was
+    # slow — that would hide the storefront chat widget until someone manually re-ran the test.
+    CONNECTION_TEST_TIMEOUT = 8.0
+
     def disconnect(self):
         return self._request("/api/ingest/store-events/disconnect/", method="POST", payload={})
 
@@ -49,12 +54,17 @@ class LiveAssistedSalesClient:
 
 def run_settings_connection_test(settings_obj):
     if not settings_obj.las_base_url or not settings_obj.store_api_key:
+        # Genuinely unconfigured — there is nothing to authenticate, so drop any stale key.
         settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", _("LAS base URL and store API key are required."))
         return False, settings_obj.last_test_message
 
     try:
-        _status, data = LiveAssistedSalesClient(settings_obj.las_base_url, settings_obj.store_api_key).test_connection()
+        _status, data = LiveAssistedSalesClient(
+            settings_obj.las_base_url,
+            settings_obj.store_api_key,
+            timeout=LiveAssistedSalesClient.CONNECTION_TEST_TIMEOUT,
+        ).test_connection()
     except HTTPError as exc:
         detail = ""
         try:
@@ -62,17 +72,22 @@ def run_settings_connection_test(settings_obj):
             detail = str(error_data.get("detail") or "").strip()
         except Exception:
             detail = ""
+        key_rejected = exc.code in (401, 403) or detail == "Invalid store API key."
         if detail == "Invalid store API key.":
             detail = _("Invalid store API key.")
         message = _("LAS rejected the API key (HTTP %(code)s).") % {"code": exc.code}
         if detail:
             message = f"{message} {detail}"
-        settings_obj.site_public_key = ""
+        # Only forget the public key when LAS explicitly rejects the credentials. A 5xx is a
+        # transient backend fault and must not hide an otherwise working chat widget.
+        if key_rejected:
+            settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", message)
         return False, message
     except (URLError, TimeoutError, OSError, ValueError) as exc:
+        # Network blip / timeout / cold start — keep the last-known-good public key so the
+        # storefront widget stays visible instead of vanishing until the next manual test.
         message = _("LAS connection failed: %(error)s") % {"error": exc}
-        settings_obj.site_public_key = ""
         settings_obj.record_test_result("failed", message)
         return False, message
 

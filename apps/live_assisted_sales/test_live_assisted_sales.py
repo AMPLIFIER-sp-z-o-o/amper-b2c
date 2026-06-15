@@ -278,13 +278,15 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertLess(html.index("window.LAS_CUSTOMER"), html.index('src="https://las.example/widget/v1/chat.js"'))
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
-    def test_connection_failure_updates_settings(self, test_connection_mock):
+    def test_connection_failure_keeps_last_known_public_key(self, test_connection_mock):
+        # A transient network error must NOT wipe a previously fetched public key, otherwise the
+        # storefront chat widget disappears until someone manually re-runs the connection check.
         test_connection_mock.side_effect = OSError("network down")
         settings_obj = LiveAssistedSalesSettings.objects.create(
             enabled=True,
             las_base_url="http://localhost:8001",
             store_api_key="site_sk_secret",
-            site_public_key="site_pk_stale",
+            site_public_key="site_pk_live",
         )
 
         ok, message = run_settings_connection_test(settings_obj)
@@ -292,7 +294,8 @@ class LiveAssistedSalesSettingsTests(TestCase):
         settings_obj.refresh_from_db()
         self.assertFalse(ok)
         self.assertEqual(settings_obj.last_test_status, "failed")
-        self.assertEqual(settings_obj.site_public_key, "")
+        self.assertEqual(settings_obj.site_public_key, "site_pk_live")
+        self.assertTrue(settings_obj.is_widget_configured)
         self.assertIn("LAS connection failed", message)
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
