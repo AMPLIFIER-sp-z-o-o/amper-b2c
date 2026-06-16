@@ -10,6 +10,9 @@ from .client import enqueue_event
 from .models import LiveAssistedSalesSettings
 
 logger = logging.getLogger(__name__)
+# High-frequency telemetry never needs a server-side cart snapshot, so we skip the per-event cart DB
+# lookup for these (a page_ping every ~15s must not run a cart query each time).
+CART_CONTEXT_EXCLUDED_EVENT_TYPES = {"click", "scroll_depth", "page_ping", "cursor_hover"}
 SUPPORTED_EVENT_TYPES = {
     "session_start",
     "product_view",
@@ -17,6 +20,14 @@ SUPPORTED_EVENT_TYPES = {
     "search",
     "cart_item_added",
     "cart_item_removed",
+    "checkout_started",
+    "order_completed",
+    # Client-side behavioral telemetry (LAS-6 coverage): generic clicks, scroll depth, engaged-time
+    # heartbeats and cursor hover. Emitted by the tracker and forwarded to LAS through the proxy.
+    "click",
+    "scroll_depth",
+    "page_ping",
+    "cursor_hover",
     "session_end",
 }
 
@@ -96,6 +107,19 @@ def build_event_payload(request, event_type, **data):
     client_ip = client_ip_from_request(request)
     if client_ip:
         metadata["client_ip"] = client_ip
+    # Forward the originating request's User-Agent so LAS can detect AI-agent traffic (ChatGPT, Gemini,
+    # Perplexity, Rufus, …) — the cookieless-agent signal client-side analytics can't see. Don't
+    # overwrite a UA the client tracker may have already supplied.
+    if request is not None and not metadata.get("user_agent"):
+        user_agent = request.META.get("HTTP_USER_AGENT", "")
+        if user_agent:
+            metadata["user_agent"] = user_agent[:512]
+    # Forward the shopper's consent choice (set by the tracker's banner as a cookie) so LAS honors it
+    # for server-side events too. LAS decides the meaning per its market regime (EU opt-in / US opt-out).
+    if request is not None and "consent" not in metadata:
+        consent_cookie = request.COOKIES.get("las_consent")
+        if consent_cookie in ("true", "false"):
+            metadata["consent"] = consent_cookie == "true"
     # Propagate the store's brand logo once per session so the LAS agent console can show it as the
     # support-team avatar, matching the customer-facing widget. Only on session_start to avoid
     # repeating it on every event.
@@ -103,6 +127,9 @@ def build_event_payload(request, event_type, **data):
         logo_url = _absolute_logo_url(request)
         if logo_url:
             metadata["widget"] = {**metadata.get("widget", {}), "logo_url": logo_url}
+    cart = data.pop("cart", None)
+    if not cart and event_type not in CART_CONTEXT_EXCLUDED_EVENT_TYPES:
+        cart = cart_payload(None if request is None else _current_cart_from_request(request), request=request)
     return {
         "event_id": str(data.pop("event_id", uuid4())),
         "event_type": event_type,
@@ -114,8 +141,7 @@ def build_event_payload(request, event_type, **data):
         "product": data.pop("product", {}),
         "category": data.pop("category", {}),
         "search": data.pop("search", {}),
-        "cart": data.pop("cart", None)
-        or cart_payload(None if request is None else _current_cart_from_request(request), request=request),
+        "cart": cart or {},
         "cursor": data.pop("cursor", {}),
         "metadata": metadata,
     }
@@ -290,4 +316,81 @@ def track_cart_item_removed(request, cart, product):
         "cart_item_removed",
         product=product_payload(product, request=request),
         cart=cart_payload(cart, request=request),
+    )
+
+
+def order_cart_payload(order, request=None):
+    """A cart-shaped snapshot of a placed order so the LAS agent console renders order line items and
+    totals with the same helpers it uses for live carts. ``line_total == unit_price * quantity`` is
+    preserved so the funnel value invariant (value == sum(unit_price*qty)) holds downstream."""
+    currency = (getattr(order, "currency", "") or storefront_currency()).upper()
+    lines = list(order.lines.select_related("product").all()) if hasattr(order, "lines") else []
+    total = str(getattr(order, "total", "0.00"))
+    return {
+        "items_count": sum(int(line.quantity or 0) for line in lines),
+        "total": total,
+        "total_display": format_storefront_amount(total, currency),
+        "currency": currency,
+        "items": [
+            {
+                "product_id": str(line.product_id),
+                "name": getattr(line.product, "name", ""),
+                "sku": getattr(line.product, "sku", "") or getattr(line.product, "code", "") or "",
+                "url": _absolute_payload_url(
+                    request,
+                    line.product.get_absolute_url() if hasattr(line.product, "get_absolute_url") else "",
+                ),
+                "quantity": line.quantity,
+                "price": str(getattr(line, "unit_price", "")),
+                "line_total": str(getattr(line, "line_total", "")),
+                "currency": currency,
+            }
+            for line in lines[:50]
+        ],
+    }
+
+
+def order_metadata(order):
+    """Order-specific fields carried in ``metadata.order`` (the StorefrontEvent JSON columns have no
+    dedicated order field). These are the supervised labels the intent engine (LAS-7) reads."""
+    currency = (getattr(order, "currency", "") or storefront_currency()).upper()
+    return {
+        "order": {
+            "order_id": str(getattr(order, "pk", "")),
+            "tracking_token": getattr(order, "tracking_token", "") or "",
+            "status": getattr(order, "status", "") or "",
+            "subtotal": str(getattr(order, "subtotal", "")),
+            "discount_total": str(getattr(order, "discount_total", "")),
+            "delivery_cost": str(getattr(order, "delivery_cost", "")),
+            "total": str(getattr(order, "total", "")),
+            "currency": currency,
+            "coupon_code": getattr(order, "coupon_code", "") or "",
+        }
+    }
+
+
+def track_checkout_started(request, cart, *, visitor_id=None, session_id=None):
+    """Funnel step: the shopper is placing an order. Carries the current cart snapshot."""
+    return dispatch_event(
+        request,
+        "checkout_started",
+        cart=cart_payload(cart, request=request),
+        visitor_id=visitor_id,
+        session_id=session_id,
+        page={"title": "Checkout"},
+    )
+
+
+def track_order_completed(request, order, *, visitor_id=None, session_id=None):
+    """Conversion event built straight from Order+OrderLine. THE label for LAS-7. ``visitor_id``/
+    ``session_id`` should be the LAS ids captured at order creation so the conversion attributes to
+    the right session even though delivery is off the request path."""
+    return dispatch_event(
+        request,
+        "order_completed",
+        cart=order_cart_payload(order, request=request),
+        metadata=order_metadata(order),
+        visitor_id=visitor_id,
+        session_id=session_id,
+        page={"title": f"Order {getattr(order, 'pk', '')}"},
     )

@@ -79,6 +79,14 @@ class Order(BaseModel):
 
     currency = models.CharField(max_length=10, blank=True, default="", verbose_name=_("Currency"))
 
+    # Live Assisted Sales attribution: the storefront visitor/session ids (set by the LAS tracker
+    # cookies) captured at order creation. They durably link this conversion to the behavioral
+    # session in las-backend — the supervised label for the intent engine — even though event
+    # delivery happens off the request path and a later payment-redirect request would not carry
+    # the tracker cookies.
+    las_visitor_id = models.CharField(max_length=128, blank=True, default="", verbose_name=_("LAS visitor id"))
+    las_session_id = models.CharField(max_length=128, blank=True, default="", verbose_name=_("LAS session id"))
+
     class Meta:
         ordering = ["-created_at"]
 

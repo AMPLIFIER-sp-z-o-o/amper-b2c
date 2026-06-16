@@ -127,12 +127,84 @@ def notify_disconnected(base_url, api_key):
         return False
 
 
+# Money/truth events whose loss would corrupt analytics or ML labels are delivered durably via the
+# transactional outbox; everything else (session lifecycle, views, searches, high-frequency
+# telemetry) keeps the cheap fire-and-forget fast path.
+DURABLE_EVENT_TYPES = {"cart_item_added", "cart_item_removed", "checkout_started", "order_completed"}
+OUTBOX_MAX_ATTEMPTS = 8
+
+
 def enqueue_event(settings_obj, payload):
     if not settings_obj.is_configured:
         return False
+    if str(payload.get("event_type", "")) in DURABLE_EVENT_TYPES:
+        return _enqueue_durable(settings_obj, payload)
     try:
         _delivery_executor.submit(send_event, settings_obj, payload)
         return True
     except Exception:
         logger.exception("Live Assisted Sales event enqueue failed.")
         return False
+
+
+def _enqueue_durable(settings_obj, payload):
+    """Persist an outbox row (durable), then attempt immediate delivery off the request thread. The
+    periodic relay retries anything the fast path doesn't confirm."""
+    from .models import OutboxEvent
+
+    try:
+        row = OutboxEvent.objects.create(payload=payload, event_type=str(payload.get("event_type", ""))[:64])
+    except Exception:
+        # If the outbox write itself fails, degrade to fire-and-forget rather than dropping silently.
+        logger.exception("Live Assisted Sales outbox write failed; falling back to fire-and-forget.")
+        try:
+            _delivery_executor.submit(send_event, settings_obj, payload)
+            return True
+        except Exception:
+            return False
+    try:
+        _delivery_executor.submit(deliver_outbox_row, row.id)
+    except Exception:
+        logger.exception("Outbox fast-path submit failed; the relay will retry row %s.", row.id)
+    return True
+
+
+def deliver_outbox_row(outbox_id):
+    """Attempt delivery of one PENDING outbox row and update its state. Safe to call from the thread
+    pool, the Celery relay task, or the management command. Returns True on a confirmed send."""
+    from django.utils import timezone
+
+    from .models import LiveAssistedSalesSettings, OutboxEvent
+
+    row = OutboxEvent.objects.filter(id=outbox_id, status=OutboxEvent.Status.PENDING).first()
+    if row is None:
+        return False
+    settings_obj = LiveAssistedSalesSettings.get_solo()
+    if not settings_obj.is_configured:
+        return False
+
+    sent = send_event(settings_obj, row.payload)
+    row.attempts = (row.attempts or 0) + 1
+    if sent:
+        row.status = OutboxEvent.Status.SENT
+        row.sent_at = timezone.now()
+        row.last_error = ""
+    else:
+        row.last_error = "delivery failed"
+        if row.attempts >= OUTBOX_MAX_ATTEMPTS:
+            row.status = OutboxEvent.Status.FAILED
+    row.save(update_fields=["attempts", "status", "sent_at", "last_error", "updated_at"])
+    return sent
+
+
+def relay_pending_outbox(limit=200):
+    """Deliver outbox rows the fast path didn't confirm (worker restart, LAS downtime). Called by the
+    periodic Celery task / management command. Returns the number delivered this pass."""
+    from .models import OutboxEvent
+
+    pending_ids = list(
+        OutboxEvent.objects.filter(status=OutboxEvent.Status.PENDING)
+        .order_by("created_at")
+        .values_list("id", flat=True)[:limit]
+    )
+    return sum(1 for outbox_id in pending_ids if deliver_outbox_row(outbox_id))

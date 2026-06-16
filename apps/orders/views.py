@@ -23,6 +23,12 @@ from apps.cart.services import (
     refresh_cart_totals_from_db,
 )
 from apps.catalog.models import Product, ProductStatus, ProductStock, Warehouse
+from apps.live_assisted_sales.events import (
+    session_id_from_request,
+    track_checkout_started,
+    track_order_completed,
+    visitor_id_from_request,
+)
 from apps.plugins.engine.registry import registry
 from apps.plugins.hook_names import CHECKOUT_REDIRECT_URL_RESOLVE, LEGACY_CHECKOUT_REDIRECT_URL_RESOLVE
 from apps.utils.tasks import send_email_task  # noqa: F401
@@ -101,6 +107,12 @@ def place_order(request: HttpRequest) -> HttpResponse:
         response = redirect("cart:cart_page")
         return _clear_cart_id(request, response=response)
 
+    # Capture the LAS tracker identity now, while the request still carries the storefront cookies,
+    # so the conversion attributes to the right behavioral session (a later payment-redirect request
+    # would not carry them). Persisted on the Order below.
+    las_visitor_id = visitor_id_from_request(request)
+    las_session_id = session_id_from_request(request)
+
     # Delivery/payment can become invalid (disabled) after user selected them.
     methods_changed = ensure_cart_methods_active(cart)
     if methods_changed.get("delivery_method_cleared") or methods_changed.get("payment_method_cleared"):
@@ -156,6 +168,10 @@ def place_order(request: HttpRequest) -> HttpResponse:
 
     # Final safety: re-calc totals right before persisting the order.
     cart.recalculate()
+
+    # Funnel: checkout has begun for a valid cart. Emitted before the DB write; delivery is off the
+    # request path so it never blocks the order.
+    track_checkout_started(request, cart, visitor_id=las_visitor_id, session_id=las_session_id)
 
     tracking_token = Order.generate_tracking_token()
 
@@ -346,6 +362,8 @@ def place_order(request: HttpRequest) -> HttpResponse:
             delivery_cost=delivery_cost,
             total=cart.total,
             currency=currency,
+            las_visitor_id=las_visitor_id,
+            las_session_id=las_session_id,
         )
 
         warehouse_lookup = {
@@ -380,6 +398,14 @@ def place_order(request: HttpRequest) -> HttpResponse:
 
         # Clear cart after successful order placement
         cart.delete()
+
+        # Conversion event (THE label for LAS-7). Fires only after this transaction commits, so a
+        # rolled-back order never emits a purchase. Delivery is async, so it never blocks checkout.
+        transaction.on_commit(
+            lambda: track_order_completed(
+                request, order, visitor_id=las_visitor_id, session_id=las_session_id
+            )
+        )
 
     request.session.pop("cart_id", None)
     clear_checkout_session(request)

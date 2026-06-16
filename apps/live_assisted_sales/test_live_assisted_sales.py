@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import json
 import time
+from decimal import Decimal
 from io import BytesIO
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError
@@ -14,8 +15,18 @@ from apps.web.models import SiteSettings
 
 from .admin import LiveAssistedSalesSettingsForm
 from .client import run_settings_connection_test, send_event
-from .context_processors import live_assisted_sales
-from .events import build_event_payload, cart_payload, category_payload, dispatch_event, product_payload
+from .context_processors import _consent_region, _country_code_from_request, live_assisted_sales
+from .events import (
+    build_event_payload,
+    cart_payload,
+    category_payload,
+    dispatch_event,
+    order_cart_payload,
+    order_metadata,
+    product_payload,
+    track_checkout_started,
+    track_order_completed,
+)
 from .models import LiveAssistedSalesSettings
 
 
@@ -746,3 +757,298 @@ class EventBuilderTests(TestCase):
         self.assertEqual(payload["items"][0]["sku"], "CHEMEX-1")
         self.assertEqual(payload["items"][0]["url"], "http://testserver/products/42-chemex/")
         self.assertEqual(payload["items"][0]["line_total"], "25.00")
+
+
+class ConversionEventTests(TestCase):
+    """LAS-6 conversion events: checkout_started + order_completed built from Order/OrderLine, with
+    the LAS visitor/session attribution carried explicitly (delivery is off the request path)."""
+
+    def setUp(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+        self.rf = RequestFactory()
+
+    def _mock_order(self):
+        product = Mock(id=42, name="Chemex", sku="CHEMEX-1")
+        product.get_absolute_url.return_value = "/products/42-chemex/"
+        line = Mock(product_id=42, product=product, quantity=2, unit_price="50.00", line_total="100.00")
+        order = Mock(
+            pk=55,
+            tracking_token="tok-abc",
+            status="pending",
+            subtotal="100.00",
+            discount_total="0.00",
+            delivery_cost="10.00",
+            total="110.00",
+            currency="PLN",
+            coupon_code="",
+        )
+        order.lines.select_related.return_value.all.return_value = [line]
+        return order
+
+    def test_order_cart_payload_preserves_value_invariant(self):
+        payload = order_cart_payload(self._mock_order(), request=self.rf.get("/"))
+
+        self.assertEqual(payload["items_count"], 2)
+        self.assertEqual(payload["total"], "110.00")
+        self.assertEqual(payload["currency"], "PLN")
+        item = payload["items"][0]
+        self.assertEqual(item["sku"], "CHEMEX-1")
+        self.assertEqual(item["url"], "http://testserver/products/42-chemex/")
+        # value invariant: line_total == unit_price * quantity
+        self.assertEqual(Decimal(item["line_total"]), Decimal(item["price"]) * item["quantity"])
+
+    def test_order_metadata_carries_label_fields(self):
+        meta = order_metadata(self._mock_order())["order"]
+
+        self.assertEqual(meta["order_id"], "55")
+        self.assertEqual(meta["total"], "110.00")
+        self.assertEqual(meta["delivery_cost"], "10.00")
+        self.assertEqual(meta["currency"], "PLN")
+
+    @patch("apps.live_assisted_sales.events.enqueue_event")
+    def test_track_order_completed_attributes_to_explicit_session(self, enqueue_mock):
+        enqueue_mock.return_value = True
+
+        ok = track_order_completed(
+            self.rf.get("/orders/summary/"), self._mock_order(), visitor_id="vis-1", session_id="ses-1"
+        )
+
+        self.assertTrue(ok)
+        payload = enqueue_mock.call_args.args[1]
+        self.assertEqual(payload["event_type"], "order_completed")
+        # Attribution carried explicitly, not derived from the (cookie-less) request.
+        self.assertEqual(payload["visitor_id"], "vis-1")
+        self.assertEqual(payload["session_id"], "ses-1")
+        self.assertEqual(payload["cart"]["items_count"], 2)
+        self.assertEqual(payload["metadata"]["order"]["order_id"], "55")
+        self.assertEqual(payload["metadata"]["order"]["total"], "110.00")
+
+    @patch("apps.live_assisted_sales.events.enqueue_event")
+    def test_track_checkout_started_carries_cart_snapshot(self, enqueue_mock):
+        enqueue_mock.return_value = True
+        product = Mock(id=42, name="Chemex", sku="CHEMEX-1")
+        product.get_absolute_url.return_value = "/products/42-chemex/"
+        line = Mock(product_id=42, product=product, quantity=2, price="50.00")
+        line.subtotal = "100.00"
+        cart = Mock(total="110.00")
+        cart.lines.select_related.return_value.all.return_value = [line]
+
+        ok = track_checkout_started(self.rf.get("/cart/"), cart, visitor_id="vis-1", session_id="ses-1")
+
+        self.assertTrue(ok)
+        payload = enqueue_mock.call_args.args[1]
+        self.assertEqual(payload["event_type"], "checkout_started")
+        self.assertEqual(payload["visitor_id"], "vis-1")
+        self.assertEqual(payload["cart"]["items_count"], 2)
+
+    def test_conversion_event_types_are_supported(self):
+        from .events import SUPPORTED_EVENT_TYPES
+
+        self.assertIn("checkout_started", SUPPORTED_EVENT_TYPES)
+        self.assertIn("order_completed", SUPPORTED_EVENT_TYPES)
+
+
+class TelemetryEventTests(TestCase):
+    """LAS-6 client-side coverage: clicks, scroll depth, engaged-time pings, cursor hover."""
+
+    def setUp(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+        self.client = Client()
+
+    def test_telemetry_event_types_are_supported(self):
+        from .events import SUPPORTED_EVENT_TYPES
+
+        for t in ("click", "scroll_depth", "page_ping", "cursor_hover"):
+            self.assertIn(t, SUPPORTED_EVENT_TYPES)
+
+    @patch("apps.live_assisted_sales.views.enqueue_event")
+    def test_browser_endpoint_accepts_telemetry_batch(self, enqueue_mock):
+        enqueue_mock.return_value = True
+
+        response = self.client.post(
+            "/live-assisted-sales/events/",
+            data=json.dumps(
+                {
+                    "events": [
+                        {"event_type": "click", "metadata": {"element": "button", "text": "Add to cart"}},
+                        {"event_type": "scroll_depth", "metadata": {"pct": 50}},
+                        {"event_type": "page_ping", "metadata": {"engaged_ms": 15000}},
+                        {"event_type": "cursor_hover", "cursor": {"target": "price", "dwell_ms": 1000}},
+                    ]
+                }
+            ),
+            content_type="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["sent"], 4)
+        self.assertEqual(enqueue_mock.call_count, 4)
+
+    def test_telemetry_event_skips_server_cart_lookup(self):
+        # A page_ping must not run a cart DB query on every heartbeat.
+        request = RequestFactory().get("/products/demo/")
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        payload = build_event_payload(request, "page_ping", metadata={"engaged_ms": 15000})
+
+        self.assertEqual(payload["event_type"], "page_ping")
+        self.assertEqual(payload["cart"], {})
+
+    def test_tracker_renders_telemetry_listeners(self):
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": False,
+                    "widget_script_url": "",
+                    "site_public_key": "",
+                }
+            },
+        )
+
+        for token in ('"click"', '"scroll_depth"', '"page_ping"', '"cursor_hover"', "engaged_ms", "sendBeacon"):
+            self.assertIn(token, html)
+
+
+class OutboxTests(TestCase):
+    """LAS-6 reliability: money/truth events (cart + conversion) are delivered through a durable
+    outbox with retry + dead-letter; high-frequency telemetry keeps the fire-and-forget fast path."""
+
+    def setUp(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001", store_api_key="k"
+        )
+
+    @patch("apps.live_assisted_sales.client._delivery_executor")
+    def test_durable_event_writes_outbox_row(self, executor):
+        from apps.live_assisted_sales.client import enqueue_event
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        ok = enqueue_event(LiveAssistedSalesSettings.get_solo(), {"event_type": "order_completed", "event_id": "e1"})
+
+        self.assertTrue(ok)
+        self.assertEqual(OutboxEvent.objects.filter(event_type="order_completed", status="pending").count(), 1)
+        executor.submit.assert_called()
+
+    @patch("apps.live_assisted_sales.client._delivery_executor")
+    def test_telemetry_event_uses_fast_path_not_outbox(self, executor):
+        from apps.live_assisted_sales.client import enqueue_event
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        ok = enqueue_event(LiveAssistedSalesSettings.get_solo(), {"event_type": "page_ping", "event_id": "e2"})
+
+        self.assertTrue(ok)
+        self.assertEqual(OutboxEvent.objects.count(), 0)
+        executor.submit.assert_called()
+
+    @patch("apps.live_assisted_sales.client.send_event")
+    def test_deliver_outbox_row_marks_sent(self, send_mock):
+        from apps.live_assisted_sales.client import deliver_outbox_row
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        send_mock.return_value = True
+        row = OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+
+        self.assertTrue(deliver_outbox_row(row.id))
+        row.refresh_from_db()
+        self.assertEqual(row.status, "sent")
+        self.assertEqual(row.attempts, 1)
+        self.assertIsNotNone(row.sent_at)
+
+    @patch("apps.live_assisted_sales.client.send_event")
+    def test_deliver_outbox_row_dead_letters_after_max_attempts(self, send_mock):
+        from apps.live_assisted_sales.client import OUTBOX_MAX_ATTEMPTS, deliver_outbox_row
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        send_mock.return_value = False
+        row = OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+        for _ in range(OUTBOX_MAX_ATTEMPTS):
+            deliver_outbox_row(row.id)
+
+        row.refresh_from_db()
+        self.assertEqual(row.status, "failed")
+        self.assertGreaterEqual(row.attempts, OUTBOX_MAX_ATTEMPTS)
+
+    @patch("apps.live_assisted_sales.client.send_event")
+    def test_relay_pending_outbox_delivers_all(self, send_mock):
+        from apps.live_assisted_sales.client import relay_pending_outbox
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        send_mock.return_value = True
+        OutboxEvent.objects.create(payload={"event_type": "cart_item_added"}, event_type="cart_item_added")
+        OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+
+        self.assertEqual(relay_pending_outbox(), 2)
+        self.assertEqual(OutboxEvent.objects.filter(status="sent").count(), 2)
+
+
+class ConsentRegionTests(TestCase):
+    """Server-side consent regime from the visitor's IP/country: EU/EEA/UK/CH need a prior-consent
+    banner ("eu"); elsewhere is opt-out ("noneu"); unknown ("") lets the client fall back to timezone."""
+
+    def _req(self, **headers):
+        return RequestFactory().get("/", **headers)
+
+    def test_cdn_country_headers_map_to_eu(self):
+        for header, code in [
+            ("HTTP_CF_IPCOUNTRY", "PL"),
+            ("HTTP_CLOUDFRONT_VIEWER_COUNTRY", "DE"),
+            ("HTTP_X_VERCEL_IP_COUNTRY", "GB"),
+            ("HTTP_X_APPENGINE_COUNTRY", "FR"),
+            ("HTTP_X_GEO_COUNTRY", "IE"),
+            ("HTTP_X_COUNTRY_CODE", "CH"),
+        ]:
+            with self.subTest(header=header, code=code):
+                self.assertEqual(_consent_region(self._req(**{header: code})), "eu")
+
+    def test_non_eu_countries_map_to_noneu(self):
+        for code in ["US", "JP", "BR", "AU", "CA", "IN"]:
+            with self.subTest(code=code):
+                self.assertEqual(_consent_region(self._req(HTTP_CF_IPCOUNTRY=code)), "noneu")
+
+    def test_lowercase_and_whitespace_country_is_normalised(self):
+        self.assertEqual(_country_code_from_request(self._req(HTTP_CF_IPCOUNTRY=" pl ")), "PL")
+        self.assertEqual(_consent_region(self._req(HTTP_CF_IPCOUNTRY=" us ")), "noneu")
+
+    def test_unknown_or_missing_country_is_blank(self):
+        # XX/T1 are CDN placeholders for unknown/Tor; a missing or malformed header is also unknown.
+        self.assertEqual(_consent_region(self._req(HTTP_CF_IPCOUNTRY="XX")), "")
+        self.assertEqual(_consent_region(self._req(HTTP_CF_IPCOUNTRY="T1")), "")
+        self.assertEqual(_consent_region(self._req(HTTP_CF_IPCOUNTRY="ZZZ")), "")
+        self.assertEqual(_consent_region(self._req()), "")
+
+    def test_first_present_header_wins(self):
+        # Cloudflare header takes precedence over the generic one in the lookup order.
+        req = self._req(HTTP_CF_IPCOUNTRY="US", HTTP_X_COUNTRY_CODE="PL")
+        self.assertEqual(_consent_region(req), "noneu")
+
+    @patch("apps.live_assisted_sales.context_processors.client_ip_from_request", return_value="8.8.8.8")
+    def test_geoip2_fallback_used_when_no_header(self, _ip):
+        # No CDN header → fall back to GeoIP2; here we stub GeoIP2 to report the US.
+        geoip = Mock()
+        geoip.return_value.country_code.return_value = "US"
+        with patch.dict("sys.modules", {"django.contrib.gis.geoip2": Mock(GeoIP2=geoip)}):
+            self.assertEqual(_consent_region(self._req()), "noneu")
+        geoip.return_value.country_code.assert_called_once_with("8.8.8.8")
+
+    def test_context_processor_exposes_consent_region(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001/", store_api_key="k", site_public_key="pk"
+        )
+        request = self._req(HTTP_CF_IPCOUNTRY="PL")
+        request.session = {}
+        request.user = Mock(is_authenticated=False)
+        self.assertEqual(live_assisted_sales(request)["live_assisted_sales"]["consent_region"], "eu")

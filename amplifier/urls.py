@@ -32,6 +32,12 @@ from apps.users.views import (
     CustomPasswordChangeView,
     CustomPasswordResetView,
 )
+from apps.catalog.agent_views import (
+    agent_catalog_search,
+    agent_mcp,
+    llms_txt as agent_llms_txt,
+    ucp_manifest as agent_ucp_manifest,
+)
 from apps.web.sitemaps import DynamicPageSitemap, StaticViewSitemap
 
 # Ensure error pages render with RequestContext (so base.html context processors are available).
@@ -74,6 +80,12 @@ urlpatterns = [
     path("i18n/", include("django.conf.urls.i18n")),
     path("jsi18n/", JavaScriptCatalog.as_view(), name="javascript-catalog"),
     path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
+    # LAS-7 B2 — agent-ready storefront: make the catalog discoverable/queryable by AI shopping agents
+    # (read-only; agentic checkout deliberately not exposed — purchase stays human-assisted).
+    path("llms.txt", agent_llms_txt, name="agent_llms_txt"),
+    path(".well-known/ucp.json", agent_ucp_manifest, name="agent_ucp_manifest"),
+    path("api/agent/mcp/", agent_mcp, name="agent_mcp"),
+    path("api/agent/catalog/search/", agent_catalog_search, name="agent_catalog_search"),
     # Custom allauth view overrides (must come BEFORE allauth includes)
     path(
         "accounts/password/change/",

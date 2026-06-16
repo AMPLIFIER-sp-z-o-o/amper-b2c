@@ -69,3 +69,37 @@ class LiveAssistedSalesSettings(models.Model):
                 "updated_at",
             ]
         )
+
+
+class OutboxEvent(models.Model):
+    """Durable transactional outbox for money/truth events (cart + conversion) forwarded to LAS.
+
+    Replaces fire-and-forget for the events whose loss would corrupt analytics or ML labels: the row
+    is committed first, then delivered off the request thread, and a periodic relay retries anything
+    not confirmed (survives a worker crash or LAS downtime). Downstream is idempotent via the
+    (store, event_id) unique constraint, so retries are safe. High-frequency telemetry deliberately
+    does NOT use the outbox (see client.DURABLE_EVENT_TYPES) to avoid a DB write per heartbeat.
+    """
+
+    class Status(models.TextChoices):
+        PENDING = "pending", _("Pending")
+        SENT = "sent", _("Sent")
+        FAILED = "failed", _("Failed")  # exhausted retries (dead-letter)
+
+    payload = models.JSONField()
+    event_type = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    last_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sent_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+        indexes = [
+            models.Index(fields=["status", "created_at"], name="las_outbox_status_idx"),
+        ]
+
+    def __str__(self):
+        return f"OutboxEvent #{self.pk} {self.event_type} [{self.status}]"
