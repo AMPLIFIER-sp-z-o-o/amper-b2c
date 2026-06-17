@@ -1,3 +1,4 @@
+{% load i18n %}
 {% comment %}
 Demo-store notice. Only rendered when the request host is in
 DEMO_STORE_BANNER_HOSTS (the demo deployment + local dev), never on a real
@@ -13,7 +14,7 @@ red bar renders even if the prebuilt Tailwind CSS hasn't been regenerated.
           <line x1="12" y1="9" x2="12" y2="13"/>
           <line x1="12" y1="17" x2="12.01" y2="17"/>
         </svg>
-        <span>Sklep demonstracyjny &mdash; nie prowadzimy sprzedaży. Żadne zamówienia nie są realizowane.</span>
+        <span>{% translate "Demo store — we do not conduct sales. Orders are not processed." %}</span>
       </p>
     </div>
   </div>

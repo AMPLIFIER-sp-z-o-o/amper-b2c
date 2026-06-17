@@ -880,3 +880,7 @@ msgstr "Invalid events payload."
 
 msgid "Invalid event object."
 msgstr "Invalid event object."
+
+#: templates/web/components/demo_store_banner.html:17
+msgid "Demo store — we do not conduct sales. Orders are not processed."
+msgstr ""

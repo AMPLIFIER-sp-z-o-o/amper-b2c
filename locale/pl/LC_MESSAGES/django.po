@@ -1027,3 +1027,7 @@ msgstr "Nieprawidłowa treść zdarzeń."
 
 msgid "Invalid event object."
 msgstr "Nieprawidłowy obiekt zdarzenia."
+
+#: templates/web/components/demo_store_banner.html:17
+msgid "Demo store — we do not conduct sales. Orders are not processed."
+msgstr "Sklep demonstracyjny — nie prowadzimy sprzedaży. Zamówienia nie są realizowane."
