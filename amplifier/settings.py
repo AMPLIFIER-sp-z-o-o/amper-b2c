@@ -389,6 +389,7 @@ TEMPLATES = [
                 "apps.web.context_processors.bottom_bar_context",
                 "apps.web.context_processors.navigation_categories",
                 "apps.web.context_processors.email_verification_banner",
+                "apps.web.context_processors.demo_store_banner",
                 "apps.support.context_processors.admin_extra_userlinks",
                 "apps.support.context_processors.draft_preview",
                 "apps.cart.context_processors.cart_context",
@@ -730,6 +731,14 @@ HEALTH_CHECK_TOKENS = env.list("HEALTH_CHECK_TOKENS", default="")
 USE_HTTPS_IN_ABSOLUTE_URLS = env.bool("USE_HTTPS_IN_ABSOLUTE_URLS", default=False)
 
 DRAFT_PREVIEW_TTL_MINUTES = env.int("DRAFT_PREVIEW_TTL_MINUTES", default=1440)
+
+# Demo store banner: shows a prominent "this is a demo store, no real sales"
+# notice. Scoped by host so it only appears on the demo deployment and local
+# development, never on a real customer's storefront domain.
+DEMO_STORE_BANNER_HOSTS = env.list(
+    "DEMO_STORE_BANNER_HOSTS",
+    default=["amper-b2c.ampliapps.com", "localhost", "127.0.0.1"],
+)
 
 ADMINS = []
 

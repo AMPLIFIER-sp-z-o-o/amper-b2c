@@ -380,3 +380,17 @@ def email_verification_banner(request):
 
         show = not EmailAddress.objects.filter(user=request.user, email=request.user.email, verified=True).exists()
     return {"show_email_verification_banner": show}
+
+
+def demo_store_banner(request):
+    """
+    Show a prominent "demo store, no real sales" notice on the demo deployment
+    and on local development. Scoped by host so real customer storefronts on
+    their own domains never display it. Configure via DEMO_STORE_BANNER_HOSTS.
+    """
+    try:
+        host = request.get_host().split(":")[0].strip().lower()
+    except Exception:
+        host = ""
+    demo_hosts = {h.strip().lower() for h in getattr(settings, "DEMO_STORE_BANNER_HOSTS", []) if h}
+    return {"show_demo_store_banner": bool(host) and host in demo_hosts}

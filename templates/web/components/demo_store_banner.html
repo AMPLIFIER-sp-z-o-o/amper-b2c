@@ -1,0 +1,20 @@
+{% comment %}
+Demo-store notice. Only rendered when the request host is in
+DEMO_STORE_BANNER_HOSTS (the demo deployment + local dev), never on a real
+customer's storefront domain. Color is set inline (like top_bar.html) so the
+red bar renders even if the prebuilt Tailwind CSS hasn't been regenerated.
+{% endcomment %}
+{% if show_demo_store_banner %}
+  <div id="demo-store-banner" class="relative z-50" style="background-color:#dc2626;color:#ffffff;" role="alert">
+    <div class="mx-auto max-w-7xl px-4">
+      <p class="flex flex-wrap items-center justify-center gap-2 py-2 text-center text-xs font-bold uppercase tracking-wide sm:py-2.5 sm:text-sm">
+        <svg class="h-4 w-4 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>Sklep demonstracyjny &mdash; nie prowadzimy sprzedaży. Żadne zamówienia nie są realizowane.</span>
+      </p>
+    </div>
+  </div>
+{% endif %}
