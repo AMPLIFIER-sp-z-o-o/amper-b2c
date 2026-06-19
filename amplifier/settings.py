@@ -709,6 +709,11 @@ SCHEDULED_TASKS = {
         "task": "apps.favourites.tasks.cleanup_anonymous_wishlists",
         "schedule": schedules.crontab(minute=0, hour=3),  # daily at 3 AM
     },
+    # Durable LAS event relay: deliver any conversion/cart events the fast path didn't confirm.
+    "relay-las-outbox": {
+        "task": "apps.live_assisted_sales.tasks.relay_pending_outbox_task",
+        "schedule": schedules.crontab(),  # every minute
+    },
 }
 
 # Channels / Daphne setup

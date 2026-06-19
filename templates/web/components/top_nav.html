@@ -66,6 +66,12 @@
   border-top-right-radius: 0;
 }
 
+/* Clamped to the viewport: not flush with the trigger, so round both top corners */
+.category-dropdown.is-connected.is-floating:not(#cartDropdown):not(#accountDropdown) {
+  border-top-left-radius: 0.75rem !important;
+  border-top-right-radius: 0.75rem !important;
+}
+
 /* Dropdown positioning - use fixed to escape overflow:hidden parent */
 .category-dropdown {
   animation: fadeIn 0.15s ease-out;
@@ -1783,25 +1789,34 @@ document.addEventListener('DOMContentLoaded', function() {
         // Standard category dropdowns
         const btn = trigger.querySelector('.nav-category-btn');
         const rect = btn.getBoundingClientRect();
+        const edgeMargin = 16;
         dropdown.style.position = 'fixed';
         dropdown.style.top = `${rect.bottom - 1}px`; // Overlap by 1px
-        
-        // Initial positioning
-        dropdown.style.left = `${rect.left}px`;
         dropdown.style.right = 'auto';
-        
+
         // Show temporarily to measure
         dropdown.classList.remove('hidden');
         const dropdownWidth = dropdown.offsetWidth;
-        
-        // Check overflow
-        if (rect.left + dropdownWidth > window.innerWidth - 20) {
-            dropdown.style.left = 'auto';
-            dropdown.style.right = `${window.innerWidth - rect.right}px`;
-            dropdown.classList.add('is-right-aligned');
+        const viewportWidth = window.innerWidth;
+
+        // Position so the dropdown stays fully on screen. Prefer connecting to the
+        // trigger's left edge; fall back to its right edge; if it still won't fit
+        // (narrow viewport + wide dropdown), clamp it inside the viewport.
+        let left;
+        let alignment;
+        if (rect.left + dropdownWidth <= viewportWidth - edgeMargin) {
+            left = rect.left;
+            alignment = 'left';
+        } else if (rect.right - dropdownWidth >= edgeMargin) {
+            left = rect.right - dropdownWidth;
+            alignment = 'right';
         } else {
-            dropdown.classList.remove('is-right-aligned');
+            left = Math.max(edgeMargin, viewportWidth - edgeMargin - dropdownWidth);
+            alignment = 'floating';
         }
+        dropdown.style.left = `${left}px`;
+        dropdown.classList.toggle('is-right-aligned', alignment === 'right');
+        dropdown.classList.toggle('is-floating', alignment === 'floating');
 
         // Add class to visually connect dropdown to button
         dropdown.classList.add('is-connected');

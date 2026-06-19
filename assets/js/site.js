@@ -1218,18 +1218,23 @@ function initCategoryRecommendedSlider() {
         prevEl: prevButton,
         disabledClass: "swiper-button-disabled",
       },
+      // Size against the carousel's own width, not the viewport. On wide screens the
+      // product list shows a filters sidebar that shrinks this carousel's container, so
+      // viewport-based breakpoints would cram 4 tiles into a narrow column and clip the
+      // card content ("Add to cart"). Container thresholds keep each tile wide enough.
+      breakpointsBase: "container",
       breakpoints: {
-        640: {
+        540: {
           slidesPerView: 2,
           slidesPerGroup: 2,
           spaceBetween: 12,
         },
-        768: {
+        780: {
           slidesPerView: 3,
           slidesPerGroup: 3,
           spaceBetween: 16,
         },
-        1024: {
+        1040: {
           slidesPerView: 4,
           slidesPerGroup: 4,
           spaceBetween: 16,
@@ -2448,8 +2453,11 @@ function showToast(message, type = "success") {
   if (!toastContainer) {
     toastContainer = document.createElement("div");
     toastContainer.id = "favorite-toast-container";
-    toastContainer.className =
-      "fixed right-4 sm:right-5 z-50 flex flex-col gap-2";
+    toastContainer.className = "fixed right-4 sm:right-5 flex flex-col gap-2";
+    // The live-chat widget mounts at the bottom-right with z-index 2147483000, the same
+    // corner as the toasts. Sit just above it so notifications overlap the chat bubble
+    // instead of being hidden behind it.
+    toastContainer.style.zIndex = "2147483600";
     document.body.appendChild(toastContainer);
   }
   _positionToastContainer(toastContainer);

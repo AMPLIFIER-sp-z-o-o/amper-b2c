@@ -4,8 +4,14 @@
 <script>
   (function () {
     const endpoint = "{{ live_assisted_sales.events_url|escapejs }}";
+    // Server-decided consent regime from the visitor's IP/country: "eu" | "noneu" | "" (unknown).
+    const consentRegion = "{{ live_assisted_sales.consent_region|escapejs }}";
+    // Whether the LAS chat launcher is loaded on this page. It sits fixed in the bottom-right corner,
+    // so when present the consent banner must reserve space on that side or its buttons hide behind it.
+    const widgetEnabled = {% if live_assisted_sales.widget_enabled %}true{% else %}false{% endif %};
     let sessionEnded = false;
 
+    // ---- Identity ---------------------------------------------------------
     function uuid() {
       if (window.crypto && typeof window.crypto.randomUUID === "function") {
         return window.crypto.randomUUID();
@@ -22,130 +28,349 @@
       return "las-" + Date.now() + "-" + Math.random().toString(16).slice(2);
     }
 
-    function visitorId() {
-      const key = "las_visitor_id";
-      let value = storageGet(localStorage, key);
-      if (!value) {
-        value = uuid();
-        storageSet(localStorage, key, value);
-      }
-      writeCookie(key, value);
-      return value;
-    }
-
-    function sessionId() {
-      const key = "las_session_id";
-      let value = storageGet(sessionStorage, key);
-      if (!value) {
-        value = uuid();
-        storageSet(sessionStorage, key, value);
-      }
-      writeCookie(key, value);
-      return value;
-    }
-
     function storageGet(storage, key) {
-      try {
-        return storage.getItem(key);
-      } catch (error) {
-        return "";
-      }
+      try { return storage.getItem(key); } catch (error) { return ""; }
     }
-
     function storageSet(storage, key, value) {
-      try {
-        storage.setItem(key, value);
-      } catch (error) {}
+      try { storage.setItem(key, value); } catch (error) {}
     }
-
     function writeCookie(name, value) {
       document.cookie = name + "=" + encodeURIComponent(value) + "; path=/; SameSite=Lax";
     }
 
-    function send(event) {
-      const cart = initialCartPayload();
-      if (event.cart === undefined && cart) {
-        event.cart = cart;
-      }
-      const payload = Object.assign({
-        event_id: uuid(),
-        visitor_id: visitorId(),
-        session_id: sessionId(),
-        occurred_at: new Date().toISOString(),
-        url: window.location.href
-      }, event);
-
-      navigator.sendBeacon
-        ? navigator.sendBeacon(endpoint, new Blob([JSON.stringify(payload)], { type: "application/json" }))
-        : fetch(endpoint, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "same-origin",
-            body: JSON.stringify(payload),
-            keepalive: true
-          }).catch(function () {});
+    function visitorId() {
+      const key = "las_visitor_id";
+      let value = storageGet(localStorage, key);
+      if (!value) { value = uuid(); storageSet(localStorage, key, value); }
+      writeCookie(key, value);
+      return value;
+    }
+    function sessionId() {
+      const key = "las_session_id";
+      let value = storageGet(sessionStorage, key);
+      if (!value) { value = uuid(); storageSet(sessionStorage, key, value); }
+      writeCookie(key, value);
+      return value;
     }
 
     function initialCartPayload() {
       const script = document.getElementById("las-initial-cart");
       if (!script) return null;
-      try {
-        return JSON.parse(script.textContent || "{}");
-      } catch (error) {
-        return null;
-      }
+      try { return JSON.parse(script.textContent || "{}"); } catch (error) { return null; }
     }
-
     function publishWidgetCustomer() {
       const script = document.getElementById("las-customer");
       if (!script) return;
       try {
         const customer = JSON.parse(script.textContent || "{}");
         window.LAS_CUSTOMER = customer && typeof customer === "object" ? customer : {};
-      } catch (error) {
-        window.LAS_CUSTOMER = {};
-      }
+      } catch (error) { window.LAS_CUSTOMER = {}; }
     }
 
+    // ---- Batched delivery -------------------------------------------------
+    // Telemetry (clicks, scroll, engaged-time pings, hover) is bursty, so events are queued and
+    // flushed together to the same-origin proxy. fetch(keepalive)/sendBeacon make the unload flush
+    // survive navigation. A failed beacon simply drops the batch — the server is the source of truth
+    // for money/truth events, which are emitted server-side, not from here.
+    const FLUSH_INTERVAL_MS = 5000;
+    const MAX_BATCH = 20;
+    let queue = [];
+
+    // Consent / opt-out: the shopper's choice, forwarded to LAS which decides per its market regime
+    // (EU opt-in: profile only on explicit true; US opt-out: profile unless explicit false). Undefined
+    // until the shopper answers the banner.
+    function consentValue() {
+      const v = storageGet(localStorage, "las_consent");
+      if (v === "true") return true;
+      if (v === "false") return false;
+      return undefined;
+    }
+
+    function envelope(event) {
+      const base = {
+        event_id: uuid(),
+        visitor_id: visitorId(),
+        session_id: sessionId(),
+        occurred_at: new Date().toISOString(),
+        url: window.location.href,
+      };
+      const merged = Object.assign(base, event);
+      const consent = consentValue();
+      if (consent !== undefined) {
+        merged.metadata = Object.assign({}, merged.metadata || {}, { consent: consent });
+      }
+      return merged;
+    }
+
+    function postBatch(events, useBeacon) {
+      if (!events.length) return;
+      const body = JSON.stringify({ events: events });
+      try {
+        if (useBeacon && navigator.sendBeacon) {
+          navigator.sendBeacon(endpoint, new Blob([body], { type: "application/json" }));
+          return;
+        }
+        fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: body,
+          keepalive: true,
+        }).catch(function () {});
+      } catch (error) {}
+    }
+
+    function flush(useBeacon) {
+      if (!queue.length) return;
+      const batch = queue.splice(0, MAX_BATCH);
+      postBatch(batch, useBeacon);
+      if (queue.length) flush(useBeacon);
+    }
+
+    function enqueue(event) {
+      queue.push(envelope(event));
+      if (queue.length >= MAX_BATCH) flush(false);
+    }
+
+    // Immediate, on its own beacon — used for session_start so the agent console sees the arrival
+    // and the store gets verified without waiting for the flush timer.
+    function sendNow(event) {
+      postBatch([envelope(event)], false);
+    }
+
+    // ---- Auto-captured signals -------------------------------------------
+    function pageContext() {
+      return { title: document.title || "", path: window.location.pathname };
+    }
+
+    // Generic click capture (delegated): links, buttons, role=button, and elements carrying a
+    // data-product-id. Throttled so a double-click does not double-send.
+    let lastClickAt = 0;
+    function onClick(evt) {
+      const now = Date.now();
+      if (now - lastClickAt < 250) return;
+      lastClickAt = now;
+      const el = evt.target && evt.target.closest
+        ? evt.target.closest("a, button, [role='button'], [data-product-id]")
+        : null;
+      if (!el) return;
+      const text = (el.textContent || "").trim().slice(0, 80);
+      enqueue({
+        event_type: "click",
+        page: pageContext(),
+        metadata: {
+          element: (el.tagName || "").toLowerCase(),
+          text: text,
+          href: el.getAttribute ? (el.getAttribute("href") || "") : "",
+          product_id: el.getAttribute ? (el.getAttribute("data-product-id") || "") : "",
+        },
+      });
+    }
+
+    // Scroll depth milestones (25/50/75/90), each fired at most once per page.
+    const scrollMilestones = [25, 50, 75, 90];
+    const scrollSent = {};
+    let maxScrollPct = 0;
+    function currentScrollPct() {
+      const doc = document.documentElement;
+      const scrollable = (doc.scrollHeight || 0) - (doc.clientHeight || 0);
+      if (scrollable <= 0) return 100;
+      return Math.min(100, Math.round(((window.scrollY || doc.scrollTop || 0) / scrollable) * 100));
+    }
+    let scrollScheduled = false;
+    function onScroll() {
+      if (scrollScheduled) return;
+      scrollScheduled = true;
+      window.requestAnimationFrame(function () {
+        scrollScheduled = false;
+        const pct = currentScrollPct();
+        if (pct > maxScrollPct) maxScrollPct = pct;
+        for (let i = 0; i < scrollMilestones.length; i++) {
+          const m = scrollMilestones[i];
+          if (pct >= m && !scrollSent[m]) {
+            scrollSent[m] = true;
+            enqueue({ event_type: "scroll_depth", page: pageContext(), metadata: { pct: m } });
+          }
+        }
+      });
+    }
+
+    // Engaged-time heartbeat: a page_ping every PING_INTERVAL_MS, but only while the tab is visible
+    // AND the user did something in the interval. engaged_ms therefore excludes idle/background time.
+    const PING_INTERVAL_MS = 15000;
+    let activeSinceLastPing = false;
+    let engagedMs = 0;
+    function markActive() { activeSinceLastPing = true; }
+    function heartbeat() {
+      if (document.visibilityState !== "visible" || !activeSinceLastPing) return;
+      engagedMs += PING_INTERVAL_MS;
+      activeSinceLastPing = false;
+      enqueue({
+        event_type: "page_ping",
+        page: pageContext(),
+        metadata: { engaged_ms: engagedMs, max_scroll_pct: maxScrollPct },
+      });
+    }
+
+    // Cursor hover with dwell over buy/price zones — fires once per element, capped per page, so the
+    // already-defined cursor_hover type finally carries signal without flooding the pipeline.
+    let hoverCount = 0;
+    const HOVER_CAP = 12;
+    const HOVER_DWELL_MS = 900;
+    function isBuyZone(el) {
+      if (!el || !el.matches) return false;
+      return el.matches(
+        "button, [data-product-id], [class*='price'], [class*='add-to-cart'], [class*='addToCart'], [data-las-hover]"
+      );
+    }
+    function onMouseOver(evt) {
+      if (hoverCount >= HOVER_CAP) return;
+      const el = evt.target && evt.target.closest
+        ? evt.target.closest("button, [data-product-id], [class*='price'], [class*='add-to-cart'], [class*='addToCart'], [data-las-hover]")
+        : null;
+      if (!el || el.__lasHovered) return;
+      const startedAt = Date.now();
+      const timer = setTimeout(function () {
+        if (!document.contains(el)) return;
+        el.__lasHovered = true;
+        hoverCount += 1;
+        enqueue({
+          event_type: "cursor_hover",
+          page: pageContext(),
+          cursor: {
+            target: (el.getAttribute && el.getAttribute("data-product-id")) || (el.textContent || "").trim().slice(0, 60),
+            dwell_ms: Date.now() - startedAt,
+          },
+        });
+      }, HOVER_DWELL_MS);
+      el.addEventListener("mouseleave", function () { clearTimeout(timer); }, { once: true });
+    }
+
+    // ---- Lifecycle --------------------------------------------------------
     function sendInitialEvents() {
       visitorId();
       sessionId();
       publishWidgetCustomer();
-      send({
-        event_type: "session_start",
-        page: {
-          title: document.title || "",
-          path: window.location.pathname
-        }
-      });
+      const cart = initialCartPayload();
+      sendNow({ event_type: "session_start", page: pageContext(), cart: cart || undefined });
     }
-
     function sendSessionEnd() {
       if (sessionEnded) return;
       sessionEnded = true;
-      send({
+      enqueue({
         event_type: "session_end",
-        page: {
-          title: document.title || "",
-          path: window.location.pathname
-        }
+        page: pageContext(),
+        metadata: { engaged_time_total: engagedMs, max_scroll_depth: maxScrollPct },
       });
+      flush(true);
     }
 
     publishWidgetCustomer();
 
-    window.addEventListener("pagehide", function () {
-      sendSessionEnd();
+    document.addEventListener("click", onClick, true);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    ["mousemove", "keydown", "scroll", "click", "touchstart"].forEach(function (type) {
+      window.addEventListener(type, markActive, { passive: true });
     });
+    document.addEventListener("mouseover", onMouseOver, true);
+    setInterval(heartbeat, PING_INTERVAL_MS);
+    setInterval(function () { flush(false); }, FLUSH_INTERVAL_MS);
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "hidden") flush(true);
+    });
+    window.addEventListener("pagehide", sendSessionEnd);
 
+    function persistConsent(value) {
+      storageSet(localStorage, "las_consent", value ? "true" : "false");
+      writeCookie("las_consent", value ? "true" : "false");
+    }
+    // Whether this visitor needs a prior-consent banner (GDPR/ePrivacy). The server decides from
+    // the IP/country and passes "eu"/"noneu"; only when that is unknown do we fall back to a rough
+    // timezone heuristic in the browser.
+    function isEuRegion() {
+      if (consentRegion === "eu") return true;
+      if (consentRegion === "noneu") return false;
+      try {
+        var tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || "");
+        return /^(Europe\/|Atlantic\/(Azores|Madeira|Canary|Reykjavik|Faroe)|Arctic\/Longyearbyen)/.test(tz);
+      } catch (e) { return false; }
+    }
+    // Single cookie + data consent (covers cookies AND behavioural profiling — no separate cookie bar).
+    // Least-invasive & geo-aware: EU/EEA/UK get a one-click prior-consent banner; elsewhere (e.g. US) we
+    // default to opt-out with NO banner, but still honour the Global Privacy Control signal. The choice is
+    // stored in localStorage + a cookie so server-side events forward it; LAS also applies its per-store regime.
+    function setupConsentBanner() {
+      if (consentValue() !== undefined) return;                                        // already answered
+      if (navigator.globalPrivacyControl === true) { persistConsent(false); return; }  // honour GPC opt-out, no banner
+      if (!isEuRegion()) { persistConsent(true); return; }                             // opt-out market (US…): consent by default, no banner
+      // EU/EEA/UK — one-click prior-consent banner (nothing profiled until the shopper answers)
+      const bar = document.createElement("div");
+      bar.setAttribute("role", "dialog");
+      bar.setAttribute("aria-label", "Zgoda na pliki cookies i przetwarzanie danych");
+      bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#111827;color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font:14px/1.45 system-ui,-apple-system,sans-serif;box-shadow:0 -4px 16px rgba(0,0,0,.25)";
+      // Clear the bottom-right chat launcher (20px margin + 60px bubble) so "Odrzuć" isn't hidden behind it.
+      if (widgetEnabled) bar.style.paddingRight = "96px";
+      const text = document.createElement("span");
+      text.style.cssText = "flex:1;min-width:240px;max-width:760px";
+      text.textContent = "Ten sklep używa plików cookies oraz danych o Twoich działaniach, aby działać poprawnie, pomagać Ci na żywo i lepiej dobierać produkty.";
+      bar.appendChild(text);
+      function choose(value) {
+        persistConsent(value);
+        if (bar.parentNode) bar.parentNode.removeChild(bar);
+      }
+      const accept = document.createElement("button");
+      accept.type = "button";
+      accept.textContent = "Akceptuję";
+      accept.style.cssText = "background:#2563eb;color:#fff;border:0;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer";
+      accept.addEventListener("click", function () { choose(true); });
+      const decline = document.createElement("button");
+      decline.type = "button";
+      decline.textContent = "Odrzuć";
+      decline.style.cssText = "background:transparent;color:#fff;border:1px solid #4b5563;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer";
+      decline.addEventListener("click", function () { choose(false); });
+      bar.appendChild(accept);
+      bar.appendChild(decline);
+      (document.body || document.documentElement).appendChild(bar);
+    }
     if (document.readyState === "loading") {
-      document.addEventListener("DOMContentLoaded", sendInitialEvents, { once: true });
+      document.addEventListener("DOMContentLoaded", function () { sendInitialEvents(); setupConsentBanner(); }, { once: true });
     } else {
       sendInitialEvents();
+      setupConsentBanner();
     }
   })();
 </script>
 {% if live_assisted_sales.widget_enabled %}
+<script>
+  // LAS-7 buy-from-chat: the chat widget is a cross-origin iframe and can't touch this store's cart,
+  // so its "Add to cart" button asks the host (us) to do it via a `las:add-to-cart` DOM event. We claim
+  // the event (preventDefault), add the suggested product to our own cart, and acknowledge the result
+  // so the widget button can show success. If we can't (cart JS not ready / no id), we leave it
+  // unclaimed and the widget falls back to opening the product page.
+  (function () {
+    window.addEventListener("las:add-to-cart", function (event) {
+      var detail = event.detail || {};
+      var product = detail.product || {};
+      var respond = typeof detail.respond === "function" ? detail.respond : function () {};
+      var productId = String(product.id || "").trim();
+      if (!productId || !window.Cart || typeof window.Cart.addToCart !== "function") {
+        return; // unclaimed -> widget opens the product page instead
+      }
+      event.preventDefault();
+      try {
+        Promise.resolve(window.Cart.addToCart(productId, 1, "increment"))
+          .then(function (data) {
+            var ok = !!(data && data.success);
+            if (ok && typeof window.showToast === "function") {
+              window.showToast("Dodano do koszyka: " + (product.name || ""), "success");
+            }
+            respond({ ok: ok });
+          })
+          .catch(function () { respond({ ok: false }); });
+      } catch (error) { respond({ ok: false }); }
+    });
+  })();
+</script>
 <script async src="{{ live_assisted_sales.widget_script_url }}" data-las-site="{{ live_assisted_sales.site_public_key }}"{% if live_assisted_sales.widget_accent %} data-las-accent="{{ live_assisted_sales.widget_accent }}"{% endif %}{% if live_assisted_sales.widget_logo_url %} data-las-logo="{{ live_assisted_sales.widget_logo_url }}"{% endif %}></script>
 {% endif %}
 {% endif %}

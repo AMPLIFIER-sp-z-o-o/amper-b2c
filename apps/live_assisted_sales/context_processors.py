@@ -5,10 +5,61 @@ import time
 
 from apps.cart.services import _get_cart_from_request
 
-from .events import _absolute_logo_url, cart_payload
+from .events import _absolute_logo_url, cart_payload, client_ip_from_request
 from .models import LiveAssistedSalesSettings
 
 logger = logging.getLogger(__name__)
+
+# Country codes where prior consent is required before behavioural profiling (EU/EEA + UK + CH).
+CONSENT_REQUIRED_COUNTRIES = frozenset({
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR", "HU", "IE", "IT",
+    "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK", "SI", "ES", "SE",  # EU-27
+    "IS", "LI", "NO",  # EEA
+    "GB", "CH",        # UK + Switzerland (GDPR-like regimes)
+})
+
+# ISO country headers injected by common CDNs / load balancers (most reliable in production).
+_GEO_HEADER_KEYS = (
+    "HTTP_CF_IPCOUNTRY",                # Cloudflare
+    "HTTP_CLOUDFRONT_VIEWER_COUNTRY",   # AWS CloudFront
+    "HTTP_X_VERCEL_IP_COUNTRY",         # Vercel
+    "HTTP_X_APPENGINE_COUNTRY",         # Google App Engine
+    "HTTP_X_GEO_COUNTRY",               # generic / Fastly
+    "HTTP_X_COUNTRY_CODE",              # generic proxy
+)
+
+
+def _country_code_from_request(request):
+    """Best-effort ISO-3166 alpha-2 country for the request, decided server-side.
+
+    Prefers a country header set by the CDN/load balancer (reliable in production); falls back to
+    a local GeoIP2 database if one is configured. Returns "" when the country cannot be determined."""
+    for key in _GEO_HEADER_KEYS:
+        code = (request.META.get(key) or "").strip().upper()
+        if len(code) == 2 and code.isalpha() and code not in ("XX", "T1"):  # XX/T1 = unknown/Tor
+            return code
+    try:
+        from django.contrib.gis.geoip2 import GeoIP2
+
+        ip = client_ip_from_request(request)
+        if ip:
+            code = (GeoIP2().country_code(ip) or "").strip().upper()
+            if len(code) == 2 and code.isalpha():
+                return code
+    except Exception:
+        # GeoIP2 not installed/configured, or private/unknown IP — fall through to "unknown".
+        pass
+    return ""
+
+
+def _consent_region(request):
+    """Consent regime for this visitor, decided server-side from their IP/country:
+    ``"eu"`` (prior consent required), ``"noneu"`` (opt-out allowed), or ``""`` (unknown —
+    the client-side tracker then falls back to a timezone heuristic)."""
+    code = _country_code_from_request(request)
+    if not code:
+        return ""
+    return "eu" if code in CONSENT_REQUIRED_COUNTRIES else "noneu"
 
 
 def _initial_cart_payload(request):
@@ -84,6 +135,7 @@ def live_assisted_sales(request):
             "initial_cart": _initial_cart_payload(request) if enabled else {},
             "customer": _widget_customer_payload(request, settings_obj.store_api_key or "") if enabled else {},
             "site_public_key": settings_obj.site_public_key,
+            "consent_region": _consent_region(request) if enabled else "",
             "widget_enabled": settings_obj.is_widget_configured,
             "widget_script_url": f"{las_base_url}/widget/v1/chat.js" if las_base_url else "",
             "widget_accent": settings_obj.widget_accent,
