@@ -170,15 +170,43 @@ def _absolute_payload_url(request, url):
     return url
 
 
+def _product_image_url(product, request=None):
+    """Absolute URL of a product's primary image (lowest sort_order), or "" when it has none.
+
+    LAS uses this to render a real product card when an agent sends a suggestion to a shopper.
+    """
+    images = getattr(product, "images", None)
+    if images is None:
+        return ""
+    try:
+        first = images.all().order_by("sort_order", "id").first()
+    except Exception:
+        first = None
+    image = getattr(first, "image", None) if first else None
+    if not image:
+        return ""
+    try:
+        return _absolute_payload_url(request, image.url)
+    except Exception:
+        return ""
+
+
 def product_payload(product, request=None):
     if not product:
         return {}
     url = product.get_absolute_url() if hasattr(product, "get_absolute_url") else ""
+    currency = storefront_currency()
+    price = getattr(product, "price", None)
     return {
         "id": str(getattr(product, "id", "")),
         "name": getattr(product, "name", "") or "",
         "sku": getattr(product, "sku", "") or getattr(product, "code", "") or "",
         "url": _absolute_payload_url(request, url),
+        # Image + price let LAS render a clickable product card (not just text) in the chat.
+        "image": _product_image_url(product, request=request),
+        "price": str(price) if price not in (None, "") else "",
+        "price_display": format_storefront_amount(price, currency) if price not in (None, "") else "",
+        "currency": currency,
     }
 
 

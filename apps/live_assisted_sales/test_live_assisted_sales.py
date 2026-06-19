@@ -742,6 +742,28 @@ class EventBuilderTests(TestCase):
         self.assertEqual(product_payload(product, request=request)["url"], "http://testserver/products/42-chemex/")
         self.assertEqual(category_payload(category, request=request)["url"], "http://testserver/category/7-brewers/")
 
+    def test_product_payload_includes_primary_image_and_price(self):
+        # LAS renders a product card from these; the image must be the lowest sort_order, absolute.
+        request = RequestFactory().get("/")
+        primary = Mock()
+        primary.image.url = "/media/product-images/sink.jpg"
+        product = Mock(id=42, name="Sink", sku="SINK-1", price=Decimal("199.00"))
+        product.get_absolute_url.return_value = "/products/42-sink/"
+        product.images.all.return_value.order_by.return_value.first.return_value = primary
+
+        payload = product_payload(product, request=request)
+        self.assertEqual(payload["image"], "http://testserver/media/product-images/sink.jpg")
+        self.assertEqual(payload["price"], "199.00")
+        self.assertTrue(payload["price_display"])  # currency-formatted, non-empty
+
+    def test_product_payload_image_empty_when_no_images(self):
+        request = RequestFactory().get("/")
+        product = Mock(id=43, name="No image", sku="NI-1", price=Decimal("10.00"))
+        product.get_absolute_url.return_value = "/products/43-no-image/"
+        product.images.all.return_value.order_by.return_value.first.return_value = None
+
+        self.assertEqual(product_payload(product, request=request)["image"], "")
+
     def test_cart_payload_includes_product_business_identifiers_and_links(self):
         request = RequestFactory().get("/")
         product = Mock(id=42, name="Chemex", sku="CHEMEX-1")

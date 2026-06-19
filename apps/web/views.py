@@ -75,28 +75,6 @@ def server_error(request, *args, **kwargs):
     return render(request, "500.html", status=500)
 
 
-def product_list(request, category_id=None, category_slug=None):
-    """Product list page."""
-    products = Product.objects.filter(status__in=VISIBLE_STATUSES).prefetch_related("images").order_by("name")
-
-    category = None
-    if category_id:
-        try:
-            category = Category.objects.get(id=category_id)
-            products = products.filter(category=category)
-        except Category.DoesNotExist:
-            raise Http404("Category not found")
-
-    return render(
-        request,
-        "web/product_list.html",
-        {
-            "products": products,
-            "category": category,
-        },
-    )
-
-
 def _get_site_currency_for_labels() -> str:
     try:
         settings_obj = SiteSettings.get_settings()
@@ -1368,19 +1346,26 @@ def product_list(request, category_id=None, category_slug=None):
             )
             context["recommended_products"] = list(recommended_products)
 
-    if current_category:
-        track_category_view(request, current_category)
-    if search_query:
-        track_search(request, search_query)
+    # In-place HTMX updates (filter / sort / pagination) re-render the SAME category page without a
+    # real navigation. Tracking here would emit a fresh category_view / search on every filter or page
+    # change, flooding the agent's live feed with duplicate rows for one visit. Soft-nav and
+    # history-restore (back/forward) ARE real navigations — they return full HTML, so they still track.
+    is_inplace_htmx_update = bool(
+        request.headers.get("HX-Request")
+        and not request.headers.get("HX-Soft-Nav")
+        and not request.headers.get("HX-History-Restore-Request")
+    )
+
+    if not is_inplace_htmx_update:
+        if current_category:
+            track_category_view(request, current_category)
+        if search_query:
+            track_search(request, search_query)
 
     # Return partial template for in-place filter/pagination HTMX updates.
     # History-restore requests must return full HTML, otherwise back/forward can
     # restore only the fragment and lose page chrome/sidebar.
-    if (
-        request.headers.get("HX-Request")
-        and not request.headers.get("HX-Soft-Nav")
-        and not request.headers.get("HX-History-Restore-Request")
-    ):
+    if is_inplace_htmx_update:
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)

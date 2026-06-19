@@ -6,6 +6,9 @@
     const endpoint = "{{ live_assisted_sales.events_url|escapejs }}";
     // Server-decided consent regime from the visitor's IP/country: "eu" | "noneu" | "" (unknown).
     const consentRegion = "{{ live_assisted_sales.consent_region|escapejs }}";
+    // Whether the LAS chat launcher is loaded on this page. It sits fixed in the bottom-right corner,
+    // so when present the consent banner must reserve space on that side or its buttons hide behind it.
+    const widgetEnabled = {% if live_assisted_sales.widget_enabled %}true{% else %}false{% endif %};
     let sessionEnded = false;
 
     // ---- Identity ---------------------------------------------------------
@@ -305,6 +308,8 @@
       bar.setAttribute("role", "dialog");
       bar.setAttribute("aria-label", "Zgoda na pliki cookies i przetwarzanie danych");
       bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#111827;color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font:14px/1.45 system-ui,-apple-system,sans-serif;box-shadow:0 -4px 16px rgba(0,0,0,.25)";
+      // Clear the bottom-right chat launcher (20px margin + 60px bubble) so "Odrzuć" isn't hidden behind it.
+      if (widgetEnabled) bar.style.paddingRight = "96px";
       const text = document.createElement("span");
       text.style.cssText = "flex:1;min-width:240px;max-width:760px";
       text.textContent = "Ten sklep używa plików cookies oraz danych o Twoich działaniach, aby działać poprawnie, pomagać Ci na żywo i lepiej dobierać produkty.";
@@ -336,6 +341,36 @@
   })();
 </script>
 {% if live_assisted_sales.widget_enabled %}
+<script>
+  // LAS-7 buy-from-chat: the chat widget is a cross-origin iframe and can't touch this store's cart,
+  // so its "Add to cart" button asks the host (us) to do it via a `las:add-to-cart` DOM event. We claim
+  // the event (preventDefault), add the suggested product to our own cart, and acknowledge the result
+  // so the widget button can show success. If we can't (cart JS not ready / no id), we leave it
+  // unclaimed and the widget falls back to opening the product page.
+  (function () {
+    window.addEventListener("las:add-to-cart", function (event) {
+      var detail = event.detail || {};
+      var product = detail.product || {};
+      var respond = typeof detail.respond === "function" ? detail.respond : function () {};
+      var productId = String(product.id || "").trim();
+      if (!productId || !window.Cart || typeof window.Cart.addToCart !== "function") {
+        return; // unclaimed -> widget opens the product page instead
+      }
+      event.preventDefault();
+      try {
+        Promise.resolve(window.Cart.addToCart(productId, 1, "increment"))
+          .then(function (data) {
+            var ok = !!(data && data.success);
+            if (ok && typeof window.showToast === "function") {
+              window.showToast("Dodano do koszyka: " + (product.name || ""), "success");
+            }
+            respond({ ok: ok });
+          })
+          .catch(function () { respond({ ok: false }); });
+      } catch (error) { respond({ ok: false }); }
+    });
+  })();
+</script>
 <script async src="{{ live_assisted_sales.widget_script_url }}" data-las-site="{{ live_assisted_sales.site_public_key }}"{% if live_assisted_sales.widget_accent %} data-las-accent="{{ live_assisted_sales.widget_accent }}"{% endif %}{% if live_assisted_sales.widget_logo_url %} data-las-logo="{{ live_assisted_sales.widget_logo_url }}"{% endif %}></script>
 {% endif %}
 {% endif %}

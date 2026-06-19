@@ -87,6 +87,9 @@
   margin-top: -4px;
   padding-bottom: 12px;
   margin-bottom: -12px;
+  /* Containment context: the pre-init slide sizing below uses @container queries so it
+     matches Swiper's container-based breakpoints (initCategoryRecommendedSlider). */
+  container-type: inline-size;
 }
 
 .category-recommended-swiper {
@@ -131,16 +134,17 @@
 
 /* Pre-constrain slide widths AND gaps to match Swiper's final layout before init,
    preventing the "squished tiles" flash caused by the wrapper lacking gap before
-   Swiper JS runs. Widths and gaps mirror the breakpoints in initCategoryRecommendedSlider(). */
+   Swiper JS runs. Widths/gaps and the @container thresholds mirror the
+   container-based breakpoints in initCategoryRecommendedSlider(). */
 .category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
   gap: 8px;
 }
-@media (min-width: 640px) {
+@container (min-width: 540px) {
   .category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
     gap: 12px;
   }
 }
-@media (min-width: 768px) {
+@container (min-width: 780px) {
   .category-recommended-swiper:not(.swiper-initialized) .swiper-wrapper {
     gap: 16px;
   }
@@ -149,17 +153,17 @@
   width: calc(50% - 4px);
   flex-shrink: 0;
 }
-@media (min-width: 640px) {
+@container (min-width: 540px) {
   .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
     width: calc(50% - 6px);
   }
 }
-@media (min-width: 768px) {
+@container (min-width: 780px) {
   .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
     width: calc(33.333% - 10.667px);
   }
 }
-@media (min-width: 1024px) {
+@container (min-width: 1040px) {
   .category-recommended-swiper:not(.swiper-initialized) .swiper-slide {
     width: calc(25% - 12px);
   }
