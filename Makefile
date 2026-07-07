@@ -65,8 +65,11 @@ reset-db: ## Drop and recreate database, run migrations
 reset-db-seed: reset-db ## Reset database and seed with default data
 	@uv run manage.py seed ${ARGS}
 
-test: ## Run tests with pytest
+test: ## Run tests with pytest (already reuses the test DB via --reuse-db in pyproject)
 	@uv run pytest ${ARGS}
+
+test-parallel: ## Run tests across CPU cores (pytest -n auto; reuses DB); serial `make test` gives cleaner output for debugging
+	@uv run python -m pytest -n auto ${ARGS}
 
 init: setup-env start-bg migrations migrate npm-install-all ## Quickly get up and running (start containers and bootstrap DB)
 

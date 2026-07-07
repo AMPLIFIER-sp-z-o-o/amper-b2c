@@ -53,15 +53,22 @@ class LiveAssistedSalesClient:
 
 
 def run_settings_connection_test(settings_obj):
-    if not settings_obj.las_base_url or not settings_obj.store_api_key:
-        # Genuinely unconfigured — there is nothing to authenticate, so drop any stale key.
+    base_url = settings_obj.effective_base_url
+    if not base_url or not settings_obj.store_api_key:
+        # Genuinely unconfigured — there is nothing to authenticate, so drop any stale key. The base
+        # URL comes from the deployment (settings.LAS_BASE_URL); if it's missing that's an install
+        # problem for AMPER, not something the store owner can fix, so word each case for its owner.
         settings_obj.site_public_key = ""
-        settings_obj.record_test_result("failed", _("LAS base URL and store API key are required."))
-        return False, settings_obj.last_test_message
+        if not base_url:
+            message = _("The AMPER LAS platform address isn't set up on the server. Please contact AMPER support.")
+        else:
+            message = _("A store API key is required. Paste the key from your store's page in the AMPER LAS console.")
+        settings_obj.record_test_result("failed", message)
+        return False, message
 
     try:
         _status, data = LiveAssistedSalesClient(
-            settings_obj.las_base_url,
+            base_url,
             settings_obj.store_api_key,
             timeout=LiveAssistedSalesClient.CONNECTION_TEST_TIMEOUT,
         ).test_connection()
@@ -87,7 +94,22 @@ def run_settings_connection_test(settings_obj):
     except (URLError, TimeoutError, OSError, ValueError) as exc:
         # Network blip / timeout / cold start — keep the last-known-good public key so the
         # storefront widget stays visible instead of vanishing until the next manual test.
-        message = _("LAS connection failed: %(error)s") % {"error": exc}
+        # Translate the two common misconfigurations into plain language for a non-technical admin
+        # instead of surfacing raw socket jargon like "getaddrinfo failed" / errno numbers.
+        reason = str(getattr(exc, "reason", "") or exc).lower()
+        if any(token in reason for token in ("getaddrinfo", "name or service not known", "nodename nor servname", "11001")):
+            message = _(
+                "We couldn't find that server. Check the AMPER LAS server address — it's the AMPER "
+                "platform address (e.g. https://las.ampliapps.com, or http://localhost:8001 in "
+                "development), not your store's own website."
+            )
+        elif any(token in reason for token in ("refused", "10061", "connection reset", "10054")):
+            message = _(
+                "The AMPER LAS server address was reached but refused the connection. Confirm the "
+                "address and port are correct and that the LAS platform is running."
+            )
+        else:
+            message = _("LAS connection failed: %(error)s") % {"error": exc}
         settings_obj.record_test_result("failed", message)
         return False, message
 
@@ -105,7 +127,7 @@ def send_event(settings_obj, payload):
         return False
     try:
         LiveAssistedSalesClient(
-            settings_obj.las_base_url, settings_obj.store_api_key, timeout=EVENT_DISPATCH_TIMEOUT
+            settings_obj.effective_base_url, settings_obj.store_api_key, timeout=EVENT_DISPATCH_TIMEOUT
         ).send_event(payload)
         return True
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
@@ -130,7 +152,7 @@ def notify_disconnected(base_url, api_key):
 # Money/truth events whose loss would corrupt analytics or ML labels are delivered durably via the
 # transactional outbox; everything else (session lifecycle, views, searches, high-frequency
 # telemetry) keeps the cheap fire-and-forget fast path.
-DURABLE_EVENT_TYPES = {"cart_item_added", "cart_item_removed", "checkout_started", "order_completed"}
+DURABLE_EVENT_TYPES = {"add_to_cart", "remove_from_cart", "begin_checkout", "purchase"}
 OUTBOX_MAX_ATTEMPTS = 8
 
 

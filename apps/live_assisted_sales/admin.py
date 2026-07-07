@@ -6,7 +6,7 @@ from django.utils import formats, timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 from unfold.admin import ModelAdmin
-from unfold.widgets import UnfoldAdminPasswordInput, UnfoldAdminTextInputWidget
+from unfold.widgets import UnfoldAdminPasswordInput
 
 from .client import notify_disconnected, run_settings_connection_test
 from .models import LiveAssistedSalesSettings
@@ -15,15 +15,15 @@ from .models import LiveAssistedSalesSettings
 class LiveAssistedSalesSettingsForm(forms.ModelForm):
     class Meta:
         model = LiveAssistedSalesSettings
-        fields = "__all__"
+        # The owner only ever deals with ONE thing: the store API key. The server address is a
+        # deployment constant (settings.LAS_BASE_URL) and the public key is an internal artifact the
+        # connection fetches automatically — both are excluded so the form isn't cluttered with values
+        # the owner can neither know nor needs. Connection health is shown by the read-only panel.
+        exclude = ("las_base_url", "site_public_key")
+        help_texts = {
+            "store_api_key": _("The secret key shown on this store's page in the AMPER LAS console."),
+        }
         widgets = {
-            "las_base_url": UnfoldAdminTextInputWidget(
-                attrs={
-                    "autocomplete": "off",
-                    "data-lpignore": "true",
-                    "data-1p-ignore": "true",
-                }
-            ),
             "store_api_key": UnfoldAdminPasswordInput(
                 attrs={
                     "autocomplete": "new-password",
@@ -43,15 +43,13 @@ class LiveAssistedSalesSettingsAdmin(ModelAdmin):
     form = LiveAssistedSalesSettingsForm
     list_display = (
         "enabled",
-        "las_base_url",
-        "site_public_key",
         "last_test_status",
         "last_test_at",
         "test_connection_link",
     )
-    readonly_fields = ("connection_status_panel", "site_public_key")
+    readonly_fields = ("connection_status_panel",)
     fieldsets = (
-        (_("LAS integration"), {"fields": ("enabled", "las_base_url", "store_api_key", "site_public_key")}),
+        (_("LAS integration"), {"fields": ("enabled", "store_api_key")}),
         (_("Widget appearance"), {"fields": ("widget_accent_color",)}),
         (_("Connection health"), {"fields": ("connection_status_panel",)}),
     )
@@ -72,22 +70,43 @@ class LiveAssistedSalesSettingsAdmin(ModelAdmin):
         super().save_model(request, obj, form, change)
 
         previous_configured = bool(
-            previous and previous.enabled and previous.las_base_url and previous.store_api_key
+            previous and previous.enabled and previous.effective_base_url and previous.store_api_key
         )
         current_configured = obj.is_configured
+        # The base URL is no longer owner-editable, so a "connection change" is only the enable flag or
+        # the store API key changing.
         connection_changed = bool(
             previous
             and (
                 previous.enabled != obj.enabled
-                or previous.las_base_url != obj.las_base_url
                 or previous.store_api_key != obj.store_api_key
             )
         )
         if previous_configured and (not current_configured or connection_changed):
-            notify_disconnected(previous.las_base_url, previous.store_api_key)
+            notify_disconnected(previous.effective_base_url, previous.store_api_key)
         if current_configured:
             ok, message = run_settings_connection_test(obj)
             messages.success(request, message) if ok else messages.error(request, message)
+
+    def delete_model(self, request, obj):
+        # Deleting the settings tears down the LAS integration, so tell the backend to drop this
+        # store's verified/live status — otherwise the stores list keeps showing "Live connected"
+        # forever (nothing else ever un-verifies it). save_model already fires this on unlink/disable;
+        # delete is the remaining path that left the backend stale.
+        self._notify_disconnect_on_teardown(obj)
+        super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        # Bulk delete from the changelist bypasses delete_model, so notify per row before removal.
+        for obj in queryset:
+            self._notify_disconnect_on_teardown(obj)
+        super().delete_queryset(request, queryset)
+
+    def _notify_disconnect_on_teardown(self, obj):
+        # Notify whenever we still hold a base URL + API key, regardless of the enabled flag: the
+        # backend may have been verified before the store was disabled, and disconnect is idempotent.
+        if obj and obj.effective_base_url and obj.store_api_key:
+            notify_disconnected(obj.effective_base_url, obj.store_api_key)
 
     def test_connection_link(self, obj):
         if not obj or not obj.pk:

@@ -86,6 +86,17 @@
       return undefined;
     }
 
+    // Prior-consent gate (GDPR/ePrivacy): in the EU/EEA/UK NOTHING may be collected or sent before the
+    // shopper explicitly accepts; elsewhere it is opt-out (send unless they declined). GPC is always
+    // honoured. This actually GATES sending — forwarding the consent flag alone is not enough, because
+    // the personal/behavioural data (and the server-attached IP) would already have left the device.
+    function trackingAllowed() {
+      if (navigator.globalPrivacyControl === true) return false;
+      const consent = consentValue();
+      if (isEuRegion()) return consent === true;  // opt-in: explicit yes required
+      return consent !== false;                   // opt-out markets: send unless explicitly declined
+    }
+
     function envelope(event) {
       const base = {
         event_id: uuid(),
@@ -128,6 +139,7 @@
     }
 
     function enqueue(event) {
+      if (!trackingAllowed()) return;  // EU: drop everything until consent is granted
       queue.push(envelope(event));
       if (queue.length >= MAX_BATCH) flush(false);
     }
@@ -135,6 +147,7 @@
     // Immediate, on its own beacon — used for session_start so the agent console sees the arrival
     // and the store gets verified without waiting for the flush timer.
     function sendNow(event) {
+      if (!trackingAllowed()) return;
       postBatch([envelope(event)], false);
     }
 
@@ -143,27 +156,27 @@
       return { title: document.title || "", path: window.location.pathname };
     }
 
-    // Generic click capture (delegated): links, buttons, role=button, and elements carrying a
-    // data-product-id. Throttled so a double-click does not double-send.
+    // GA4 select_item: the shopper clicked a product tile IN A LIST (a card carrying data-product-card).
+    // Scoped to list tiles only — a click on a product-detail control that merely carries a
+    // data-product-id (e.g. "Add to cart", "Add to favourites") is not a list selection, and a bare
+    // generic "click on anything" is non-standard noise that was dropped. Throttled against double-send.
     let lastClickAt = 0;
+    let lastSelectId = "";
     function onClick(evt) {
+      const card = evt.target && evt.target.closest ? evt.target.closest("[data-product-card]") : null;
+      if (!card) return;
+      const productId = card.getAttribute ? (card.getAttribute("data-product-id") || "") : "";
+      if (!productId) return;
       const now = Date.now();
-      if (now - lastClickAt < 250) return;
+      // De-dupe: one tile click can bubble through nested targets; collapse repeats of the same product.
+      if (now - lastClickAt < 400 && productId === lastSelectId) return;
       lastClickAt = now;
-      const el = evt.target && evt.target.closest
-        ? evt.target.closest("a, button, [role='button'], [data-product-id]")
-        : null;
-      if (!el) return;
-      const text = (el.textContent || "").trim().slice(0, 80);
+      lastSelectId = productId;
+      const name = (card.getAttribute && card.getAttribute("data-product-name")) || "";
       enqueue({
-        event_type: "click",
+        event_type: "select_item",
         page: pageContext(),
-        metadata: {
-          element: (el.tagName || "").toLowerCase(),
-          text: text,
-          href: el.getAttribute ? (el.getAttribute("href") || "") : "",
-          product_id: el.getAttribute ? (el.getAttribute("data-product-id") || "") : "",
-        },
+        product: { id: productId, name: name },
       });
     }
 
@@ -212,40 +225,6 @@
       });
     }
 
-    // Cursor hover with dwell over buy/price zones — fires once per element, capped per page, so the
-    // already-defined cursor_hover type finally carries signal without flooding the pipeline.
-    let hoverCount = 0;
-    const HOVER_CAP = 12;
-    const HOVER_DWELL_MS = 900;
-    function isBuyZone(el) {
-      if (!el || !el.matches) return false;
-      return el.matches(
-        "button, [data-product-id], [class*='price'], [class*='add-to-cart'], [class*='addToCart'], [data-las-hover]"
-      );
-    }
-    function onMouseOver(evt) {
-      if (hoverCount >= HOVER_CAP) return;
-      const el = evt.target && evt.target.closest
-        ? evt.target.closest("button, [data-product-id], [class*='price'], [class*='add-to-cart'], [class*='addToCart'], [data-las-hover]")
-        : null;
-      if (!el || el.__lasHovered) return;
-      const startedAt = Date.now();
-      const timer = setTimeout(function () {
-        if (!document.contains(el)) return;
-        el.__lasHovered = true;
-        hoverCount += 1;
-        enqueue({
-          event_type: "cursor_hover",
-          page: pageContext(),
-          cursor: {
-            target: (el.getAttribute && el.getAttribute("data-product-id")) || (el.textContent || "").trim().slice(0, 60),
-            dwell_ms: Date.now() - startedAt,
-          },
-        });
-      }, HOVER_DWELL_MS);
-      el.addEventListener("mouseleave", function () { clearTimeout(timer); }, { once: true });
-    }
-
     // ---- Lifecycle --------------------------------------------------------
     function sendInitialEvents() {
       visitorId();
@@ -272,7 +251,6 @@
     ["mousemove", "keydown", "scroll", "click", "touchstart"].forEach(function (type) {
       window.addEventListener(type, markActive, { passive: true });
     });
-    document.addEventListener("mouseover", onMouseOver, true);
     setInterval(heartbeat, PING_INTERVAL_MS);
     setInterval(function () { flush(false); }, FLUSH_INTERVAL_MS);
     document.addEventListener("visibilitychange", function () {
@@ -317,6 +295,9 @@
       function choose(value) {
         persistConsent(value);
         if (bar.parentNode) bar.parentNode.removeChild(bar);
+        // On acceptance, backfill the session_start that was suppressed before consent so the agent
+        // console still sees this visit (subsequent telemetry now flows through the gate normally).
+        if (value) sendInitialEvents();
       }
       const accept = document.createElement("button");
       accept.type = "button";
@@ -348,6 +329,13 @@
   // so the widget button can show success. If we can't (cart JS not ready / no id), we leave it
   // unclaimed and the widget falls back to opening the product page.
   (function () {
+    // product.name arrives from the cross-origin chat widget and is later written via innerHTML in
+    // showToast — escape it here so a crafted/compromised product name can't inject script (DOM XSS).
+    function escapeHtml(value) {
+      return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
     window.addEventListener("las:add-to-cart", function (event) {
       var detail = event.detail || {};
       var product = detail.product || {};
@@ -362,7 +350,7 @@
           .then(function (data) {
             var ok = !!(data && data.success);
             if (ok && typeof window.showToast === "function") {
-              window.showToast("Dodano do koszyka: " + (product.name || ""), "success");
+              window.showToast("Dodano do koszyka: " + escapeHtml(product.name || ""), "success");
             }
             respond({ ok: ok });
           })

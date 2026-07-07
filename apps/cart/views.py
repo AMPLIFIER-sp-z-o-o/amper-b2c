@@ -14,7 +14,12 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.catalog.models import Product, ProductStatus
 from apps.favourites.models import WishList, WishListItem
-from apps.live_assisted_sales.events import track_cart_item_added, track_cart_item_removed
+from apps.live_assisted_sales.events import (
+    track_add_to_cart,
+    track_begin_checkout,
+    track_remove_from_cart,
+    track_view_cart,
+)
 from apps.orders.forms import CheckoutDetailsForm
 from apps.orders.models import Coupon, CouponKind
 from apps.plugins.engine.registry import registry
@@ -196,6 +201,9 @@ def cart_page(request):
     shipping_addresses = []
     if request.user.is_authenticated:
         shipping_addresses = request.user.shipping_addresses.all()
+
+    # GA4 view_cart — the shopper opened the cart page with items in it.
+    track_view_cart(request, cart)
 
     return render(
         request,
@@ -515,6 +523,18 @@ def clear_cart(request):
     if not cart:
         return _clear_cart_id(request, response=response)
 
+    # Emptying the whole cart is a high-value signal LAS must see (a warm/hot lead dropping their
+    # basket). Per-item removal already emits cart_item_removed, but this "clear cart" path used to
+    # delete the cart silently — so LAS kept showing the last non-empty basket and a stale intent
+    # score. Drop the lines, refresh totals to zero, then emit a cart_item_removed carrying the now
+    # empty cart so the agent console (and intent score) learn the basket is gone. Capture a
+    # representative product first so the event isn't productless.
+    first_line = cart.lines.select_related("product").first()
+    removed_product = first_line.product if first_line else None
+    cart.lines.all().delete()
+    refresh_cart_totals_from_db(cart)
+    track_remove_from_cart(request, cart, removed_product)
+
     cart.delete()
     messages.success(request, _("Cart cleared."))
     return _clear_cart_id(request, response=response)
@@ -734,7 +754,7 @@ def add_to_cart(request):
     )
 
     response.set_cookie("cart_id", cart.id, max_age=60 * 60 * 24 * 10)
-    track_cart_item_added(request, cart, product)
+    track_add_to_cart(request, cart, product)
     return response
 
 
@@ -803,7 +823,7 @@ def remove_from_cart(request):
             "delivery_cost": delivery_cost,
         }
     )
-    track_cart_item_removed(request, cart, removed_product)
+    track_remove_from_cart(request, cart, removed_product)
     return response
 
 
@@ -878,6 +898,9 @@ def checkout_page(request):
     stock_issues = _annotate_lines_with_stock_issues(lines)
     if stock_issues:
         return redirect("cart:cart_page")
+
+    # GA4 begin_checkout — the shopper entered the checkout process with a valid basket.
+    track_begin_checkout(request, cart)
 
     state = get_checkout_state(request)
     if state.expired:

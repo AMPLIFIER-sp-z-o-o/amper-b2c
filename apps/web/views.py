@@ -30,7 +30,7 @@ from apps.homepage.models import (
     HomepageSectionProduct,
     HomepageSectionType,
 )
-from apps.live_assisted_sales.events import track_category_view, track_search
+from apps.live_assisted_sales.events import track_search, track_view_item_list
 from apps.support.draft_utils import (
     apply_draft_to_existing_instance,
     apply_draft_to_instance,
@@ -761,16 +761,22 @@ def search_results(request):
         "highlighted_product_id": int(highlight_product_id) if highlight_product_id.isdigit() else None,
         "search_category": search_category,
     }
+    # In-place HTMX filter/sort/pagination updates re-render the same search results without a real
+    # navigation, so they must not re-fire funnel events (they'd flood the live feed).
+    is_inplace_htmx_update = bool(
+        request.headers.get("HX-Request")
+        and not request.headers.get("HX-Soft-Nav")
+        and not request.headers.get("HX-History-Restore-Request")
+    )
     track_search(request, search_query)
+    if not is_inplace_htmx_update and search_query:
+        # GA4 view_item_list — the search results are a product list.
+        track_view_item_list(request, list_name=f"Search: {search_query}")
 
     # Return partial template for in-place filter/pagination HTMX updates.
     # History-restore requests must return full HTML, otherwise back/forward can
     # restore only the fragment and lose page chrome/sidebar.
-    if (
-        request.headers.get("HX-Request")
-        and not request.headers.get("HX-Soft-Nav")
-        and not request.headers.get("HX-History-Restore-Request")
-    ):
+    if is_inplace_htmx_update:
         return render(request, "web/product_list_partial.html", context)
 
     return render(request, "web/product_list.html", context)
@@ -1357,10 +1363,15 @@ def product_list(request, category_id=None, category_slug=None):
     )
 
     if not is_inplace_htmx_update:
-        if current_category:
-            track_category_view(request, current_category)
+        # GA4 view_item_list fires whenever a product list is shown: a category page, the all-products
+        # listing, or search results. The internal `search` signal still fires on a query.
         if search_query:
             track_search(request, search_query)
+            track_view_item_list(request, list_name=f"Search: {search_query}")
+        elif current_category:
+            track_view_item_list(request, current_category)
+        else:
+            track_view_item_list(request, list_name="Products")
 
     # Return partial template for in-place filter/pagination HTMX updates.
     # History-restore requests must return full HTML, otherwise back/forward can

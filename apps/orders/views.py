@@ -25,8 +25,9 @@ from apps.cart.services import (
 from apps.catalog.models import Product, ProductStatus, ProductStock, Warehouse
 from apps.live_assisted_sales.events import (
     session_id_from_request,
-    track_checkout_started,
-    track_order_completed,
+    track_add_payment_info,
+    track_add_shipping_info,
+    track_purchase,
     visitor_id_from_request,
 )
 from apps.plugins.engine.registry import registry
@@ -169,9 +170,12 @@ def place_order(request: HttpRequest) -> HttpResponse:
     # Final safety: re-calc totals right before persisting the order.
     cart.recalculate()
 
-    # Funnel: checkout has begun for a valid cart. Emitted before the DB write; delivery is off the
-    # request path so it never blocks the order.
-    track_checkout_started(request, cart, visitor_id=las_visitor_id, session_id=las_session_id)
+    # Funnel: the shopper is submitting the order with a confirmed delivery + payment method, so the
+    # GA4 add_shipping_info / add_payment_info steps fire here (begin_checkout already fired when the
+    # checkout page opened). Emitted before the DB write; delivery is off the request path so it never
+    # blocks the order.
+    track_add_shipping_info(request, cart, visitor_id=las_visitor_id, session_id=las_session_id)
+    track_add_payment_info(request, cart, visitor_id=las_visitor_id, session_id=las_session_id)
 
     tracking_token = Order.generate_tracking_token()
 
@@ -402,7 +406,7 @@ def place_order(request: HttpRequest) -> HttpResponse:
         # Conversion event (THE label for LAS-7). Fires only after this transaction commits, so a
         # rolled-back order never emits a purchase. Delivery is async, so it never blocks checkout.
         transaction.on_commit(
-            lambda: track_order_completed(
+            lambda: track_purchase(
                 request, order, visitor_id=las_visitor_id, session_id=las_session_id
             )
         )

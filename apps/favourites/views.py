@@ -10,6 +10,7 @@ from django.utils.translation import gettext as _
 from django.views.decorators.http import require_GET, require_POST
 
 from apps.catalog.models import Product, ProductAttributeValue, ProductImage
+from apps.live_assisted_sales.events import track_add_to_wishlist
 
 from .models import WishList, WishListItem
 
@@ -402,6 +403,7 @@ def add_to_wishlist(request: HttpRequest) -> HttpResponse:
             product=product,
             price_when_added=product.price,
         )
+        track_add_to_wishlist(request, product)  # GA4 add_to_wishlist
     except IntegrityError:
         # Product already in wishlist
         return JsonResponse(
@@ -728,6 +730,7 @@ def toggle_favorite(request: HttpRequest) -> HttpResponse:
             product=product,
             price_when_added=product.price,
         )
+        track_add_to_wishlist(request, product)  # GA4 add_to_wishlist
         # Get updated wishlist stats
         item_count = wishlist.items.count()
         total_value = float(wishlist.total_value)

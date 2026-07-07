@@ -475,6 +475,11 @@ SOCIALACCOUNT_FORMS = {
 }
 
 FRONTEND_ADDRESS = env("FRONTEND_ADDRESS", default="http://localhost:5174")
+
+# Address of the AMPER Live Assisted Sales platform this storefront reports to. It's a deployment
+# constant (the same for every storefront on a given install), NOT per-store data — so it lives here
+# and is never shown to the store owner, who only pastes their store API key. Set per environment.
+LAS_BASE_URL = env("LAS_BASE_URL", default="http://localhost:8001")
 USE_HEADLESS_URLS = env.bool("USE_HEADLESS_URLS", default=False)
 if USE_HEADLESS_URLS:
     # These URLs will use the React front end instead of the Django views

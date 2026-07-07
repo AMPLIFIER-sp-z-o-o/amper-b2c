@@ -127,7 +127,7 @@ def _widget_logo_url(request):
 def live_assisted_sales(request):
     settings_obj = LiveAssistedSalesSettings.get_solo()
     enabled = settings_obj.is_configured
-    las_base_url = (settings_obj.las_base_url or "").rstrip("/")
+    las_base_url = settings_obj.effective_base_url.rstrip("/")
     return {
         "live_assisted_sales": {
             "enabled": enabled,

@@ -5,11 +5,11 @@ import time
 from decimal import Decimal
 from io import BytesIO
 from unittest.mock import Mock, patch
-from urllib.error import HTTPError
+from urllib.error import HTTPError, URLError
 
 from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
-from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from apps.web.models import SiteSettings
 
@@ -24,8 +24,8 @@ from .events import (
     order_cart_payload,
     order_metadata,
     product_payload,
-    track_checkout_started,
-    track_order_completed,
+    track_begin_checkout,
+    track_purchase,
 )
 from .models import LiveAssistedSalesSettings
 
@@ -34,12 +34,121 @@ class LiveAssistedSalesSettingsAdminFormTests(SimpleTestCase):
     def test_admin_settings_form_prevents_credential_autofill(self):
         form = LiveAssistedSalesSettingsForm()
 
-        self.assertEqual(form.fields["las_base_url"].widget.attrs["autocomplete"], "off")
-        self.assertEqual(form.fields["las_base_url"].widget.attrs["data-lpignore"], "true")
-        self.assertEqual(form.fields["las_base_url"].widget.attrs["data-1p-ignore"], "true")
         self.assertEqual(form.fields["store_api_key"].widget.attrs["autocomplete"], "new-password")
         self.assertEqual(form.fields["store_api_key"].widget.attrs["data-lpignore"], "true")
         self.assertEqual(form.fields["store_api_key"].widget.attrs["data-1p-ignore"], "true")
+
+    def test_admin_form_shows_only_owner_relevant_fields(self):
+        # The owner deals only with the API key (+ optional accent colour / enable toggle). The server
+        # address (deployment constant) and the auto-fetched public key are internal, so neither
+        # appears on the form — the store API key does.
+        fields = LiveAssistedSalesSettingsForm().fields
+        self.assertNotIn("las_base_url", fields)
+        self.assertNotIn("site_public_key", fields)
+        self.assertIn("store_api_key", fields)
+
+    def test_las_base_url_requires_https_except_localhost(self):
+        from django.core.exceptions import ValidationError
+
+        # http to a public host would send the Bearer key + PII in cleartext -> rejected.
+        with self.assertRaises(ValidationError):
+            LiveAssistedSalesSettings(las_base_url="http://las.example.com", store_api_key="k").clean()
+        # https public host and http localhost (dev) are both allowed.
+        LiveAssistedSalesSettings(las_base_url="https://las.example.com").clean()
+        LiveAssistedSalesSettings(las_base_url="http://localhost:8001").clean()
+
+
+class LiveAssistedSalesEffectiveBaseUrlTests(SimpleTestCase):
+    @override_settings(LAS_BASE_URL="https://las.ampliapps.com")
+    def test_effective_base_url_comes_from_deployment_setting(self):
+        # Owner never enters a URL; it comes from the deployment setting, and the store still counts
+        # as configured with just the API key.
+        obj = LiveAssistedSalesSettings(enabled=True, store_api_key="k")
+        self.assertEqual(obj.effective_base_url, "https://las.ampliapps.com")
+        self.assertTrue(obj.is_configured)
+
+    @override_settings(LAS_BASE_URL="")
+    def test_effective_base_url_falls_back_to_legacy_field(self):
+        obj = LiveAssistedSalesSettings(enabled=True, store_api_key="k", las_base_url="http://localhost:8001")
+        self.assertEqual(obj.effective_base_url, "http://localhost:8001")
+
+    @override_settings(LAS_BASE_URL="")
+    def test_not_configured_without_any_base_url(self):
+        obj = LiveAssistedSalesSettings(enabled=True, store_api_key="k")
+        self.assertFalse(obj.is_configured)
+
+
+class LiveAssistedSalesGetSoloTests(TestCase):
+    def setUp(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+
+    def test_get_solo_defaults_enabled_so_only_the_key_is_needed(self):
+        # A fresh singleton is created already enabled, so the owner's single required step is pasting
+        # the API key (still inert until a key is present, so this sends nothing on its own).
+        obj = LiveAssistedSalesSettings.get_solo()
+        self.assertTrue(obj.enabled)
+        self.assertFalse(obj.is_configured)  # no key yet -> nothing happens
+
+
+class LiveAssistedSalesSettingsAdminDeleteTests(TestCase):
+    """Deleting the settings must tell LAS to drop this store's live/verified status, otherwise the
+    backend stores list keeps showing "Live connected" forever (nothing else ever un-verifies it)."""
+
+    def setUp(self):
+        from django.contrib.admin.sites import AdminSite
+
+        from .admin import LiveAssistedSalesSettingsAdmin
+
+        LiveAssistedSalesSettings.objects.all().delete()
+        self.admin = LiveAssistedSalesSettingsAdmin(LiveAssistedSalesSettings, AdminSite())
+        self.request = RequestFactory().post("/admin/")
+
+    @patch("apps.live_assisted_sales.admin.notify_disconnected")
+    def test_delete_model_notifies_las_then_removes_row(self, notify_mock):
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+        )
+
+        self.admin.delete_model(self.request, settings_obj)
+
+        notify_mock.assert_called_once_with("http://localhost:8001", "site_sk_secret")
+        self.assertFalse(LiveAssistedSalesSettings.objects.exists())
+
+    @patch("apps.live_assisted_sales.admin.notify_disconnected")
+    def test_delete_model_notifies_even_when_disabled(self, notify_mock):
+        # A store disabled but still holding credentials may have been verified before it was turned
+        # off; disconnect is idempotent, so notify whenever we still hold a base URL + key.
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=False,
+            las_base_url="http://localhost:8001",
+            store_api_key="site_sk_secret",
+        )
+
+        self.admin.delete_model(self.request, settings_obj)
+
+        notify_mock.assert_called_once_with("http://localhost:8001", "site_sk_secret")
+
+    @patch("apps.live_assisted_sales.admin.notify_disconnected")
+    def test_delete_model_skips_notify_when_never_configured(self, notify_mock):
+        settings_obj = LiveAssistedSalesSettings.objects.create(enabled=False)
+
+        self.admin.delete_model(self.request, settings_obj)
+
+        notify_mock.assert_not_called()
+        self.assertFalse(LiveAssistedSalesSettings.objects.exists())
+
+    @patch("apps.live_assisted_sales.admin.notify_disconnected")
+    def test_bulk_delete_notifies_per_configured_row(self, notify_mock):
+        LiveAssistedSalesSettings.objects.create(
+            enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+
+        self.admin.delete_queryset(self.request, LiveAssistedSalesSettings.objects.all())
+
+        notify_mock.assert_called_once_with("http://localhost:8001", "site_sk_secret")
+        self.assertFalse(LiveAssistedSalesSettings.objects.exists())
 
 
 class LiveAssistedSalesSettingsTests(TestCase):
@@ -310,6 +419,35 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertIn("LAS connection failed", message)
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
+    def test_dns_failure_returns_plain_language_not_socket_jargon(self, test_connection_mock):
+        # The #1 setup mistake is pasting the store's OWN website into the base URL, which fails DNS
+        # with "getaddrinfo failed". The admin must see guidance, not raw socket errno jargon.
+        test_connection_mock.side_effect = URLError("[Errno 11001] getaddrinfo failed")
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True, las_base_url="https://demo-sklep.example.com", store_api_key="site_sk_secret"
+        )
+
+        ok, message = run_settings_connection_test(settings_obj)
+
+        self.assertFalse(ok)
+        self.assertNotIn("getaddrinfo", message)
+        self.assertNotIn("11001", message)
+        self.assertIn("server address", message.lower())
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
+    def test_connection_refused_returns_plain_language(self, test_connection_mock):
+        test_connection_mock.side_effect = URLError("[Errno 10061] Connection refused")
+        settings_obj = LiveAssistedSalesSettings.objects.create(
+            enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+
+        ok, message = run_settings_connection_test(settings_obj)
+
+        self.assertFalse(ok)
+        self.assertNotIn("10061", message)
+        self.assertIn("refused", message.lower())
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
     def test_connection_rejected_key_uses_las_error_detail_without_exposing_key(self, test_connection_mock):
         test_connection_mock.side_effect = HTTPError(
             url="http://localhost:8001/api/ingest/store-events/test/",
@@ -518,7 +656,7 @@ class BrowserEventEndpointTests(TestCase):
 
         response = self.client.post(
             "/live-assisted-sales/events/",
-            data=json.dumps({"event_type": "product_view", "product": {"id": "p1", "name": "Chemex"}}),
+            data=json.dumps({"event_type": "view_item", "product": {"id": "p1", "name": "Chemex"}}),
             content_type="application/json",
         )
 
@@ -629,9 +767,9 @@ class EventBuilderTests(TestCase):
         request.session = Mock()
         request.session.session_key = "session-1"
 
-        payload = build_event_payload(request, "product_view", page={"title": "Demo"})
+        payload = build_event_payload(request, "view_item", page={"title": "Demo"})
 
-        self.assertEqual(payload["event_type"], "product_view")
+        self.assertEqual(payload["event_type"], "view_item")
         self.assertEqual(payload["session_id"], "session-1")
         self.assertEqual(payload["page"]["title"], "Demo")
         self.assertNotIn("store_api_key", payload)
@@ -647,9 +785,48 @@ class EventBuilderTests(TestCase):
         request.session = Mock()
         request.session.session_key = "session-1"
 
-        payload = build_event_payload(request, "product_view")
+        payload = build_event_payload(request, "view_item")
 
         self.assertEqual(payload["metadata"]["client_ip"], "198.51.100.7")
+
+    def _authed_request(self, **meta):
+        user = get_user_model().objects.create_user(
+            username="pii@example.com", email="pii@example.com", password="x"
+        )
+        request = RequestFactory().get("/products/demo/", REMOTE_ADDR="198.51.100.9", **meta)
+        request.session = Mock()
+        request.session.session_key = "session-pii"
+        request.user = user
+        return request
+
+    def test_eu_visitor_without_consent_has_pii_withheld(self):
+        # EU regime (CF country header) + no consent cookie -> raw email + IP must NOT be forwarded.
+        request = self._authed_request(HTTP_CF_IPCOUNTRY="PL")
+        payload = build_event_payload(request, "view_item")
+        user_meta = payload["metadata"]["user"]
+        self.assertTrue(user_meta["authenticated"])
+        self.assertNotIn("email", user_meta)
+        self.assertNotIn("client_ip", payload["metadata"])
+        self.assertNotIn("pii@example.com", str(payload))
+
+    def test_eu_visitor_with_consent_forwards_pii(self):
+        request = self._authed_request(HTTP_CF_IPCOUNTRY="PL", HTTP_COOKIE="las_consent=true")
+        payload = build_event_payload(request, "view_item")
+        self.assertEqual(payload["metadata"]["user"]["email"], "pii@example.com")
+        self.assertEqual(payload["metadata"]["client_ip"], "198.51.100.9")
+
+    def test_explicit_opt_out_withholds_pii_anywhere(self):
+        # consent=false (US opt-out) -> withhold email + IP even outside the EU.
+        request = self._authed_request(HTTP_CF_IPCOUNTRY="US", HTTP_COOKIE="las_consent=false")
+        payload = build_event_payload(request, "view_item")
+        self.assertNotIn("email", payload["metadata"]["user"])
+        self.assertNotIn("client_ip", payload["metadata"])
+
+    def test_non_eu_default_forwards_pii(self):
+        # Non-EU, no explicit choice -> opt-out model, PII allowed (unchanged behaviour).
+        request = self._authed_request(HTTP_CF_IPCOUNTRY="US")
+        payload = build_event_payload(request, "view_item")
+        self.assertEqual(payload["metadata"]["user"]["email"], "pii@example.com")
 
     def test_build_event_payload_uses_tracker_cookies_for_anonymous_identity(self):
         request = RequestFactory().get(
@@ -659,7 +836,7 @@ class EventBuilderTests(TestCase):
         request.session = Mock()
         request.session.session_key = None
 
-        payload = build_event_payload(request, "product_view")
+        payload = build_event_payload(request, "view_item")
 
         self.assertEqual(payload["visitor_id"], "visitor-cookie")
         self.assertEqual(payload["session_id"], "session-cookie")
@@ -675,7 +852,7 @@ class EventBuilderTests(TestCase):
         self.assertEqual(start["metadata"]["widget"]["logo_url"], "http://shop.example.test/media/logo.png")
 
         # The logo is sent once per session, not on every event.
-        view = build_event_payload(request, "product_view")
+        view = build_event_payload(request, "view_item")
         self.assertNotIn("widget", view["metadata"])
 
     def test_build_event_payload_does_not_trust_browser_user_metadata(self):
@@ -685,7 +862,7 @@ class EventBuilderTests(TestCase):
 
         payload = build_event_payload(
             request,
-            "product_view",
+            "view_item",
             metadata={"user": {"status": "authenticated", "display": "forged@example.com"}},
         )
 
@@ -711,7 +888,7 @@ class EventBuilderTests(TestCase):
         request.session = Mock()
         request.session.session_key = None
 
-        payload = build_event_payload(request, "product_view")
+        payload = build_event_payload(request, "view_item")
 
         request.session.save.assert_not_called()
         self.assertTrue(payload["visitor_id"].startswith("visitor-"))
@@ -831,16 +1008,16 @@ class ConversionEventTests(TestCase):
         self.assertEqual(meta["currency"], "PLN")
 
     @patch("apps.live_assisted_sales.events.enqueue_event")
-    def test_track_order_completed_attributes_to_explicit_session(self, enqueue_mock):
+    def test_track_purchase_attributes_to_explicit_session(self, enqueue_mock):
         enqueue_mock.return_value = True
 
-        ok = track_order_completed(
+        ok = track_purchase(
             self.rf.get("/orders/summary/"), self._mock_order(), visitor_id="vis-1", session_id="ses-1"
         )
 
         self.assertTrue(ok)
         payload = enqueue_mock.call_args.args[1]
-        self.assertEqual(payload["event_type"], "order_completed")
+        self.assertEqual(payload["event_type"], "purchase")
         # Attribution carried explicitly, not derived from the (cookie-less) request.
         self.assertEqual(payload["visitor_id"], "vis-1")
         self.assertEqual(payload["session_id"], "ses-1")
@@ -849,7 +1026,7 @@ class ConversionEventTests(TestCase):
         self.assertEqual(payload["metadata"]["order"]["total"], "110.00")
 
     @patch("apps.live_assisted_sales.events.enqueue_event")
-    def test_track_checkout_started_carries_cart_snapshot(self, enqueue_mock):
+    def test_track_begin_checkout_carries_cart_snapshot(self, enqueue_mock):
         enqueue_mock.return_value = True
         product = Mock(id=42, name="Chemex", sku="CHEMEX-1")
         product.get_absolute_url.return_value = "/products/42-chemex/"
@@ -858,19 +1035,19 @@ class ConversionEventTests(TestCase):
         cart = Mock(total="110.00")
         cart.lines.select_related.return_value.all.return_value = [line]
 
-        ok = track_checkout_started(self.rf.get("/cart/"), cart, visitor_id="vis-1", session_id="ses-1")
+        ok = track_begin_checkout(self.rf.get("/cart/"), cart, visitor_id="vis-1", session_id="ses-1")
 
         self.assertTrue(ok)
         payload = enqueue_mock.call_args.args[1]
-        self.assertEqual(payload["event_type"], "checkout_started")
+        self.assertEqual(payload["event_type"], "begin_checkout")
         self.assertEqual(payload["visitor_id"], "vis-1")
         self.assertEqual(payload["cart"]["items_count"], 2)
 
     def test_conversion_event_types_are_supported(self):
         from .events import SUPPORTED_EVENT_TYPES
 
-        self.assertIn("checkout_started", SUPPORTED_EVENT_TYPES)
-        self.assertIn("order_completed", SUPPORTED_EVENT_TYPES)
+        self.assertIn("begin_checkout", SUPPORTED_EVENT_TYPES)
+        self.assertIn("purchase", SUPPORTED_EVENT_TYPES)
 
 
 class TelemetryEventTests(TestCase):
@@ -886,8 +1063,11 @@ class TelemetryEventTests(TestCase):
     def test_telemetry_event_types_are_supported(self):
         from .events import SUPPORTED_EVENT_TYPES
 
-        for t in ("click", "scroll_depth", "page_ping", "cursor_hover"):
+        for t in ("scroll_depth", "page_ping"):
             self.assertIn(t, SUPPORTED_EVENT_TYPES)
+        # Generic click + cursor-hover were dropped from the taxonomy as non-standard noise.
+        for t in ("click", "cursor_hover"):
+            self.assertNotIn(t, SUPPORTED_EVENT_TYPES)
 
     @patch("apps.live_assisted_sales.views.enqueue_event")
     def test_browser_endpoint_accepts_telemetry_batch(self, enqueue_mock):
@@ -898,10 +1078,10 @@ class TelemetryEventTests(TestCase):
             data=json.dumps(
                 {
                     "events": [
-                        {"event_type": "click", "metadata": {"element": "button", "text": "Add to cart"}},
+                        {"event_type": "select_item", "product": {"id": "p1", "name": "Chemex"}},
                         {"event_type": "scroll_depth", "metadata": {"pct": 50}},
                         {"event_type": "page_ping", "metadata": {"engaged_ms": 15000}},
-                        {"event_type": "cursor_hover", "cursor": {"target": "price", "dwell_ms": 1000}},
+                        {"event_type": "view_cart", "cart": {"items_count": 1}},
                     ]
                 }
             ),
@@ -939,8 +1119,11 @@ class TelemetryEventTests(TestCase):
             },
         )
 
-        for token in ('"click"', '"scroll_depth"', '"page_ping"', '"cursor_hover"', "engaged_ms", "sendBeacon"):
+        for token in ('"select_item"', '"scroll_depth"', '"page_ping"', "engaged_ms", "sendBeacon"):
             self.assertIn(token, html)
+        # Dropped from the tracker: generic click + cursor-hover emission.
+        for token in ('"cursor_hover"', "onMouseOver"):
+            self.assertNotIn(token, html)
 
 
 class OutboxTests(TestCase):
@@ -958,10 +1141,10 @@ class OutboxTests(TestCase):
         from apps.live_assisted_sales.client import enqueue_event
         from apps.live_assisted_sales.models import OutboxEvent
 
-        ok = enqueue_event(LiveAssistedSalesSettings.get_solo(), {"event_type": "order_completed", "event_id": "e1"})
+        ok = enqueue_event(LiveAssistedSalesSettings.get_solo(), {"event_type": "purchase", "event_id": "e1"})
 
         self.assertTrue(ok)
-        self.assertEqual(OutboxEvent.objects.filter(event_type="order_completed", status="pending").count(), 1)
+        self.assertEqual(OutboxEvent.objects.filter(event_type="purchase", status="pending").count(), 1)
         executor.submit.assert_called()
 
     @patch("apps.live_assisted_sales.client._delivery_executor")
@@ -981,7 +1164,7 @@ class OutboxTests(TestCase):
         from apps.live_assisted_sales.models import OutboxEvent
 
         send_mock.return_value = True
-        row = OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+        row = OutboxEvent.objects.create(payload={"event_type": "purchase"}, event_type="purchase")
 
         self.assertTrue(deliver_outbox_row(row.id))
         row.refresh_from_db()
@@ -995,7 +1178,7 @@ class OutboxTests(TestCase):
         from apps.live_assisted_sales.models import OutboxEvent
 
         send_mock.return_value = False
-        row = OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+        row = OutboxEvent.objects.create(payload={"event_type": "purchase"}, event_type="purchase")
         for _ in range(OUTBOX_MAX_ATTEMPTS):
             deliver_outbox_row(row.id)
 
@@ -1009,8 +1192,8 @@ class OutboxTests(TestCase):
         from apps.live_assisted_sales.models import OutboxEvent
 
         send_mock.return_value = True
-        OutboxEvent.objects.create(payload={"event_type": "cart_item_added"}, event_type="cart_item_added")
-        OutboxEvent.objects.create(payload={"event_type": "order_completed"}, event_type="order_completed")
+        OutboxEvent.objects.create(payload={"event_type": "add_to_cart"}, event_type="add_to_cart")
+        OutboxEvent.objects.create(payload={"event_type": "purchase"}, event_type="purchase")
 
         self.assertEqual(relay_pending_outbox(), 2)
         self.assertEqual(OutboxEvent.objects.filter(status="sent").count(), 2)

@@ -11,23 +11,31 @@ from .models import LiveAssistedSalesSettings
 
 logger = logging.getLogger(__name__)
 # High-frequency telemetry never needs a server-side cart snapshot, so we skip the per-event cart DB
-# lookup for these (a page_ping every ~15s must not run a cart query each time).
-CART_CONTEXT_EXCLUDED_EVENT_TYPES = {"click", "scroll_depth", "page_ping", "cursor_hover"}
+# lookup for these (a page_ping every ~15s must not run a cart query each time). select_item is a
+# client-side product-tile click, which likewise carries no cart context.
+CART_CONTEXT_EXCLUDED_EVENT_TYPES = {"scroll_depth", "page_ping", "select_item"}
+# The storefront event taxonomy, standardised on the GA4 recommended-ecommerce names. The funnel events
+# (view_item_list … purchase) are the shopping journey LAS surfaces to the agent; the trailing block is
+# the retained behavioural signals that only feed live-activity and intent scoring. Generic clicks and
+# cursor-hover were intentionally dropped as non-standard noise (hover is a heatmap category, not an
+# analytics event). Keep in sync with las-backend StorefrontEvent.EventType.
 SUPPORTED_EVENT_TYPES = {
+    "view_item_list",
+    "select_item",
+    "view_item",
+    "add_to_wishlist",
+    "add_to_cart",
+    "remove_from_cart",
+    "view_cart",
+    "begin_checkout",
+    "add_shipping_info",
+    "add_payment_info",
+    "purchase",
+    # Behavioural signals (not GA4 funnel): session lifecycle + engagement, forwarded to LAS.
     "session_start",
-    "product_view",
-    "category_view",
     "search",
-    "cart_item_added",
-    "cart_item_removed",
-    "checkout_started",
-    "order_completed",
-    # Client-side behavioral telemetry (LAS-6 coverage): generic clicks, scroll depth, engaged-time
-    # heartbeats and cursor hover. Emitted by the tracker and forwarded to LAS through the proxy.
-    "click",
     "scroll_depth",
     "page_ping",
-    "cursor_hover",
     "session_end",
 }
 
@@ -60,9 +68,18 @@ def client_ip_from_request(request):
     return request.META.get("REMOTE_ADDR", "") or ""
 
 
-def user_metadata_from_request(request):
+def user_metadata_from_request(request, *, include_pii=True):
+    """Identity block for the event. ``include_pii=False`` (consent withheld) keeps the pseudonymous
+    account id + authenticated status for operational linkage but DROPS the raw email/display name, so
+    no directly-identifying PII leaves the storefront before the shopper consents."""
     user = getattr(request, "user", None)
     if user and user.is_authenticated:
+        if not include_pii:
+            return {
+                "status": "authenticated",
+                "authenticated": True,
+                "id": str(getattr(user, "pk", "")),
+            }
         email = str(getattr(user, "email", "") or "")
         username = getattr(user, "get_username", lambda: "")()
         if not email and "@" in str(username):
@@ -81,6 +98,24 @@ def user_metadata_from_request(request):
             "display": display,
         }
     return {"status": "anonymous", "authenticated": False}
+
+
+def _pii_forwarding_allowed(request, metadata):
+    """Whether raw PII (email, IP) may be forwarded to LAS for this event. EU/EEA/UK: only once the
+    shopper has explicitly consented (opt-in). Elsewhere: allowed unless they explicitly opted out."""
+    if request is None:
+        return False
+    if metadata.get("consent") is False:
+        return False
+    try:
+        from .context_processors import _consent_region
+
+        if _consent_region(request) == "eu":
+            return metadata.get("consent") is True
+    except Exception:
+        logger.exception("Live Assisted Sales consent-region lookup failed; withholding PII.")
+        return False
+    return True
 
 
 def _absolute_logo_url(request):
@@ -103,10 +138,20 @@ def build_event_payload(request, event_type, **data):
     metadata = data.pop("metadata", {})
     if not isinstance(metadata, dict):
         metadata = {}
-    metadata["user"] = user_metadata_from_request(request)
-    client_ip = client_ip_from_request(request)
-    if client_ip:
-        metadata["client_ip"] = client_ip
+    # Resolve the shopper's consent choice FIRST (set by the tracker's banner as a cookie) so it can
+    # gate PII below. LAS also applies its own per-store regime once it receives the flag.
+    if request is not None and "consent" not in metadata:
+        consent_cookie = request.COOKIES.get("las_consent")
+        if consent_cookie in ("true", "false"):
+            metadata["consent"] = consent_cookie == "true"
+    # GDPR: withhold raw email + IP for EU visitors who haven't consented (and anyone who opted out),
+    # so directly-identifying PII never leaves the storefront before there is a legal basis to profile.
+    pii_allowed = _pii_forwarding_allowed(request, metadata)
+    metadata["user"] = user_metadata_from_request(request, include_pii=pii_allowed)
+    if pii_allowed:
+        client_ip = client_ip_from_request(request)
+        if client_ip:
+            metadata["client_ip"] = client_ip
     # Forward the originating request's User-Agent so LAS can detect AI-agent traffic (ChatGPT, Gemini,
     # Perplexity, Rufus, …) — the cookieless-agent signal client-side analytics can't see. Don't
     # overwrite a UA the client tracker may have already supplied.
@@ -114,12 +159,6 @@ def build_event_payload(request, event_type, **data):
         user_agent = request.META.get("HTTP_USER_AGENT", "")
         if user_agent:
             metadata["user_agent"] = user_agent[:512]
-    # Forward the shopper's consent choice (set by the tracker's banner as a cookie) so LAS honors it
-    # for server-side events too. LAS decides the meaning per its market regime (EU opt-in / US opt-out).
-    if request is not None and "consent" not in metadata:
-        consent_cookie = request.COOKIES.get("las_consent")
-        if consent_cookie in ("true", "false"):
-            metadata["consent"] = consent_cookie == "true"
     # Propagate the store's brand logo once per session so the LAS agent console can show it as the
     # support-team avatar, matching the customer-facing widget. Only on session_start to avoid
     # repeating it on every event.
@@ -305,21 +344,24 @@ def _cart_id_from_request(request):
     return cart_id if isinstance(cart_id, int | str) else None
 
 
-def track_product_view(request, product):
+def track_view_item(request, product):
     return dispatch_event(
         request,
-        "product_view",
+        "view_item",
         product=product_payload(product, request=request),
         page={"title": getattr(product, "name", "")},
     )
 
 
-def track_category_view(request, category):
+def track_view_item_list(request, category=None, *, list_name=""):
+    """GA4 view_item_list — a product list was shown (category page, all-products listing or search
+    results). Carries the category payload when browsing a category, otherwise just a list name."""
+    title = getattr(category, "name", "") if category else (list_name or "Products")
     return dispatch_event(
         request,
-        "category_view",
-        category=category_payload(category, request=request),
-        page={"title": getattr(category, "name", "")},
+        "view_item_list",
+        category=category_payload(category, request=request) if category else {},
+        page={"title": title},
     )
 
 
@@ -329,21 +371,41 @@ def track_search(request, query):
     return dispatch_event(request, "search", search={"query": query}, page={"title": f"Search: {query}"})
 
 
-def track_cart_item_added(request, cart, product):
+def track_add_to_cart(request, cart, product):
     return dispatch_event(
         request,
-        "cart_item_added",
+        "add_to_cart",
         product=product_payload(product, request=request),
         cart=cart_payload(cart, request=request),
     )
 
 
-def track_cart_item_removed(request, cart, product):
+def track_remove_from_cart(request, cart, product):
     return dispatch_event(
         request,
-        "cart_item_removed",
+        "remove_from_cart",
         product=product_payload(product, request=request),
         cart=cart_payload(cart, request=request),
+    )
+
+
+def track_add_to_wishlist(request, product):
+    """GA4 add_to_wishlist — a product was saved to a wishlist / favourites."""
+    return dispatch_event(
+        request,
+        "add_to_wishlist",
+        product=product_payload(product, request=request),
+        page={"title": getattr(product, "name", "")},
+    )
+
+
+def track_view_cart(request, cart):
+    """GA4 view_cart — the shopper opened the cart page with items in it."""
+    return dispatch_event(
+        request,
+        "view_cart",
+        cart=cart_payload(cart, request=request),
+        page={"title": "Cart"},
     )
 
 
@@ -397,11 +459,12 @@ def order_metadata(order):
     }
 
 
-def track_checkout_started(request, cart, *, visitor_id=None, session_id=None):
-    """Funnel step: the shopper is placing an order. Carries the current cart snapshot."""
+def track_begin_checkout(request, cart, *, visitor_id=None, session_id=None):
+    """GA4 begin_checkout — the shopper entered the checkout process. Carries the current cart snapshot.
+    Fired when the checkout page opens (not at final submit), matching GA4 funnel semantics."""
     return dispatch_event(
         request,
-        "checkout_started",
+        "begin_checkout",
         cart=cart_payload(cart, request=request),
         visitor_id=visitor_id,
         session_id=session_id,
@@ -409,13 +472,53 @@ def track_checkout_started(request, cart, *, visitor_id=None, session_id=None):
     )
 
 
-def track_order_completed(request, order, *, visitor_id=None, session_id=None):
-    """Conversion event built straight from Order+OrderLine. THE label for LAS-7. ``visitor_id``/
+def _delivery_metadata(cart):
+    method = getattr(cart, "delivery_method", None)
+    if not method:
+        return {}
+    return {"shipping": {"tier": getattr(method, "name", "") or "", "cost": str(getattr(cart, "delivery_cost", "") or "")}}
+
+
+def _payment_metadata(cart):
+    method = getattr(cart, "payment_method", None)
+    if not method:
+        return {}
+    return {"payment": {"type": getattr(method, "name", "") or ""}}
+
+
+def track_add_shipping_info(request, cart, *, visitor_id=None, session_id=None):
+    """GA4 add_shipping_info — the shopper confirmed a delivery method. Carries the checkout basket."""
+    return dispatch_event(
+        request,
+        "add_shipping_info",
+        cart=cart_payload(cart, request=request),
+        metadata=_delivery_metadata(cart),
+        visitor_id=visitor_id,
+        session_id=session_id,
+        page={"title": "Checkout"},
+    )
+
+
+def track_add_payment_info(request, cart, *, visitor_id=None, session_id=None):
+    """GA4 add_payment_info — the shopper confirmed a payment method. Carries the checkout basket."""
+    return dispatch_event(
+        request,
+        "add_payment_info",
+        cart=cart_payload(cart, request=request),
+        metadata=_payment_metadata(cart),
+        visitor_id=visitor_id,
+        session_id=session_id,
+        page={"title": "Checkout"},
+    )
+
+
+def track_purchase(request, order, *, visitor_id=None, session_id=None):
+    """GA4 purchase — conversion built straight from Order+OrderLine. THE label for LAS-7. ``visitor_id``/
     ``session_id`` should be the LAS ids captured at order creation so the conversion attributes to
     the right session even though delivery is off the request path."""
     return dispatch_event(
         request,
-        "order_completed",
+        "purchase",
         cart=order_cart_payload(order, request=request),
         metadata=order_metadata(order),
         visitor_id=visitor_id,

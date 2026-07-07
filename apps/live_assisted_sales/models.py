@@ -39,14 +39,47 @@ class LiveAssistedSalesSettings(models.Model):
     def __str__(self):
         return str(_("Live Assisted Sales settings"))
 
+    def clean(self):
+        # The store API key (Bearer) and full event payloads (incl. shopper PII) travel to this URL,
+        # so it must be https — an http:// endpoint would send the secret + PII in cleartext. Allow
+        # plain http only for localhost during development.
+        super().clean()
+        from urllib.parse import urlparse
+
+        url = (self.las_base_url or "").strip()
+        if url:
+            parsed = urlparse(url)
+            host = (parsed.hostname or "").lower()
+            is_local = host in ("localhost", "127.0.0.1", "::1")
+            if parsed.scheme != "https" and not is_local:
+                from django.core.exceptions import ValidationError
+
+                raise ValidationError(
+                    {"las_base_url": _("Use an https:// URL — the API key and customer data must not be sent over http.")}
+                )
+
     @classmethod
     def get_solo(cls):
-        obj, _created = cls.objects.get_or_create(pk=1)
+        # Default the switch ON so a first-time owner's ONLY required action is pasting the API key
+        # (nothing is sent until a valid key makes is_configured true, so enabled-without-a-key is
+        # an inert, safe state). The toggle stays available to pause LAS later without losing the key.
+        obj, _created = cls.objects.get_or_create(pk=1, defaults={"enabled": True})
         return obj
 
     @property
+    def effective_base_url(self):
+        """Address of the AMPER LAS platform to talk to. Sourced from the deployment setting
+        (LAS_BASE_URL) so the store owner never has to know or enter it — they only paste their API
+        key. A per-instance value is honoured only as a legacy/advanced override when the setting is
+        unset."""
+        from django.conf import settings as django_settings
+
+        configured = getattr(django_settings, "LAS_BASE_URL", "") or self.las_base_url or ""
+        return configured.strip()
+
+    @property
     def is_configured(self):
-        return bool(self.enabled and self.las_base_url and self.store_api_key)
+        return bool(self.enabled and self.effective_base_url and self.store_api_key)
 
     @property
     def is_widget_configured(self):

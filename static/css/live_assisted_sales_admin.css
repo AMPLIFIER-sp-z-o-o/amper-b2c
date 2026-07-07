@@ -1,5 +1,7 @@
 .las-secret-input {
+  display: block;
   max-width: 42rem;
+  position: relative;
 }
 
 .las-secret-input__field {
