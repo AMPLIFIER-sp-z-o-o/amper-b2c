@@ -365,10 +365,15 @@ def track_view_item_list(request, category=None, *, list_name=""):
     )
 
 
-def track_search(request, query):
+def track_search(request, query, results_count=None):
     if not query:
         return False
-    return dispatch_event(request, "search", search={"query": query}, page={"title": f"Search: {query}"})
+    search = {"query": query}
+    # LAS classifies zero-result searches ("Braki w ofercie") strictly by results_count,
+    # so callers should always pass it; None means the caller genuinely doesn't know.
+    if results_count is not None:
+        search["results_count"] = results_count
+    return dispatch_event(request, "search", search=search, page={"title": f"Search: {query}"})
 
 
 def track_add_to_cart(request, cart, product):

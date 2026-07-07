@@ -768,7 +768,7 @@ def search_results(request):
         and not request.headers.get("HX-Soft-Nav")
         and not request.headers.get("HX-History-Restore-Request")
     )
-    track_search(request, search_query)
+    track_search(request, search_query, results_count=total_count)
     if not is_inplace_htmx_update and search_query:
         # GA4 view_item_list — the search results are a product list.
         track_view_item_list(request, list_name=f"Search: {search_query}")
@@ -1366,7 +1366,7 @@ def product_list(request, category_id=None, category_slug=None):
         # GA4 view_item_list fires whenever a product list is shown: a category page, the all-products
         # listing, or search results. The internal `search` signal still fires on a query.
         if search_query:
-            track_search(request, search_query)
+            track_search(request, search_query, results_count=total_count)
             track_view_item_list(request, list_name=f"Search: {search_query}")
         elif current_category:
             track_view_item_list(request, current_category)
