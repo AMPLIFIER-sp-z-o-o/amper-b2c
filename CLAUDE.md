@@ -21,10 +21,12 @@ live in `AGENTS.md`. DB `amplifier` on docker pg port **7432**.
 ## LAS integration traps
 
 - `LiveAssistedSalesSettings.store_api_key` must equal las-backend
-  `TrackedSite.write_key`. **Re-seeding las-backend rotates the key** → ingest 403s
-  silently (widget still loads from cached `site_public_key`; browser events still 200).
-  Empty live-activity panel after a re-seed = stale key: paste new write_key + run the
-  settings connection test.
+  `TrackedSite.write_key`. **Recreating the LAS store outside its seed rotates the key**
+  → ingest 403s silently (widget still loads from cached `site_public_key`; browser
+  events still 200). Empty live-activity panel = stale key: paste new write_key + run
+  the settings connection test. `manage.py seed` wires this automatically (env-matched
+  default key for localhost/QA + auto connection test); las-backend `make seed` keeps
+  its write_key stable, so the pair survives re-seeding on both sides.
 - Widget iframe (:8001 inside :8000 page) is cross-origin — drive it via chrome-devtools
   CDP, not page-context JS. DEBUG bypasses the Origin==store-domain check for localhost.
 - Chat: pre-chat form (email required) skipped when `window.LAS_CUSTOMER` set; anonymous
