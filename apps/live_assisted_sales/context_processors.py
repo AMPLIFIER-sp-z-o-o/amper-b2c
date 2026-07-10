@@ -3,6 +3,8 @@ import hmac
 import logging
 import time
 
+from django.utils import translation
+
 from apps.cart.services import _get_cart_from_request
 
 from .events import _absolute_logo_url, cart_payload, client_ip_from_request
@@ -60,6 +62,81 @@ def _consent_region(request):
     if not code:
         return ""
     return "eu" if code in CONSENT_REQUIRED_COUNTRIES else "noneu"
+
+
+# Prior-consent banner copy. The banner only ever shows to EU/EEA/UK visitors, but its language must
+# follow the STORE's display language (not the visitor's region) — an English store shown to an EU
+# shopper must not render a Polish banner. English is the source; add a language key per store locale.
+_CONSENT_TEXTS = {
+    "en": {
+        "aria_label": "Cookie and data-processing consent",
+        "title": "We value your privacy",
+        "body": (
+            "This store uses cookies and data about your activity to work properly, "
+            "help you in real time, and recommend products more accurately."
+        ),
+        # Banner actions. "Accept all" is the visual primary; "Only necessary" is the SAME-layer,
+        # one-click decline (kept as easy as accept — reject must never be buried); "Preferences"
+        # opens the per-purpose modal.
+        "accept_all": "Accept all",
+        "only_necessary": "Only necessary",
+        "preferences": "Preferences",
+        # Preferences modal.
+        "prefs_title": "Privacy preferences",
+        "prefs_intro": "Choose what you're comfortable with. You can change this at any time.",
+        "close": "Close",
+        "necessary_title": "Strictly necessary",
+        "necessary_state": "Always on",
+        "necessary_desc": (
+            "Required for the store to work and stay secure. Doesn't build a profile or identify you."
+        ),
+        "analytics_title": "Analytics & personalization",
+        "analytics_desc": (
+            "Lets the store understand your visit so it can help you in real time and recommend "
+            "products more accurately."
+        ),
+        "save": "Save choices",
+        "cancel": "Cancel",
+        # Footer reopen link — lets a shopper change/withdraw consent later (GDPR right to withdraw).
+        "privacy_link": "Privacy settings",
+    },
+    "pl": {
+        "aria_label": "Zgoda na pliki cookies i przetwarzanie danych",
+        "title": "Zależy nam na Twojej prywatności",
+        "body": (
+            "Ten sklep używa plików cookies oraz danych o Twoich działaniach, aby działać "
+            "poprawnie, pomagać Ci na żywo i trafniej dobierać produkty."
+        ),
+        "accept_all": "Zaakceptuj wszystko",
+        "only_necessary": "Tylko niezbędne",
+        "preferences": "Preferencje",
+        "prefs_title": "Preferencje prywatności",
+        "prefs_intro": "Wybierz, na co się zgadzasz. Możesz to zmienić w dowolnym momencie.",
+        "close": "Zamknij",
+        "necessary_title": "Niezbędne",
+        "necessary_state": "Zawsze aktywne",
+        "necessary_desc": (
+            "Konieczne, aby sklep działał i był bezpieczny. Nie budują profilu ani Cię nie identyfikują."
+        ),
+        "analytics_title": "Analiza i personalizacja",
+        "analytics_desc": (
+            "Pozwalają zrozumieć Twoją wizytę, aby sklep mógł pomagać Ci na żywo i trafniej "
+            "dobierać produkty."
+        ),
+        "save": "Zapisz wybór",
+        "cancel": "Anuluj",
+        "privacy_link": "Ustawienia prywatności",
+    },
+}
+
+
+def _consent_texts():
+    """Consent-banner copy in the store's active display language, falling back to English.
+
+    Keyed on Django's active language (set per request by UserLocaleMiddleware), so the banner
+    speaks the same language as the rest of the page instead of a hard-coded locale."""
+    lang = (translation.get_language() or "en").split("-")[0].lower()
+    return _CONSENT_TEXTS.get(lang, _CONSENT_TEXTS["en"])
 
 
 def _initial_cart_payload(request):
@@ -136,6 +213,7 @@ def live_assisted_sales(request):
             "customer": _widget_customer_payload(request, settings_obj.store_api_key or "") if enabled else {},
             "site_public_key": settings_obj.site_public_key,
             "consent_region": _consent_region(request) if enabled else "",
+            "consent_texts": _consent_texts() if enabled else {},
             "widget_enabled": settings_obj.is_widget_configured,
             "widget_script_url": f"{las_base_url}/widget/v1/chat.js" if las_base_url else "",
             "widget_accent": settings_obj.widget_accent,

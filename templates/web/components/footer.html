@@ -110,6 +110,13 @@
     </div>
   </div>
   <div class="text-center text-gray-700 dark:text-gray-500">
+    {% if live_assisted_sales.enabled %}
+      {# Reopens the cookie/data preferences modal (handled by live_assisted_sales/tracker.html via
+         [data-las-privacy]) so a shopper can change or withdraw consent at any time. #}
+      <div class="pb-2">
+        <button type="button" data-las-privacy class="text-sm font-medium transition-colors duration-200 hover:underline hover:text-primary-600 dark:hover:text-primary-500">{{ live_assisted_sales.consent_texts.privacy_link|default:"Privacy settings" }}</button>
+      </div>
+    {% endif %}
     {% include "web/components/language_select.html" %}
   </div>
 </footer>

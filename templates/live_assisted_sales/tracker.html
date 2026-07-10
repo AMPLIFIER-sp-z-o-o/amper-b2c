@@ -1,15 +1,40 @@
 {% if live_assisted_sales.enabled %}
 {{ live_assisted_sales.initial_cart|json_script:"las-initial-cart" }}
 {{ live_assisted_sales.customer|json_script:"las-customer" }}
+{{ live_assisted_sales.consent_texts|json_script:"las-consent-texts" }}
 <script>
   (function () {
     const endpoint = "{{ live_assisted_sales.events_url|escapejs }}";
     // Server-decided consent regime from the visitor's IP/country: "eu" | "noneu" | "" (unknown).
     const consentRegion = "{{ live_assisted_sales.consent_region|escapejs }}";
-    // Whether the LAS chat launcher is loaded on this page. It sits fixed in the bottom-right corner,
-    // so when present the consent banner must reserve space on that side or its buttons hide behind it.
-    const widgetEnabled = {% if live_assisted_sales.widget_enabled %}true{% else %}false{% endif %};
     let sessionEnded = false;
+
+    // Consent-banner copy in the store's display language (server-rendered from the active locale),
+    // with an English fallback so a missing/empty payload never leaves the buttons blank.
+    const consentTexts = Object.assign(
+      {
+        aria_label: "Cookie and data-processing consent",
+        title: "We value your privacy",
+        body: "This store uses cookies and data about your activity to work properly, help you in real time, and recommend products more accurately.",
+        accept_all: "Accept all",
+        only_necessary: "Only necessary",
+        preferences: "Preferences",
+        prefs_title: "Privacy preferences",
+        prefs_intro: "Choose what you're comfortable with. You can change this at any time.",
+        close: "Close",
+        necessary_title: "Strictly necessary",
+        necessary_state: "Always on",
+        necessary_desc: "Required for the store to work and stay secure. Doesn't build a profile or identify you.",
+        analytics_title: "Analytics & personalization",
+        analytics_desc: "Lets the store understand your visit so it can help you in real time and recommend products more accurately.",
+        save: "Save choices",
+        cancel: "Cancel",
+      },
+      (function () {
+        try { return JSON.parse((document.getElementById("las-consent-texts") || {}).textContent || "{}"); }
+        catch (e) { return {}; }
+      })()
+    );
 
     // ---- Identity ---------------------------------------------------------
     function uuid() {
@@ -273,46 +298,247 @@
         return /^(Europe\/|Atlantic\/(Azores|Madeira|Canary|Reykjavik|Faroe)|Arctic\/Longyearbyen)/.test(tz);
       } catch (e) { return false; }
     }
-    // Single cookie + data consent (covers cookies AND behavioural profiling — no separate cookie bar).
-    // Least-invasive & geo-aware: EU/EEA/UK get a one-click prior-consent banner; elsewhere (e.g. US) we
-    // default to opt-out with NO banner, but still honour the Global Privacy Control signal. The choice is
-    // stored in localStorage + a cookie so server-side events forward it; LAS also applies its per-store regime.
+    // Scoped styles for the consent UI. Injected once; every selector is prefixed `lascc-` so it can't
+    // collide with the host store's CSS, and class selectors beat the store's bare `button {}`/`p {}`
+    // element rules, so the card renders consistently on any storefront.
+    function injectConsentStyles() {
+      if (document.getElementById("las-consent-style")) return;
+      const style = document.createElement("style");
+      style.id = "las-consent-style";
+      style.textContent = [
+        ".lascc-card{position:fixed;left:16px;bottom:16px;z-index:2147483000;width:380px;max-width:calc(100vw - 32px);background:#0f172a;color:#e5e7eb;border:1px solid rgba(148,163,184,.18);border-radius:16px;padding:18px;box-shadow:0 18px 48px rgba(2,6,23,.55);font:14px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
+        ".lascc-card *,.lascc-modal *{box-sizing:border-box}",
+        ".lascc-title{margin:0 0 6px;font-size:15px;font-weight:700;color:#f8fafc;letter-spacing:-.01em}",
+        ".lascc-body{margin:0 0 14px;color:#cbd5e1}",
+        ".lascc-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}",
+        ".lascc-btn{appearance:none;-webkit-appearance:none;border:0;border-radius:10px;padding:9px 14px;margin:0;font:inherit;font-weight:600;cursor:pointer;line-height:1;display:inline-flex;align-items:center;gap:7px;transition:background .15s,border-color .15s,color .15s,transform .05s}",
+        ".lascc-btn:active{transform:translateY(1px)}",
+        ".lascc-btn:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}",
+        ".lascc-btn--primary{background:#2563eb;color:#fff}",
+        ".lascc-btn--primary:hover{background:#1d4ed8}",
+        ".lascc-btn--ghost{background:rgba(148,163,184,.12);color:#e5e7eb;border:1px solid rgba(148,163,184,.22)}",
+        ".lascc-btn--ghost:hover{background:rgba(148,163,184,.2)}",
+        ".lascc-btn--link{background:transparent;color:#93c5fd;padding:9px 8px}",
+        ".lascc-btn--link:hover{color:#bfdbfe;text-decoration:underline}",
+        ".lascc-check-ic{width:15px;height:15px;flex:0 0 auto}",
+        ".lascc-overlay{position:fixed;inset:0;z-index:2147483001;background:rgba(2,6,23,.6);display:flex;align-items:center;justify-content:center;padding:16px}",
+        ".lascc-modal{width:460px;max-width:100%;max-height:calc(100vh - 32px);overflow:auto;background:#0f172a;color:#e5e7eb;border:1px solid rgba(148,163,184,.18);border-radius:18px;padding:22px;box-shadow:0 24px 64px rgba(2,6,23,.6);font:14px/1.55 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}",
+        ".lascc-modal:focus{outline:none}",
+        ".lascc-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}",
+        ".lascc-modal-title{margin:0;font-size:18px;font-weight:800;color:#f8fafc;letter-spacing:-.02em}",
+        ".lascc-close{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:#94a3b8;font-size:22px;line-height:1;cursor:pointer;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;flex:0 0 auto;margin:-4px -6px 0 0}",
+        ".lascc-close:hover{color:#e5e7eb;background:rgba(148,163,184,.14)}",
+        ".lascc-intro{margin:0 0 4px;color:#cbd5e1}",
+        ".lascc-row{display:flex;gap:12px;padding:14px 0;margin:0;border-top:1px solid rgba(148,163,184,.14);cursor:pointer}",
+        ".lascc-row--locked{cursor:default}",
+        ".lascc-row input[type=checkbox]{margin:2px 0 0;width:18px;height:18px;accent-color:#2563eb;cursor:pointer;flex:0 0 auto}",
+        ".lascc-row input[disabled]{cursor:default;opacity:.7}",
+        ".lascc-row-main{flex:1;min-width:0}",
+        ".lascc-row-title{display:flex;align-items:center;gap:8px;font-weight:700;color:#f1f5f9}",
+        ".lascc-badge{font-size:11px;font-weight:600;color:#93c5fd;background:rgba(37,99,235,.18);border:1px solid rgba(59,130,246,.3);padding:1px 8px;border-radius:999px}",
+        ".lascc-row-desc{margin:4px 0 0;color:#94a3b8;font-size:13px}",
+        ".lascc-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}",
+        "@media (max-width:480px){.lascc-card{left:8px;right:8px;bottom:8px;width:auto}}",
+      ].join("");
+      (document.head || document.documentElement).appendChild(style);
+    }
+
+    // Static, no-user-data markup — safe to inject via innerHTML.
+    const CHECK_SVG = '<svg class="lascc-check-ic" viewBox="0 0 20 20" aria-hidden="true" fill="none"><path d="M4 10.5l4 4 8-9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    function makeConsentButton(label, variant, withCheck) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "lascc-btn " + variant;
+      if (withCheck) {
+        const ic = document.createElement("span");
+        ic.style.display = "inline-flex";
+        ic.innerHTML = CHECK_SVG;  // static markup only — never interpolates user data
+        b.appendChild(ic);
+      }
+      b.appendChild(document.createTextNode(label));
+      return b;
+    }
+
+    // Persist a consent choice and reconcile the tracker with it. Dismisses the banner card if it's still
+    // up, backfills the session_start that was suppressed before consent — but only on a NEW grant, so a
+    // shopper re-saving an already-granted choice doesn't emit a duplicate — and drops any buffered events
+    // on withdrawal. Shared by the banner buttons AND the reopen link, so consent can be changed/withdrawn
+    // at any time (GDPR: withdrawing must be as easy as granting).
+    function applyConsentChoice(value) {
+      const previous = consentValue();
+      persistConsent(value);
+      const card = document.querySelector(".lascc-card");
+      if (card && card.parentNode) card.parentNode.removeChild(card);
+      if (value && previous !== true) sendInitialEvents();  // transition into granted -> backfill this visit
+      if (!value) queue = [];                               // withdrawal -> stop sending buffered telemetry
+    }
+
+    // Per-purpose preferences modal. Strictly-necessary is always on and locked (it stores no profile); a
+    // single Analytics & personalization toggle maps to our one real behavioural bucket, so we don't fake
+    // independent categories we don't actually run. `initialGranted` seeds the toggle: default ON for a
+    // first-time visitor (Atlassian/Bitbucket opt-out-default pattern — callers pass `consentValue() !==
+    // false`), or the shopper's CURRENT setting when reopened, so an explicit "only necessary" decline
+    // stays unticked and they can change it. Save applies via applyConsentChoice.
+    function openPrivacyPreferences(opts) {
+      injectConsentStyles();
+      const initialGranted = !!(opts && opts.initialGranted);
+      const opener = document.activeElement;  // restore focus here on close (banner button or store link)
+
+      const overlay = document.createElement("div");
+      overlay.className = "lascc-overlay";
+      const modal = document.createElement("div");
+      modal.className = "lascc-modal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.setAttribute("aria-label", consentTexts.prefs_title);
+      modal.tabIndex = -1;
+
+      const head = document.createElement("div");
+      head.className = "lascc-modal-head";
+      const heading = document.createElement("h2");
+      heading.className = "lascc-modal-title";
+      heading.textContent = consentTexts.prefs_title;
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "lascc-close";
+      closeBtn.setAttribute("aria-label", consentTexts.close);
+      closeBtn.innerHTML = "&times;";
+      head.appendChild(heading);
+      head.appendChild(closeBtn);
+      const intro = document.createElement("p");
+      intro.className = "lascc-intro";
+      intro.textContent = consentTexts.prefs_intro;
+
+      function makeRow(rowTitle, rowDesc, rowOpts) {
+        const row = document.createElement("label");
+        row.className = "lascc-row" + (rowOpts.locked ? " lascc-row--locked" : "");
+        const cb = document.createElement("input");
+        cb.type = "checkbox";
+        cb.checked = !!rowOpts.checked;
+        if (rowOpts.locked) cb.disabled = true;
+        const main = document.createElement("div");
+        main.className = "lascc-row-main";
+        const rt = document.createElement("div");
+        rt.className = "lascc-row-title";
+        rt.appendChild(document.createTextNode(rowTitle));
+        if (rowOpts.badge) {
+          const badge = document.createElement("span");
+          badge.className = "lascc-badge";
+          badge.textContent = rowOpts.badge;
+          rt.appendChild(badge);
+        }
+        const rd = document.createElement("p");
+        rd.className = "lascc-row-desc";
+        rd.textContent = rowDesc;
+        main.appendChild(rt);
+        main.appendChild(rd);
+        row.appendChild(cb);
+        row.appendChild(main);
+        return { row: row, input: cb };
+      }
+
+      const necessary = makeRow(consentTexts.necessary_title, consentTexts.necessary_desc, { checked: true, locked: true, badge: consentTexts.necessary_state });
+      const analytics = makeRow(consentTexts.analytics_title, consentTexts.analytics_desc, { checked: initialGranted, locked: false });
+
+      const modalActions = document.createElement("div");
+      modalActions.className = "lascc-modal-actions";
+      const cancelBtn = makeConsentButton(consentTexts.cancel, "lascc-btn--ghost", false);
+      const saveBtn = makeConsentButton(consentTexts.save, "lascc-btn--primary", false);
+      modalActions.appendChild(cancelBtn);
+      modalActions.appendChild(saveBtn);
+
+      modal.appendChild(head);
+      modal.appendChild(intro);
+      modal.appendChild(necessary.row);
+      modal.appendChild(analytics.row);
+      modal.appendChild(modalActions);
+      overlay.appendChild(modal);
+
+      function closeOverlay() {
+        document.removeEventListener("keydown", onKey);
+        if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+        // Return focus to whatever opened the modal, if it's still in the DOM.
+        if (opener && typeof opener.focus === "function" && document.contains(opener)) opener.focus();
+      }
+      function focusables() { return modal.querySelectorAll("button, input:not([disabled])"); }
+      function onKey(e) {
+        if (e.key === "Escape") { e.preventDefault(); closeOverlay(); return; }
+        if (e.key !== "Tab") return;
+        // Minimal focus trap so keyboard users can't tab out of the open dialog.
+        const f = focusables();
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+      // Cancel / Esc / backdrop = close without changing anything (the banner card, if any, stays up).
+      closeBtn.addEventListener("click", closeOverlay);
+      cancelBtn.addEventListener("click", closeOverlay);
+      overlay.addEventListener("click", function (e) { if (e.target === overlay) closeOverlay(); });
+      saveBtn.addEventListener("click", function () {
+        const granted = analytics.input.checked;
+        closeOverlay();
+        applyConsentChoice(granted);  // toggle on -> granted; off -> strictly necessary only (decline/withdraw)
+      });
+      document.addEventListener("keydown", onKey);
+      (document.body || document.documentElement).appendChild(overlay);
+      modal.focus();
+    }
+
+    // First-visit banner (EU/EEA/UK only; non-EU/GPC paths persist silently with no card). Follows the
+    // Atlassian pattern: "Accept all" is the visual primary, "Only necessary" is the SAME-layer one-click
+    // decline (GDPR requires reject to be as easy as accept, and this card is EU-only — so we never bury or
+    // gate it), and "Preferences" opens the modal above. Every path persists the one `las_consent` flag the
+    // server reads; the reopen link (below) lets the shopper change or withdraw it later.
     function setupConsentBanner() {
       if (consentValue() !== undefined) return;                                        // already answered
       if (navigator.globalPrivacyControl === true) { persistConsent(false); return; }  // honour GPC opt-out, no banner
       if (!isEuRegion()) { persistConsent(true); return; }                             // opt-out market (US…): consent by default, no banner
-      // EU/EEA/UK — one-click prior-consent banner (nothing profiled until the shopper answers)
-      const bar = document.createElement("div");
-      bar.setAttribute("role", "dialog");
-      bar.setAttribute("aria-label", "Zgoda na pliki cookies i przetwarzanie danych");
-      bar.style.cssText = "position:fixed;left:0;right:0;bottom:0;z-index:2147483000;background:#111827;color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:center;font:14px/1.45 system-ui,-apple-system,sans-serif;box-shadow:0 -4px 16px rgba(0,0,0,.25)";
-      // Clear the bottom-right chat launcher (20px margin + 60px bubble) so "Odrzuć" isn't hidden behind it.
-      if (widgetEnabled) bar.style.paddingRight = "96px";
-      const text = document.createElement("span");
-      text.style.cssText = "flex:1;min-width:240px;max-width:760px";
-      text.textContent = "Ten sklep używa plików cookies oraz danych o Twoich działaniach, aby działać poprawnie, pomagać Ci na żywo i lepiej dobierać produkty.";
-      bar.appendChild(text);
-      function choose(value) {
-        persistConsent(value);
-        if (bar.parentNode) bar.parentNode.removeChild(bar);
-        // On acceptance, backfill the session_start that was suppressed before consent so the agent
-        // console still sees this visit (subsequent telemetry now flows through the gate normally).
-        if (value) sendInitialEvents();
-      }
-      const accept = document.createElement("button");
-      accept.type = "button";
-      accept.textContent = "Akceptuję";
-      accept.style.cssText = "background:#2563eb;color:#fff;border:0;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer";
-      accept.addEventListener("click", function () { choose(true); });
-      const decline = document.createElement("button");
-      decline.type = "button";
-      decline.textContent = "Odrzuć";
-      decline.style.cssText = "background:transparent;color:#fff;border:1px solid #4b5563;border-radius:8px;padding:8px 18px;font-weight:600;cursor:pointer";
-      decline.addEventListener("click", function () { choose(false); });
-      bar.appendChild(accept);
-      bar.appendChild(decline);
-      (document.body || document.documentElement).appendChild(bar);
+      injectConsentStyles();
+
+      const card = document.createElement("div");
+      card.className = "lascc-card";
+      card.setAttribute("role", "dialog");
+      card.setAttribute("aria-label", consentTexts.aria_label);
+      const title = document.createElement("p");
+      title.className = "lascc-title";
+      title.textContent = consentTexts.title;
+      const body = document.createElement("p");
+      body.className = "lascc-body";
+      body.textContent = consentTexts.body;
+      const actions = document.createElement("div");
+      actions.className = "lascc-actions";
+      card.appendChild(title);
+      card.appendChild(body);
+      card.appendChild(actions);
+
+      const acceptAll = makeConsentButton(consentTexts.accept_all, "lascc-btn--primary", true);
+      acceptAll.addEventListener("click", function () { applyConsentChoice(true); });
+      const onlyNecessary = makeConsentButton(consentTexts.only_necessary, "lascc-btn--ghost", false);
+      onlyNecessary.addEventListener("click", function () { applyConsentChoice(false); });
+      const prefs = makeConsentButton(consentTexts.preferences, "lascc-btn--link", false);
+      prefs.addEventListener("click", function () { openPrivacyPreferences({ initialGranted: consentValue() !== false }); });
+      actions.appendChild(acceptAll);
+      actions.appendChild(onlyNecessary);
+      actions.appendChild(prefs);
+
+      (document.body || document.documentElement).appendChild(card);
     }
+
+    // Reopen path — makes an accidental "Only necessary" recoverable and satisfies the GDPR right to
+    // withdraw/change consent (and gives opt-out shoppers who never saw the banner a way to opt out). Any
+    // store control with [data-las-privacy] (e.g. a footer "Privacy settings" link), or a call to
+    // window.LAS_openPrivacySettings(), reopens the modal seeded with the current choice.
+    window.LAS_openPrivacySettings = function () {
+      openPrivacyPreferences({ initialGranted: consentValue() !== false });
+    };
+    document.addEventListener("click", function (e) {
+      const trigger = e.target && e.target.closest ? e.target.closest("[data-las-privacy]") : null;
+      if (!trigger) return;
+      e.preventDefault();
+      window.LAS_openPrivacySettings();
+    });
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", function () { sendInitialEvents(); setupConsentBanner(); }, { once: true });
     } else {
