@@ -1,37 +1,7 @@
 #!/bin/bash
-set -e
-
-# Function to cleanup background processes
-cleanup() {
-    echo ""
-    echo "Stopping servers..."
-    if [ ! -z "$DJANGO_PID" ]; then
-        echo "Stopping Django server..."
-        kill $DJANGO_PID 2>/dev/null || true
-        wait $DJANGO_PID 2>/dev/null || true
-    fi
-    if [ ! -z "$NPM_PID" ]; then
-        echo "Stopping npm dev server..."
-        kill $NPM_PID 2>/dev/null || true
-        wait $NPM_PID 2>/dev/null || true
-    fi
-    echo "Done."
-    exit 0
-}
-
-# Set up signal handlers for graceful shutdown
-trap cleanup INT TERM
-
-echo "🚀 Starting development environment..."
-echo ""
-
-echo "Starting Django development server..."
-uv run manage.py runserver &
-DJANGO_PID=$!
-
-echo "Starting npm dev server..."
-npm run dev &
-NPM_PID=$!
-
-# Wait for either process to exit
-wait
+# The dev supervisor now lives in dev.mjs — a single resilient implementation that restarts a
+# crashed server (Django / Vite) INDEPENDENTLY instead of tearing the whole env down, and does a
+# clean process-TREE kill on exit (no orphaned python/node, no bound ports). This wrapper stays so
+# `./scripts/dev.sh` keeps working; it just delegates. `exec` hands signals straight to node so
+# Ctrl-C shuts everything down cleanly.
+exec node "$(dirname "$0")/dev.mjs"

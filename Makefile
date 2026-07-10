@@ -18,7 +18,7 @@ start-bg:  ## Run containers in the background
 	@docker compose up -d
 
 dev: ## Start Django and npm dev servers
-	@./scripts/dev.sh
+	@node ./scripts/dev.mjs
 
 django: ## Run Django dev server
 	@uv run manage.py runserver
