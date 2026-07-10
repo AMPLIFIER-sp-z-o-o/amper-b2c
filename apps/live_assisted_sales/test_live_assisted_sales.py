@@ -506,6 +506,45 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertGreaterEqual(kwargs["timeout"], 3.0)
 
 
+class SeedLasConnectionTestHookTests(TestCase):
+    """The seed command must finish the LAS wiring on its own (fetch site_public_key), so a fresh
+    QA/local build needs no manual 'Test connection' click in the admin."""
+
+    def _command(self):
+        from apps.web.management.commands.seed import Command
+
+        return Command()
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
+    def test_seed_hook_fetches_public_key(self, test_connection_mock):
+        test_connection_mock.return_value = (
+            200,
+            {"store": {"display_name": "AMPER B2C", "public_key": "site_pk_seeded"}},
+        )
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+
+        self._command()._run_las_connection_test()
+
+        settings_obj = LiveAssistedSalesSettings.get_solo()
+        self.assertEqual(settings_obj.site_public_key, "site_pk_seeded")
+        self.assertEqual(settings_obj.last_test_status, "success")
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
+    def test_seed_hook_survives_las_downtime(self, test_connection_mock):
+        # LAS QA can be mid-deploy while b2c seeds; the seed must record the failure and carry on.
+        test_connection_mock.side_effect = URLError("down")
+        LiveAssistedSalesSettings.objects.create(
+            pk=1, enabled=True, las_base_url="http://localhost:8001", store_api_key="site_sk_secret"
+        )
+
+        self._command()._run_las_connection_test()  # must not raise
+
+        settings_obj = LiveAssistedSalesSettings.get_solo()
+        self.assertEqual(settings_obj.last_test_status, "failed")
+
+
 class BrowserEventEndpointTests(TestCase):
     def setUp(self):
         LiveAssistedSalesSettings.objects.all().delete()

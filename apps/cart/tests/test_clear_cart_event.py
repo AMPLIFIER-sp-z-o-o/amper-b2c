@@ -41,10 +41,10 @@ class TestClearCartEmitsRemovalEvent(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertFalse(Cart.objects.filter(id=cart.id).exists())
 
-        # LAS was told the basket emptied: a cart_item_removed carrying total 0 / no items.
+        # LAS was told the basket emptied: a remove_from_cart (GA4 taxonomy) carrying total 0 / no items.
         self.assertTrue(enqueue_mock.called)
         _settings, payload = enqueue_mock.call_args.args
-        self.assertEqual(payload["event_type"], "cart_item_removed")
+        self.assertEqual(payload["event_type"], "remove_from_cart")
         self.assertEqual(str(payload["cart"].get("total")), "0.00")
         self.assertEqual(payload["cart"].get("items_count"), 0)
         self.assertEqual(payload["cart"].get("items"), [])

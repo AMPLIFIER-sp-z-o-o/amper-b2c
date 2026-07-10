@@ -21,7 +21,7 @@ def test_checkout_save_details_persists_default_shipping_address_for_logged_in_u
     client.force_login(user)
 
     delivery = DeliveryMethod.objects.create(name="D", price=Decimal("0.00"), delivery_time=0, is_active=True)
-    payment = PaymentMethod.objects.create(name="P", additional_fees=Decimal("0.00"), is_active=True)
+    payment = PaymentMethod.objects.create(name="P", is_active=True)
 
     category = Category.objects.create(name="Test")
     product = Product.objects.create(
@@ -82,7 +82,7 @@ def test_checkout_page_prefills_details_from_default_shipping_address_when_sessi
     client.force_login(user)
 
     delivery = DeliveryMethod.objects.create(name="D", price=Decimal("0.00"), delivery_time=0, is_active=True)
-    payment = PaymentMethod.objects.create(name="P", additional_fees=Decimal("0.00"), is_active=True)
+    payment = PaymentMethod.objects.create(name="P", is_active=True)
 
     category = Category.objects.create(name="Test")
     product = Product.objects.create(
@@ -101,7 +101,6 @@ def test_checkout_page_prefills_details_from_default_shipping_address_when_sessi
         user=user,
         is_default=True,
         full_name="Jane Doe",
-        company="ACME",
         phone_country_code="+48",
         phone_number="999",
         shipping_city="Berlin",
@@ -123,7 +122,6 @@ def test_checkout_page_prefills_details_from_default_shipping_address_when_sessi
     details = session.get("checkout_details") or {}
     assert details.get("first_name") == "Jane"
     assert details.get("last_name") == "Doe"
-    assert details.get("company") == "ACME"
     assert details.get("email") == "u2@example.com"
     assert details.get("phone_country_code") == "+48"
     assert details.get("phone_number") == "999"

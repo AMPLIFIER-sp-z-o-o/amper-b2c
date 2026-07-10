@@ -491,6 +491,11 @@ class Command(BaseCommand):
         # Keep it outside the main atomic seed transaction so plugin failures cannot poison the seed block.
         self._sync_runtime_plugins()
 
+        # Fetch the LAS site_public_key right away so the widget works without a manual admin
+        # "Test connection" click. Also outside the transaction: it's a network call to the LAS
+        # backend and its failure (e.g. LAS QA mid-deploy) must never fail the seed.
+        self._run_las_connection_test()
+
         # Populate history outside the big seed transaction to avoid one huge final COMMIT.
         # Create initial history only once; skip when any historical records already exist.
         if self._skip_history:
@@ -854,6 +859,21 @@ class Command(BaseCommand):
         )
         self.stdout.write("  LiveAssistedSalesSettings: 1 record")
 
+    def _run_las_connection_test(self):
+        """Run the LAS connection test the way the admin button does: it validates the seeded
+        store_api_key, caches site_public_key (required for the widget to render) and marks the
+        store verified on the LAS side - no manual step left after a fresh QA/local seed."""
+        from apps.live_assisted_sales.client import run_settings_connection_test
+
+        settings_obj = LiveAssistedSalesSettings.get_solo()
+        try:
+            ok, message = run_settings_connection_test(settings_obj)
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f"  LAS connection test: skipped ({exc})"))
+            return
+        style = self.style.SUCCESS if ok else self.style.WARNING
+        self.stdout.write(style(f"  LAS connection test: {message}"))
+
     def _seed_dynamic_pages(self):
         """Seed DynamicPage model."""
         self._bulk_upsert_by_id(
@@ -905,20 +925,15 @@ class Command(BaseCommand):
         )
 
     def _seed_coupons(self):
-        """Seed Coupon model."""
-        self._bulk_upsert_by_id(
-            Coupon,
-            [
-                {
-                    "id": 1,
-                    "code": "SUMMER2026",
-                    "kind": CouponKind.PERCENT,
-                    "value": Decimal("20.00"),
-                    "is_active": True,
-                    "used_count": 0,
-                }
-            ],
-            update_fields=["code", "kind", "value", "is_active"],
+        """Seed Coupon model. Upsert by the unique code, not an explicit id: a database where
+        SUMMER2026 already exists under another id would violate the code uniqueness otherwise."""
+        Coupon.objects.update_or_create(
+            code="SUMMER2026",
+            defaults={
+                "kind": CouponKind.PERCENT,
+                "value": Decimal("20.00"),
+                "is_active": True,
+            },
         )
         self.stdout.write("  Coupons: 1 records")
         self.stdout.write(f"  Footer: {len(FOOTER_DATA)} records")
