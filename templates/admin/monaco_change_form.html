@@ -1,7 +1,7 @@
 {% extends "admin/change_form.html" %}
 {% load i18n static %}
 
-{# 
+{% comment %}
   Base template for admin change forms with Monaco Editors (HTML/CSS/JS).
   Provides:
   - Three Monaco editors for HTML, CSS, and JavaScript
@@ -13,7 +13,7 @@
   Extend this template and override blocks as needed:
   - monaco_extra_styles: Add page-specific CSS
   - monaco_extra_scripts: Add page-specific JavaScript
-#}
+{% endcomment %}
 
 {% block extrahead %}
   {{ block.super }}

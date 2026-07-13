@@ -743,6 +743,13 @@ HEALTH_CHECK_TOKENS = env.list("HEALTH_CHECK_TOKENS", default="")
 # set this to True in production to have URLs generated with https instead of http
 USE_HTTPS_IN_ABSOLUTE_URLS = env.bool("USE_HTTPS_IN_ABSOLUTE_URLS", default=False)
 
+# Behind a TLS-terminating reverse proxy (the hosted demo runs gunicorn on plain HTTP behind
+# nginx-proxy) Django sees every request as http, so request.build_absolute_uri() stamps http://
+# into llms.txt, the UCP manifest and LAS event payloads. Trusting X-Forwarded-Proto fixes that;
+# it is opt-in via env because the header is only trustworthy when a proxy always overwrites it.
+if env.bool("USE_X_FORWARDED_PROTO", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
 DRAFT_PREVIEW_TTL_MINUTES = env.int("DRAFT_PREVIEW_TTL_MINUTES", default=1440)
 
 # Demo store banner: shows a prominent "this is a demo store, no real sales"
