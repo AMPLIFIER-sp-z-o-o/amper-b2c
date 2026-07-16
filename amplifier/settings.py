@@ -483,6 +483,12 @@ FRONTEND_ADDRESS = env("FRONTEND_ADDRESS", default="http://localhost:5174")
 # environment-appropriate value that `manage.py seed` stores on the settings record, so a deployment
 # that forgets the env var ends up dialing localhost inside its own container ("connection refused").
 LAS_BASE_URL = env("LAS_BASE_URL", default="")
+# Optional comma-separated list of EXTRA LAS installs that receive a best-effort copy of every
+# storefront event (same store API key). Used by the shared demo storefront so both the QA and the
+# production LAS consoles show live activity from a single storefront. The chat widget and the
+# connection test still talk only to LAS_BASE_URL; a mirror that is down never blocks or fails
+# delivery to the primary.
+LAS_MIRROR_BASE_URLS = env("LAS_MIRROR_BASE_URLS", default="")
 USE_HEADLESS_URLS = env.bool("USE_HEADLESS_URLS", default=False)
 if USE_HEADLESS_URLS:
     # These URLs will use the React front end instead of the Django views

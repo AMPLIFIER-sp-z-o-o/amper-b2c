@@ -122,20 +122,44 @@ def run_settings_connection_test(settings_obj):
     return True, message
 
 
+def mirror_base_urls(settings_obj):
+    """Extra LAS installs (settings.LAS_MIRROR_BASE_URLS, comma-separated) that receive a
+    best-effort copy of every event with the same store API key. Lets one demo storefront feed
+    both the QA and the production LAS consoles. The primary (effective_base_url) is excluded so
+    a redundant listing never double-delivers."""
+    from django.conf import settings as django_settings
+
+    raw = getattr(django_settings, "LAS_MIRROR_BASE_URLS", "") or ""
+    primary = (settings_obj.effective_base_url or "").strip().rstrip("/").lower()
+    urls = []
+    for candidate in raw.split(","):
+        candidate = candidate.strip().rstrip("/")
+        if candidate and candidate.lower() != primary and candidate not in urls:
+            urls.append(candidate)
+    return urls
+
+
+def _send_to(base_url, api_key, payload, target="primary"):
+    try:
+        LiveAssistedSalesClient(base_url, api_key, timeout=EVENT_DISPATCH_TIMEOUT).send_event(payload)
+        return True
+    except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        logger.warning("Live Assisted Sales event dispatch failed (%s %s): %s", target, base_url, exc)
+        return False
+    except Exception:
+        logger.exception("Live Assisted Sales event dispatch failed unexpectedly (%s %s).", target, base_url)
+        return False
+
+
 def send_event(settings_obj, payload):
     if not settings_obj.is_configured:
         return False
-    try:
-        LiveAssistedSalesClient(
-            settings_obj.effective_base_url, settings_obj.store_api_key, timeout=EVENT_DISPATCH_TIMEOUT
-        ).send_event(payload)
-        return True
-    except (HTTPError, URLError, TimeoutError, OSError) as exc:
-        logger.warning("Live Assisted Sales event dispatch failed: %s", exc)
-        return False
-    except Exception:
-        logger.exception("Live Assisted Sales event dispatch failed unexpectedly.")
-        return False
+    sent = _send_to(settings_obj.effective_base_url, settings_obj.store_api_key, payload)
+    # Mirrors are best-effort: a mirror being down must never fail (or retry-loop) delivery that
+    # the primary already confirmed, so their outcome doesn't affect the return value.
+    for base_url in mirror_base_urls(settings_obj):
+        _send_to(base_url, settings_obj.store_api_key, payload, target="mirror")
+    return sent
 
 
 def notify_disconnected(base_url, api_key):

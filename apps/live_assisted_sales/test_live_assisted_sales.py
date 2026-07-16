@@ -485,7 +485,8 @@ class LiveAssistedSalesSettingsTests(TestCase):
             result = send_event(settings_obj, {"event_type": "search"})
 
         self.assertFalse(result)
-        self.assertIn("Live Assisted Sales event dispatch failed: timed out", logs.output[0])
+        self.assertIn("Live Assisted Sales event dispatch failed", logs.output[0])
+        self.assertIn("timed out", logs.output[0])
         self.assertNotIn("Traceback", "\n".join(logs.output))
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
@@ -504,6 +505,75 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertTrue(result)
         _args, kwargs = client_cls_mock.call_args
         self.assertGreaterEqual(kwargs["timeout"], 3.0)
+
+    def _mirror_settings(self):
+        return LiveAssistedSalesSettings.objects.create(
+            enabled=True,
+            las_base_url="https://qa.live-assisted-sales.com",
+            store_api_key="site_sk_secret",
+        )
+
+    @override_settings(LAS_MIRROR_BASE_URLS="https://live-assisted-sales.com")
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
+    def test_send_event_delivers_to_primary_and_mirrors(self, client_cls_mock):
+        client_cls_mock.return_value.send_event.return_value = (200, {"ok": True})
+        settings_obj = self._mirror_settings()
+
+        result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertTrue(result)
+        targets = [call.args[0] for call in client_cls_mock.call_args_list]
+        self.assertEqual(targets, ["https://qa.live-assisted-sales.com", "https://live-assisted-sales.com"])
+        for call in client_cls_mock.call_args_list:
+            self.assertEqual(call.args[1], "site_sk_secret")
+
+    @override_settings(LAS_MIRROR_BASE_URLS="https://live-assisted-sales.com")
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.send_event")
+    def test_send_event_mirror_failure_does_not_fail_primary_delivery(self, send_event_mock):
+        # Primary confirmed, mirror down: the mirror must never fail (or retry-loop, via the
+        # outbox) an event the primary already accepted.
+        send_event_mock.side_effect = [(200, {"ok": True}), URLError("mirror down")]
+        settings_obj = self._mirror_settings()
+
+        with self.assertLogs("apps.live_assisted_sales.client", level="WARNING"):
+            result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertTrue(result)
+        self.assertEqual(send_event_mock.call_count, 2)
+
+    @override_settings(LAS_MIRROR_BASE_URLS="https://live-assisted-sales.com")
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.send_event")
+    def test_send_event_primary_failure_reported_even_when_mirror_succeeds(self, send_event_mock):
+        # The return value drives outbox retries, which must track the PRIMARY install only.
+        send_event_mock.side_effect = [URLError("primary down"), (200, {"ok": True})]
+        settings_obj = self._mirror_settings()
+
+        with self.assertLogs("apps.live_assisted_sales.client", level="WARNING"):
+            result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertFalse(result)
+        self.assertEqual(send_event_mock.call_count, 2)
+
+    @override_settings(
+        LAS_MIRROR_BASE_URLS="https://qa.live-assisted-sales.com/, https://live-assisted-sales.com,"
+        "https://live-assisted-sales.com/"
+    )
+    def test_mirror_base_urls_skips_primary_and_duplicates(self):
+        from .client import mirror_base_urls
+
+        settings_obj = self._mirror_settings()
+
+        self.assertEqual(mirror_base_urls(settings_obj), ["https://live-assisted-sales.com"])
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
+    def test_send_event_without_mirrors_hits_primary_only(self, client_cls_mock):
+        client_cls_mock.return_value.send_event.return_value = (200, {"ok": True})
+        settings_obj = self._mirror_settings()
+
+        result = send_event(settings_obj, {"event_type": "search"})
+
+        self.assertTrue(result)
+        self.assertEqual(client_cls_mock.call_count, 1)
 
 
 class SeedLasConnectionTestHookTests(TestCase):
@@ -1160,6 +1230,9 @@ class TelemetryEventTests(TestCase):
 
         for token in ('"select_item"', '"scroll_depth"', '"page_ping"', "engaged_ms", "sendBeacon"):
             self.assertIn(token, html)
+        # select_item must name the list it was picked from, read off the listing container so an
+        # HTMX category swap can never leave a stale value behind.
+        self.assertIn("data-las-list-name", html)
         # Dropped from the tracker: generic click + cursor-hover emission.
         for token in ('"cursor_hover"', "onMouseOver"):
             self.assertNotIn(token, html)
