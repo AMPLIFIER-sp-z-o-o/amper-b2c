@@ -16,6 +16,11 @@ class LiveAssistedSalesSettings(models.Model):
     las_base_url = models.URLField(_("LAS base URL"), max_length=500, blank=True)
     store_api_key = models.CharField(_("Store API key"), max_length=128, blank=True)
     site_public_key = models.CharField(_("Site public key"), max_length=80, blank=True)
+    # Optional second LAS platform that receives a COPY of every event (browser telemetry + durable
+    # business events). Lets one storefront feed e.g. both the QA and the production LAS consoles.
+    # Events only: the chat widget, connection test and site_public_key stay on the primary platform.
+    mirror_base_url = models.URLField(_("Mirror LAS base URL"), max_length=500, blank=True)
+    mirror_store_api_key = models.CharField(_("Mirror store API key"), max_length=128, blank=True)
     widget_accent_color = models.CharField(
         _("Widget accent colour"),
         max_length=7,
@@ -40,14 +45,16 @@ class LiveAssistedSalesSettings(models.Model):
         return str(_("Live Assisted Sales settings"))
 
     def clean(self):
-        # The store API key (Bearer) and full event payloads (incl. shopper PII) travel to this URL,
-        # so it must be https — an http:// endpoint would send the secret + PII in cleartext. Allow
-        # plain http only for localhost during development.
+        # The store API key (Bearer) and full event payloads (incl. shopper PII) travel to these
+        # URLs, so they must be https — an http:// endpoint would send the secret + PII in cleartext.
+        # Allow plain http only for localhost during development.
         super().clean()
         from urllib.parse import urlparse
 
-        url = (self.las_base_url or "").strip()
-        if url:
+        for field in ("las_base_url", "mirror_base_url"):
+            url = (getattr(self, field) or "").strip()
+            if not url:
+                continue
             parsed = urlparse(url)
             host = (parsed.hostname or "").lower()
             is_local = host in ("localhost", "127.0.0.1", "::1")
@@ -55,7 +62,7 @@ class LiveAssistedSalesSettings(models.Model):
                 from django.core.exceptions import ValidationError
 
                 raise ValidationError(
-                    {"las_base_url": _("Use an https:// URL — the API key and customer data must not be sent over http.")}
+                    {field: _("Use an https:// URL — the API key and customer data must not be sent over http.")}
                 )
 
     @classmethod
@@ -80,6 +87,28 @@ class LiveAssistedSalesSettings(models.Model):
     @property
     def is_configured(self):
         return bool(self.enabled and self.effective_base_url and self.store_api_key)
+
+    @property
+    def effective_mirror_base_url(self):
+        """Second LAS platform receiving a copy of every event. Deliberately a plain model field
+        (admin-editable, seeded with an environment-matched default) and NOT a deployment env var -
+        the deployments must stay reconfiguration-free (user decision 2026-07-17)."""
+        return (self.mirror_base_url or "").strip()
+
+    @property
+    def mirror_api_key(self):
+        # The demo dataset pins the same write_key on every LAS environment, so a blank mirror key
+        # deliberately reuses the primary one - zero-config for the standard QA+prod pairing.
+        return self.mirror_store_api_key or self.store_api_key
+
+    @property
+    def is_mirror_configured(self):
+        """Mirroring piggybacks the primary pipeline (enqueue_event checks is_configured first), so
+        this only answers: is there a DISTINCT second platform to copy events to? Same-URL guard
+        stops a double-send to one backend when someone pastes the primary address as the mirror."""
+        if not (self.enabled and self.effective_mirror_base_url and self.mirror_api_key):
+            return False
+        return self.effective_mirror_base_url.rstrip("/") != (self.effective_base_url or "").rstrip("/")
 
     @property
     def is_widget_configured(self):
@@ -119,8 +148,15 @@ class OutboxEvent(models.Model):
         SENT = "sent", _("Sent")
         FAILED = "failed", _("Failed")  # exhausted retries (dead-letter)
 
+    class Target(models.TextChoices):
+        PRIMARY = "primary", _("Primary")
+        MIRROR = "mirror", _("Mirror")
+
     payload = models.JSONField()
     event_type = models.CharField(max_length=64, blank=True)
+    # Which LAS platform this row is destined for: with mirroring on, a durable event writes one row
+    # per target so each platform gets its own delivery state and retries independently.
+    target = models.CharField(max_length=16, choices=Target.choices, default=Target.PRIMARY)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING, db_index=True)
     attempts = models.PositiveSmallIntegerField(default=0)
     last_error = models.TextField(blank=True)

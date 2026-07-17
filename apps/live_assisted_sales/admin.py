@@ -22,6 +22,11 @@ class LiveAssistedSalesSettingsForm(forms.ModelForm):
         exclude = ("las_base_url", "site_public_key")
         help_texts = {
             "store_api_key": _("The secret key shown on this store's page in the AMPER LAS console."),
+            "mirror_base_url": _(
+                "Optional second AMPER LAS platform that receives a copy of every event. "
+                "Events only — the chat widget keeps using the primary platform."
+            ),
+            "mirror_store_api_key": _("Leave blank to reuse the primary store API key."),
         }
         widgets = {
             "store_api_key": UnfoldAdminPasswordInput(
@@ -32,6 +37,17 @@ class LiveAssistedSalesSettingsForm(forms.ModelForm):
                     "data-1p-ignore": "true",
                     "data-show-label": _("Show store API key"),
                     "data-hide-label": _("Hide store API key"),
+                },
+                render_value=True,
+            ),
+            "mirror_store_api_key": UnfoldAdminPasswordInput(
+                attrs={
+                    "autocomplete": "new-password",
+                    "data-las-secret": "true",
+                    "data-lpignore": "true",
+                    "data-1p-ignore": "true",
+                    "data-show-label": _("Show mirror store API key"),
+                    "data-hide-label": _("Hide mirror store API key"),
                 },
                 render_value=True,
             ),
@@ -52,6 +68,17 @@ class LiveAssistedSalesSettingsAdmin(ModelAdmin):
         (_("LAS integration"), {"fields": ("enabled", "store_api_key")}),
         (_("Widget appearance"), {"fields": ("widget_accent_color",)}),
         (_("Connection health"), {"fields": ("connection_status_panel",)}),
+        (
+            _("Event mirroring (advanced)"),
+            {
+                "fields": ("mirror_base_url", "mirror_store_api_key"),
+                "description": _(
+                    "Sends a copy of every event to a second AMPER LAS platform (for example the "
+                    "QA and the production console at the same time). The chat widget stays on the "
+                    "primary platform."
+                ),
+            },
+        ),
     )
 
     class Media:
@@ -84,6 +111,20 @@ class LiveAssistedSalesSettingsAdmin(ModelAdmin):
         )
         if previous_configured and (not current_configured or connection_changed):
             notify_disconnected(previous.effective_base_url, previous.store_api_key)
+        # Mirror teardown symmetry: without this the mirror platform keeps showing the store as
+        # connected until its 48h heartbeat decays. Ingest itself re-verifies the mirror, so there
+        # is no mirror connection test to run - only the goodbye matters.
+        mirror_changed = bool(
+            previous
+            and previous.is_mirror_configured
+            and (
+                not obj.is_mirror_configured
+                or previous.effective_mirror_base_url != obj.effective_mirror_base_url
+                or previous.mirror_api_key != obj.mirror_api_key
+            )
+        )
+        if mirror_changed:
+            notify_disconnected(previous.effective_mirror_base_url, previous.mirror_api_key)
         if current_configured:
             ok, message = run_settings_connection_test(obj)
             messages.success(request, message) if ok else messages.error(request, message)

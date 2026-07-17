@@ -122,19 +122,33 @@ def run_settings_connection_test(settings_obj):
     return True, message
 
 
-def send_event(settings_obj, payload):
+TARGET_PRIMARY = "primary"
+TARGET_MIRROR = "mirror"
+
+
+def _target_credentials(settings_obj, target):
+    """(base_url, api_key) for a delivery target, or (None, None) when that target is unconfigured."""
+    if target == TARGET_MIRROR:
+        if not settings_obj.is_mirror_configured:
+            return None, None
+        return settings_obj.effective_mirror_base_url, settings_obj.mirror_api_key
     if not settings_obj.is_configured:
+        return None, None
+    return settings_obj.effective_base_url, settings_obj.store_api_key
+
+
+def send_event(settings_obj, payload, target=TARGET_PRIMARY):
+    base_url, api_key = _target_credentials(settings_obj, target)
+    if not base_url:
         return False
     try:
-        LiveAssistedSalesClient(
-            settings_obj.effective_base_url, settings_obj.store_api_key, timeout=EVENT_DISPATCH_TIMEOUT
-        ).send_event(payload)
+        LiveAssistedSalesClient(base_url, api_key, timeout=EVENT_DISPATCH_TIMEOUT).send_event(payload)
         return True
     except (HTTPError, URLError, TimeoutError, OSError) as exc:
-        logger.warning("Live Assisted Sales event dispatch failed: %s", exc)
+        logger.warning("Live Assisted Sales event dispatch failed (%s): %s", target, exc)
         return False
     except Exception:
-        logger.exception("Live Assisted Sales event dispatch failed unexpectedly.")
+        logger.exception("Live Assisted Sales event dispatch failed unexpectedly (%s).", target)
         return False
 
 
@@ -156,39 +170,56 @@ DURABLE_EVENT_TYPES = {"add_to_cart", "remove_from_cart", "begin_checkout", "pur
 OUTBOX_MAX_ATTEMPTS = 8
 
 
+def _delivery_targets(settings_obj):
+    targets = [TARGET_PRIMARY]
+    if settings_obj.is_mirror_configured:
+        targets.append(TARGET_MIRROR)
+    return targets
+
+
 def enqueue_event(settings_obj, payload):
     if not settings_obj.is_configured:
         return False
+    targets = _delivery_targets(settings_obj)
     if str(payload.get("event_type", "")) in DURABLE_EVENT_TYPES:
-        return _enqueue_durable(settings_obj, payload)
-    try:
-        _delivery_executor.submit(send_event, settings_obj, payload)
-        return True
-    except Exception:
-        logger.exception("Live Assisted Sales event enqueue failed.")
-        return False
+        return _enqueue_durable(settings_obj, payload, targets)
+    ok = False
+    for target in targets:
+        try:
+            _delivery_executor.submit(send_event, settings_obj, payload, target)
+            ok = ok or target == TARGET_PRIMARY
+        except Exception:
+            logger.exception("Live Assisted Sales event enqueue failed (%s).", target)
+    return ok
 
 
-def _enqueue_durable(settings_obj, payload):
-    """Persist an outbox row (durable), then attempt immediate delivery off the request thread. The
-    periodic relay retries anything the fast path doesn't confirm."""
+def _enqueue_durable(settings_obj, payload, targets):
+    """Persist an outbox row per target (durable), then attempt immediate delivery off the request
+    thread. The periodic relay retries anything the fast path doesn't confirm. Each target keeps its
+    own row so e.g. a mirror outage never blocks or double-sends the primary stream."""
     from .models import OutboxEvent
 
-    try:
-        row = OutboxEvent.objects.create(payload=payload, event_type=str(payload.get("event_type", ""))[:64])
-    except Exception:
-        # If the outbox write itself fails, degrade to fire-and-forget rather than dropping silently.
-        logger.exception("Live Assisted Sales outbox write failed; falling back to fire-and-forget.")
+    ok = False
+    for target in targets:
         try:
-            _delivery_executor.submit(send_event, settings_obj, payload)
-            return True
+            row = OutboxEvent.objects.create(
+                payload=payload, event_type=str(payload.get("event_type", ""))[:64], target=target
+            )
         except Exception:
-            return False
-    try:
-        _delivery_executor.submit(deliver_outbox_row, row.id)
-    except Exception:
-        logger.exception("Outbox fast-path submit failed; the relay will retry row %s.", row.id)
-    return True
+            # If the outbox write itself fails, degrade to fire-and-forget rather than dropping silently.
+            logger.exception("Live Assisted Sales outbox write failed (%s); falling back to fire-and-forget.", target)
+            try:
+                _delivery_executor.submit(send_event, settings_obj, payload, target)
+                ok = ok or target == TARGET_PRIMARY
+            except Exception:
+                pass
+            continue
+        ok = ok or target == TARGET_PRIMARY
+        try:
+            _delivery_executor.submit(deliver_outbox_row, row.id)
+        except Exception:
+            logger.exception("Outbox fast-path submit failed; the relay will retry row %s.", row.id)
+    return ok
 
 
 def deliver_outbox_row(outbox_id):
@@ -202,10 +233,12 @@ def deliver_outbox_row(outbox_id):
     if row is None:
         return False
     settings_obj = LiveAssistedSalesSettings.get_solo()
-    if not settings_obj.is_configured:
+    # An unconfigured target keeps its rows PENDING without burning attempts: re-adding the key
+    # later (or re-enabling the mirror) still delivers the backlog instead of dead-lettering it.
+    if _target_credentials(settings_obj, row.target)[0] is None:
         return False
 
-    sent = send_event(settings_obj, row.payload)
+    sent = send_event(settings_obj, row.payload, row.target)
     row.attempts = (row.attempts or 0) + 1
     if sent:
         row.status = OutboxEvent.Status.SENT

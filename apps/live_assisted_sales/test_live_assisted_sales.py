@@ -485,7 +485,7 @@ class LiveAssistedSalesSettingsTests(TestCase):
             result = send_event(settings_obj, {"event_type": "search"})
 
         self.assertFalse(result)
-        self.assertIn("Live Assisted Sales event dispatch failed: timed out", logs.output[0])
+        self.assertIn("Live Assisted Sales event dispatch failed (primary): timed out", logs.output[0])
         self.assertNotIn("Traceback", "\n".join(logs.output))
 
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
@@ -1236,6 +1236,107 @@ class OutboxTests(TestCase):
 
         self.assertEqual(relay_pending_outbox(), 2)
         self.assertEqual(OutboxEvent.objects.filter(status="sent").count(), 2)
+
+
+class MirrorTests(TestCase):
+    """Event mirroring: an optional second LAS platform receives a copy of every event (telemetry
+    fast path + durable outbox), so one storefront can feed e.g. the QA and production consoles at
+    once. Events only - widget/connection test stay on the primary platform."""
+
+    def _settings(self, **over):
+        LiveAssistedSalesSettings.objects.all().delete()
+        data = {
+            "pk": 1,
+            "enabled": True,
+            "las_base_url": "http://localhost:8001",
+            "store_api_key": "k-primary",
+            "mirror_base_url": "http://localhost:9001",
+        }
+        data.update(over)
+        return LiveAssistedSalesSettings.objects.create(**data)
+
+    def test_mirror_key_falls_back_to_primary_key(self):
+        # The LAS seed pins the same write_key on every environment, so a blank mirror key reuses
+        # the primary one - the standard QA+prod pairing needs only the mirror URL.
+        obj = self._settings()
+        self.assertTrue(obj.is_mirror_configured)
+        self.assertEqual(obj.mirror_api_key, "k-primary")
+        obj.mirror_store_api_key = "k-mirror"
+        self.assertEqual(obj.mirror_api_key, "k-mirror")
+
+    def test_mirror_not_configured_without_url_or_when_same_as_primary(self):
+        self.assertFalse(self._settings(mirror_base_url="").is_mirror_configured)
+        # Same URL as the primary would double-send every event to one backend.
+        self.assertFalse(self._settings(mirror_base_url="http://localhost:8001/").is_mirror_configured)
+
+    def test_mirror_base_url_requires_https_except_localhost(self):
+        from django.core.exceptions import ValidationError
+
+        with self.assertRaises(ValidationError):
+            LiveAssistedSalesSettings(mirror_base_url="http://las-mirror.example.com").clean()
+        LiveAssistedSalesSettings(mirror_base_url="https://las-mirror.example.com").clean()
+
+    @patch("apps.live_assisted_sales.client._delivery_executor")
+    def test_telemetry_event_fans_out_to_both_targets(self, executor):
+        from apps.live_assisted_sales.client import TARGET_MIRROR, TARGET_PRIMARY, enqueue_event, send_event
+
+        obj = self._settings()
+        self.assertTrue(enqueue_event(obj, {"event_type": "page_ping", "event_id": "e1"}))
+        targets = [call.args[3] for call in executor.submit.call_args_list if call.args[0] is send_event]
+        self.assertEqual(targets, [TARGET_PRIMARY, TARGET_MIRROR])
+
+    @patch("apps.live_assisted_sales.client._delivery_executor")
+    def test_durable_event_writes_one_outbox_row_per_target(self, executor):
+        from apps.live_assisted_sales.client import enqueue_event
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        obj = self._settings()
+        self.assertTrue(enqueue_event(obj, {"event_type": "purchase", "event_id": "e2"}))
+        self.assertEqual(
+            list(OutboxEvent.objects.order_by("id").values_list("target", flat=True)),
+            [OutboxEvent.Target.PRIMARY, OutboxEvent.Target.MIRROR],
+        )
+
+    @patch("apps.live_assisted_sales.client._delivery_executor")
+    def test_no_mirror_rows_without_mirror_config(self, executor):
+        from apps.live_assisted_sales.client import enqueue_event
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        obj = self._settings(mirror_base_url="")
+        self.assertTrue(enqueue_event(obj, {"event_type": "purchase", "event_id": "e3"}))
+        self.assertEqual(
+            list(OutboxEvent.objects.values_list("target", flat=True)), [OutboxEvent.Target.PRIMARY]
+        )
+
+    @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient")
+    def test_deliver_outbox_row_routes_to_the_row_target(self, client_cls):
+        from apps.live_assisted_sales.client import deliver_outbox_row
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        self._settings()
+        row = OutboxEvent.objects.create(
+            payload={"event_type": "purchase"}, event_type="purchase", target=OutboxEvent.Target.MIRROR
+        )
+        self.assertTrue(deliver_outbox_row(row.id))
+        self.assertEqual(client_cls.call_args.args[0], "http://localhost:9001")
+        self.assertEqual(client_cls.call_args.args[1], "k-primary")
+        row.refresh_from_db()
+        self.assertEqual(row.status, "sent")
+
+    def test_deliver_outbox_row_keeps_mirror_row_pending_when_mirror_removed(self):
+        # Deconfiguring the mirror must not dead-letter its backlog: re-adding it later still
+        # delivers, and attempts stay untouched meanwhile.
+        from apps.live_assisted_sales.client import deliver_outbox_row
+        from apps.live_assisted_sales.models import OutboxEvent
+
+        self._settings(mirror_base_url="")
+        row = OutboxEvent.objects.create(
+            payload={"event_type": "purchase"}, event_type="purchase", target=OutboxEvent.Target.MIRROR
+        )
+        self.assertFalse(deliver_outbox_row(row.id))
+        row.refresh_from_db()
+        self.assertEqual(row.status, "pending")
+        self.assertEqual(row.attempts, 0)
 
 
 class ConsentRegionTests(TestCase):

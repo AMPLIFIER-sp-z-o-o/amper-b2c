@@ -34,3 +34,12 @@ live in `AGENTS.md`. DB `amplifier` on docker pg port **7432**.
   never build chat UI in this repo.
 - Business events (orders/carts) are emitted SERVER-side; `session_start` + telemetry
   client-side. Event taxonomy is GA4 names (view_item, add_to_cart, purchase…).
+- Hosted pairing (2026-07-17, with Tomek): each installation pairs 1:1 with its LAS -
+  `amper-b2c-qa.ampliapps.com` ↔ QA console, `amper-b2c.ampliapps.com` ↔ PRODUCTION
+  console. `manage.py seed` derives the pairing from the installation's own domain
+  (SITE_DOMAIN/FRONTEND_ADDRESS); LAS_BASE_URL env stays UNSET on hosted installs (it
+  would override the seeded pairing - see deploy/b2c.env). Same pinned API key on both.
+- Event mirroring (optional, admin-only): `LiveAssistedSalesSettings.mirror_base_url`
+  (+ optional `mirror_store_api_key`, blank = reuse primary key) copies EVERY event to a
+  second LAS platform. Events only - chat widget/connection test stay on the primary.
+  Seed leaves it empty everywhere (each env has its own full pair).

@@ -111,11 +111,19 @@ if _MEDIA_CDN_DOMAIN_URL.startswith(("http://", "https://")):
 _MEDIA_CDN_DOMAIN_URL = _MEDIA_CDN_DOMAIN_URL.strip("/")
 
 _LOCAL_SITE_DOMAINS = {"localhost:8000", "127.0.0.1:8000"}
-_DEFAULT_LAS_BASE_URL = "https://qa.live-assisted-sales.com/"
+# Each hosted b2c installation pairs with ITS OWN LAS platform (full fidelity incl. live chat, which
+# has exactly one owning backend): amper-b2c-qa <-> QA console, amper-b2c (the main demo) <-> the
+# production console (pairing decided with Tomek, 2026-07-17). The pairing is derived from this
+# installation's own domain, so no LAS-specific env vars are needed - and the LAS seed pins the same
+# write_key on every environment, so one key constant serves both hosted installs.
+_QA_SITE_DOMAIN = "amper-b2c-qa.ampliapps.com"
+_DEFAULT_LAS_BASE_URL = "https://live-assisted-sales.com/"
 _DEFAULT_LAS_STORE_API_KEY = (
     "-ZZOAA5i7fX5dfCE-vcw6KbSQ5AWF_DylK4foQV1lp-JLZTNvrLMXx5_rGgJLAQvYiM-w4zQTajLSqHGr8O8xaWIBZ7vdyVd8Z4zeB-wE4XqMoOdX3bAHSUHqBtNXOxZ"
 )
-if _SITE_DOMAIN in _LOCAL_SITE_DOMAINS:
+if _SITE_DOMAIN == _QA_SITE_DOMAIN:
+    _DEFAULT_LAS_BASE_URL = "https://qa.live-assisted-sales.com/"
+elif _SITE_DOMAIN in _LOCAL_SITE_DOMAINS:
     _DEFAULT_LAS_BASE_URL = "http://localhost:8001/"
     _DEFAULT_LAS_STORE_API_KEY = (
         "5EsSYXmZVJhIlgy4H7jHkUUVgR-27O0D8JPNjZsD_adRyopGpvBmULhQv4a46dtYPeJswPpGwiKO25VL1z51gry2RxsEZH1aL5bnDkE3bya9persfzeeny3KlAvdfrRb"
@@ -126,6 +134,9 @@ LIVE_ASSISTED_SALES_SETTINGS_DATA = {
     "enabled": True,
     "las_base_url": _DEFAULT_LAS_BASE_URL,
     "store_api_key": _DEFAULT_LAS_STORE_API_KEY,
+    # With one full storefront<->LAS pair per environment there is nothing to mirror by default;
+    # the mirror stays an admin-configurable option (see LiveAssistedSalesSettings).
+    "mirror_base_url": "",
 }
 
 
@@ -855,6 +866,7 @@ class Command(BaseCommand):
                 "enabled": LIVE_ASSISTED_SALES_SETTINGS_DATA["enabled"],
                 "las_base_url": LIVE_ASSISTED_SALES_SETTINGS_DATA["las_base_url"],
                 "store_api_key": LIVE_ASSISTED_SALES_SETTINGS_DATA["store_api_key"],
+                "mirror_base_url": LIVE_ASSISTED_SALES_SETTINGS_DATA["mirror_base_url"],
             },
         )
         self.stdout.write("  LiveAssistedSalesSettings: 1 record")
