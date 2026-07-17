@@ -198,11 +198,24 @@
       lastClickAt = now;
       lastSelectId = productId;
       const name = (card.getAttribute && card.getAttribute("data-product-name")) || "";
-      enqueue({
+      // Name the list the tile was picked from - "Product selected" on its own leaves the agent
+      // asking "from which list?". The listing container carries it and rides along on HTMX swaps,
+      // so switching category can never leave a stale value behind (a page-level global would).
+      // Tiles outside a listing (home sliders, related products) simply send no list.
+      const list = card.closest ? card.closest("[data-las-list-name]") : null;
+      const payload = {
         event_type: "select_item",
         page: pageContext(),
         product: { id: productId, name: name },
-      });
+      };
+      if (list) {
+        payload.category = {
+          id: list.getAttribute("data-las-list-id") || "",
+          name: list.getAttribute("data-las-list-name") || "",
+          slug: list.getAttribute("data-las-list-slug") || "",
+        };
+      }
+      enqueue(payload);
     }
 
     // Scroll depth milestones (25/50/75/90), each fired at most once per page.
