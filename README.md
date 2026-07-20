@@ -17,6 +17,25 @@ You can see AMPER B2C in action on our public demo environment.
 
 The demo presents typical B2C storefront features, admin panel, customer flows, and integrations used in real deployments.
 
+### 🧠 Connected to Live Assisted Sales
+
+This demo storefront is live-wired to **[Live Assisted Sales](https://ampliapps.com/live-assisted-sales-the-salesperson-sees-who-is-truly-ready-to-buy/)** (LAS) - the AI intelligence layer that sits *alongside* your sales team, not instead of it. Store traffic (even anonymous visitors) turns into a live, ranked list of customers who are ready to buy, with a next-best-action and an AI copilot that drafts chat replies for your consultants to review and send. Nothing ever reaches the customer without a human clicking send.
+
+Why it's worth a look:
+
+- 🎯 **Live purchase-intent score (0–100)** for every visitor, logged in or anonymous — no more guessing who to talk to.
+- ⚡ **Next-best-action, not just numbers** — "reach out", "recommend a product", "let them browse" — one click opens the conversation.
+- 🤖 **AI copilot for consultants** — a ready-to-send reply drafted from real cart/session context in seconds; the human always edits and sends.
+- 😊 **Sentiment detection** — spot a frustrated or hesitant customer before they abandon.
+- 🛒 **Smarter product suggestions** and **A/B-tested proof** of the sales lift, not just a promise.
+- 🇪🇺 **GDPR/EU-native by design** — data hosted in Europe, short retention, one-click data export/delete, and a human always makes the final call — a real edge over US point-solutions that European retailers otherwise have to stitch together.
+
+Curious how it feels in practice? Try the standalone Live Assisted Sales console yourself:
+
+> Demo URL: **https://live-assisted-sales.com/**  
+> Login: **tenant1@example.com**  
+> Password: **demo1234**
+
 ## 🤝 Support & Cooperation
 
 This is an **actively maintained** project.
