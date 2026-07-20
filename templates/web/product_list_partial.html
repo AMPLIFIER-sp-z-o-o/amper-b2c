@@ -57,10 +57,12 @@
 <!-- Products Container -->
 {% if products %}
 <!-- View modes: list (horizontal cards, desktop default) / grid (tiles, mobile default) -->
-{# data-las-list-* names the list for the LAS tracker's select_item (GA4 pairs the click with the list
-   it came from). Set only when browsing a category - matching track_view_item_list, which likewise
-   sends a category payload for categories and a bare list name for search / all-products. It lives on
-   the HTMX-swapped container so switching category always ships a fresh value. #}
+{% comment %}
+data-las-list-* names the list for the LAS tracker's select_item (GA4 pairs the click with the list
+it came from). Set only when browsing a category - matching track_view_item_list, which likewise
+sends a category payload for categories and a bare list name for search / all-products. It lives on
+the HTMX-swapped container so switching category always ships a fresh value.
+{% endcomment %}
 <div id="products-grid"
      class="products-container animate-fade-in"
      data-view-mode="{{ view_mode }}"
