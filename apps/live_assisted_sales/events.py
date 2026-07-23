@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from uuid import uuid4
 
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 
 from apps.web.models import SiteSettings
 
@@ -175,7 +176,7 @@ def build_event_payload(request, event_type, **data):
         "visitor_id": data.pop("visitor_id", None) or visitor_id_from_request(request),
         "session_id": data.pop("session_id", None) or session_id_from_request(request),
         "occurred_at": occurred_at,
-        "url": data.pop("url", request.build_absolute_uri()),
+        "url": data.pop("url", None) or _event_page_url(request),
         "page": data.pop("page", {}),
         "product": data.pop("product", {}),
         "category": data.pop("category", {}),
@@ -196,6 +197,28 @@ def dispatch_event(request, event_type, **data):
     except Exception:
         logger.exception("Live Assisted Sales event enqueue failed.")
         return False
+
+
+def _event_page_url(request):
+    """The page the shopper is actually looking at when the event happens.
+
+    Server-side events raised by a background POST (add to cart, remove from cart) would otherwise
+    report the AJAX endpoint - "/cart/add/" - as the shopper's location. The LAS agent console shows
+    that verbatim as "Now on: …", i.e. a URL the shopper never visited and which says nothing about
+    what they are browsing. The Referer is the real page; it is trusted only when it points back at
+    this storefront, so a forged header can't put an arbitrary link in front of the agent.
+    """
+    if request is None:
+        return ""
+    current = request.build_absolute_uri()
+    if request.method == "GET":
+        return current
+    referer = request.META.get("HTTP_REFERER", "")
+    if referer and url_has_allowed_host_and_scheme(
+        url=referer, allowed_hosts={request.get_host()}, require_https=False
+    ):
+        return referer
+    return current
 
 
 def _absolute_payload_url(request, url):

@@ -31,4 +31,6 @@ static/js/*-bundle.js
 static/js/*.js.map
 static/.vite/
 devserver-*.log
+celery-*.log
+celery-*.log.err
 playwright-*.png

@@ -813,6 +813,38 @@ class EventBuilderTests(TestCase):
         self.assertEqual(payload["page"]["title"], "Demo")
         self.assertNotIn("store_api_key", payload)
 
+    def test_cart_event_reports_the_page_the_shopper_is_on_not_the_ajax_endpoint(self):
+        """A cart POST happens on /cart/add/, but the shopper is standing on a product page.
+
+        The LAS console renders this URL as "Now on: …", so reporting the endpoint showed the agent
+        an address the shopper never visited."""
+        request = RequestFactory().post("/cart/add/", HTTP_REFERER="http://testserver/products/demo/")
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        payload = build_event_payload(request, "add_to_cart")
+
+        self.assertEqual(payload["url"], "http://testserver/products/demo/")
+
+    def test_cart_event_ignores_a_referer_pointing_somewhere_else(self):
+        """A forged Referer must not put an arbitrary link in front of the agent."""
+        request = RequestFactory().post("/cart/add/", HTTP_REFERER="https://evil.example.com/phish/")
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        payload = build_event_payload(request, "add_to_cart")
+
+        self.assertEqual(payload["url"], "http://testserver/cart/add/")
+
+    def test_page_view_still_reports_its_own_url(self):
+        request = RequestFactory().get("/products/demo/", HTTP_REFERER="http://testserver/other/")
+        request.session = Mock()
+        request.session.session_key = "session-1"
+
+        payload = build_event_payload(request, "view_item")
+
+        self.assertEqual(payload["url"], "http://testserver/products/demo/")
+
     def test_build_event_payload_captures_real_visitor_ip(self):
         # Events are forwarded server-to-server, so LAS only sees this app's server IP. The shopper's
         # real address must be captured from their request and carried in the payload.
