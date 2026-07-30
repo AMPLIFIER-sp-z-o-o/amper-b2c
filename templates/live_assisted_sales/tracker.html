@@ -295,6 +295,15 @@
       if (document.visibilityState === "hidden") flush(true);
     });
     window.addEventListener("pagehide", sendSessionEnd);
+    // Back/forward cache: the browser restores the page WITHOUT re-running scripts, so
+    // the sessionEnded latch would swallow the next real departure and the shopper's
+    // return would go unnoticed until the first heartbeat. A persisted pageshow re-arms
+    // the latch and announces the return immediately.
+    window.addEventListener("pageshow", function (event) {
+      if (!event.persisted) return;
+      sessionEnded = false;
+      sendNow({ event_type: "session_start", page: pageContext() });
+    });
 
     function persistConsent(value) {
       storageSet(localStorage, "las_consent", value ? "true" : "false");
