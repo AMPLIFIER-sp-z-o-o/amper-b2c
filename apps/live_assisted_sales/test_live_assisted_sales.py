@@ -397,6 +397,28 @@ class LiveAssistedSalesSettingsTests(TestCase):
         self.assertIn("window.LAS_CUSTOMER", html)
         self.assertLess(html.index("window.LAS_CUSTOMER"), html.index('src="https://las.example/widget/v1/chat.js"'))
 
+    def test_tracker_binds_visitor_id_to_the_identity_owner(self):
+        # The persisted visitor id must be bound to the account it tracks and rotated when a
+        # DIFFERENT person shows up (logout / account switch on a shared browser) - while an
+        # anonymous visitor logging in keeps the id, so their pre-login history continues
+        # under the account instead of orphaning as a separate LAS visitor.
+        html = render_to_string(
+            "live_assisted_sales/tracker.html",
+            {
+                "live_assisted_sales": {
+                    "enabled": True,
+                    "events_url": "/live-assisted-sales/events/",
+                    "initial_cart": {},
+                    "customer": {},
+                    "widget_enabled": False,
+                }
+            },
+        )
+        self.assertIn("las_identity_owner", html)
+        self.assertIn("ensureIdentityOwner()", html)
+        # The owner check must run before the first event can mint/read the visitor id.
+        self.assertLess(html.index("ensureIdentityOwner()"), html.index("sendInitialEvents()"))
+
     @patch("apps.live_assisted_sales.client.LiveAssistedSalesClient.test_connection")
     def test_connection_failure_keeps_last_known_public_key(self, test_connection_mock):
         # A transient network error must NOT wipe a previously fetched public key, otherwise the
