@@ -1,3 +1,4 @@
+import ipaddress
 import logging
 from decimal import Decimal, InvalidOperation
 from uuid import uuid4
@@ -57,15 +58,64 @@ def session_id_from_request(request):
     )
 
 
+# Address ranges our own infrastructure uses when it talks to itself (reverse proxy, Docker,
+# load balancer). An entry in these ranges is a hop we added, never the shopper, so
+# client_ip_from_request() walks past them. Mirrors las-backend apps/live/request_utils.py -
+# keep the two in sync.
+_INFRASTRUCTURE_NETWORKS = tuple(
+    ipaddress.ip_network(cidr)
+    for cidr in (
+        "0.0.0.0/8",  # "this network"
+        "10.0.0.0/8",  # RFC 1918
+        "100.64.0.0/10",  # carrier-grade NAT, used by some managed load balancers
+        "127.0.0.0/8",  # loopback
+        "169.254.0.0/16",  # link-local
+        "172.16.0.0/12",  # RFC 1918
+        "192.168.0.0/16",  # RFC 1918
+        "::1/128",  # loopback
+        "fc00::/7",  # unique local
+        "fe80::/10",  # link-local
+    )
+)
+
+
+def _parse_forwarded_address(value):
+    """An X-Forwarded-For entry as an ip_address, or None when it is not one. Entries sometimes
+    carry a port ("203.0.113.7:41234", "[2001:db8::1]:443"); the port is dropped."""
+    value = value.strip().strip('"')
+    if value.startswith("[") and "]" in value:
+        value = value[1 : value.index("]")]
+    elif value.count(":") == 1:
+        value = value.split(":", 1)[0]
+    try:
+        address = ipaddress.ip_address(value)
+    except ValueError:
+        return None
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped:
+        return address.ipv4_mapped
+    return address
+
+
 def client_ip_from_request(request):
     """Real shopper IP for the event. Events are forwarded server-to-server to LAS, so LAS only sees
-    this app's server IP — we must capture the visitor's address here and pass it in the payload.
-    Honours X-Forwarded-For (first hop) when behind a proxy, else REMOTE_ADDR."""
+    this app's server IP — we must capture the visitor's address here and pass it in the payload,
+    and LAS trusts it as-is (write_key door).
+
+    X-Forwarded-For is client-writable: each proxy APPENDS the address of whoever connected to it,
+    so forged entries sit on the LEFT and the hops our own infrastructure wrote sit on the RIGHT.
+    Reading entry 0 (the previous behaviour) let any shopper choose the IP shown in the LAS console
+    and used for its ban/rate-limit matching, straight from a fetch() header. So walk from the
+    right and return the first entry that is not one of our own internal hops; fall back to
+    REMOTE_ADDR when the header is absent or holds nothing but internal hops. Ported from
+    las-backend apps/live/request_utils.client_ip - keep the two in sync."""
     if request is None:
         return ""
     forwarded = request.META.get("HTTP_X_FORWARDED_FOR", "")
     if forwarded:
-        return forwarded.split(",", 1)[0].strip()
+        for entry in reversed(forwarded.split(",")):
+            address = _parse_forwarded_address(entry)
+            if address is not None and not any(address in network for network in _INFRASTRUCTURE_NETWORKS):
+                return str(address)
     return request.META.get("REMOTE_ADDR", "") or ""
 
 

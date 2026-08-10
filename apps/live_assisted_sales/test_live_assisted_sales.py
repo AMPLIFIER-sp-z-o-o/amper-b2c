@@ -20,6 +20,7 @@ from .events import (
     build_event_payload,
     cart_payload,
     category_payload,
+    client_ip_from_request,
     dispatch_event,
     order_cart_payload,
     order_metadata,
@@ -1451,3 +1452,41 @@ class ConsentRegionTests(TestCase):
         request.session = {}
         request.user = Mock(is_authenticated=False)
         self.assertEqual(live_assisted_sales(request)["live_assisted_sales"]["consent_region"], "eu")
+
+
+class ClientIpFromRequestTests(SimpleTestCase):
+    """client_ip_from_request must not trust the client-writable left end of X-Forwarded-For: each
+    proxy APPENDS the address of whoever connected to it, so forged entries sit on the LEFT. Walk
+    from the right past our own infrastructure hops (mirrors las-backend request_utils.client_ip)."""
+
+    def _req(self, **meta):
+        return RequestFactory().get("/", **meta)
+
+    def test_falls_back_to_remote_addr_without_a_forwarded_header(self):
+        request = self._req(REMOTE_ADDR="203.0.113.7")
+        self.assertEqual(client_ip_from_request(request), "203.0.113.7")
+
+    def test_a_single_edge_proxy_yields_the_shopper_address(self):
+        request = self._req(HTTP_X_FORWARDED_FOR="198.51.100.44", REMOTE_ADDR="10.0.0.5")
+        self.assertEqual(client_ip_from_request(request), "198.51.100.44")
+
+    def test_a_forged_prefix_is_never_reached(self):
+        # A shopper can put anything in the header from fetch(); the edge appends their REAL address
+        # after it, so walking from the right must return the real one.
+        request = self._req(HTTP_X_FORWARDED_FOR="1.2.3.4, 198.51.100.44", REMOTE_ADDR="10.0.0.5")
+        self.assertEqual(client_ip_from_request(request), "198.51.100.44")
+
+    def test_internal_hops_are_walked_past(self):
+        request = self._req(HTTP_X_FORWARDED_FOR="198.51.100.44, 10.1.2.3, 172.16.0.9", REMOTE_ADDR="10.0.0.5")
+        self.assertEqual(client_ip_from_request(request), "198.51.100.44")
+
+    def test_a_header_of_nothing_but_internal_hops_falls_back_to_the_peer(self):
+        request = self._req(HTTP_X_FORWARDED_FOR="10.1.2.3, 192.168.0.7", REMOTE_ADDR="10.0.0.5")
+        self.assertEqual(client_ip_from_request(request), "10.0.0.5")
+
+    def test_a_port_suffix_is_dropped(self):
+        request = self._req(HTTP_X_FORWARDED_FOR="198.51.100.44:41234", REMOTE_ADDR="10.0.0.5")
+        self.assertEqual(client_ip_from_request(request), "198.51.100.44")
+
+    def test_none_request_yields_empty(self):
+        self.assertEqual(client_ip_from_request(None), "")
