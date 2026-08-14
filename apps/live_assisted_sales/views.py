@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 from .client import enqueue_event
 from .events import SUPPORTED_EVENT_TYPES, build_event_payload
 from .models import LiveAssistedSalesSettings
+from .search import parse_search_request, search_products, signature_is_valid
 
 MAX_BROWSER_PAYLOAD_BYTES = 32 * 1024
 
@@ -90,3 +91,24 @@ def browser_events(request):
 
     status = 200 if not errors else 400
     return JsonResponse({"ok": not errors, "sent": sent, "errors": errors}, status=status)
+
+
+@csrf_exempt
+@require_POST
+def product_search(request):
+    """Answer LAS's "which products can this shopper buy?" for the agent's chat picker.
+
+    Signed with the store API key both sides share (never keyed), so this stays closed to everyone
+    else even though it must be reachable from the internet. Returns only storefront-visible
+    products - an agent must not be able to send a hidden one into a chat.
+    """
+    settings_obj = LiveAssistedSalesSettings.get_solo()
+    if not settings_obj.enabled:
+        return JsonResponse({"detail": _("Integration is disabled.")}, status=403)
+    if not signature_is_valid(request, settings_obj.store_api_key):
+        return JsonResponse({"detail": _("Invalid signature.")}, status=403)
+    parsed = parse_search_request(request.body)
+    if parsed is None:
+        return JsonResponse({"detail": _("Invalid JSON payload.")}, status=400)
+    results = search_products(parsed["query"], limit=parsed["limit"], request=request)
+    return JsonResponse({"results": results})

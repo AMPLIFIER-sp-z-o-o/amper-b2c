@@ -51,6 +51,18 @@ class LiveAssistedSalesClient:
     def send_event(self, payload):
         return self._request("/api/ingest/store-events/", method="POST", payload=payload)
 
+    def announce_capabilities(self, product_search_url):
+        """Tell LAS where this shop answers product searches.
+
+        LAS deliberately knows no platform types, so every integration reports its own endpoint
+        instead of LAS deriving one. An empty string withdraws the capability.
+        """
+        return self._request(
+            "/api/ingest/store-events/config/",
+            method="POST",
+            payload={"product_search_url": product_search_url},
+        )
+
 
 def run_settings_connection_test(settings_obj):
     base_url = settings_obj.effective_base_url
@@ -119,7 +131,27 @@ def run_settings_connection_test(settings_obj):
     settings_obj.site_public_key = public_key
     message = _("Connection to %(store)s works correctly.") % {"store": store_name}
     settings_obj.record_test_result("success", message)
+    _announce_product_search(settings_obj, base_url)
     return True, message
+
+
+def _announce_product_search(settings_obj, base_url):
+    """Register this storefront's product-search endpoint with LAS. Best-effort: an older LAS that
+    does not understand the field, or a blip, must never turn a working connection test into a
+    failure - the agent picker simply falls back to its observed catalogue."""
+    from .search import search_endpoint_url
+
+    url = search_endpoint_url()
+    if not url:
+        return
+    try:
+        LiveAssistedSalesClient(
+            base_url,
+            settings_obj.store_api_key,
+            timeout=LiveAssistedSalesClient.CONNECTION_TEST_TIMEOUT,
+        ).announce_capabilities(url)
+    except Exception:
+        logger.info("Could not announce the product-search endpoint to LAS", exc_info=True)
 
 
 TARGET_PRIMARY = "primary"
