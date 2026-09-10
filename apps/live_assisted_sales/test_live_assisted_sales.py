@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
 from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 
+from apps.users.models import ShippingAddress
 from apps.web.models import SiteSettings
 
 from .admin import LiveAssistedSalesSettingsForm
@@ -27,6 +28,7 @@ from .events import (
     product_payload,
     track_begin_checkout,
     track_purchase,
+    user_metadata_from_request,
 )
 from .models import LiveAssistedSalesSettings
 
@@ -1490,3 +1492,127 @@ class ClientIpFromRequestTests(SimpleTestCase):
 
     def test_none_request_yields_empty(self):
         self.assertEqual(client_ip_from_request(None), "")
+
+
+class CustomerProfileEnrichmentTests(TestCase):
+    """Shopper-identity contract (las-backend docs/shopper-identity-fields-2026-09-10.md):
+    a pure B2C shop only ever sends phone/city/address, from the shopper's default shipping
+    address - no company/code/tax_id/group (those are B2B-only)."""
+
+    def setUp(self):
+        LiveAssistedSalesSettings.objects.all().delete()
+        self.user = get_user_model().objects.create_user(
+            username="shopper2@example.com", email="shopper2@example.com", first_name="Ania"
+        )
+
+    def _authed_request(self, **meta):
+        request = RequestFactory().get("/products/demo/", REMOTE_ADDR="198.51.100.9", **meta)
+        request.session = Mock()
+        request.session.session_key = "session-profile"
+        request.user = self.user
+        return request
+
+    def test_event_metadata_carries_phone_city_and_address(self):
+        ShippingAddress.objects.create(
+            user=self.user,
+            is_default=True,
+            full_name="Ania Nowak",
+            phone_country_code="+48",
+            phone_number="512413601",
+            shipping_city="Sopot",
+            shipping_postal_code="81-881",
+            shipping_street="Cieszyńskiego",
+            shipping_building_number="24",
+            shipping_apartment_number="",
+        )
+
+        payload = build_event_payload(self._authed_request(), "view_item")
+        user_meta = payload["metadata"]["user"]
+        self.assertEqual(user_meta["phone"], "+48 512413601")
+        self.assertEqual(user_meta["city"], "Sopot")
+        self.assertEqual(user_meta["address"], "Cieszyńskiego 24, 81-881 Sopot")
+        # B2C never sends the B2B-only identity fields.
+        self.assertNotIn("company", user_meta)
+        self.assertNotIn("code", user_meta)
+        self.assertNotIn("tax_id", user_meta)
+        self.assertNotIn("group", user_meta)
+
+    def test_apartment_number_is_appended_with_a_slash(self):
+        ShippingAddress.objects.create(
+            user=self.user,
+            is_default=True,
+            full_name="Ania Nowak",
+            phone_country_code="+48",
+            phone_number="512413601",
+            shipping_city="Sopot",
+            shipping_postal_code="81-881",
+            shipping_street="Cieszyńskiego",
+            shipping_building_number="24",
+            shipping_apartment_number="5",
+        )
+        user_meta = user_metadata_from_request(self._authed_request())
+        self.assertEqual(user_meta["address"], "Cieszyńskiego 24/5, 81-881 Sopot")
+
+    def test_falls_back_to_first_address_when_none_is_marked_default(self):
+        ShippingAddress.objects.create(
+            user=self.user,
+            is_default=False,
+            full_name="Ania Nowak",
+            phone_country_code="+48",
+            phone_number="500600700",
+            shipping_city="Gdynia",
+            shipping_postal_code="81-000",
+            shipping_street="Morska",
+            shipping_building_number="1",
+        )
+        user_meta = user_metadata_from_request(self._authed_request())
+        self.assertEqual(user_meta["city"], "Gdynia")
+
+    def test_no_shipping_address_omits_all_profile_fields(self):
+        user_meta = user_metadata_from_request(self._authed_request())
+        for key in ("phone", "city", "address"):
+            self.assertNotIn(key, user_meta)
+
+    def test_gdpr_withheld_pii_also_withholds_the_profile(self):
+        ShippingAddress.objects.create(
+            user=self.user,
+            is_default=True,
+            full_name="Ania Nowak",
+            phone_country_code="+48",
+            phone_number="512413601",
+            shipping_city="Sopot",
+            shipping_postal_code="81-881",
+            shipping_street="Cieszyńskiego",
+            shipping_building_number="24",
+        )
+        user_meta = user_metadata_from_request(self._authed_request(), include_pii=False)
+        for key in ("phone", "city", "address"):
+            self.assertNotIn(key, user_meta)
+
+    def test_widget_customer_payload_carries_the_profile(self):
+        LiveAssistedSalesSettings.objects.create(
+            pk=1,
+            enabled=True,
+            las_base_url="http://localhost:8001/",
+            store_api_key="site_sk_secret",
+            site_public_key="site_pk_live",
+        )
+        ShippingAddress.objects.create(
+            user=self.user,
+            is_default=True,
+            full_name="Ania Nowak",
+            phone_country_code="+48",
+            phone_number="512413601",
+            shipping_city="Sopot",
+            shipping_postal_code="81-881",
+            shipping_street="Cieszyńskiego",
+            shipping_building_number="24",
+        )
+        request = RequestFactory().get("/")
+        request.session = {}
+        request.user = self.user
+
+        customer = live_assisted_sales(request)["live_assisted_sales"]["customer"]
+        self.assertEqual(customer["phone"], "+48 512413601")
+        self.assertEqual(customer["city"], "Sopot")
+        self.assertEqual(customer["address"], "Cieszyńskiego 24, 81-881 Sopot")

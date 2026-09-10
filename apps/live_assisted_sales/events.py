@@ -119,6 +119,54 @@ def client_ip_from_request(request):
     return request.META.get("REMOTE_ADDR", "") or ""
 
 
+def _clean(value, max_length=255):
+    """Trim and cap a string field to the shopper-identity contract limit (255 chars)."""
+    return str(value or "").strip()[:max_length]
+
+
+def _format_shipping_address(address):
+    """One-line delivery address: "street building[/apartment], postal_code city", skipping
+    any part that is missing. Returns "" when nothing usable is set."""
+    street = _clean(getattr(address, "shipping_street", ""))
+    building = _clean(getattr(address, "shipping_building_number", ""))
+    apartment = _clean(getattr(address, "shipping_apartment_number", ""))
+    postal_code = _clean(getattr(address, "shipping_postal_code", ""))
+    city = _clean(getattr(address, "shipping_city", ""))
+
+    street_number = " ".join(part for part in (street, building) if part)
+    if apartment:
+        street_number = f"{street_number}/{apartment}" if street_number else apartment
+    locality = " ".join(part for part in (postal_code, city) if part)
+    return ", ".join(part for part in (street_number, locality) if part)
+
+
+def _customer_profile(user):
+    """Shopper-identity contract fields (docs/shopper-identity-fields-2026-09-10.md in
+    las-backend) available in a pure B2C shop: phone/city/address from the shopper's default
+    (fallback: first) shipping address. No company/code/tax_id/group here - those are B2B-only.
+    Returns only the non-empty keys. Never raises: analytics/widget identity must never break
+    checkout or page rendering."""
+    try:
+        profile = {}
+        address = user.shipping_addresses.filter(is_default=True).first() or user.shipping_addresses.first()
+        if address is None:
+            return profile
+        country_code = _clean(getattr(address, "phone_country_code", ""))
+        number = _clean(getattr(address, "phone_number", ""))
+        if country_code and number:
+            profile["phone"] = _clean(f"{country_code} {number}")
+        city = _clean(getattr(address, "shipping_city", ""))
+        if city:
+            profile["city"] = city
+        address_line = _format_shipping_address(address)
+        if address_line:
+            profile["address"] = address_line
+        return profile
+    except Exception:
+        logger.exception("Live Assisted Sales customer profile enrichment failed.")
+        return {}
+
+
 def user_metadata_from_request(request, *, include_pii=True):
     """Identity block for the event. ``include_pii=False`` (consent withheld) keeps the pseudonymous
     account id + authenticated status for operational linkage but DROPS the raw email/display name, so
@@ -141,13 +189,15 @@ def user_metadata_from_request(request, *, include_pii=True):
             or username
             or str(getattr(user, "pk", ""))
         )
-        return {
+        metadata = {
             "status": "authenticated",
             "authenticated": True,
             "id": str(getattr(user, "pk", "")),
             "email": email,
             "display": display,
         }
+        metadata.update(_customer_profile(user))
+        return metadata
     return {"status": "anonymous", "authenticated": False}
 
 

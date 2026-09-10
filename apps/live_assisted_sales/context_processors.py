@@ -7,7 +7,7 @@ from django.utils import translation
 
 from apps.cart.services import _get_cart_from_request
 
-from .events import _absolute_logo_url, cart_payload, client_ip_from_request
+from .events import _absolute_logo_url, _customer_profile, cart_payload, client_ip_from_request
 from .models import LiveAssistedSalesSettings
 
 logger = logging.getLogger(__name__)
@@ -188,6 +188,7 @@ def _widget_customer_payload(request, store_api_key=""):
         "name": display_name,
         "display": display_name,
     }
+    payload.update(_customer_profile(user))
     if store_api_key:
         exp, signature = _sign_customer_identity(payload["external_id"], email, store_api_key)
         payload["exp"] = exp
